@@ -1,0 +1,38 @@
+/* Multiple Choice ----------------------------------------------- */
+.multiple-choice .answer {
+    margin: 2px 0 !important;
+}
+
+.multiple-choice .answer .field {
+    padding: 0 5px !important;
+}
+
+.multiple-choice pre {
+    margin: 0;
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+.multiple-choice .view {
+    border: 1px dashed #ccc;
+    padding: 5px;
+    border-radius: 5px;
+    width: 100%;
+}
+
+
+/* Error Identify ----------------------------------------------- */
+.ErrorIdentify p {
+    line-height: 2em;
+}
+
+.ErrorIdentify u {
+    position: relative;
+}
+
+.ErrorIdentify u b {
+    position: absolute;
+    top: 10px;
+    left: 40%;
+}
+

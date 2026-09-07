@@ -1,0 +1,327 @@
+body {
+    margin: 0 auto;
+}
+
+#root,
+#AuthenticateView,
+#AnonymousView {
+    height: 100%;
+}
+
+#App {
+    height: calc(100% - 44px);
+}
+
+#topMenu {
+    border-radius: 0;
+}
+
+#ExamCreation {
+    display: flex;
+    height: 100%;
+}
+
+#ExamCreation p, #PreviewExam p {
+    display: inline-block;
+}
+
+#ExamCreation #leftMenu {
+    height: 100%;
+    width: 250px;
+    position: fixed;
+}
+
+#ExamCreation #leftMenu .exam-resume {
+    height: calc(100% - 44px);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+#ExamCreation #content {
+    width: 100%;
+    height: 100%;
+    margin: 0 10px 0 260px;
+}
+
+#ExamCreation #content .content-wrapper {
+    width: 100%;
+    height: calc(100% - 56px);
+}
+
+#ExamCreation #content .content-wrapper .ui.grid,
+#PreviewExam .ui.grid {
+    margin: 0;
+}
+
+#PreviewExam .answer .correct {
+    padding: 5px 5px 5px 10px;
+    border: 3px solid green;
+    border-radius: 50%;
+}
+
+.App {
+    padding: 10px;
+}
+
+.cursor {
+    cursor: pointer;
+}
+
+.separator {
+    border-bottom: 1px dashed #ccc;
+    margin: 5px 0;
+}
+
+.cap {
+    text-transform: capitalize;
+}
+
+.full-width {
+    width: 100% !important;
+}
+
+.no-border input {
+    border: 0 !important;
+}
+
+.no-margin {
+    margin: 0 !important;
+}
+
+.no-padding {
+    padding: 0 !important;
+}
+
+.label.view-mode {
+    text-align: left;
+    /*width: 100%;*/
+}
+
+.padding {
+    padding: 10px !important;
+}
+
+.margin {
+    margin: 10px !important;
+}
+
+.margin-top {
+    margin-top: 10px !important;
+}
+
+.margin-bottom {
+    margin-bottom: 10px !important;
+}
+
+.margin-left {
+    margin-left: 10px !important;
+}
+
+.txt-blue {
+    color: #2185d0 !important
+}
+
+.txt-orange {
+    color: #f2711c !important
+}
+
+.cursor {
+    cursor: pointer
+}
+
+.pre {
+    margin: 0;
+    font-family: inherit;
+    font-size: 1rem;
+}
+
+.clear-both {
+    clear: both;
+}
+
+.cut-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.segment .field {
+    margin-bottom: 5px;
+}
+
+.block {
+    display: block !important;
+}
+
+#ExamCreation .exam-section {
+    padding: 5px !important;
+    width: calc(100% - 108px);
+    min-height: 240px;
+}
+
+#ExamCreation .exam-section .rail {
+    visibility: hidden;
+}
+
+#ExamCreation .exam-section-wrapper {
+    margin: 10px 0;
+}
+
+#ExamCreation .exam-section-wrapper.active .rail {
+    visibility: visible;
+}
+
+#ExamCreation .exam-section-wrapper.active .segment {
+    transition: box-shadow 200ms, background 200ms;
+    box-shadow: rgb(204, 204, 204) 3px 3px 20px;
+    border-left: 3px solid #2185d0 !important;
+}
+
+#ExamCreation .ui.right.rail {
+    padding: 0;
+    margin: 0 0 0 10px;
+    width: auto;
+}
+
+#ExamCreation .exam-section .question-types {
+    margin: -1px;
+}
+
+#ExamCreation .exam-section .input {
+    width: 100% !important;
+}
+
+#ExamCreation .exam-section .segment {
+    padding: 5px;
+}
+
+#ExamCreation .exam-section .bottom-toolbar {
+    border-top: 1px dashed #ccc;
+    padding-top: 5px;
+}
+
+#ExamCreation .exam-section .bottom-toolbar .label {
+    display: inline-table;
+    margin-right: 10px;
+}
+
+#ExamCreation .exam-section .question {
+    margin-bottom: 18px;
+}
+
+/* Generic style ------------------------------------------------ */
+.text-muted {
+    color: #666 !important;
+    user-select: none;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.exam-section .field {
+    margin: 0 !important;
+}
+
+.answer {
+    margin: 5px 0 !important;
+}
+
+.answer-label {
+    color: #666;
+    font-style: italic;
+    margin-top: 5px;
+    user-select: none;
+}
+
+.bordered {
+    border: 1px solid #666;
+}
+
+/* Override medium-editor ------------------------------------------------ */
+.medium-editor-element {
+    border: none !important;
+    min-height: auto !important;
+    cursor: pointer;
+}
+
+.medium-editor-element:focus {
+    border: none !important;
+    outline: none;
+}
+
+.medium-editor-element p {
+    margin: 0;
+}
+
+/* PreviewExam ------------------------------------------------ */
+#PreviewExam {
+    fontFamily: Times New Roman, Times, serif;
+}
+
+#PreviewExam .question {
+    margin-bottom: 10px !important;
+}
+
+.single-choice-overflow {
+    display: block;
+    width: 100% !important;
+}
+
+/* Printing style ------------------------------------------------ */
+@media print {
+    .ui.page.modals.active {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        margin: 0;
+    }
+
+    .ui.page.modals.active .ui.modal.active {
+        margin-top: 0 !important;
+    }
+
+    #PreviewExam .answer .correct {
+        padding: 0;
+        border: none;
+    }
+
+    #PreviewExam .question{
+        page-break-inside: avoid;
+    }
+}
+
+/* Table list exam style */
+#tblExam {
+    max-width: 700px;
+    text-align: center;
+    margin: auto;
+}
+
+/* Material input */
+.medium-editor-element {
+    border: 0;
+    background: white no-repeat;
+    padding: 5px 0;
+
+    /*
+    * IMPORTANT PART HERE
+    */
+
+    /* 2 imgs : 1px gray line (normal state) AND 2px green line (focus state) */
+    background-image: linear-gradient(to bottom, #f2711c, #f2711c), linear-gradient(to bottom, silver, silver);
+    /* sizes for the 2 images (default state) */
+    background-size: 0 2px, 100% 0px;
+    /* positions for the 2 images. Change both "50%" to "0%" or "100%" and tri again */
+    background-position: 50% 100%, 50% 100%;
+
+    /* animation solely on background-size */
+    transition: background-size 0.3s cubic-bezier(0.64, 0.09, 0.08, 1);
+
+}
+
+.medium-editor-element:focus {
+    /* sizes for the 2 images (focus state) */
+    background-size: 100% 2px, 100% 1px;
+    outline: none;
+}
