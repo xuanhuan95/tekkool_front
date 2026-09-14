@@ -1,3 +1,4 @@
+import withRouter from '../../withRouter';
 import React, {Component, Fragment} from 'react';
 import {Button, Icon, Menu, Input, Dropdown, List, Popup} from 'semantic-ui-react';
 import {connectGlobalState} from "../../stateUtils";
@@ -100,6 +101,9 @@ class Dashboard extends Component {
                 </div>
                 :
                 <div id='content' className='margin-top'>
+                    {/* ponytail: giữ nguyên size="medium" của bản 2018 dù semantic-ui
+                        không có size này (chỉ mini/small/large/big/huge/massive).
+                        Nó bị bỏ qua khi render -> vô hại, chỉ warning trong console. */}
                     <Input style={{float: 'right'}}
                            size="medium"
                            icon={{name: 'search', circular: true, link: true}}
@@ -147,4 +151,4 @@ class Dashboard extends Component {
     }
 }
 
-export default connectGlobalState(Dashboard);
+export default withRouter(connectGlobalState(Dashboard));

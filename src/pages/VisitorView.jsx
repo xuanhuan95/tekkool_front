@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import { Switch, Route } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import TopToolbar from './TopToolbar'
 
 import DoExam from './exam-creation/DoExam';
@@ -10,10 +10,10 @@ class VisitorView extends Component {
         return (
             <div id="VisitorView">
                 <TopToolbar />
-                <Switch>
-                  <Route exact path='/' component={Dashboard}/>
-                  <Route path='/do-exam/:examId' component={DoExam}/>
-                </Switch>
+                <Routes>
+                  <Route path='/' element={<Dashboard/>}/>
+                  <Route path='/do-exam/:examId' element={<DoExam/>}/>
+                </Routes>
             </div>
         )
     }

@@ -2,7 +2,7 @@ import React from "react";
 import Default from "../exam-creation/Default";
 import {Button, Icon, Dropdown, Popup} from 'semantic-ui-react';
 import {Link} from 'react-router-dom';
-import toastr from 'toastr';
+import toast from 'react-hot-toast';
 import Api from "../../services/api";
 import striptags from "striptags";
 import {connectGlobalState} from "../../stateUtils";
@@ -15,7 +15,7 @@ class ExamFile extends React.Component {
             let exams = await Api.get('exam/list');
             this.setGlobalState({exams});
 
-            toastr.success('Delete exam success');
+            toast.success('Delete exam success');
         }
     };
 
@@ -26,7 +26,7 @@ class ExamFile extends React.Component {
         let exams = await Api.get('exam/list');
 
         this.setGlobalState({exams});
-        toastr.success('Duplicated exam');
+        toast.success('Duplicated exam');
     };
 
     render() {

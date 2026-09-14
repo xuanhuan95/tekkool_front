@@ -1,3 +1,4 @@
+import withRouter from '../../withRouter';
 import React, {Component} from 'react';
 import {Button, Segment, Icon, Input} from 'semantic-ui-react'
 import {Link} from 'react-router-dom';
@@ -147,4 +148,4 @@ class Login extends Component {
     }
 }
 
-export default connectGlobalState(Login);
+export default withRouter(connectGlobalState(Login));

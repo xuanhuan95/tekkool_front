@@ -1,3 +1,4 @@
+import withRouter from '../../withRouter';
 import React, {Component} from 'react';
 import { Button, Form, Segment } from 'semantic-ui-react'
 import {connectGlobalState} from "../../stateUtils";
@@ -50,4 +51,4 @@ class Register extends Component {
     }
 }
 
-export default connectGlobalState(Register);
+export default withRouter(connectGlobalState(Register));

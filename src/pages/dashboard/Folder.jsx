@@ -1,3 +1,4 @@
+import withRouter from '../../withRouter';
 import React from 'react';
 import {Link} from 'react-router-dom';
 import striptags from 'striptags';
@@ -42,4 +43,4 @@ class Folder extends React.Component {
     }
 }
 
-export default Folder;
+export default withRouter(Folder);

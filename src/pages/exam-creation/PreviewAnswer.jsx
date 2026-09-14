@@ -1,5 +1,5 @@
 import React from 'react';
-import renderHTML from 'react-render-html';
+import renderHTML from '../../components/SafeHtml';
 import {connectGlobalState} from "../../stateUtils";
 import {Grid} from 'semantic-ui-react';
 
