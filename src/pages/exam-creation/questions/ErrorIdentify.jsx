@@ -124,20 +124,11 @@ export default class ErrorIdentify extends BaseQuestion {
         }
     };
 
+    // ponytail: bỏ đoạn Zepto đánh số A/B/C vào từng .check-item — CSS counter
+    // trong Editor.css làm việc đó rồi, và window.$ không còn tồn tại nên đoạn
+    // cũ ném "$ is not a function" ngay khi bấm nút chuyển-thành-đáp-án.
     onToAnswerButton = (content) => {
         this.addAnswer(content);
-
-        let questionMedium = this.refQuestion.current.medium;
-        let question = questionMedium.getContent();
-
-        let $ = window.$;
-
-        question = $(question);
-        question.find('.check-item').each((idx, el) => {
-            $(el).html(String.fromCharCode(65 + idx));
-        });
-
-        questionMedium.setContent(question[0].outerHTML);
     };
 
     render() {

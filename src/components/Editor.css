@@ -1,0 +1,35 @@
+.tt-editor { border: 1px solid #d4d4d5; border-radius: 4px; background: #fff; }
+
+.tt-toolbar {
+    display: flex; gap: 2px; padding: 4px 6px;
+    border-bottom: 1px solid #ececec; background: #fafafa;
+    border-radius: 4px 4px 0 0;
+}
+.tt-btn {
+    min-width: 28px; height: 28px; padding: 0 6px;
+    border: 0; border-radius: 3px; background: transparent;
+    cursor: pointer; color: #555; font-size: 14px; line-height: 1;
+}
+.tt-btn:hover { background: #ececec; }
+.tt-btn.active { background: #e0e1e2; color: #1b1c1d; }
+
+.tt-editor .ProseMirror { padding: 8px 11px; outline: none; min-height: 2.2em; }
+.tt-editor .ProseMirror p { margin: 0 0 .3em; }
+.tt-editor .ProseMirror p:last-child { margin-bottom: 0; }
+
+/* Placeholder: Tiptap gắn data-placeholder vào node rỗng đầu tiên */
+.tt-editor .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left; height: 0; pointer-events: none; color: #bbb;
+}
+
+/* ponytail: CSS counter tự đánh A, B, C — thay đoạn jQuery sửa DOM ở
+   ErrorIdentify.js:133. Thêm/xoá vị trí là số tự nhảy, không cần chạy lại hàm. */
+.tt-editor .ProseMirror,
+.question.ErrorIdentify { counter-reset: check-item; }
+.check-item {
+    display: inline-block; min-width: 1.4em; margin: 0 2px;
+    text-align: center; font-weight: 700; color: #db2828;
+    border-bottom: 2px solid #db2828;
+}
+.check-item::before { counter-increment: check-item; content: counter(check-item, upper-alpha); }
