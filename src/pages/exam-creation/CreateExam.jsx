@@ -1,7 +1,7 @@
+import withRouter from '../../withRouter';
 import React from 'react';
 import {Segment, Icon, Menu, Loader, Divider, Modal, Grid, Sticky} from 'semantic-ui-react';
-import 'toastr/build/toastr.min.css'
-import toastr from 'toastr';
+import toast from 'react-hot-toast';
 
 import Api from "../../services/api";
 import Section from './Section';
@@ -76,7 +76,7 @@ class CreateExam extends React.Component {
 
     save = async (successMsg) => {
         await Api.post('exam/create', this.globalState.exam);
-        toastr.success(successMsg);
+        toast.success(successMsg);
     };
 
     printExam = () => {
@@ -88,20 +88,27 @@ class CreateExam extends React.Component {
         this.setState({modalPrint: false});
     };
 
+    // ponytail: Element.closest + classList thay Zepto — bỏ luôn vendor/zepto.min.js.
     onMouseOver = ({target}) => {
-        let currentSection = window.$(target).closest('.exam-section-wrapper');
-        if (!currentSection.hasClass('active')) currentSection.addClass('active');
+        let s = target.closest('.exam-section-wrapper');
+        if (s) s.classList.add('active');
     };
 
     onMouseOut = ({target}) => {
-        let currentSection = window.$(target).closest('.exam-section-wrapper');
-        currentSection.removeClass('active');
+        let s = target.closest('.exam-section-wrapper');
+        if (s) s.classList.remove('active');
     };
 
     componentDidMount(){
         this.autoSaveInterval = setInterval(()=>{
             this.save('Auto save successfully')
         }, 120000)
+    }
+
+    // ponytail: bug gốc 2018 — không clear interval khi unmount, nên rời trang
+    // xong 2 phút sau vẫn POST exam/create bằng state cũ (sinh ra đề rỗng trong DB).
+    componentWillUnmount(){
+        clearInterval(this.autoSaveInterval);
     }
 
     render() {
@@ -231,4 +238,4 @@ class CreateExam extends React.Component {
 }
 
 
-export default connectGlobalState(CreateExam);
+export default withRouter(connectGlobalState(CreateExam));

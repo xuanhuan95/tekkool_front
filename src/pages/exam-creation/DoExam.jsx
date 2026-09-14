@@ -1,5 +1,6 @@
+import withRouter from '../../withRouter';
 import React, {Fragment} from 'react';
-import renderHTML from 'react-render-html';
+import renderHTML from '../../components/SafeHtml';
 import striptags from 'striptags';
 
 import {connectGlobalState} from "../../stateUtils";
@@ -53,6 +54,12 @@ class DoExam extends React.Component {
             })
         });
         this.setState({exam});
+    };
+
+    // ponytail: bug gốc 2018 — rời trang giữa chừng thì setInterval đếm giờ vẫn
+    // chạy và setState trên component đã unmount (React 18 cảnh báo memory leak).
+    componentWillUnmount = () => {
+        clearInterval(this._counter);
     };
 
     finish = () => {
@@ -122,12 +129,12 @@ class DoExam extends React.Component {
                                             <span>{renderHTML(q.data.question)}</span>
                                             <Radio label='A.True'
                                                    checked={q.markedAnswer==='true'}
-                                                   name='answerTrueFale'
+                                                   name={'answerTrueFale-' + q.id}
                                                    onChange={() => this.setAnswer(q.id, 'true')}/>
                                             <br/>
                                             <Radio label='B.False'
                                                    checked={q.markedAnswer==='false'}
-                                                   name='answerTrueFale'
+                                                   name={'answerTrueFale-' + q.id}
                                                    onChange={() => this.setAnswer(q.id, 'false')}/>
                                         </div>
                                         }
@@ -137,13 +144,15 @@ class DoExam extends React.Component {
                                             {striptags(q.data.question) ? renderHTML(q.data.question) : ''}
 
                                             <div className='no-margin no-padding'>
+                                                {/* ponytail: bug gốc 2018 — mọi câu chung name='answer' nên
+                                                    chọn câu sau bỏ chọn câu trước. Nhóm radio theo id câu hỏi. */}
                                                 {q.data.answers && q.data.answers.map((answer, i) => {
                                                     let checked = answer.value === q.markedAnswer;
 
                                                     return <div key={i}>
                                                         <Radio type='radio' value={answer.value}
                                                                label={numToChar(i) + '. ' + answer.value}
-                                                               name='answer'
+                                                               name={'answer-' + q.id}
                                                                onChange={(e, {value}) => this.setAnswer(q.id, value)}
                                                                checked={checked}
                                                         />
@@ -200,4 +209,4 @@ class DoExam extends React.Component {
     }
 }
 
-export default connectGlobalState(DoExam);
+export default withRouter(connectGlobalState(DoExam));

@@ -1,5 +1,5 @@
 import React, {Fragment} from 'react';
-import renderHTML from 'react-render-html';
+import renderHTML from '../../components/SafeHtml';
 import {connectGlobalState} from "../../stateUtils";
 import {ExamHeader} from "./ExamHeader";
 import striptags from 'striptags';
@@ -44,6 +44,13 @@ class PreviewExam extends React.Component {
             this.props.closeModal();
 
             let w = window.open();
+
+            // ponytail: window.open() trả null khi trình duyệt chặn popup ->
+            // code gốc 2018 nổ TypeError im lặng. Báo cho user thay vì crash.
+            if (!w) {
+                alert('Trình duyệt đang chặn popup. Hãy cho phép popup cho trang này để in.');
+                return;
+            }
 
             w.document.write('<html><head><title>Tekkool</title>');
             w.document.write('</head><body>');

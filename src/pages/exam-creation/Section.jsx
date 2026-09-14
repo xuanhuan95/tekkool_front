@@ -55,6 +55,13 @@ class Section extends React.Component {
             setNestedValue(exam, `sections[id=${section.id}].questions`, newState.questions);
         }
 
+        // ponytail: bug gốc 2018 — addQuestion() gọi setSectionState({question_type})
+        // nhưng hàm này chỉ xử lý name/questions, nên section mới không bao giờ có
+        // field đó -> POST exam/create trả 500 KeyError: 'question_type'.
+        if ('question_type' in newState) {
+            setNestedValue(exam, `sections[id=${section.id}].question_type`, newState.question_type);
+        }
+
         this.setGlobalState({exam});
     };
 
