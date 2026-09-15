@@ -14,10 +14,15 @@ export default class Default {
     });
 
 
+    // ponytail: bug gốc 2018 — BE apis/exam.py:31 đọc s['question_type'] (bắt buộc)
+    // nhưng section chỉ có field này sau khi thêm câu hỏi đầu tiên. Bấm Save (hoặc
+    // auto-save sau 2 phút) khi section còn rỗng -> 500 KeyError. Model BE để
+    // StringField() không required nên giá trị mặc định ở đây là đủ.
     static section = (examId) => ({
         id: 'S_' + uuid(),
         exam: examId,
         name: '',
+        question_type: '',
         questions: []
     });
 
