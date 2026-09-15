@@ -38,7 +38,7 @@ class Login extends Component {
             <Segment className='text-center'>
 
                 <Input id='email' fluid icon='user' iconPosition='left' placeholder='Email' />
-                <Input id='password' className='margin-top' fluid icon='lock' iconPosition='left' placeholder='Email' type='password' />
+                <Input id='password' className='margin-top' fluid icon='lock' iconPosition='left' placeholder='Password' type='password' />
 
 
                 <div className='actions margin-top'>
