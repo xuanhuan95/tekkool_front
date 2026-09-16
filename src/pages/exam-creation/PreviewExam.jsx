@@ -77,6 +77,10 @@ class PreviewExam extends React.Component {
     render() {
         let {exam} = this.globalState;
         let qIdx = 0;
+        // ponytail: bug gốc 2018 — đáp án in thẳng vào bản đề cho học sinh (cả bản
+        // in giấy). Component này dùng chung cho Preview exam và Print, cả hai đều
+        // là bản học sinh -> mặc định ẩn. PreviewAnswer.jsx lo phần đáp án.
+        let showAnswer = this.props.showAnswer === true;
         return <div id="PreviewExam" style={{fontFamily: '"Times New Roman", Times, serif'}}>
             <Grid>
                 <Grid.Column width={4} className='text-center'>
@@ -111,7 +115,7 @@ class PreviewExam extends React.Component {
                                 <br/>
                                 <span style={marginLeft}>{renderHTML(q.data.question || '')}</span>
 
-                                <div className="answer">{renderHTML(q.data.answer || '')}</div>
+                                {showAnswer && <div className="answer">{renderHTML(q.data.answer || '')}</div>}
                             </div>
                             }
 
@@ -124,11 +128,14 @@ class PreviewExam extends React.Component {
                                 <span style={marginLeft}>A. True</span>
                                 <span style={marginLeft}>B. False</span>
 
-                                <div className="answer">{q.data.answer ? 'A. True' : 'B. False'}</div>
+                                {showAnswer && <div className="answer">{q.data.answer ? 'A. True' : 'B. False'}</div>}
                             </div>
                             }
 
-                            {(q.type === 'SingleChoice' || q.type === 'ErrorIdentify') &&
+                            {/* ponytail: bug gốc 2018 — so với 'SingleChoice', một type app
+                                không hề tạo ra (Section.jsx chỉ sinh 'MultipleChoice'), nên mọi
+                                câu trắc nghiệm biến mất khỏi Preview và bản in. */}
+                            {(q.type === 'MultipleChoice' || q.type === 'ErrorIdentify') &&
                             <div className={'question ' + q.type} style={pageNonBreak}>
                                 <span style={boldText}>Question {qIdx}:</span>
                                 {striptags(q.data.question) ? renderHTML(q.data.question) : ''}
@@ -144,7 +151,7 @@ class PreviewExam extends React.Component {
                                                 className='answer no-margin no-padding'
                                                 width={columnWidthSingleChoice} key={i}
                                             >
-                                                <b className={answer.id === q.data.correctAnswerId ? 'correct' : ''}>{this.numToChar(i)}. </b>
+                                                <b className={showAnswer && answer.id === q.data.correctAnswerId ? 'correct' : ''}>{this.numToChar(i)}. </b>
 
                                                 {renderHTML(answer.value || '')}
                                             </Grid.Column>
