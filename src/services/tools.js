@@ -7,4 +7,3 @@ let _numToChar = (n) => {
 
 export var getValueById = _getValueById;
 export var numToChar = _numToChar;
-

@@ -169,6 +169,11 @@ class PreviewExam extends React.Component {
 
                                 {striptags(q.data.question) ? renderHTML(q.data.question) : ''}
 
+                                {q.data.max_words > 0 &&
+                                <div><i>(Viết không quá {q.data.max_words} từ)</i></div>}
+                                {q.data.max_chars > 0 &&
+                                <div><i>(Viết không quá {q.data.max_chars} ký tự)</i></div>}
+
                                 <div>...................................................................................</div>
                             </div>
                             }
