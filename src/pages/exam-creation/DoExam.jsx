@@ -4,7 +4,7 @@ import renderHTML from '../../components/SafeHtml';
 import striptags from 'striptags';
 
 import {connectGlobalState} from "../../stateUtils";
-import {Dimmer, Loader, Segment, Radio, Grid, Button, Icon, Rail, Sticky} from 'semantic-ui-react';
+import {Dimmer, Loader, Segment, Radio, Grid, Button, Icon, Rail, Sticky, Message} from 'semantic-ui-react';
 import {numToChar} from "../../services/tools";
 import {Editor} from "../../components/Editor";
 import Api from "../../services/api";
@@ -17,7 +17,10 @@ class DoExam extends React.Component {
         startAt: null,
         endAt: null,
         passedTime: 0,
-        remainingTime: 0
+        remainingTime: 0,
+        loadError: null,
+        submitting: false,
+        submitted: false
     };
 
     constructor(props) {
@@ -30,8 +33,16 @@ class DoExam extends React.Component {
 
     componentDidMount = async () => {
         let {examId} = this.props.match.params;
-        let exam = await Api.get('exam/during_test/' + examId);
-        this.setState({exam});
+
+        // ponytail: api.js reject khi code!==200 -> không bắt thì 403 (đề có phí)
+        // nuốt im lặng thành loader quay mãi.
+        try {
+            let exam = await Api.get('exam/during_test/' + examId);
+            this.setState({exam});
+        } catch (e) {
+            if (e && e.code === 403) return this.props.history.push('/payment/' + examId);
+            this.setState({loadError: (e && (e.error || e.message)) || 'Không tải được đề thi'});
+        }
     };
 
     setAnswer = async (questionId, answer) => {
@@ -62,11 +73,24 @@ class DoExam extends React.Component {
         clearInterval(this._counter);
     };
 
-    finish = () => {
-        let {passedTime} = this.state;
+    // ponytail: bug gốc 2018 — finish() chỉ alert(), không gọi API nào. Giờ nó
+    // là chỗ ĐÓNG LƯỢT THI: nộp bài xong đơn hết hiệu lực, làm lại phải mua đơn mới.
+    finish = async () => {
+        let {passedTime, submitting, submitted} = this.state;
+        if (submitting || submitted) return;
+
+        if (!window.confirm('Nộp bài? Sau khi nộp, muốn làm lại đề này bạn phải mua lượt mới.')) return;
+
+        this.setState({submitting: true});
+        try {
+            await Api.post('exam/submit/' + this.props.match.params.examId);
+        } catch (e) {
+            this.setState({submitting: false});
+            return alert((e && (e.error || e.message)) || 'Nộp bài thất bại, thử lại.');
+        }
 
         clearInterval(this._counter);
-        alert("Congratulations. You've finished the exam in: " + Math.floor(passedTime / 60) + ' minutes');
+        this.setState({submitting: false, submitted: true, passedTime});
     };
 
     startExam = () => {
@@ -89,8 +113,21 @@ class DoExam extends React.Component {
         let {exam, remainingTime, startAt} = this.state;
         let qIdx = 0;
 
+        if (this.state.loadError) {
+            return <Message negative className='margin'>{this.state.loadError}</Message>;
+        }
+
         if (!exam) {
             return <Dimmer active={true}><Loader/></Dimmer>;
+        }
+
+        if (this.state.submitted) {
+            return <Segment className='margin text-center' padded='very'>
+                <Icon name='check circle' color='green' size='huge'/>
+                <h2>Đã nộp bài</h2>
+                <p>Thời gian làm bài: {Math.floor(this.state.passedTime / 60)} phút</p>
+                <Button primary onClick={() => this.props.history.push('/')}>Về trang chủ</Button>
+            </Segment>;
         }
 
         return <Grid id="Exam" className='margin padding'>
@@ -170,6 +207,8 @@ class DoExam extends React.Component {
                                                 onChange={answer => this.setAnswer(q.id, answer)}
                                                 disableReturn={true}
                                                 disableStyle={true}
+                                                maxChars={q.data.max_chars}
+                                                maxWords={q.data.max_words}
                                                 text={q.markedAnswer}
                                             />
                                         </div>
@@ -197,8 +236,9 @@ class DoExam extends React.Component {
                             }
 
                             {startAt &&
-                            <Button onClick={this.finish} color='blue' fluid className='margin-top'>
-                                <Icon name='check'/> Finish
+                            <Button onClick={this.finish} color='blue' fluid className='margin-top'
+                                    loading={this.state.submitting} disabled={this.state.submitting}>
+                                <Icon name='check'/> Nộp bài
                             </Button>
                             }
                         </Sticky>

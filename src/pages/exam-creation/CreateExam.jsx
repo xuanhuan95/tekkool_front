@@ -1,6 +1,6 @@
 import withRouter from '../../withRouter';
 import React from 'react';
-import {Segment, Icon, Menu, Loader, Divider, Modal, Grid, Sticky} from 'semantic-ui-react';
+import {Segment, Icon, Menu, Loader, Divider, Modal, Grid, Sticky, Input} from 'semantic-ui-react';
 import toast from 'react-hot-toast';
 
 import Api from "../../services/api";
@@ -187,11 +187,23 @@ class CreateExam extends React.Component {
                                     />
                                 </Grid.Column>
 
-                                <Grid.Column width={12}>
+                                <Grid.Column width={8}>
                                     <Editor
                                         text={exam.right_header}
                                         placeholder='Right header here...'
                                         onChange={right_header => this.setExamData({right_header})}
+                                    />
+                                </Grid.Column>
+
+                                <Grid.Column width={4}>
+                                    <Input
+                                        fluid
+                                        type='number'
+                                        min={0}
+                                        label='Giá (đ)'
+                                        placeholder='0 = miễn phí'
+                                        value={exam.price === undefined ? Default.PRICE : exam.price}
+                                        onChange={(e, {value}) => this.setExamData({price: parseInt(value, 10) || 0})}
                                     />
                                 </Grid.Column>
                             </Grid.Row>

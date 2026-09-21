@@ -1,10 +1,11 @@
 import withRouter from '../../withRouter';
-import React, {Component, Fragment} from 'react';
+import React, {Component} from 'react';
 import {Button, Icon, Menu, Input, Dropdown, List, Popup} from 'semantic-ui-react';
 import {connectGlobalState} from "../../stateUtils";
 import {Link} from 'react-router-dom';
 import Api from '../../services/api';
 import ExamFile from './ExamFile';
+import SubjectBrowser from './SubjectBrowser';
 
 
 class Dashboard extends Component {
@@ -23,6 +24,12 @@ class Dashboard extends Component {
     };
 
     componentDidMount = async () => {
+        // ponytail: KHÔNG chặn theo isTeacher() ở đây. connectGlobalState chỉ
+        // đăng ký watcher khi globalState được đọc trong render, nên lúc
+        // componentDidMount chạy `auth` có thể chưa sẵn sàng -> isTeacher()
+        // trả false và GIÁO VIÊN bị return sớm, folder không bao giờ load
+        // (đúng lỗi "Folder/Document rỗng"). Cứ gọi API: học sinh nhận []
+        // là xong, rẻ hơn nhiều so với một màn hình trắng.
         let exams = await Api.get('exam/list');
         let folders = await Api.get('folder/list');
 
@@ -32,6 +39,12 @@ class Dashboard extends Component {
 
         this.setGlobalState({exams});
         this.setState({folders, nextUrl});
+    };
+
+    // group là string id ('teacher' | 'student' | 'visitor').
+    isTeacher = () => {
+        let {auth} = this.globalState;
+        return !!(auth && auth.user && auth.user.group === 'teacher');
     };
 
     createFolder = async () => {
@@ -63,13 +76,13 @@ class Dashboard extends Component {
     };
 
     render() {
-        let {activeItem, folders, folderExams, nextUrl} = this.state;
+        let {activeItem, folders, folderExams} = this.state;
         let folderOptions = folders.map(f => ({text: f.name, value: f.id}));
         folderOptions.unshift({text: '---root---', value: null});
-        let {auth, exams} = this.globalState;
-        let {user} = auth;
+        let {exams} = this.globalState;
+        if (!exams) exams = [];
 
-        if(!exams) exams = [];
+        if (!this.isTeacher()) return <SubjectBrowser/>;
 
         return <div id='ExamCreation' className='margin'>
             <Menu id='leftMenu' vertical pointing>
@@ -88,65 +101,52 @@ class Dashboard extends Component {
                 </Menu.Item>
             </Menu>
 
-            {user.group === 'visitor' ?
-                <div id='content' className='margin-top'>
-                    <h3>You are visitor, please paste link do exam to brower</h3>
-                    <Fragment>
-                        {nextUrl &&
-                        <Link to={nextUrl}>
-                            <Button>Do Exam</Button>
-                        </Link>
-                        }
-                    </Fragment>
-                </div>
-                :
-                <div id='content' className='margin-top'>
-                    {/* ponytail: giữ nguyên size="medium" của bản 2018 dù semantic-ui
-                        không có size này (chỉ mini/small/large/big/huge/massive).
-                        Nó bị bỏ qua khi render -> vô hại, chỉ warning trong console. */}
-                    <Input style={{float: 'right'}}
-                           size="medium"
-                           icon={{name: 'search', circular: true, link: true}}
-                           placeholder='Search...'
-                    />
+            <div id='content' className='margin-top'>
+                {/* ponytail: giữ nguyên size="medium" của bản 2018 dù semantic-ui
+                    không có size này (chỉ mini/small/large/big/huge/massive).
+                    Nó bị bỏ qua khi render -> vô hại, chỉ warning trong console. */}
+                <Input style={{float: 'right'}}
+                       size="medium"
+                       icon={{name: 'search', circular: true, link: true}}
+                       placeholder='Search...'
+                />
 
-                    <Button onClick={this.createFolder}>Create folder</Button>
+                <Button onClick={this.createFolder}>Create folder</Button>
 
-                    <List className='margin-top' verticalAlign='middle'>
-                        Folder
-                        {folders.map(folder =>
-                            <List.Item onClick={() => this.setActiveFolder(folder.id)}
-                                       key={folder.id}
-                                       className='cursor'
-                            >
-                                <List.Icon size='big'
-                                           name={this.isActiveFolder(folder.id) ? 'folder open outline' : 'folder outline'}/>
-                                <List.Content>
-                                    <List.Header as='h2'>{folder.name}</List.Header>
+                <List className='margin-top' verticalAlign='middle'>
+                    Folder
+                    {folders.map(folder =>
+                        <List.Item onClick={() => this.setActiveFolder(folder.id)}
+                                   key={folder.id}
+                                   className='cursor'
+                        >
+                            <List.Icon size='big'
+                                       name={this.isActiveFolder(folder.id) ? 'folder open outline' : 'folder outline'}/>
+                            <List.Content>
+                                <List.Header as='h2'>{folder.name}</List.Header>
 
-                                    {this.isActiveFolder(folder.id) &&
-                                    <List.List>
-                                        {folderExams.map(exam =>
-                                            <List.Item key={exam.id}>
-                                                <ExamFile exam={exam} folderOptions={folderOptions}
-                                                          moveToFolder={this.moveToFolder}/>
-                                            </List.Item>
-                                        )}
-                                    </List.List>
-                                    }
-                                </List.Content>
-                            </List.Item>
-                        )}
+                                {this.isActiveFolder(folder.id) &&
+                                <List.List>
+                                    {folderExams.map(exam =>
+                                        <List.Item key={exam.id}>
+                                            <ExamFile exam={exam} folderOptions={folderOptions}
+                                                      moveToFolder={this.moveToFolder}/>
+                                        </List.Item>
+                                    )}
+                                </List.List>
+                                }
+                            </List.Content>
+                        </List.Item>
+                    )}
 
-                        Document
-                        {exams.map(exam =>
-                            <List.Item key={exam.id}>
-                                <ExamFile exam={exam} folderOptions={folderOptions} moveToFolder={this.moveToFolder}/>
-                            </List.Item>
-                        )}
-                    </List>
-                </div>
-            }
+                    Document
+                    {exams.map(exam =>
+                        <List.Item key={exam.id}>
+                            <ExamFile exam={exam} folderOptions={folderOptions} moveToFolder={this.moveToFolder}/>
+                        </List.Item>
+                    )}
+                </List>
+            </div>
         </div>
     }
 }
