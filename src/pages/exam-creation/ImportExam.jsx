@@ -13,6 +13,14 @@ class ImportExam extends Component {
         warnings: [],
         picked: {},
         saving: false,
+        folder: null,
+    };
+
+    componentDidMount = async () => {
+        let id = new URLSearchParams(this.props.location.search).get('folder');
+        if (!id) return;
+        let folders = await Api.get('folder/list');
+        this.setState({folder: folders.find(f => f.id === id) || null});
     };
 
     refFile = React.createRef();
@@ -60,12 +68,19 @@ class ImportExam extends Component {
         try {
             // ponytail: gọi tuần tự, không Promise.all. 20 đề x 12 câu = 240
             // lượt ghi Question; bắn song song dễ làm server 2 nhân nghẹn.
-            for (let exam of chosen) await Api.post('exam/create', exam);
+            let folder = new URLSearchParams(this.props.location.search).get('folder');
+            for (let exam of chosen) {
+                await Api.post('exam/create', exam);
+                // exam/create không nhận folder -> dùng move_to_folder sẵn có.
+                if (folder) await Api.post('exam/move_to_folder', {examId: exam.id, folderId: folder});
+            }
             this.props.history.push('/');
         } catch (e) {
             this.setState({error: e.message || 'Lưu đề thất bại', saving: false});
         }
     };
+
+    folderName = () => this.state.folder && this.state.folder.name;
 
     countQuestions = (exam) => exam.sections.reduce((n, s) => n + s.questions.length, 0);
 
@@ -78,7 +93,10 @@ class ImportExam extends Component {
                 <Icon name='file word outline'/>
                 <Header.Content>
                     Nhập đề từ file Word
-                    <Header.Subheader>Xem trước rồi mới lưu — chưa ghi vào hệ thống</Header.Subheader>
+                    <Header.Subheader>
+                        Xem trước rồi mới lưu — chưa ghi vào hệ thống
+                        {this.folderName() && ` · lưu vào thư mục ${this.folderName()}`}
+                    </Header.Subheader>
                 </Header.Content>
             </Header>
 

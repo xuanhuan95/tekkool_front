@@ -75,7 +75,18 @@ class CreateExam extends React.Component {
     };
 
     save = async (successMsg) => {
-        await Api.post('exam/create', this.globalState.exam);
+        let {exam} = this.globalState;
+        await Api.post('exam/create', exam);
+
+        // ponytail: exam/create KHÔNG nhận field folder (BE giữ folder của bản
+        // cũ, đề mới -> null). Gọi move_to_folder sẵn có thay vì sửa BE.
+        // Chỉ chạy một lần: sau đó folder đã có, lần save sau BE tự giữ.
+        let folder = new URLSearchParams(this.props.location.search).get('folder');
+        if (folder && !this.movedToFolder) {
+            await Api.post('exam/move_to_folder', {examId: exam.id, folderId: folder});
+            this.movedToFolder = true;
+        }
+
         toast.success(successMsg);
     };
 

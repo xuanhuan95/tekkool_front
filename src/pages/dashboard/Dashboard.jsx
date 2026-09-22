@@ -47,6 +47,9 @@ class Dashboard extends Component {
         return !!(auth && auth.user && auth.user.group === 'teacher');
     };
 
+    // Tạo đề ngay trong folder: đề mới nằm sẵn trong môn, khỏi phải kéo tay.
+    addExam = (path, folderId) => this.props.history.push(path + '?folder=' + folderId);
+
     createFolder = async () => {
         let name = prompt('Your folder name');
         if (!name) return;
@@ -128,7 +131,22 @@ class Dashboard extends Component {
                             <List.Icon size='big'
                                        name={this.isActiveFolder(folder.id) ? 'folder open outline' : 'folder outline'}/>
                             <List.Content>
-                                <List.Header as='h2'>{folder.name}</List.Header>
+                                <List.Header as='h2'>
+                                    {folder.name}
+                                    {/* ponytail: stopPropagation bắt buộc — List.Item cha có
+                                        onClick mở/đóng folder, không chặn thì bấm + vừa mở
+                                        menu vừa đóng folder. */}
+                                    <Dropdown icon={null} onClick={e => e.stopPropagation()}
+                                              trigger={<Button circular icon='plus' size='mini'
+                                                               style={{marginLeft: 10}}/>}>
+                                        <Dropdown.Menu>
+                                            <Dropdown.Item icon='edit outline' text='Tự soạn đề'
+                                                           onClick={() => this.addExam('/create-exam', folder.id)}/>
+                                            <Dropdown.Item icon='file word outline' text='Nhập từ file Word'
+                                                           onClick={() => this.addExam('/import-exam', folder.id)}/>
+                                        </Dropdown.Menu>
+                                    </Dropdown>
+                                </List.Header>
 
                                 {this.isActiveFolder(folder.id) &&
                                 <List.List>
