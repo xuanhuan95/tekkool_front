@@ -90,6 +90,11 @@ class Dashboard extends Component {
                     <Link to='/create-exam'>
                         <Button fluid primary>Create Exam</Button>
                     </Link>
+                    <Link to='/import-exam'>
+                        <Button fluid className='margin-top'>
+                            <Icon name='file word outline'/> Nhập từ Word
+                        </Button>
+                    </Link>
                 </Menu.Item>
 
                 <Menu.Item name='mine' active={activeItem === 'mine'} onClick={this.handleItemClick}>
