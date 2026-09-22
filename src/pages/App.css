@@ -325,3 +325,28 @@ body {
     background-size: 100% 2px, 100% 1px;
     outline: none;
 }
+
+/* Nút + thêm đề trong folder: ẩn đi cho danh sách môn sạch mắt,
+   chỉ hiện khi rê chuột vào đúng dòng folder đó. */
+.addExam {
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.15s;
+    vertical-align: middle;
+}
+
+.addExam > i.icon {
+    color: #888;
+    font-size: 0.85em;
+    margin: 0;
+}
+
+.list > .item:hover > .content .addExam,
+.addExam.active,
+.addExam:hover {
+    opacity: 1;
+}
+
+.addExam > i.icon:hover {
+    color: #2185d0;
+}

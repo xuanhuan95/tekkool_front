@@ -136,9 +136,9 @@ class Dashboard extends Component {
                                     {/* ponytail: stopPropagation bắt buộc — List.Item cha có
                                         onClick mở/đóng folder, không chặn thì bấm + vừa mở
                                         menu vừa đóng folder. */}
-                                    <Dropdown icon={null} onClick={e => e.stopPropagation()}
-                                              trigger={<Button circular icon='plus' size='mini'
-                                                               style={{marginLeft: 10}}/>}>
+                                    <Dropdown icon={null} className='addExam'
+                                              onClick={e => e.stopPropagation()}
+                                              trigger={<Icon name='plus' link/>}>
                                         <Dropdown.Menu>
                                             <Dropdown.Item icon='edit outline' text='Tự soạn đề'
                                                            onClick={() => this.addExam('/create-exam', folder.id)}/>
