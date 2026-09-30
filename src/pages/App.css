@@ -729,3 +729,109 @@ body {
     min-width: 16px;
     line-height: 1.1;
 }
+
+/* ---- Trang chủ giáo viên: kho đề ---- */
+/* Thanh trên: tiêu đề co giãn, ô tìm và nút giữ nguyên bề rộng. Xuống dòng
+   khi hẹp thay vì ép ô tìm bé lại còn vài ký tự. */
+.tk-dash-bar {
+    align-items: flex-end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.tk-dash-title {
+    flex: 1;
+    margin: 0 !important;
+    min-width: 200px;
+}
+
+/* Card.Group để margin ngang -1em để bù gutter của từng card. Cộng với
+   .margin 10px của trang thì mép phải vượt viewport -> cả trang có thanh
+   cuộn ngang. Cắt phần tràn ở đây, KHÔNG đụng margin của .card — Semantic
+   tính bề rộng itemsPerRow dựa trên đúng con số -1em đó. */
+.tk-dash {
+    overflow-x: hidden;
+}
+
+.tk-folders {
+    margin-bottom: 16px !important;
+}
+
+.tk-folder .header {
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+/* Thư mục đang mở: nền xanh nhạt + viền, không chỉ đổi màu icon — lướt qua
+   phải thấy ngay đang mở thư mục nào. */
+.tk-folder.active {
+    background: #f4f9fd !important;
+    box-shadow: 0 0 0 2px #2185d0 !important;
+}
+
+.tk-folder .extra .ui.button {
+    margin-right: 6px;
+}
+
+.tk-exam-row {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 6px 0;
+}
+
+.tk-exam-row:hover {
+    background: #fafafa;
+}
+
+.tk-exam-row:last-child {
+    border-bottom: none;
+}
+
+/* Dòng một đề trên trang GIÁO VIÊN: tên co giãn, nhóm nút ở mép phải.
+   Tiền tố 'dexam' chứ không phải 'exam' — .tk-exam là của màn học sinh
+   trong student.css (Billing, MySubmissions), đặt trùng tên thì hai
+   trang đè style lẫn nhau (đã xảy ra: dòng đề cao vọt lên 62px). */
+.tk-dexam {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.tk-dexam-name {
+    flex: 1;
+    min-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tk-dexam-actions {
+    display: flex;
+    flex: none;
+    gap: 4px;
+}
+
+.tk-dexam-actions .ui.button {
+    margin: 0;
+}
+
+/* Màn hẹp: ô tìm chiếm trọn dòng, và nút cao đủ 44px để bấm bằng ngón tay
+   (size='mini' của Semantic chỉ cho 28px — quá nhỏ cho màn cảm ứng). */
+@media (max-width: 767px) {
+    .tk-dash-bar > .ui.input,
+    .tk-dash-bar > .ui.button {
+        width: 100%;
+    }
+
+    .tk-dexam-actions .ui.button,
+    .tk-folder .extra .ui.button {
+        min-height: 44px;
+    }
+
+    /* Tên đề và nhóm nút xuống hai dòng cho khỏi chen nhau. */
+    .tk-dexam-name {
+        flex-basis: 100%;
+    }
+}

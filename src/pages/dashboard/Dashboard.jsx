@@ -1,24 +1,32 @@
 import withRouter from '../../withRouter';
 import React, {Component} from 'react';
-import {Button, Icon, Menu, Input, Dropdown, List, Popup} from 'semantic-ui-react';
+import {Button, Card, Header, Icon, Input, Loader, Segment} from 'semantic-ui-react';
 import {connectGlobalState} from "../../stateUtils";
-import {Link} from 'react-router-dom';
 import Api from '../../services/api';
 import ExamFile from './ExamFile';
 import SubjectBrowser from './SubjectBrowser';
 
+// Bỏ dấu để gõ "toan" vẫn ra "Toán" — giáo viên tìm đề không phải gõ đủ dấu.
+const bodau = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 
+/**
+ * Trang chủ giáo viên: thư mục môn ở dạng thẻ, mở một thẻ ra danh sách đề.
+ *
+ * Bố cục cũ là <List> lồng với hai chữ 'Folder'/'Document' trần làm tiêu đề,
+ * mọi đề nằm chung một cột dài. Giờ tách hai tầng rõ: chọn môn -> xem đề trong
+ * môn. Đề ngoài thư mục gom riêng cuối trang.
+ *
+ * ponytail: lọc tìm kiếm chạy ở FE trên danh sách đã tải. Một giáo viên có
+ * vài chục đề, gọi API tìm kiếm là thừa một endpoint và một vòng mạng.
+ */
 class Dashboard extends Component {
     state = {
-        folders: [],
+        folders: null,      // null = đang tải, [] = chưa có thư mục nào
         activeFolder: null,
         folderExams: [],
-        nextUrl: '',
-    };
-
-
-    examCreation = () => {
-        this.props.history.push('/create-exam');
+        loadingExams: false,
+        q: '',
     };
 
     componentDidMount = async () => {
@@ -31,12 +39,8 @@ class Dashboard extends Component {
         let exams = await Api.get('exam/list');
         let folders = await Api.get('folder/list');
 
-        // get params next url
-        let params = new URLSearchParams(this.props.location.search);
-        let nextUrl = params.get('nextUrl');
-
         this.setGlobalState({exams});
-        this.setState({folders, nextUrl});
+        this.setState({folders});
     };
 
     // group là string id ('teacher' | 'student' | 'visitor').
@@ -46,126 +50,159 @@ class Dashboard extends Component {
     };
 
     // Tạo đề ngay trong folder: đề mới nằm sẵn trong môn, khỏi phải kéo tay.
+    // Quan trọng hơn thế: ImportExam lấy TÊN MÔN từ folder để gắn vào khối
+    // ngân hàng — import ngoài thư mục thì subject rỗng, màn rút đề trắng trơn.
     addExam = (path, folderId) => this.props.history.push(path + '?folder=' + folderId);
 
     createFolder = async () => {
-        let name = prompt('Your folder name');
+        let name = prompt('Tên môn / bộ đề mới:');
         if (!name) return;
 
         await Api.post('folder/create', {name});
-
-        let folders = await Api.get('folder/list');
-        this.setState({folders});
+        this.setState({folders: await Api.get('folder/list')});
     };
 
     moveToFolder = async (examId, folderId) => {
         await Api.post('exam/move_to_folder', {examId, folderId});
-        let exams = await Api.get('exam/list');
-
-        this.setGlobalState({exams});
-        this.setActiveFolder(folderId);
+        this.setGlobalState({exams: await Api.get('exam/list')});
+        this.openFolder(folderId);
     };
 
-    isActiveFolder = (folderId) => {
-        let {activeFolder} = this.state;
-        return activeFolder === folderId;
-    };
+    // Bấm lại đúng thư mục đang mở thì đóng lại — không có lối đóng nào khác.
+    openFolder = async (folderId) => {
+        if (this.state.activeFolder === folderId)
+            return this.setState({activeFolder: null, folderExams: []});
 
-    setActiveFolder = async (folderId) => {
+        this.setState({activeFolder: folderId, folderExams: [], loadingExams: true});
         let exams = await Api.get('exam/list?folder=' + folderId);
-        this.setState({activeFolder: folderId, folderExams: exams})
+        // Bấm nhanh sang thư mục khác trong lúc đang tải -> bỏ kết quả cũ,
+        // nếu không đề của môn trước hiện dưới tên môn sau.
+        if (this.state.activeFolder !== folderId) return;
+        this.setState({folderExams: exams, loadingExams: false});
     };
 
     render() {
-        let {folders, folderExams} = this.state;
-        let folderOptions = folders.map(f => ({text: f.name, value: f.id}));
-        folderOptions.unshift({text: '---root---', value: null});
+        if (!this.isTeacher()) return <SubjectBrowser/>;
+
+        let {folders, activeFolder, folderExams, loadingExams, q} = this.state;
         let {exams} = this.globalState;
         if (!exams) exams = [];
 
-        if (!this.isTeacher()) return <SubjectBrowser/>;
+        if (!folders) return <Loader active inline='centered' className='margin'/>;
 
-        return <div id='ExamCreation' className='margin'>
-            {/* Chi con 2 nut tao de. `pointing` da bo: khong con muc nao de tro. */}
-            <Menu id='leftMenu' vertical>
-                <Menu.Item>
-                    <Link to='/create-exam'>
-                        <Button fluid primary>Create Exam</Button>
-                    </Link>
-                    <Link to='/import-exam'>
-                        <Button fluid className='margin-top'>
-                            <Icon name='file word outline'/> Nhập từ Word
-                        </Button>
-                    </Link>
-                    <Link to='/draw-exam'>
-                        <Button fluid className='margin-top'>
-                            <Icon name='random'/> Rút từ ngân hàng
-                        </Button>
-                    </Link>
-                </Menu.Item>
-            </Menu>
+        let folderOptions = folders.map(f => ({text: f.name, value: f.id}));
+        folderOptions.unshift({text: '(ngoài thư mục)', value: null});
 
-            <div id='content' className='margin-top'>
-                {/* ponytail: giữ nguyên size="medium" của bản 2018 dù semantic-ui
-                    không có size này (chỉ mini/small/large/big/huge/massive).
-                    Nó bị bỏ qua khi render -> vô hại, chỉ warning trong console. */}
-                <Input style={{float: 'right'}}
-                       size="medium"
-                       icon={{name: 'search', circular: true, link: true}}
-                       placeholder='Search...'
-                />
+        let khop = t => bodau(t).includes(bodau(q));
+        let hienFolder = q ? folders.filter(f => khop(f.name)) : folders;
+        let hienNgoai = q ? exams.filter(e => khop(e.name)) : exams;
+        let hienTrong = q ? folderExams.filter(e => khop(e.name)) : folderExams;
 
-                <Button onClick={this.createFolder}>Create folder</Button>
+        // Chưa có gì cả: chỉ một lối đi, đừng bày ba nút.
+        if (!folders.length && !exams.length) return <div className='margin'>
+            <Segment placeholder>
+                <Header icon>
+                    <Icon name='folder open outline' color='grey'/>
+                    Chưa có đề nào
+                    <Header.Subheader>
+                        Tạo một thư mục cho môn học trước, rồi thêm đề vào trong đó.
+                    </Header.Subheader>
+                </Header>
+                <Button primary icon labelPosition='left' onClick={this.createFolder}>
+                    <Icon name='folder'/> Tạo thư mục môn học
+                </Button>
+            </Segment>
+        </div>;
 
-                <List className='margin-top' verticalAlign='middle'>
-                    Folder
-                    {folders.map(folder =>
-                        <List.Item onClick={() => this.setActiveFolder(folder.id)}
-                                   key={folder.id}
-                                   className='cursor'
-                        >
-                            <List.Icon size='big'
-                                       name={this.isActiveFolder(folder.id) ? 'folder open outline' : 'folder outline'}/>
-                            <List.Content>
-                                <List.Header as='h2'>
-                                    {folder.name}
-                                    {/* ponytail: stopPropagation bắt buộc — List.Item cha có
-                                        onClick mở/đóng folder, không chặn thì bấm + vừa mở
-                                        menu vừa đóng folder. */}
-                                    <Dropdown icon={null} className='addExam'
-                                              onClick={e => e.stopPropagation()}
-                                              trigger={<Icon name='plus' link/>}>
-                                        <Dropdown.Menu>
-                                            <Dropdown.Item icon='edit outline' text='Tự soạn đề'
-                                                           onClick={() => this.addExam('/create-exam', folder.id)}/>
-                                            <Dropdown.Item icon='file word outline' text='Nhập từ file Word'
-                                                           onClick={() => this.addExam('/import-exam', folder.id)}/>
-                                        </Dropdown.Menu>
-                                    </Dropdown>
-                                </List.Header>
-
-                                {this.isActiveFolder(folder.id) &&
-                                <List.List>
-                                    {folderExams.map(exam =>
-                                        <List.Item key={exam.id}>
-                                            <ExamFile exam={exam} folderOptions={folderOptions}
-                                                      moveToFolder={this.moveToFolder}/>
-                                        </List.Item>
-                                    )}
-                                </List.List>
-                                }
-                            </List.Content>
-                        </List.Item>
-                    )}
-
-                    Document
-                    {exams.map(exam =>
-                        <List.Item key={exam.id}>
-                            <ExamFile exam={exam} folderOptions={folderOptions} moveToFolder={this.moveToFolder}/>
-                        </List.Item>
-                    )}
-                </List>
+        return <div className='tk-dash margin'>
+            <div className='tk-dash-bar'>
+                <Header as='h2' className='tk-dash-title'>
+                    Kho đề của tôi
+                    <Header.Subheader>
+                        {folders.length} thư mục · {exams.length} đề ngoài thư mục
+                    </Header.Subheader>
+                </Header>
+                <Input icon='search' iconPosition='left' placeholder='Tìm đề, tìm môn...'
+                       value={q} onChange={(e, {value}) => this.setState({q: value})}/>
+                <Button primary icon labelPosition='left' onClick={this.createFolder}>
+                    <Icon name='plus'/> Thư mục mới
+                </Button>
             </div>
+
+            {q && !hienFolder.length && !hienNgoai.length && !hienTrong.length &&
+            <Segment placeholder>
+                <Header icon>
+                    <Icon name='search' color='grey'/>
+                    Không có mục nào khớp “{q}”
+                </Header>
+            </Segment>}
+
+            <Card.Group itemsPerRow={3} stackable className='tk-folders'>
+                {hienFolder.map(f =>
+                    <Card key={f.id} link
+                          className={activeFolder === f.id ? 'tk-folder active' : 'tk-folder'}
+                          onClick={() => this.openFolder(f.id)}>
+                        <Card.Content>
+                            {/* Icon nam TRONG Card.Header: de ngoai thi Header la
+                                block, icon roi xuong dong rieng, the cao gap doi. */}
+                            <Card.Header>
+                                <Icon name={activeFolder === f.id ? 'folder open' : 'folder'}
+                                      color={activeFolder === f.id ? 'blue' : 'grey'}/>
+                                {f.name}
+                            </Card.Header>
+                        </Card.Content>
+                        {/* Hai lối tạo đề luôn HIỆN, không giấu sau hover: bàn phím
+                            và màn cảm ứng không có hover, giấu đi là mất lối vào. */}
+                        <Card.Content extra onClick={e => e.stopPropagation()}>
+                            <Button size='mini' basic
+                                    onClick={() => this.addExam('/create-exam', f.id)}>
+                                <Icon name='edit outline'/> Tự soạn
+                            </Button>
+                            <Button size='mini' basic
+                                    onClick={() => this.addExam('/import-exam', f.id)}>
+                                <Icon name='file word outline'/> Nhập Word
+                            </Button>
+                        </Card.Content>
+                    </Card>
+                )}
+            </Card.Group>
+
+            {activeFolder && <Segment className='tk-exams'>
+                <Header as='h4'>
+                    <Icon name='folder open outline'/>
+                    <Header.Content>
+                        {(folders.find(f => f.id === activeFolder) || {}).name}
+                    </Header.Content>
+                </Header>
+                {loadingExams ? <Loader active inline='centered'/>
+                    : !hienTrong.length
+                        ? <p className='text-muted'>
+                            {q ? 'Không có đề nào khớp trong thư mục này.'
+                               : 'Thư mục trống — dùng “Tự soạn” hoặc “Nhập Word” ở thẻ trên.'}
+                        </p>
+                        : hienTrong.map(exam =>
+                            <div className='tk-exam-row' key={exam.id}>
+                                <ExamFile exam={exam} folderOptions={folderOptions}
+                                          moveToFolder={this.moveToFolder}/>
+                            </div>)}
+            </Segment>}
+
+            {!!hienNgoai.length && <Segment className='tk-exams'>
+                <Header as='h4'>
+                    <Icon name='file outline'/>
+                    <Header.Content>
+                        Đề ngoài thư mục
+                        <Header.Subheader>
+                            Đề ở đây chưa gắn môn — kéo vào một thư mục để rút được từ ngân hàng.
+                        </Header.Subheader>
+                    </Header.Content>
+                </Header>
+                {hienNgoai.map(exam =>
+                    <div className='tk-exam-row' key={exam.id}>
+                        <ExamFile exam={exam} folderOptions={folderOptions}
+                                  moveToFolder={this.moveToFolder}/>
+                    </div>)}
+            </Segment>}
         </div>
     }
 }
