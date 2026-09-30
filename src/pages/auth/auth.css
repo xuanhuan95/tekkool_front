@@ -1,0 +1,195 @@
+/* ============================================================
+   Màn đăng nhập / đăng ký.
+   Panel bo tròn viền đậm nổi trên nền loang xanh — tách hẳn
+   khỏi .tk (màn học sinh) vì đây là trang chưa đăng nhập, không
+   có thanh nav, không dùng chung một token nào.
+   ============================================================ */
+
+.tka {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: #f4f6fb;
+    position: relative;
+    overflow: hidden;
+    font-family: var(--tk-font);
+    color: #1f2a44;
+}
+
+/* Hai mảng loang nền. Dùng pseudo-element để khỏi đẻ thêm div rỗng
+   trong JSX — chúng thuần trang trí, screen reader không cần thấy. */
+.tka::before,
+.tka::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: #c7d6f5;
+    opacity: .55;
+    filter: blur(2px);
+    pointer-events: none;
+}
+.tka::before { width: 620px; height: 620px; top: -260px; right: -160px; }
+.tka::after  { width: 520px; height: 520px; bottom: -300px; left: -180px; }
+
+.tka-panel {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 1080px;
+    display: grid;
+    grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
+    background: #fbfcfe;
+    border: 2px solid #1b4fb5;
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(27, 79, 181, .13);
+}
+
+.tka-form {
+    padding: 44px 44px 48px;
+    display: flex;
+    flex-direction: column;
+}
+
+.tka-brand {
+    font-family: var(--tk-font);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #1b4fb5;
+    margin-bottom: 52px;
+}
+
+.tka-title {
+    font-family: var(--tk-font-title);
+    font-size: 44px;
+    line-height: 1.05;
+    font-weight: 600;
+    margin: 0 0 10px;
+    color: #16203a;
+}
+
+.tka-sub {
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #7b869e;
+    margin: 0 0 34px;
+    max-width: 30ch;
+}
+
+/* Trường nhập kiểu gạch chân: không viền hộp, chỉ một đường dưới. */
+.tka-field { margin-bottom: 24px; position: relative; }
+
+.tka-field label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #31405f;
+    margin-bottom: 7px;
+}
+
+.tka-field input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid #d3dbea;
+    background: transparent;
+    padding: 7px 28px 9px 0;
+    font-size: 14.5px;
+    font-family: var(--tk-font);
+    color: #16203a;
+    outline: none;
+    transition: border-color .15s;
+}
+.tka-field input::placeholder { color: #aab3c6; }
+.tka-field input:focus { border-bottom-color: #1b4fb5; }
+
+/* Nút con mắt hiện/ẩn mật khẩu. 32px vẫn dưới 44px khuyến nghị nhưng
+   đây là nút phụ nằm cạnh ô nhập đã đủ rộng để bấm; nới thêm là đụng
+   vào đường gạch chân. */
+.tka-eye {
+    position: absolute;
+    right: 0;
+    bottom: 6px;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    color: #98a2b8;
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    padding: 0;
+}
+.tka-eye:hover { color: #1b4fb5; }
+
+.tka-btn {
+    margin-top: 10px;
+    padding: 13px 20px;
+    width: 160px;
+    border: none;
+    border-radius: 4px;
+    background: #2f6fe4;
+    color: #fff;
+    font-family: var(--tk-font);
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background .15s, transform .12s;
+}
+.tka-btn:hover:not(:disabled) { background: #1b4fb5; }
+.tka-btn:active:not(:disabled) { transform: translateY(1px); }
+.tka-btn:disabled { background: #a9bfe8; cursor: default; }
+
+.tka-alt {
+    margin-top: 26px;
+    font-size: 13px;
+    color: #7b869e;
+}
+.tka-alt a { color: #2f6fe4; font-weight: 600; text-decoration: none; }
+.tka-alt a:hover { text-decoration: underline; }
+
+/* Lỗi hiện ngay trên nút, không alert() — alert chặn cả trang và
+   mất nội dung ngay khi bấm OK. */
+.tka-err {
+    margin-bottom: 16px;
+    padding: 10px 13px;
+    border-radius: 6px;
+    background: #fdeceb;
+    border: 1px solid #f5c6c2;
+    color: #b02a20;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.tka-art {
+    background: linear-gradient(140deg, #eef3fc 0%, #dfe9fa 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+}
+.tka-art svg { width: 100%; height: auto; max-width: 540px; }
+
+/* Màn hẹp: bỏ hẳn tranh minh hoạ thay vì ép nó xuống dưới — trên điện
+   thoại người dùng cần thấy ô nhập ngay, không phải cuộn qua tranh. */
+@media (max-width: 860px) {
+    .tka { padding: 0; align-items: stretch; }
+    .tka-panel {
+        grid-template-columns: 1fr;
+        max-width: 520px;
+        border-radius: 0;
+        border: none;
+        box-shadow: none;
+        background: transparent;
+    }
+    .tka-art { display: none; }
+    .tka-form { padding: 40px 26px; justify-content: center; min-height: 100vh; }
+    .tka-brand { margin-bottom: 36px; }
+    .tka-title { font-size: 36px; }
+    .tka-btn { width: 100%; }
+}
