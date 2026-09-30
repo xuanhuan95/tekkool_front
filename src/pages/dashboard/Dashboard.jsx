@@ -132,6 +132,12 @@ class Dashboard extends Component {
                         <Icon name='database'/> Ngân hàng câu hỏi
                     </Button>
                 </Link>
+                {/* Goi thi thu: hoc sinh mua luot o day, khong mua tung de nua. */}
+                <Link to='/packages'>
+                    <Button basic icon labelPosition='left'>
+                        <Icon name='cube'/> Gói thi thử
+                    </Button>
+                </Link>
                 <Button primary icon labelPosition='left' onClick={this.createFolder}>
                     <Icon name='plus'/> Thư mục mới
                 </Button>
