@@ -1,6 +1,7 @@
 import withRouter from '../../withRouter';
 import React, {Fragment} from 'react';
 import renderHTML from '../../components/SafeHtml';
+import Passage from '../../components/Passage';
 import striptags from 'striptags';
 
 import {connectGlobalState} from "../../stateUtils";
@@ -38,7 +39,9 @@ class DoExam extends React.Component {
         // nuốt im lặng thành loader quay mãi.
         try {
             let exam = await Api.get('exam/during_test/' + examId);
-            this.setState({exam});
+            // ponytail: de da hien ra man hinh la da doc duoc -> tinh gio NGAY.
+            // Nut Start cu cho thi sinh doc het de roi moi bam, tinh gio bang 0.
+            this.setState({exam}, this.startExam);
         } catch (e) {
             if (e && e.code === 403) return this.props.history.push('/payment/' + examId);
             this.setState({loadError: (e && (e.error || e.message)) || 'Không tải được đề thi'});
@@ -82,26 +85,55 @@ class DoExam extends React.Component {
         if (!window.confirm('Nộp bài? Sau khi nộp, muốn làm lại đề này bạn phải mua lượt mới.')) return;
 
         this.setState({submitting: true});
+        let result;
         try {
-            await Api.post('exam/submit/' + this.props.match.params.examId);
+            result = await Api.post('exam/submit/' + this.props.match.params.examId);
         } catch (e) {
             this.setState({submitting: false});
             return alert((e && (e.error || e.message)) || 'Nộp bài thất bại, thử lại.');
         }
 
         clearInterval(this._counter);
-        this.setState({submitting: false, submitted: true, passedTime});
+        this.setState({submitting: false, submitted: true, passedTime, result});
     };
 
     startExam = () => {
-        this.setState({startAt: new Date()});
+        let {exam} = this.state;
+        // ponytail: duration cua chinh de, khong phai 45 phut cung cho moi de.
+        // duration=0 (thay co de trong) -> khong gioi han, an dong ho.
+        let limit = (exam.duration || 0) * 60;
+
+        this.setState({startAt: new Date(), remainingTime: limit});
+        if (!limit) return;
 
         this._counter = setInterval(() => {
-            // Duration 45min
-            let passedTime =  this.calculPassedTime();
-            let remainingTime = 45 * 60 - passedTime;
+            let passedTime = this.calculPassedTime();
+            // max(0) — khong thi giay cuoi hien '-1:-05' truoc khi kip nop.
+            let remainingTime = Math.max(0, limit - passedTime);
             this.setState({passedTime, remainingTime});
+
+            // Het gio thi nop thay thi sinh, khong de ho lam tiep vo han.
+            if (remainingTime <= 0) {
+                clearInterval(this._counter);
+                this.autoSubmit();
+            }
         }, 1000);
+    };
+
+    // ponytail: tach khoi finish() vi finish() co window.confirm — het gio ma
+    // con hoi thi sinh 'co chac khong' la vo nghia, ho bam Cancel la lam tiep.
+    autoSubmit = async () => {
+        if (this.state.submitting || this.state.submitted) return;
+
+        this.setState({submitting: true});
+        let result;
+        try {
+            result = await Api.post('exam/submit/' + this.props.match.params.examId);
+        } catch (e) {
+            // Nop that bai van phai khoa bai lai, khong tra ve man lam bai.
+        }
+        this.setState({submitting: false, submitted: true, result});
+        alert('Đã hết giờ làm bài. Bài của bạn được nộp tự động.');
     };
 
     calculPassedTime = () => {
@@ -122,11 +154,24 @@ class DoExam extends React.Component {
         }
 
         if (this.state.submitted) {
+            let r = this.state.result;
             return <Segment className='margin text-center' padded='very'>
                 <Icon name='check circle' color='green' size='huge'/>
                 <h2>Đã nộp bài</h2>
                 <p>Thời gian làm bài: {Math.floor(this.state.passedTime / 60)} phút</p>
-                <Button primary onClick={() => this.props.history.push('/')}>Về trang chủ</Button>
+
+                {/* Trac nghiem may cham xong ngay; tu luan cho giao vien. */}
+                {r && r.pending_count > 0 &&
+                <p>Phần trắc nghiệm: <b>{r.score}/{r.max_score}</b> điểm.
+                    Còn {r.pending_count} câu tự luận chờ giáo viên chấm.</p>}
+                {r && r.pending_count === 0 && r.max_score > 0 &&
+                <p>Điểm của bạn: <b>{r.score}/{r.max_score}</b></p>}
+
+                {r && r.id &&
+                <Button primary onClick={() => this.props.history.push('/my-exams/' + r.id)}>
+                    Xem lại bài làm
+                </Button>}
+                <Button onClick={() => this.props.history.push('/')}>Về trang chủ</Button>
             </Segment>;
         }
 
@@ -146,6 +191,8 @@ class DoExam extends React.Component {
                                     qIdx++;
 
                                     return <Fragment key={q.id}>
+                                        <Passage question={q} prev={s.questions[idx - 1]}/>
+
                                         <i><b>Question {qIdx}:</b></i>
 
                                         {q.type === 'FillBlank' &&
@@ -223,16 +270,14 @@ class DoExam extends React.Component {
 
                     <Rail position='right' style={{width: '24%', margin: 0, padding: 0}} className='text-center margin-top'>
                         <Sticky context={contextRef}>
-                            {!startAt &&
-                            <Button onClick={this.startExam} color='green' fluid>
-                                <Icon name='clock'/> Start
-                            </Button>
+                            {startAt && exam.duration > 0 &&
+                            <h1 className={'text-center' + (remainingTime <= 60 ? ' time-up' : '')}>
+                                {Math.floor(remainingTime / 60)}:{String(remainingTime % 60).padStart(2, '0')}
+                            </h1>
                             }
 
-                            {startAt &&
-                            <h1 className='text-center'>
-                                {Math.floor(remainingTime / 60)} : {remainingTime % 60}
-                            </h1>
+                            {startAt && !exam.duration &&
+                            <div className='text-center'>Không giới hạn thời gian</div>
                             }
 
                             {startAt &&
