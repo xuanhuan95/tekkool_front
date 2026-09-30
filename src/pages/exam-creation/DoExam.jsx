@@ -9,6 +9,7 @@ import {Dimmer, Loader, Segment, Radio, Grid, Button, Icon, Rail, Sticky, Messag
 import {numToChar} from "../../services/tools";
 import {Editor} from "../../components/Editor";
 import Api from "../../services/api";
+import HetLuotModal from "../../components/HetLuotModal";
 
 
 class DoExam extends React.Component {
@@ -20,6 +21,7 @@ class DoExam extends React.Component {
         passedTime: 0,
         remainingTime: 0,
         loadError: null,
+        hetLuot: false,
         submitting: false,
         submitted: false
     };
@@ -43,8 +45,9 @@ class DoExam extends React.Component {
             // Nut Start cu cho thi sinh doc het de roi moi bam, tinh gio bang 0.
             this.setState({exam}, this.startExam);
         } catch (e) {
-            // 402 = hết lượt -> sang trang mua gói. 403 = không có quyền vào đề.
-            if (e && e.code === 402) return this.props.history.push('/packages?het-luot=1');
+            // 402 = hết lượt -> chặn TẠI CHỖ bằng popup, không đá sang trang
+            // khác: học sinh đang muốn làm đúng đề này.
+            if (e && e.code === 402) return this.setState({hetLuot: true});
             if (e && e.code === 403) return this.props.history.push('/packages');
             this.setState({loadError: (e && (e.error || e.message)) || 'Không tải được đề thi'});
         }
@@ -155,6 +158,10 @@ class DoExam extends React.Component {
         if (this.state.loadError) {
             return <Message negative className='margin'>{this.state.loadError}</Message>;
         }
+
+        // Hết lượt: đề không tải được nên `exam` luôn null -> popup phải đứng
+        // TRƯỚC nhánh loader, không thì học sinh nhìn vòng quay mãi.
+        if (this.state.hetLuot) return <HetLuotModal open/>;
 
         if (!exam) {
             return <Dimmer active={true}><Loader/></Dimmer>;
