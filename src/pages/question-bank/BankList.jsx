@@ -5,12 +5,6 @@ import {Button, Card, Form, Header, Icon, Label, Loader, Message,
         Modal, Segment} from 'semantic-ui-react';
 import Api from '../../services/api';
 
-// Khối lớp: 1..12. Không bắt buộc — ngân hàng dùng chung nhiều khối là chuyện
-// thường, nhưng giáo viên muốn ghi thì có chỗ ghi.
-const KHOI = Array.from({length: 12}, (_, i) => ({
-    key: i + 1, text: 'Khối ' + (i + 1), value: i + 1
-}));
-
 /**
  * Danh sách ngân hàng câu hỏi.
  *
@@ -20,7 +14,7 @@ const KHOI = Array.from({length: 12}, (_, i) => ({
  */
 class BankList extends Component {
     state = {banks: null, subjects: [], open: false, saving: false,
-             name: '', subject: '', grade: null, error: null};
+             name: '', subject: '', error: null};
 
     componentDidMount = async () => {
         let [banks, subjects] = await Promise.all([
@@ -31,17 +25,17 @@ class BankList extends Component {
     };
 
     save = async () => {
-        let {name, subject, grade} = this.state;
+        let {name, subject} = this.state;
         if (!name.trim()) return this.setState({error: 'Chưa nhập tên ngân hàng'});
         if (!subject) return this.setState({error: 'Chưa chọn môn học'});
 
         this.setState({saving: true, error: null});
-        let r = await Api.post('question_bank/create', {name, subject, grade});
+        let r = await Api.post('question_bank/create', {name, subject});
         if (r && r.error)
             return this.setState({saving: false, error: r.error});
 
         this.setState({open: false, saving: false, name: '', subject: '',
-                       grade: null, banks: await Api.get('question_bank/list')});
+                       banks: await Api.get('question_bank/list')});
     };
 
     remove = async (b) => {
@@ -52,7 +46,7 @@ class BankList extends Component {
     };
 
     render() {
-        let {banks, subjects, open, saving, name, subject, grade, error} = this.state;
+        let {banks, subjects, open, saving, name, subject, error} = this.state;
         if (!banks) return <Loader active inline='centered' className='margin'/>;
 
         let subjectOptions = subjects.map(s => ({key: s, text: s, value: s}));
@@ -94,9 +88,7 @@ class BankList extends Component {
                                     <Icon name='database' color='blue'/>
                                     {b.name}
                                 </Card.Header>
-                                <Card.Meta>
-                                    {b.subject}{b.grade ? ' · Khối ' + b.grade : ''}
-                                </Card.Meta>
+                                <Card.Meta>{b.subject}</Card.Meta>
                                 <Card.Description>
                                     <Label basic color={b.blocks ? 'green' : 'grey'} size='small'>
                                         {b.blocks} khối
@@ -130,18 +122,12 @@ class BankList extends Component {
                         <Form.Input label='Tên ngân hàng' placeholder='Ví dụ: Ngữ văn 12 — HK1'
                                     value={name} autoFocus
                                     onChange={(e, {value}) => this.setState({name: value})}/>
-                        <Form.Group widths='equal'>
-                            {/* Môn BẮT BUỘC: ma trận rút đề tra theo tên môn, thiếu
-                                môn thì không biết mỗi đề cần mấy khối loại nào. */}
-                            <Form.Select label='Môn học' required
-                                         placeholder='Chọn môn' options={subjectOptions}
-                                         value={subject}
-                                         onChange={(e, {value}) => this.setState({subject: value})}/>
-                            <Form.Select label='Khối lớp' clearable
-                                         placeholder='Không bắt buộc' options={KHOI}
-                                         value={grade}
-                                         onChange={(e, {value}) => this.setState({grade: value})}/>
-                        </Form.Group>
+                        {/* Môn BẮT BUỘC: ma trận rút đề tra theo tên môn, thiếu
+                            môn thì không biết mỗi đề cần mấy khối loại nào. */}
+                        <Form.Select label='Môn học' required
+                                     placeholder='Chọn môn' options={subjectOptions}
+                                     value={subject}
+                                     onChange={(e, {value}) => this.setState({subject: value})}/>
                         <Message error content={error}/>
                     </Form>
                 </Modal.Content>
