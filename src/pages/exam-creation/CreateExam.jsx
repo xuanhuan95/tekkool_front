@@ -198,7 +198,7 @@ class CreateExam extends React.Component {
                                     />
                                 </Grid.Column>
 
-                                <Grid.Column width={8}>
+                                <Grid.Column width={6}>
                                     <Editor
                                         text={exam.right_header}
                                         placeholder='Right header here...'
@@ -206,7 +206,19 @@ class CreateExam extends React.Component {
                                     />
                                 </Grid.Column>
 
-                                <Grid.Column width={4}>
+                                <Grid.Column width={3}>
+                                    <Input
+                                        fluid
+                                        type='number'
+                                        min={0}
+                                        label='Phút'
+                                        placeholder='0 = không giới hạn'
+                                        value={exam.duration === undefined ? Default.DURATION : exam.duration}
+                                        onChange={(e, {value}) => this.setExamData({duration: parseInt(value, 10) || 0})}
+                                    />
+                                </Grid.Column>
+
+                                <Grid.Column width={3}>
                                     <Input
                                         fluid
                                         type='number'
