@@ -835,3 +835,28 @@ body {
         flex-basis: 100%;
     }
 }
+
+/* ---- Khối tồn kho ngân hàng trên màn nhập đề từ Word ---- */
+.import-bank-head {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+}
+
+/* Phần chữ co giãn để nút "Rút thử" luôn nằm sát mép phải. */
+.import-bank-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.import-bank-head > .ui.button {
+    flex-shrink: 0;
+}
+
+.import-bank-types {
+    margin-top: 10px;
+}
+
+.import-bank-types .ui.label {
+    margin: 0 6px 6px 0;
+}

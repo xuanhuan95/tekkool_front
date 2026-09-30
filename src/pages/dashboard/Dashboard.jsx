@@ -1,5 +1,6 @@
 import withRouter from '../../withRouter';
 import React, {Component} from 'react';
+import {Link} from 'react-router-dom';
 import {Button, Card, Header, Icon, Input, Loader, Segment} from 'semantic-ui-react';
 import {connectGlobalState} from "../../stateUtils";
 import Api from '../../services/api';
@@ -124,6 +125,13 @@ class Dashboard extends Component {
                 </Header>
                 <Input icon='search' iconPosition='left' placeholder='Tìm đề, tìm môn...'
                        value={q} onChange={(e, {value}) => this.setState({q: value})}/>
+                {/* Loi vao ngan hang: mot man rieng vi ngan hang gio la thuc the
+                    co ten, khong con la thu doan ra tu ten thu muc. */}
+                <Link to='/question-bank'>
+                    <Button basic icon labelPosition='left'>
+                        <Icon name='database'/> Ngân hàng câu hỏi
+                    </Button>
+                </Link>
                 <Button primary icon labelPosition='left' onClick={this.createFolder}>
                     <Icon name='plus'/> Thư mục mới
                 </Button>

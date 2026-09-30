@@ -1,9 +1,11 @@
 import React, {Component} from 'react';
 import {Button, Checkbox, Dropdown, Header, Icon, Input, Label, Message, Modal, Radio, Segment, Table} from 'semantic-ui-react';
+import {Link} from 'react-router-dom';
 import withRouter from '../../withRouter';
 import {connectGlobalState} from '../../stateUtils';
 import {Editor} from '../../components/Editor';
 import Api from '../../services/api';
+import {TEN_LOAI} from './blockTypes';
 
 
 // Cot phai: van ban goc tu file Word, danh so dong + to mau tu khoa de
@@ -103,13 +105,25 @@ class ImportExam extends Component {
         saving: false,
         progress: 0,
         folder: null,
+        bankInfo: null,
     };
+
+    // Ngan hang lay tu ?bank= — mot thuc the co ten va co mon, giao vien tu tao.
+    // Truoc day mon phai doan tu TEN THU MUC: import ngoai thu muc thi mon rong,
+    // moi khoi do chung mot ro, khong tach duoc ngan hang nao voi ngan hang nao.
+    bankId = () => new URLSearchParams(this.props.location.search).get('bank');
 
     componentDidMount = async () => {
         let id = new URLSearchParams(this.props.location.search).get('folder');
-        if (!id) return;
-        let folders = await Api.get('folder/list');
-        this.setState({folder: folders.find(f => f.id === id) || null});
+        if (id) {
+            let folders = await Api.get('folder/list');
+            this.setState({folder: folders.find(f => f.id === id) || null});
+        }
+        if (this.bankId()) {
+            let banks = await Api.get('question_bank/list');
+            this.setState({bankInfo: banks.find(b => b.id === this.bankId()) || null});
+        }
+        this.loadBank();
     };
 
     refFile = React.createRef();
@@ -274,7 +288,7 @@ class ImportExam extends Component {
                     // ponytail: tên môn lấy từ thư mục đang import vào — giáo
                     // viên đã chọn đúng môn ở đó rồi, hỏi lại là thừa một bước.
                     let r = await Api.post('question_bank/save',
-                        {...chosen[i], subject: this.folderName() || ''});
+                        {...chosen[i], bank: this.bankId()});
                     saved += r.saved;
                 } else {
                     await Api.post('exam/create', chosen[i]);
@@ -283,7 +297,10 @@ class ImportExam extends Component {
                 }
                 this.setState({progress: i + 1});
             }
-            if (toBank) this.setState({saving: false, banked: saved});
+            if (toBank) {
+                this.setState({saving: false, banked: saved});
+                this.loadBank();   // so lieu ton kho phai doi ngay sau khi them
+            }
             else this.props.history.push('/');
         } catch (e) {
             this.setState({error: e.message || 'Lưu thất bại', saving: false});
@@ -447,8 +464,70 @@ class ImportExam extends Component {
         </Modal>;
     };
 
+    // Ngan hang o NGAY DAY chu khong phai mot muc menu rieng: day la man duy
+    // nhat do khoi vao ngan hang, nen cung la cho giao vien muon xem con bao
+    // nhieu. Truoc do no nam o nut menu trai, canh 'Tao de' — trong nhu mot
+    // cach tao de, nhung bam vao lai nhay sang man LAM BAI.
+    loadBank = async () => {
+        let bankId = this.bankId();
+        if (!bankId) return this.setState({bank: null});
+        try {
+            let cap = await Api.post('question_bank/capacity', {bank: bankId});
+            this.setState({bank: cap});
+        } catch (e) {
+            // Ngan hang loi thi van phai import duoc — chi an bang thong ke.
+            this.setState({bank: null});
+        }
+    };
+
+    renderBank = () => {
+        let {bank} = this.state;
+        if (!bank) return null;
+
+        let per = bank.per_type || {};
+        let slots = bank.slots || {};
+        let lan = bank.capacity || 0;
+        let tong = Object.keys(per).reduce((a, t) => a + per[t], 0);
+        if (!tong) return null;   // ngan hang rong thi khong bay bang trong
+
+        let {bankInfo} = this.state;
+        let nghen = bank.bottleneck;
+
+        return <Segment className='import-bank margin-top'>
+            <div className='import-bank-head'>
+                <Icon name='database' size='large' color={lan > 0 ? 'green' : 'grey'}/>
+                <div className='import-bank-text'>
+                    <b>{bankInfo ? bankInfo.name : 'Ngân hàng câu hỏi'}: {tong} khối</b>
+                    <div className='text-muted'>
+                        {lan > 0
+                            ? <span>Đủ rút {lan} đề không trùng khối
+                                {nghen && <span> · nghẽn ở <b>{TEN_LOAI[nghen[0]] || nghen[0]}</b></span>}
+                              </span>
+                            : 'Chưa đủ khối để rút một đề hoàn chỉnh — nhập thêm đề bên dưới.'}
+                    </div>
+                </div>
+                <Link to={'/draw-exam/bank/' + this.bankId()}>
+                    <Button basic primary disabled={lan < 1}>
+                        <Icon name='random'/> Rút thử một đề
+                    </Button>
+                </Link>
+            </div>
+
+            <div className='import-bank-types'>
+                {Object.keys(slots).map(t => {
+                    let co = per[t] || 0, duoc = Math.floor(co / slots[t]);
+                    return <Label key={t} basic
+                                  color={duoc < 1 ? 'red' : duoc < 4 ? 'yellow' : 'green'}>
+                        {TEN_LOAI[t] || t}
+                        <Label.Detail>{co} khối · rút được {duoc}</Label.Detail>
+                    </Label>;
+                })}
+            </div>
+        </Segment>;
+    };
+
     render() {
-        let {loading, error, exams, warnings, picked, saving, progress, banked} = this.state;
+        let {loading, error, exams, warnings, picked, saving, progress, banked, bank} = this.state;
         let chosen = exams.filter(e => picked[e.id]).length;
 
         return <div className='margin import-exam'>
@@ -458,7 +537,9 @@ class ImportExam extends Component {
                     Nhập đề từ file Word
                     <Header.Subheader>
                         Xem trước rồi mới lưu — chưa ghi vào hệ thống
-                        {this.folderName() && ` · lưu vào thư mục ${this.folderName()}`}
+                        {this.state.bankInfo
+                            ? ` · lưu vào ngân hàng ${this.state.bankInfo.name}`
+                            : this.folderName() && ` · lưu vào thư mục ${this.folderName()}`}
                     </Header.Subheader>
                 </Header.Content>
             </Header>
@@ -469,6 +550,8 @@ class ImportExam extends Component {
             <Button primary loading={loading} disabled={loading || saving} onClick={this.pickFile}>
                 <Icon name='upload'/> Chọn file .docx
             </Button>
+
+            {this.renderBank()}
 
             {error && <Message negative>{error}</Message>}
 
@@ -489,9 +572,13 @@ class ImportExam extends Component {
                 {exams.map(this.renderExam)}
 
                 <Segment>
-                    <Button positive loading={saving} disabled={!chosen || saving}
+                    {/* Khong co ?bank= thi KHONG cho luu vao ngan hang: truoc day
+                        van luu duoc, khoi roi vao ro chung khong ten khong mon,
+                        khong man nao rut ra duoc. Chan tai day, chi ro loi vao. */}
+                    <Button positive loading={saving}
+                            disabled={!chosen || saving || !this.bankId()}
                             onClick={() => this.save(true)}>
-                        <Icon name='database'/> Lưu {chosen} đề vào ngân hàng câu hỏi
+                        <Icon name='database'/> Lưu {chosen} đề vào ngân hàng
                     </Button>
                     <Button basic loading={saving} disabled={!chosen || saving}
                             onClick={() => this.save(false)}>
@@ -499,8 +586,11 @@ class ImportExam extends Component {
                     </Button>
                     <span className='import-save-hint'>
                         {saving ? `Đang lưu ${progress}/${chosen}…`
-                                : banked ? `Đã thêm ${banked} khối vào ngân hàng câu hỏi.`
-                                : 'Vào ngân hàng câu hỏi: cắt thành khối để sau này rút đề ngẫu nhiên.'}
+                            : banked ? `Đã thêm ${banked} khối vào ngân hàng.`
+                            : !this.bankId()
+                                ? <span>Muốn lưu vào ngân hàng thì vào <Link to='/question-bank'>
+                                    Ngân hàng câu hỏi</Link> chọn một ngân hàng rồi bấm “Nhập đề”.</span>
+                                : 'Vào ngân hàng: cắt thành khối để sau này rút đề ngẫu nhiên.'}
                     </span>
                 </Segment>
             </Segment.Group>}

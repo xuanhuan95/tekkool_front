@@ -3,18 +3,8 @@ import {Link} from 'react-router-dom';
 import withRouter from '../../withRouter';
 import {Button, Header, Icon, Label, Loader, Message, Segment, Table} from 'semantic-ui-react';
 import Api from '../../services/api';
+import {TEN_LOAI} from './blockTypes';
 
-// Tên tiếng Việt của 7 loại khối — khớp TEN_LOAI trong core_question_bank.py.
-const TEN_LOAI = {
-    DocHieu: 'Đọc hiểu (ngữ liệu + 5 câu)',
-    TracNghiem: 'Trắc nghiệm chọn đáp án',
-    DungSai: 'Câu đúng/sai',
-    TraLoiNgan: 'Viết đáp án (trả lời ngắn)',
-    TuLuan: 'Giải bài (tự luận)',
-    VietDoan: 'Viết đoạn văn',
-    VietBai: 'Viết bài văn',
-    DienTu: 'Bài điền từ',
-};
 
 /**
  * Rút đề từ ngân hàng câu hỏi.
@@ -27,24 +17,28 @@ const TEN_LOAI = {
  * Thêm ô nhập khi giáo viên cần đề lệch chuẩn.
  */
 class DrawExam extends Component {
-    state = {stats: null, cap: null, error: null, drawing: false, warn: null};
+    state = {stats: null, cap: null, error: null, drawing: false, warn: null,
+             bank: null};
 
-    // Môn lấy từ URL; không có thì KHÔNG lọc — import không chọn thư mục thì
-    // Section.subject rỗng, lọc theo môn sẽ ra ngân hàng trống dù có đủ khối.
+    // Rút theo NGÂN HÀNG là đường chính. Đường cũ (/draw-exam/:subject) giữ lại
+    // cho 80 khối import trước khi có model QuestionBank — chúng chỉ có subject.
+    bankId = () => this.props.match.params.bankId || '';
     subject = () => this.props.match.params.subject || '';
 
     // Ma trận vẫn phải theo môn: không lọc môn thì mặc định lấy ma trận Ngữ văn.
-    // ponytail: đổi thành dropdown khi ngân hàng có nhiều môn thật.
     maTran = () => this.subject() || 'Ngữ văn';
 
     componentDidMount = async () => {
         try {
-            let subject = this.subject();
-            let stats = await Api.get('question_bank/stats?subject=' + encodeURIComponent(subject));
+            let bankId = this.bankId(), subject = this.subject();
+            let q = bankId ? 'bank=' + bankId
+                           : 'subject=' + encodeURIComponent(subject);
+            let stats = await Api.get('question_bank/stats?' + q);
             // slots rỗng -> BE lấy đúng MA_TRAN của môn, không phải đoán ở FE.
-            // slots lấy theo ma trận môn, per_type lấy theo bộ lọc thật.
+            // Có bank thì BE tự suy môn từ bank, FE khỏi đoán.
             let cap = await Api.post('question_bank/capacity',
-                                     {subject, matran: this.maTran()});
+                                     bankId ? {bank: bankId}
+                                            : {subject, matran: this.maTran()});
             this.setState({stats, cap});
         } catch (e) {
             this.setState({error: (e && (e.error || e.message)) || 'Không tải được ngân hàng'});
@@ -55,7 +49,9 @@ class DrawExam extends Component {
         this.setState({drawing: true, warn: null});
         try {
             let r = await Api.post('question_bank/draw',
-                                   {subject: this.subject(), matran: this.maTran()});
+                                   this.bankId()
+                                       ? {bank: this.bankId()}
+                                       : {subject: this.subject(), matran: this.maTran()});
             // 409 (thiếu khối) về qua resolve chứ không throw: JsonResponse chỉ
             // gắn 'code' cho abort(), còn `return {...}, 409` giữ nguyên body.
             if (r.error) return this.setState({drawing: false, warn: r.error});
@@ -84,7 +80,9 @@ class DrawExam extends Component {
         return <div className='margin'>
             <Header as='h2'>
                 Rút đề từ ngân hàng
-                <Header.Subheader>{this.subject() || 'Tất cả môn'}</Header.Subheader>
+                <Header.Subheader>
+                    {(cap && cap.subject) || this.subject() || 'Tất cả môn'}
+                </Header.Subheader>
             </Header>
 
             {lan > 0
@@ -153,7 +151,10 @@ class DrawExam extends Component {
             </Segment>
 
             <Segment basic textAlign='center'>
-                <Link to='/import-exam'>Ngân hàng còn thiếu? Import thêm đề</Link>
+                <Link to={this.bankId() ? '/import-exam?bank=' + this.bankId()
+                                        : '/import-exam'}>
+                    Ngân hàng còn thiếu? Nhập thêm đề
+                </Link>
             </Segment>
         </div>;
     }
