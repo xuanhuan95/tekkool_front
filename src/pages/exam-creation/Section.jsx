@@ -42,6 +42,18 @@ class Section extends React.Component {
         this.setSectionState({questions});
     };
 
+    // ponytail: ngu lieu la ban sao trong TUNG cau cung nhom -> sua phai ghi lai
+    // cho ca nhom theo passageId. Sua moi cau dau thi cac cau sau giu ban cu,
+    // hoc sinh doc phai van ban chua sua — loi im lang.
+    setPassage = (passageId, html) => {
+        let {section} = this.props;
+        let questions = section.questions.map(q =>
+            q.data && q.data.passageId === passageId
+                ? {...q, data: {...q.data, passage: html}} : q);
+
+        this.setSectionState({questions});
+    };
+
     setSectionState = (newState) => {
         // State: {name, questions}
         let {section} = this.props;
@@ -84,10 +96,25 @@ class Section extends React.Component {
             />
 
             {questions.length > 0 &&
-            questions.map((question) => {
+            questions.map((question, idx) => {
                 let Question = questionTypes[question.type];
+                let prev = questions[idx - 1];
+                let {passage, passageId} = question.data || {};
+                // Chi hien o soan ngu lieu o cau DAU nhom.
+                let showPassage = passage &&
+                    !(prev && prev.data && prev.data.passageId === passageId);
+
                 return <div key={question.id} style={{position: 'relative'}}>
                     <div className='separator' />
+
+                    {showPassage &&
+                    <div className='passage passage-edit'>
+                        <div className='passage-label'>
+                            Ngữ liệu dùng chung — sửa ở đây áp dụng cho cả nhóm câu
+                        </div>
+                        <Editor text={passage}
+                                onChange={html => this.setPassage(passageId, html)}/>
+                    </div>}
 
                     <Icon
                         onClick={() => this.removeQuestion(question)}

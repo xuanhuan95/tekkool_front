@@ -1,5 +1,6 @@
 import React, {Fragment} from 'react';
 import renderHTML from '../../components/SafeHtml';
+import Passage from '../../components/Passage';
 import {connectGlobalState} from "../../stateUtils";
 import {ExamHeader} from "./ExamHeader";
 import striptags from 'striptags';
@@ -109,6 +110,8 @@ class PreviewExam extends React.Component {
                         let columnWidthSingleChoice = 4;
 
                         return <Fragment key={q.id}>
+                            <Passage question={q} prev={s.questions[idx - 1]}/>
+
                             {q.type === 'FillBlank' &&
                             <div className='question FillBlank' style={pageNonBreak}>
                                 <span style={boldText}>Question {qIdx}:</span>

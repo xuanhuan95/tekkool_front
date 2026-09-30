@@ -11,11 +11,16 @@ export default class Default {
     // Đồng bộ với Exam.DEFAULT_PRICE trong tekkool_back/models/exam.py.
     static PRICE = 100000;
 
+    // ponytail: 45 phut — dung con so DoExam hardcode truoc day, nay thanh mac
+    // dinh sua duoc. 0 = khong gioi han gio.
+    static DURATION = 45;
+
     static exam = () => ({
         id: 'E_' + uuid(),
         name: '',
         section_label: 'Phần',
         price: Default.PRICE,
+        duration: Default.DURATION,
         sections: []
     });
 
