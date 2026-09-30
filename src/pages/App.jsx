@@ -6,11 +6,13 @@ import {connectGlobalState} from "../stateUtils";
 import AuthenticateView from './AuthenticateView';
 import AnonymousView from './AnonymousView';
 import VisitorView from './VisitorView';
-import Api from "../services/api";
+import Api, {setToken} from "../services/api";
 import { Toaster } from 'react-hot-toast';
 import 'semantic-ui-css/semantic.min.css';
+import './fonts.css';
 import './App.css';
 import './questions.css';
+import './student.css';
 
 class Home extends Component {
     state = {isReady: false, auth: {token: '', user: {}}};
@@ -20,8 +22,7 @@ class Home extends Component {
 
         let auth = await Api.get('session/init?token=' + token);
 
-        window.localStorage.setItem('sessionToken', auth.id);
-        window.token = auth.id;
+        setToken(auth.id);
 
         this.setGlobalState({auth});
         this.setState({isReady: true});

@@ -56,6 +56,14 @@ class ExamFile extends React.Component {
                 <Icon name='delete'/> Delete
             </Button>
 
+            {/* Loi vao cham bai — khong co nut nay thi giao vien khong biet
+                hoc sinh da nop gi, bai tu luan treo mai o 'cho cham'. */}
+            <Link to={'/to-grade/' + exam.id}>
+                <Button size='mini' circular color='blue'>
+                    <Icon name='check square outline'/> Bài nộp
+                </Button>
+            </Link>
+
             <Button size='mini' circular color='teal' onClick={() => this.handleDuplicate(exam.id)}>
                 <Icon name='copy'/> Duplicate
             </Button>

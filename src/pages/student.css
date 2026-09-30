@@ -1,0 +1,557 @@
+/* ============================================================
+   Giao diện học sinh — trang chủ, màn môn học, hồ sơ.
+   Tách file riêng: App.css là của màn soạn đề (giáo viên), trộn
+   vào đó là mỗi lần sửa một bên phải dò cả hai.
+   ============================================================ */
+
+/* Font khai trong fonts.css — dùng chung cả app. */
+
+:root {
+    /* Giữ CAM làm màu chính — logo và toàn bộ app đang là cam,
+       đổi sang xanh là phải sửa cả màn giáo viên. */
+    --tk-primary: #e8590c;
+    --tk-primary-soft: #fff4ed;
+    --tk-primary-dark: #c2410c;
+    --tk-ink: #1f2933;
+    --tk-muted: #667085;
+    --tk-line: #e7e3df;
+    --tk-bg: #faf7f4;
+    --tk-card: #ffffff;
+    --tk-green: #16a34a;
+    --tk-green-soft: #ecfdf3;
+
+
+    --tk-r: 14px;
+    --tk-shadow: 0 1px 2px rgba(31, 41, 51, .06), 0 8px 24px rgba(31, 41, 51, .06);
+    --tk-shadow-lift: 0 2px 4px rgba(31, 41, 51, .08), 0 16px 32px rgba(31, 41, 51, .12);
+}
+
+/* ---------- Khung chung ---------- */
+.tk {
+    background: var(--tk-bg);
+    min-height: 100%;
+    font-family: var(--tk-font);
+    color: var(--tk-ink);
+}
+
+.tk-wrap {
+    margin: 0 auto;
+    max-width: 1120px;
+    padding: 28px 20px 64px;
+}
+
+.tk h1, .tk h2, .tk h3 {
+    font-family: var(--tk-font-title);
+    color: var(--tk-ink);
+    letter-spacing: -.01em;
+}
+
+.tk-title {
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 4px;
+}
+
+.tk-sub {
+    color: var(--tk-muted);
+    font-size: 15px;
+    margin: 0 0 24px;
+}
+
+/* ---------- Thanh điều hướng ---------- */
+.tk-nav {
+    background: var(--tk-card);
+    border-bottom: 1px solid var(--tk-line);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.tk-nav-inner {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    margin: 0 auto;
+    max-width: 1120px;
+    min-height: 60px;
+    padding: 0 20px;
+}
+
+.tk-brand {
+    align-items: center;
+    color: var(--tk-primary) !important;
+    display: flex;
+    font-size: 19px;
+    font-weight: 700;
+    gap: 8px;
+    letter-spacing: -.02em;
+    margin-right: 12px;
+    text-decoration: none;
+}
+
+.tk-brand:hover { color: var(--tk-primary-dark) !important; }
+
+.tk-nav-links {
+    display: flex;
+    gap: 2px;
+}
+
+.tk-nav-link {
+    border-radius: 9px;
+    color: var(--tk-muted) !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14.5px;
+    font-weight: 500;
+    padding: 9px 13px;
+    text-decoration: none;
+    transition: background .18s, color .18s;
+}
+
+.tk-nav-link:hover {
+    background: var(--tk-primary-soft);
+    color: var(--tk-primary) !important;
+}
+
+.tk-nav-link.active {
+    background: var(--tk-primary-soft);
+    color: var(--tk-primary) !important;
+}
+
+.tk-nav-right {
+    align-items: center;
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+}
+
+/* Nút tròn 44px — đạt ngưỡng chạm tối thiểu, không phải icon trần. */
+.tk-icon-btn {
+    align-items: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 50%;
+    color: var(--tk-muted);
+    cursor: pointer;
+    display: inline-flex;
+    height: 44px;
+    justify-content: center;
+    padding: 0;
+    transition: background .18s, color .18s, border-color .18s;
+    width: 44px;
+}
+
+.tk-icon-btn:hover {
+    background: var(--tk-primary-soft);
+    border-color: var(--tk-line);
+    color: var(--tk-primary);
+}
+
+.tk-icon-btn:focus-visible {
+    outline: 2px solid var(--tk-primary);
+    outline-offset: 2px;
+}
+
+.tk-icon-btn > i.icon { margin: 0 !important; }
+
+/* Chữ cái đầu tên thay ảnh đại diện — không có ảnh thì khỏi tải gì. */
+.tk-avatar {
+    align-items: center;
+    background: var(--tk-primary);
+    border-radius: 50%;
+    color: #fff;
+    display: inline-flex;
+    flex: none;
+    font-size: 14px;
+    font-weight: 600;
+    height: 32px;
+    justify-content: center;
+    text-transform: uppercase;
+    width: 32px;
+}
+
+.tk-user-btn {
+    align-items: center;
+    background: transparent;
+    border: 1px solid var(--tk-line);
+    border-radius: 999px;
+    cursor: pointer;
+    display: flex;
+    gap: 8px;
+    min-height: 44px;
+    padding: 5px 12px 5px 5px;
+    transition: background .18s, border-color .18s;
+}
+
+.tk-user-btn:hover { background: var(--tk-primary-soft); border-color: var(--tk-primary); }
+.tk-user-btn:focus-visible { outline: 2px solid var(--tk-primary); outline-offset: 2px; }
+
+.tk-user-name {
+    color: var(--tk-ink);
+    font-size: 14.5px;
+    font-weight: 500;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Menu người dùng */
+.tk-menu {
+    background: var(--tk-card);
+    border: 1px solid var(--tk-line);
+    border-radius: var(--tk-r);
+    box-shadow: var(--tk-shadow-lift);
+    min-width: 248px;
+    padding: 6px;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    z-index: 200;
+}
+
+.tk-menu-head {
+    border-bottom: 1px solid var(--tk-line);
+    margin-bottom: 6px;
+    padding: 10px 12px 12px;
+}
+
+.tk-menu-head .n { font-weight: 600; }
+.tk-menu-head .e { color: var(--tk-muted); font-size: 13px; word-break: break-all; }
+
+.tk-menu-item {
+    align-items: center;
+    background: none;
+    border: 0;
+    border-radius: 9px;
+    color: var(--tk-ink) !important;
+    cursor: pointer;
+    display: flex;
+    font-size: 14.5px;
+    gap: 11px;
+    padding: 11px 12px;
+    text-align: left;
+    text-decoration: none;
+    transition: background .15s;
+    width: 100%;
+}
+
+.tk-menu-item:hover { background: var(--tk-primary-soft); }
+.tk-menu-item:focus-visible { outline: 2px solid var(--tk-primary); outline-offset: -2px; }
+.tk-menu-item > i.icon { color: var(--tk-muted); margin: 0 !important; width: 18px; }
+.tk-menu-item.danger { color: #b42318 !important; }
+.tk-menu-item.danger > i.icon { color: #b42318; }
+
+.tk-menu-sep { background: var(--tk-line); height: 1px; margin: 6px 0; }
+
+.tk-user { position: relative; }
+
+/* ---------- Thẻ môn học ---------- */
+.tk-grid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
+}
+
+.tk-subject {
+    background: var(--tk-card);
+    border: 1px solid var(--tk-line);
+    border-radius: var(--tk-r);
+    box-shadow: var(--tk-shadow);
+    cursor: pointer;
+    display: block;
+    overflow: hidden;
+    padding: 0;
+    text-align: left;
+    transition: transform .2s, box-shadow .2s, border-color .2s;
+    width: 100%;
+}
+
+.tk-subject:hover {
+    border-color: var(--tk-primary);
+    box-shadow: var(--tk-shadow-lift);
+    transform: translateY(-3px);
+}
+
+.tk-subject:focus-visible { outline: 2px solid var(--tk-primary); outline-offset: 2px; }
+
+/* Dải màu đầu thẻ — mỗi môn một sắc, nhận ra môn trước khi đọc chữ. */
+.tk-subject-top {
+    align-items: center;
+    display: flex;
+    height: 92px;
+    justify-content: center;
+}
+
+.tk-subject-top > i.icon {
+    color: #fff !important;
+    font-size: 34px !important;
+    margin: 0 !important;
+    opacity: .95;
+}
+
+.tk-subject-body { padding: 16px 18px 18px; }
+
+.tk-subject-name {
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.35;
+    margin-bottom: 6px;
+}
+
+.tk-subject-meta {
+    color: var(--tk-muted);
+    font-size: 13.5px;
+}
+
+/* ---------- Danh sách đề ---------- */
+.tk-back {
+    align-items: center;
+    background: none;
+    border: 0;
+    border-radius: 9px;
+    color: var(--tk-muted);
+    cursor: pointer;
+    display: inline-flex;
+    font-family: inherit;
+    font-size: 14.5px;
+    gap: 7px;
+    margin-bottom: 14px;
+    min-height: 40px;
+    padding: 8px 12px 8px 8px;
+    transition: background .18s, color .18s;
+}
+
+.tk-back:hover { background: var(--tk-primary-soft); color: var(--tk-primary); }
+.tk-back:focus-visible { outline: 2px solid var(--tk-primary); outline-offset: 2px; }
+
+.tk-folder-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 22px;
+}
+
+.tk-chip {
+    align-items: center;
+    background: var(--tk-card);
+    border: 1px solid var(--tk-line);
+    border-radius: 999px;
+    color: var(--tk-ink);
+    cursor: pointer;
+    display: inline-flex;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    gap: 7px;
+    min-height: 40px;
+    padding: 8px 16px;
+    transition: background .18s, border-color .18s, color .18s;
+}
+
+.tk-chip:hover { border-color: var(--tk-primary); color: var(--tk-primary); }
+.tk-chip:focus-visible { outline: 2px solid var(--tk-primary); outline-offset: 2px; }
+
+.tk-chip.active {
+    background: var(--tk-primary);
+    border-color: var(--tk-primary);
+    color: #fff;
+}
+
+.tk-chip > i.icon { margin: 0 !important; }
+
+.tk-exam-list { display: grid; gap: 12px; }
+
+.tk-exam {
+    align-items: center;
+    background: var(--tk-card);
+    border: 1px solid var(--tk-line);
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    gap: 15px;
+    padding: 16px 18px;
+    text-align: left;
+    transition: border-color .18s, box-shadow .18s, transform .18s;
+    width: 100%;
+}
+
+.tk-exam:hover {
+    border-color: var(--tk-primary);
+    box-shadow: var(--tk-shadow);
+    transform: translateX(3px);
+}
+
+.tk-exam:focus-visible { outline: 2px solid var(--tk-primary); outline-offset: 2px; }
+
+.tk-exam-icon {
+    align-items: center;
+    background: var(--tk-primary-soft);
+    border-radius: 11px;
+    color: var(--tk-primary);
+    display: flex;
+    flex: none;
+    height: 44px;
+    justify-content: center;
+    width: 44px;
+}
+
+.tk-exam-icon > i.icon { margin: 0 !important; }
+
+.tk-exam-main { flex: 1; min-width: 0; }
+
+.tk-exam-name {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-bottom: 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tk-exam-meta {
+    color: var(--tk-muted);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: 13.5px;
+    gap: 14px;
+}
+
+.tk-exam-meta span { align-items: center; display: inline-flex; gap: 5px; }
+
+/* Giá: thẻ chữ có nhãn, không chỉ dựa vào màu để phân biệt. */
+.tk-price {
+    border-radius: 999px;
+    flex: none;
+    font-size: 13.5px;
+    font-weight: 600;
+    padding: 6px 13px;
+    white-space: nowrap;
+}
+
+.tk-price.paid { background: var(--tk-primary-soft); color: var(--tk-primary-dark); }
+.tk-price.free { background: var(--tk-green-soft); color: #15803d; }
+
+/* ---------- Trạng thái rỗng ---------- */
+.tk-empty {
+    background: var(--tk-card);
+    border: 1px dashed var(--tk-line);
+    border-radius: var(--tk-r);
+    color: var(--tk-muted);
+    padding: 52px 24px;
+    text-align: center;
+}
+
+.tk-empty > i.icon {
+    color: #cfc8c1 !important;
+    font-size: 40px !important;
+    margin-bottom: 14px !important;
+}
+
+.tk-empty-title { color: var(--tk-ink); font-size: 17px; font-weight: 600; margin-bottom: 5px; }
+
+/* ---------- Hồ sơ ---------- */
+.tk-narrow { max-width: 620px; }
+
+.tk-card {
+    background: var(--tk-card);
+    border: 1px solid var(--tk-line);
+    border-radius: var(--tk-r);
+    box-shadow: var(--tk-shadow);
+    margin-bottom: 20px;
+    padding: 24px;
+}
+
+.tk-card h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0 0 4px;
+}
+
+.tk-card-hint { color: var(--tk-muted); font-size: 14px; margin-bottom: 18px; }
+
+.tk-field { margin-bottom: 16px; }
+
+.tk-field label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 6px;
+}
+
+.tk-field input {
+    border: 1px solid var(--tk-line);
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 15px;
+    padding: 11px 13px;
+    transition: border-color .18s, box-shadow .18s;
+    width: 100%;
+}
+
+.tk-field input:focus {
+    border-color: var(--tk-primary);
+    box-shadow: 0 0 0 3px rgba(232, 89, 12, .12);
+    outline: none;
+}
+
+.tk-field input:disabled { background: var(--tk-muted-bg, #f4f2f0); color: var(--tk-muted); }
+
+.tk-field-hint { color: var(--tk-muted); font-size: 13px; margin-top: 6px; }
+
+/* Lỗi nằm NGAY dưới ô sai, không gom lên đầu trang. */
+.tk-field-error { color: #b42318; font-size: 13.5px; margin-top: 6px; }
+
+.tk-btn {
+    background: var(--tk-primary);
+    border: 0;
+    border-radius: 9px;
+    color: #fff;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    min-height: 44px;
+    padding: 11px 22px;
+    transition: background .18s;
+}
+
+.tk-btn:hover:not(:disabled) { background: var(--tk-primary-dark); }
+.tk-btn:disabled { cursor: not-allowed; opacity: .55; }
+.tk-btn:focus-visible { outline: 2px solid var(--tk-primary); outline-offset: 2px; }
+
+.tk-note {
+    border-radius: 9px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    padding: 11px 14px;
+}
+
+.tk-note.ok { background: var(--tk-green-soft); color: #15803d; }
+.tk-note.err { background: #fef3f2; color: #b42318; }
+
+/* ---------- Điện thoại ---------- */
+@media (max-width: 640px) {
+    .tk-wrap { padding: 20px 14px 48px; }
+    .tk-title { font-size: 23px; }
+    /* Nhãn chữ trong nav chiếm hết chỗ ở màn nhỏ — bỏ chữ, giữ icon. */
+    .tk-nav-link span { display: none; }
+    .tk-nav-link { padding: 11px; }
+    .tk-user-name { display: none; }
+    .tk-user-btn { border: 0; padding: 5px; }
+    .tk-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .tk-subject-top { height: 72px; }
+    .tk-exam { flex-wrap: wrap; }
+    .tk-menu { min-width: 232px; }
+}
+
+/* ---------- Giảm chuyển động ---------- */
+@media (prefers-reduced-motion: reduce) {
+    .tk *, .tk-nav * {
+        animation: none !important;
+        transition: none !important;
+    }
+    .tk-subject:hover, .tk-exam:hover { transform: none; }
+}

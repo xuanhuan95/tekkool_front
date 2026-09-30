@@ -1,0 +1,75 @@
+/* ============================================================
+   Font dùng chung cho TOÀN app — học sinh lẫn giáo viên.
+   Nạp SAU semantic.min.css nên thắng về thứ tự, không cần !important.
+
+   Semantic UI 2.5 khai Lato ở 21 selector (body, heading, button, input,
+   menu, card, modal...). Đè ở mỗi `body` là không đủ: những selector kia
+   khai thẳng font-family nên vẫn ăn Lato. Danh sách dưới đây chép đúng
+   từ semantic.min.css — thêm component Semantic mới thì rà lại bằng:
+     grep -o '[^{}]*{[^}]*font-family:[ ]*Lato' node_modules/semantic-ui-css/semantic.min.css
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap');
+
+:root {
+    --tk-font: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    --tk-font-title: 'Newsreader', Georgia, serif;
+}
+
+body,
+.ui.text.container,
+.ui.input > input,
+.ui.form input:not([type]),
+.ui.form input[type=date],
+.ui.form input[type=datetime-local],
+.ui.form input[type=email],
+.ui.form input[type=file],
+.ui.form input[type=number],
+.ui.form input[type=password],
+.ui.form input[type=search],
+.ui.form input[type=tel],
+.ui.form input[type=text],
+.ui.form input[type=time],
+.ui.form input[type=url],
+.ui.form textarea,
+.ui.menu,
+.ui.button,
+.ui.list .list > .item .header,
+.ui.list > .item .header,
+.ui.steps .step .title,
+.ui.message .header,
+.ui.card > .content > .header,
+.ui.cards > .card > .content > .header,
+.ui.items > .item > .content > .header,
+.ui.statistic > .value,
+.ui.statistics .statistic > .value,
+.ui.statistic > .label,
+.ui.statistics .statistic > .label,
+.ui.accordion .title:not(.ui),
+.ui.modal > .header,
+.ui.popup > .header,
+.ui.search > .results .result .title,
+.ui.search > .results > .message .header,
+.ui.category.search > .results .category > .name {
+    font-family: var(--tk-font);
+}
+
+/* Tiêu đề dùng serif, giống hai tầng chữ của màn học sinh. */
+h1, h2, h3, h4, h5,
+.ui.header {
+    font-family: var(--tk-font-title);
+}
+
+/* Trừ ra: heading nằm trong thanh menu / nút là nhãn giao diện, không phải
+   tiêu đề nội dung — để serif ở đó nhìn lạc lõng. */
+.ui.menu .ui.header,
+.ui.button .ui.header,
+.ui.menu h1, .ui.menu h2, .ui.menu h3, .ui.menu h4, .ui.menu h5 {
+    font-family: var(--tk-font);
+}
+
+/* Icon của Semantic là font riêng (Icons/outline icons) — đè font-family vào
+   đây là mọi icon biến thành ô vuông. Trả lại đúng họ của nó. */
+i.icon {
+    font-family: Icons;
+}

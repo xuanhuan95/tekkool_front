@@ -2,14 +2,17 @@ import React from 'react';
 import {Menu, Icon, Button, Image, Input} from 'semantic-ui-react';
 import {connectGlobalState} from "../../stateUtils";
 import {Link} from 'react-router-dom';
-import Api from '../../services/api';
+import Api, {setToken} from '../../services/api';
 
 class UserBlock extends React.Component {
 
     doLogout = async () => {
-        let {auth} = this.globalState;
-        auth = await Api.get('session/logout?token=' + auth.id);
-        this.setGlobalState({auth});
+        // Ban cu gan ket qua logout vao auth — gio BE tra {success} chu khong
+        // phai session, gan vao la auth.id thanh undefined. Xoa token roi nap
+        // lai trang cho App.jsx xin phien an danh moi.
+        try { await Api.get('session/logout'); } catch (e) { /* phien co the da het han */ }
+        setToken(null);
+        window.location.href = '/';
     };
 
     render() {
