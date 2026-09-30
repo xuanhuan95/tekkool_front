@@ -860,3 +860,15 @@ body {
 .import-bank-types .ui.label {
     margin: 0 6px 6px 0;
 }
+
+/* ---- Màn chờ xác nhận thanh toán ---- */
+/* Bản cũ để width: 480px cứng -> tràn màn điện thoại. Quét QR thì gần như
+   chắc chắn đang cầm điện thoại, đây mới là màn hình chính của luồng này. */
+.tk-pay-result { margin: 3em auto; max-width: 480px; padding: 0 16px; }
+/* Loader Semantic là position:absolute — phải có khối cao thật để nó neo vào,
+   không thì nó rơi ra ngoài luồng và trang trông như trắng trơn. */
+.tk-pay-spin { height: 60px; position: relative; }
+.tk-pay-bar { margin: 18px 0 4px !important; }
+.tk-pay-warn { margin-top: 20px !important; text-align: left; }
+.tk-pay-inv { font-size: .85em; margin-top: 14px; }
+.tk-pay-result .ui.button { margin: 6px 4px 0; }
