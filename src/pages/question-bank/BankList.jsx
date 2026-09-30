@@ -4,6 +4,7 @@ import withRouter from '../../withRouter';
 import {Button, Card, Form, Header, Icon, Label, Loader, Message,
         Modal, Segment} from 'semantic-ui-react';
 import Api from '../../services/api';
+import {TEN_LOAI} from '../exam-creation/blockTypes';
 
 /**
  * Danh sách ngân hàng câu hỏi.
@@ -14,14 +15,48 @@ import Api from '../../services/api';
  */
 class BankList extends Component {
     state = {banks: null, subjects: [], open: false, saving: false,
-             name: '', subject: '', error: null};
+             name: '', subject: '', error: null,
+             // Form "Tao de tu ngan hang": de = ten + thoi gian + gia + ma tran.
+             de: null, deForm: {}, deSaving: false, deError: null,
+             folders: [], daTao: null};
 
     componentDidMount = async () => {
-        let [banks, subjects] = await Promise.all([
+        let [banks, subjects, folders] = await Promise.all([
             Api.get('question_bank/list'),
             Api.get('question_bank/subjects'),
+            Api.get('folder/list'),
         ]);
-        this.setState({banks, subjects});
+        this.setState({banks, subjects, folders});
+    };
+
+    /** Mở form tạo đề. Ma trận lấy từ BE (chuẩn của môn) chứ không chép bảng
+     *  sang FE — hai bảng lệch nhau thì giáo viên đặt một đằng, rút một nẻo. */
+    moTaoDe = async (b) => {
+        this.setState({de: b, deError: null, deForm: {}, deSaving: false});
+        let cap = await Api.post('question_bank/capacity', {bank: b.id});
+        this.setState({deForm: {
+            name: b.name, duration: 90, price: 100000,
+            folder: '', matran: cap.slots || {}, per_type: cap.per_type || {},
+        }});
+    };
+
+    taoDe = async () => {
+        let {de, deForm} = this.state;
+        if (!(deForm.name || '').trim())
+            return this.setState({deError: 'Chưa đặt tên đề'});
+
+        this.setState({deSaving: true, deError: null});
+        let r = await Api.post('exam/create_from_bank', {
+            bank: de.id, name: deForm.name, duration: deForm.duration,
+            price: deForm.price, folder: deForm.folder || null,
+            matran: deForm.matran,
+        });
+        if (r && r.error)
+            return this.setState({deSaving: false, deError: r.error});
+        // Khong vao /edit-exam: de ngan hang khong co cau co dinh de sua.
+        // Ve dung thu muc vua xep de vao, giao vien thay de nam o dau.
+        this.setState({de: null, deSaving: false,
+                       daTao: {name: r.name, folder: deForm.folder}});
     };
 
     save = async () => {
@@ -45,6 +80,69 @@ class BankList extends Component {
         this.setState({banks: await Api.get('question_bank/list')});
     };
 
+    /** Modal tạo đề. Bốn thứ giáo viên đặt: tên, thời gian, giá, ma trận. */
+    renderTaoDe() {
+        let {de, deForm, deSaving, deError, folders} = this.state;
+        if (!de) return null;
+
+        let f = deForm, mt = f.matran || {}, co = f.per_type || {};
+        let dat = (k, v) => this.setState({deForm: {...f, [k]: v}});
+        let datMT = (t, v) => dat('matran', {...mt, [t]: Math.max(0, parseInt(v) || 0)});
+        // Không cho lưu đề mà ngân hàng chưa đủ khối — học sinh sẽ vào và gặp 409.
+        let thieu = Object.keys(mt).filter(t => mt[t] > 0 && (co[t] || 0) < mt[t]);
+
+        return <Modal open size='small' onClose={() => this.setState({de: null})}>
+            <Modal.Header>Tạo đề từ “{de.name}”</Modal.Header>
+            <Modal.Content>
+                <Form error={!!deError}>
+                    <Form.Input label='Tên đề' value={f.name || ''} autoFocus
+                                placeholder='Ví dụ: Kiểm tra giữa kỳ I'
+                                onChange={(e, {value}) => dat('name', value)}/>
+                    <Form.Group widths='equal'>
+                        <Form.Input label='Thời gian (phút)' type='number' min='0'
+                                    value={f.duration}
+                                    onChange={(e, {value}) => dat('duration', parseInt(value) || 0)}/>
+                        <Form.Input label='Giá (đ)' type='number' min='0' step='1000'
+                                    value={f.price}
+                                    onChange={(e, {value}) => dat('price', parseInt(value) || 0)}/>
+                        <Form.Select label='Thư mục' placeholder='Không xếp thư mục'
+                                     value={f.folder || ''}
+                                     options={[{key: '', text: '— Không xếp —', value: ''}]
+                                         .concat(folders.map(x => ({key: x.id, text: x.name, value: x.id})))}
+                                     onChange={(e, {value}) => dat('folder', value)}/>
+                    </Form.Group>
+
+                    <Header as='h5'>
+                        Format đề
+                        <Header.Subheader>
+                            Mỗi lượt làm rút đúng số khối này, mỗi học sinh một bộ khác nhau.
+                        </Header.Subheader>
+                    </Header>
+                    <Form.Group widths='equal'>
+                        {Object.keys(mt).map(t =>
+                            <Form.Input key={t} type='number' min='0' value={mt[t]}
+                                        label={(TEN_LOAI[t] || t) + ' (có ' + (co[t] || 0) + ')'}
+                                        error={mt[t] > 0 && (co[t] || 0) < mt[t]}
+                                        onChange={(e, {value}) => datMT(t, value)}/>)}
+                    </Form.Group>
+
+                    {!!thieu.length && <Message warning
+                        header='Ngân hàng chưa đủ khối'
+                        content={'Thiếu: ' + thieu.map(t => TEN_LOAI[t] || t).join(', ')
+                                 + '. Nhập thêm đề hoặc giảm số khối lại.'}/>}
+                    <Message error content={deError}/>
+                </Form>
+            </Modal.Content>
+            <Modal.Actions>
+                <Button basic onClick={() => this.setState({de: null})}>Huỷ</Button>
+                <Button primary loading={deSaving} disabled={!!thieu.length || deSaving}
+                        onClick={this.taoDe}>
+                    <Icon name='check'/> Tạo đề
+                </Button>
+            </Modal.Actions>
+        </Modal>;
+    }
+
     render() {
         let {banks, subjects, open, saving, name, subject, error} = this.state;
         if (!banks) return <Loader active inline='centered' className='margin'/>;
@@ -64,6 +162,13 @@ class BankList extends Component {
                     <Icon name='plus'/> Tạo ngân hàng mới
                 </Button>
             </div>
+
+            {this.state.daTao && <Message positive
+                onDismiss={() => this.setState({daTao: null})}
+                header={'Đã tạo đề “' + this.state.daTao.name + '”'}
+                content={this.state.daTao.folder
+                    ? 'Đề nằm trong thư mục đã chọn, học sinh vào môn đó là thấy.'
+                    : 'Đề chưa xếp thư mục — học sinh chưa thấy. Xếp vào một thư mục môn ở trang chủ.'}/>}
 
             {!banks.length
                 ? <Segment placeholder>
@@ -101,9 +206,16 @@ class BankList extends Component {
                                         <Icon name='file word outline'/> Nhập đề
                                     </Button>
                                 </Link>
+                                {/* Duong ra chinh cua ngan hang: ra mot DE co
+                                    ten, hoc sinh vao lam duoc. "Rut de" ben
+                                    duoi chi de giao vien lam thu mot ban. */}
+                                <Button size='mini' primary disabled={!b.blocks}
+                                        onClick={() => this.moTaoDe(b)}>
+                                    <Icon name='clipboard list'/> Tạo đề
+                                </Button>
                                 <Link to={'/draw-exam/bank/' + b.id}>
-                                    <Button size='mini' basic primary disabled={!b.blocks}>
-                                        <Icon name='random'/> Rút đề
+                                    <Button size='mini' basic disabled={!b.blocks}>
+                                        <Icon name='random'/> Làm thử
                                     </Button>
                                 </Link>
                                 <Button size='mini' basic icon title='Xoá ngân hàng'
@@ -140,6 +252,8 @@ class BankList extends Component {
                     </Button>
                 </Modal.Actions>
             </Modal>
+
+            {this.renderTaoDe()}
         </div>;
     }
 }
