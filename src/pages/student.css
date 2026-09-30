@@ -126,6 +126,31 @@
     margin-left: auto;
 }
 
+/* Ví lượt: vừa là số dư vừa là nút sang trang mua gói. Cao 44px cho đủ
+   ngưỡng chạm, cùng chiều cao với .tk-icon-btn bên cạnh. */
+.tk-wallet {
+    align-items: center;
+    background: var(--tk-primary-soft);
+    border-radius: 22px;
+    color: var(--tk-primary);
+    display: inline-flex;
+    font-size: 14px;
+    gap: 4px;
+    height: 44px;
+    padding: 0 14px;
+    transition: background .18s;
+    white-space: nowrap;
+}
+
+.tk-wallet:hover { background: var(--tk-line); color: var(--tk-primary); }
+
+.tk-wallet:focus-visible {
+    outline: 2px solid var(--tk-primary);
+    outline-offset: 2px;
+}
+
+.tk-wallet > i.icon { margin: 0 !important; }
+
 /* Nút tròn 44px — đạt ngưỡng chạm tối thiểu, không phải icon trần. */
 .tk-icon-btn {
     align-items: center;

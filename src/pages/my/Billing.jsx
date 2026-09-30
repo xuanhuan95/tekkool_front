@@ -58,8 +58,9 @@ export default class Billing extends Component {
                         let st = STATUS[o.status] || {cls: 'paid', text: o.status, icon: 'question circle'};
                         let name = (o.items || []).map(i => i.name).join(', ') || 'Lượt thi';
 
-                        // Đơn đã dẫn tới một bài nộp -> cả dòng là link sang bài đó.
-                        // Chưa có bài (chưa làm / đang làm dở) thì để thẻ tĩnh.
+                        // ponytail: KHÔNG còn link sang bài làm. Một đơn giờ là
+                        // N lượt dùng cho nhiều đề khác nhau, không trỏ được vào
+                        // một bài nào — lịch sử bài làm nằm ở /my-exams.
                         let body = <React.Fragment>
                             <span className='tk-exam-icon'>
                                 <Icon name='file alternate outline' size='large'/>
@@ -70,11 +71,6 @@ export default class Billing extends Component {
                                     <span><Icon name='calendar outline'/> {fmtDate(o.created_at)}</span>
                                     <span><Icon name='hashtag'/> {o.invoice_number}</span>
                                     <span><Icon name={st.icon}/> {st.text}</span>
-                                    {o.submission_id
-                                        ? <span><Icon name='clipboard check'/> Xem bài đã làm</span>
-                                        : o.consumed_at
-                                            ? <span><Icon name='check'/> đã dùng</span>
-                                            : <span><Icon name='hourglass half'/> chưa dùng</span>}
                                 </span>
                             </span>
                             <span className={'tk-price ' + (o.status === 'PAID' ? 'free' : 'paid')}>
@@ -82,11 +78,8 @@ export default class Billing extends Component {
                             </span>
                         </React.Fragment>;
 
-                        return o.submission_id
-                            ? <Link key={o.invoice_number} className='tk-exam'
-                                    to={'/my-exams/' + o.submission_id}>{body}</Link>
-                            : <div key={o.invoice_number} className='tk-exam'
-                                   style={{cursor: 'default'}}>{body}</div>;
+                        return <div key={o.invoice_number} className='tk-exam'
+                                    style={{cursor: 'default'}}>{body}</div>;
                     })}
                 </div>}
         </div></div>;

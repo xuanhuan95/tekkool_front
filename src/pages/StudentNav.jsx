@@ -13,6 +13,7 @@ import Api, {setToken} from '../services/api';
  */
 export default function StudentNav({user}) {
     const [open, setOpen] = useState(false);
+    const [vi, setVi] = useState(null);
     const box = useRef(null);
     const {pathname} = useLocation();
     const navigate = useNavigate();
@@ -33,6 +34,14 @@ export default function StudentNav({user}) {
 
     // Đổi trang thì đóng menu, khỏi che nội dung trang mới.
     useEffect(() => setOpen(false), [pathname]);
+
+    // Số lượt còn lại, tải lại mỗi lần đổi trang: vào thi xong quay ra là con
+    // số đã trừ. ponytail: không polling — lượt chỉ đổi khi chính học sinh này
+    // vào thi hoặc mua gói, cả hai đều kết thúc bằng một lần đổi trang.
+    useEffect(() => {
+        if (!user) return;
+        Api.get('payment/wallet').then(setVi).catch(() => {});
+    }, [pathname, user]);
 
     const logout = async () => {
         // BE xoa han phien. Bo token o FE truoc khi chuyen trang, neu khong
@@ -55,6 +64,14 @@ export default function StudentNav({user}) {
 
 
             <div className='tk-nav-right'>
+                {/* Ví lượt kiêm lối vào trang mua gói — hết lượt thì đây là chỗ
+                    duy nhất học sinh tự mua thêm được. */}
+                {vi && <Link to='/packages' className='tk-wallet'
+                             title='Mua thêm lượt thi'>
+                    <Icon name='ticket'/>
+                    <b>{vi.remaining}</b> lượt
+                </Link>}
+
                 <div className='tk-user' ref={box}>
                     <button type='button' className='tk-user-btn'
                             aria-haspopup='menu' aria-expanded={open}
@@ -80,6 +97,10 @@ export default function StudentNav({user}) {
                         <button type='button' role='menuitem' className='tk-menu-item'
                                 onClick={() => go('/my-exams')}>
                             <Icon name='clipboard list'/> Lịch sử làm bài
+                        </button>
+                        <button type='button' role='menuitem' className='tk-menu-item'
+                                onClick={() => go('/packages')}>
+                            <Icon name='cube'/> Mua lượt thi
                         </button>
                         <button type='button' role='menuitem' className='tk-menu-item'
                                 onClick={() => go('/billing')}>

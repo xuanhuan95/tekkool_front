@@ -43,7 +43,9 @@ class DoExam extends React.Component {
             // Nut Start cu cho thi sinh doc het de roi moi bam, tinh gio bang 0.
             this.setState({exam}, this.startExam);
         } catch (e) {
-            if (e && e.code === 403) return this.props.history.push('/payment/' + examId);
+            // 402 = hết lượt -> sang trang mua gói. 403 = không có quyền vào đề.
+            if (e && e.code === 402) return this.props.history.push('/packages?het-luot=1');
+            if (e && e.code === 403) return this.props.history.push('/packages');
             this.setState({loadError: (e && (e.error || e.message)) || 'Không tải được đề thi'});
         }
     };
@@ -82,7 +84,7 @@ class DoExam extends React.Component {
         let {passedTime, submitting, submitted} = this.state;
         if (submitting || submitted) return;
 
-        if (!window.confirm('Nộp bài? Sau khi nộp, muốn làm lại đề này bạn phải mua lượt mới.')) return;
+        if (!window.confirm('Nộp bài? Sau khi nộp, muốn làm lại đề này sẽ tính thêm một lượt.')) return;
 
         this.setState({submitting: true});
         let result;
@@ -99,10 +101,15 @@ class DoExam extends React.Component {
 
     startExam = () => {
         let {exam} = this.state;
-        // ponytail: duration cua chinh de, khong phai 45 phut cung cho moi de.
-        // duration=0 (thay co de trong) -> khong gioi han, an dong ho.
-        let limit = (exam.duration || 0) * 60;
+        // ponytail: đồng hồ chạy trên SERVER. `remaining_sec` là số giây thật sự
+        // còn lại của lượt (server chốt hạn nộp lúc mở lượt), không phải
+        // exam.duration — đóng tab 20 phút rồi mở lại thì mất đúng 20 phút đó,
+        // chứ không được cấp lại nguyên thời gian như bản đếm ở FE trước đây.
+        // null = đề không giới hạn thời gian.
+        let limit = exam.remaining_sec;
+        if (limit === null || limit === undefined) limit = (exam.duration || 0) * 60;
 
+        // Mốc để trừ đi thời gian trôi tại máy học sinh giữa hai tick.
         this.setState({startAt: new Date(), remainingTime: limit});
         if (!limit) return;
 
