@@ -218,17 +218,6 @@ class CreateExam extends React.Component {
                                     />
                                 </Grid.Column>
 
-                                <Grid.Column width={3}>
-                                    <Input
-                                        fluid
-                                        type='number'
-                                        min={0}
-                                        label='Giá (đ)'
-                                        placeholder='0 = miễn phí'
-                                        value={exam.price === undefined ? Default.PRICE : exam.price}
-                                        onChange={(e, {value}) => this.setExamData({price: parseInt(value, 10) || 0})}
-                                    />
-                                </Grid.Column>
                             </Grid.Row>
                         </Grid>
                     </Segment>

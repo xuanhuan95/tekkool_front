@@ -6,11 +6,6 @@ export default class Default {
     // (bắt buộc) nhưng FE không có field này ở đâu cả -> mọi đề TẠO MỚI đều
     // 500 KeyError khi Save. Model BE để StringField() không required nên
     // thêm giá trị mặc định ở đây là đủ, không phải chạm tekkool_back.
-    // ponytail: giá mặc định phải nằm ở ĐÂY chứ không chỉ ở BE — ô "Giá (đ)"
-    // hiển thị exam.price, không có field thì hiện 0 trong khi BE lưu 100000.
-    // Đồng bộ với Exam.DEFAULT_PRICE trong tekkool_back/models/exam.py.
-    static PRICE = 100000;
-
     // ponytail: 45 phut — dung con so DoExam hardcode truoc day, nay thanh mac
     // dinh sua duoc. 0 = khong gioi han gio.
     static DURATION = 45;
@@ -19,7 +14,6 @@ export default class Default {
         id: 'E_' + uuid(),
         name: '',
         section_label: 'Phần',
-        price: Default.PRICE,
         duration: Default.DURATION,
         sections: []
     });

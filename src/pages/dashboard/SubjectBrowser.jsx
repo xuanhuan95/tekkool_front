@@ -51,7 +51,6 @@ function subjectStyle(name) {
     return FALLBACK;
 }
 
-const fmtPrice = p => p > 0 ? p.toLocaleString('vi-VN') + ' đ' : 'Miễn phí';
 
 /**
  * Màn hình học sinh: chọn môn -> chọn bộ đề (folder con) -> chọn đề.
@@ -110,11 +109,10 @@ export default function SubjectBrowser() {
             .catch(e => setError(e.error || e.message || 'Không tải được danh sách đề'));
     };
 
-    // Đề miễn phí vào thẳng; đề có giá qua trang thanh toán. Mỗi lượt làm bài
-    // là một đơn nên KHÔNG nhớ "đã mua" ở đây — BE trả 403 thì quay lại đây.
-    const openExam = (exam) => {
-        navigate((exam.price > 0 ? '/payment/' : '/do-exam/') + exam.id);
-    };
+    // Vào thẳng đề. Hết lượt thì BE trả 402 và DoExam tự đẩy sang trang mua
+    // gói — KHÔNG chặn ở đây, vì số lượt còn lại là chuyện của ví chứ không
+    // phải của từng đề, hỏi trước mỗi lần bấm là thừa một vòng mạng.
+    const openExam = (exam) => navigate('/do-exam/' + exam.id);
 
     if (error) return <div className='tk'><div className='tk-wrap'>
         <div className='tk-empty'>
@@ -224,9 +222,9 @@ export default function SubjectBrowser() {
                                     <span><Icon name='play circle outline'/> Bắt đầu làm bài</span>
                                 </span>
                             </span>
-                            <span className={'tk-price ' + (exam.price > 0 ? 'paid' : 'free')}>
-                                {fmtPrice(exam.price)}
-                            </span>
+                            {/* Đề không có giá riêng nữa — vào thi nào cũng trừ
+                                đúng 1 lượt trong gói đã mua. */}
+                            <span className='tk-price paid'>1 lượt</span>
                         </button>
                     )}
                 </div>}

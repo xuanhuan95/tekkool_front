@@ -379,12 +379,6 @@ class ImportExam extends Component {
                        onChange={(e, {value}) =>
                            this.patchExam(exam.id, ex => ({...ex, duration: parseInt(value, 10) || 0}))}/>
 
-                <Input size='mini' type='number' min={0} label='đ'
-                       labelPosition='right' className='import-exam-num import-exam-price'
-                       value={exam.price === undefined ? 100000 : exam.price}
-                       onChange={(e, {value}) =>
-                           this.patchExam(exam.id, ex => ({...ex, price: parseInt(value, 10) || 0}))}/>
-
                 <span className='import-exam-meta'>
                     {this.countQuestions(exam)} câu
                     {missing > 0 && <Label size='tiny' color='orange' className='margin-left'>

@@ -35,7 +35,7 @@ class BankList extends Component {
         this.setState({de: b, deError: null, deForm: {}, deSaving: false});
         let cap = await Api.post('question_bank/capacity', {bank: b.id});
         this.setState({deForm: {
-            name: b.name, duration: 90, price: 100000,
+            name: b.name, duration: 90,
             folder: '', matran: cap.slots || {}, per_type: cap.per_type || {},
         }});
     };
@@ -48,7 +48,7 @@ class BankList extends Component {
         this.setState({deSaving: true, deError: null});
         let r = await Api.post('exam/create_from_bank', {
             bank: de.id, name: deForm.name, duration: deForm.duration,
-            price: deForm.price, folder: deForm.folder || null,
+            folder: deForm.folder || null,
             matran: deForm.matran,
         });
         if (r && r.error)
@@ -102,9 +102,6 @@ class BankList extends Component {
                         <Form.Input label='Thời gian (phút)' type='number' min='0'
                                     value={f.duration}
                                     onChange={(e, {value}) => dat('duration', parseInt(value) || 0)}/>
-                        <Form.Input label='Giá (đ)' type='number' min='0' step='1000'
-                                    value={f.price}
-                                    onChange={(e, {value}) => dat('price', parseInt(value) || 0)}/>
                         <Form.Select label='Thư mục' placeholder='Không xếp thư mục'
                                      value={f.folder || ''}
                                      options={[{key: '', text: '— Không xếp —', value: ''}]
