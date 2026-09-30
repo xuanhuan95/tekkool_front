@@ -29,16 +29,22 @@ const TEN_LOAI = {
 class DrawExam extends Component {
     state = {stats: null, cap: null, error: null, drawing: false, warn: null};
 
-    // ponytail: mới có ma trận Ngữ văn trong bank thật; các môn khác BE đã có
-    // MA_TRAN sẵn, đổi dòng này thành dropdown khi import đủ môn.
-    subject = () => this.props.match.params.subject || 'Ngữ văn';
+    // Môn lấy từ URL; không có thì KHÔNG lọc — import không chọn thư mục thì
+    // Section.subject rỗng, lọc theo môn sẽ ra ngân hàng trống dù có đủ khối.
+    subject = () => this.props.match.params.subject || '';
+
+    // Ma trận vẫn phải theo môn: không lọc môn thì mặc định lấy ma trận Ngữ văn.
+    // ponytail: đổi thành dropdown khi ngân hàng có nhiều môn thật.
+    maTran = () => this.subject() || 'Ngữ văn';
 
     componentDidMount = async () => {
         try {
             let subject = this.subject();
             let stats = await Api.get('question_bank/stats?subject=' + encodeURIComponent(subject));
             // slots rỗng -> BE lấy đúng MA_TRAN của môn, không phải đoán ở FE.
-            let cap = await Api.post('question_bank/capacity', {subject});
+            // slots lấy theo ma trận môn, per_type lấy theo bộ lọc thật.
+            let cap = await Api.post('question_bank/capacity',
+                                     {subject, matran: this.maTran()});
             this.setState({stats, cap});
         } catch (e) {
             this.setState({error: (e && (e.error || e.message)) || 'Không tải được ngân hàng'});
@@ -48,7 +54,8 @@ class DrawExam extends Component {
     draw = async () => {
         this.setState({drawing: true, warn: null});
         try {
-            let r = await Api.post('question_bank/draw', {subject: this.subject()});
+            let r = await Api.post('question_bank/draw',
+                                   {subject: this.subject(), matran: this.maTran()});
             // 409 (thiếu khối) về qua resolve chứ không throw: JsonResponse chỉ
             // gắn 'code' cho abort(), còn `return {...}, 409` giữ nguyên body.
             if (r.error) return this.setState({drawing: false, warn: r.error});
@@ -77,7 +84,7 @@ class DrawExam extends Component {
         return <div className='margin'>
             <Header as='h2'>
                 Rút đề từ ngân hàng
-                <Header.Subheader>{this.subject()}</Header.Subheader>
+                <Header.Subheader>{this.subject() || 'Tất cả môn'}</Header.Subheader>
             </Header>
 
             {lan > 0
