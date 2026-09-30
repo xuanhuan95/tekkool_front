@@ -226,7 +226,7 @@ class PackageList extends Component {
                     <Form.Input label='Tên gói' value={f.name} autoFocus
                                 placeholder='Ví dụ: Cơ bản'
                                 onChange={(e, {value}) => dat('name', value)}/>
-                    <Form.Group widths='equal'>
+                    <Form.Group widths='equal' className='tk-pkg-nums'>
                         <Form.Input label='Số lượt thi' type='number' min='1'
                                     value={f.turns}
                                     onChange={(e, {value}) => dat('turns', parseInt(value) || 0)}/>

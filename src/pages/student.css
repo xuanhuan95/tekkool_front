@@ -580,3 +580,10 @@
     }
     .tk-subject:hover, .tk-exam:hover { transform: none; }
 }
+
+/* Ba ô số trong modal tạo gói. Semantic cho `equal width` flex:1 1 auto, nhưng
+   min-width mặc định của flex item là `auto` -> ô không co nhỏ hơn nội dung,
+   nhãn "Thứ tự hiện" + spinner của type=number giữ ô ở 203px và ô thứ ba tràn
+   khỏi modal (đo được: kết thúc ở 602px trong khung 520px). Cùng lời giải với
+   .import-parsed ở App.css. */
+.ui.form .tk-pkg-nums.fields > .field { min-width: 0; }
