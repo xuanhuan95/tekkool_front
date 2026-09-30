@@ -350,3 +350,382 @@ body {
 .addExam > i.icon:hover {
     color: #2185d0;
 }
+
+/* ------- Màn nhập đề từ Word: xem & sửa trước khi lưu ------- */
+.import-exam-head {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+}
+
+.import-exam-name {
+    flex: 1;
+    font-weight: bold;
+}
+
+.import-exam-name input {
+    font-weight: bold !important;
+}
+
+.import-exam-meta {
+    color: #767676;
+    white-space: nowrap;
+}
+
+.import-section {
+    margin-top: 14px;
+}
+
+.import-question {
+    border-left: 3px solid #e8e8e8;
+    margin-bottom: 14px;
+    padding-left: 12px;
+}
+
+/* Câu trắc nghiệm thiếu đáp án đúng -> chấm máy luôn ra 0 điểm, phải thấy ngay. */
+.import-question.has-warning {
+    border-left-color: #f2711c;
+}
+
+.import-question-head {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+/* Icon xoá đẩy sang phải, tránh bấm nhầm khi đang đọc nội dung. */
+.import-question-head > i.icon {
+    margin-left: auto;
+}
+
+.answer-row {
+    align-items: flex-start;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+
+.answer-key {
+    line-height: 1.6;
+    min-width: 18px;
+}
+
+.answer-body {
+    flex: 1;
+}
+
+.import-save-hint {
+    color: #767676;
+    margin-left: 12px;
+}
+
+/* Split-screen: trái = đã nhận diện (sửa được), phải = văn bản gốc để đối chiếu. */
+.import-split {
+    display: flex;
+    gap: 16px;
+    margin-top: 14px;
+}
+
+.import-parsed,
+.import-source {
+    flex: 1;
+    min-width: 0;   /* không có dòng này thì nội dung dài đẩy cột phình ra */
+}
+
+/* Cot goc DINH theo man hinh: cuon trang de doc cau hoi ben trai thi cot phai
+   van con do de doi chieu. Truoc day no dung yen tai vi tri cu -> cuon xuong
+   la mat luon van ban goc.
+   ponytail: sticky thay vi JS dong bo scroll — dong bo dung phai map cau ->
+   dong, ma bo cuc hai ben khac han nhau nen luon lech. Sticky cho nguoi dung
+   tu cuon cot phai, khong bao gio sai. */
+.import-source {
+    align-self: flex-start;
+    position: sticky;
+    top: 12px;
+}
+
+.import-source .src-view {
+    background: #fafafa;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    /* Tru cho dong tieu de cot va khoang tho. */
+    height: calc(100vh - 90px);
+    overflow: auto;
+    padding: 8px 0;
+}
+
+.import-col-head {
+    color: #767676;
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.src-line {
+    display: flex;
+    font-family: Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+}
+
+.src-line:hover {
+    background: #f0f0f0;
+}
+
+.src-no {
+    color: #bbb;
+    flex: none;
+    padding: 0 10px;
+    text-align: right;
+    user-select: none;   /* copy văn bản không dính số dòng */
+    width: 44px;
+}
+
+.src-text {
+    padding-right: 10px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Mốc cấu trúc (Câu 1., Phần I, VĂN BẢN 2) và ký hiệu đáp án A. B. C. D. */
+.src-q {
+    color: #1a5fb4;
+    font-style: normal;
+    font-weight: bold;
+}
+
+.src-a {
+    color: #c01c28;
+    font-style: normal;
+    font-weight: bold;
+}
+
+.src-empty {
+    color: #999;
+    font-style: italic;
+    padding: 12px;
+}
+
+@media (max-width: 1200px) {
+    .import-split {
+        flex-direction: column;
+    }
+
+    /* Xep doc thi sticky vo nghia, tra ve cuon thuong. */
+    .import-source {
+        position: static;
+    }
+
+    .import-source .src-view {
+        height: auto;
+        max-height: 60vh;
+    }
+}
+
+.q-chip {
+    cursor: pointer;
+    margin: 2px !important;
+}
+
+/* Nháy nền khi nhảy tới câu từ modal "Thông tin đề". */
+.import-question.flash {
+    background: #fff8d5;
+    transition: background 0.4s;
+}
+
+/* Ngữ liệu đọc hiểu dùng chung cho cả nhóm câu: in một lần ở câu đầu nhóm.
+   Backend trả HTML nhiều thẻ <p> nên không cần pre-line. */
+.passage {
+    background: #f7f9fb;
+    border-left: 3px solid #1a5fb4;
+    padding: 10px 14px;
+    margin: 10px 0;
+    line-height: 1.6;
+}
+
+/* Ngữ liệu lúc import: là ô soạn thảo, thu padding lại cho vừa,
+   giữ viền trái để vẫn thấy rõ đây là khối dùng chung cả nhóm. */
+.passage-edit {
+    padding: 8px 12px;
+}
+
+.passage p:last-child {
+    margin-bottom: 0;
+}
+
+.passage-label {
+    color: #767676;
+    font-size: 0.85em;
+    font-style: italic;
+    margin-bottom: 6px;
+}
+
+/* Còn dưới 1 phút: đồng hồ đỏ cho thí sinh biết mà nộp. */
+.time-up {
+    color: #db2828;
+}
+
+/* Ô phút / giá trên dòng tiêu đề mỗi đề lúc import.
+   Hai ô KHÔNG cùng bề rộng: "90" và "100000" chênh nhau 4 chữ số, ép chung
+   một width thì hoặc phút thừa chỗ hoặc giá bị cắt (đã xảy ra). Đặt riêng
+   theo ô input bên trong, chừa chỗ cho spinner của type=number. */
+.import-exam-num {
+    flex-shrink: 0;
+}
+
+.import-exam-num input {
+    padding: 6px 8px !important;
+    width: 7ch !important;
+}
+
+.import-exam-price input {
+    width: 13ch !important;
+}
+
+/* "40 câu" va nut Thong tin: khong duoc co lai, neu khong chu xuong dong
+   thanh hai hang va day ca dong cao gap doi. */
+.import-exam-meta,
+.import-exam-head > .ui.button {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Ô giới hạn số từ của câu tự luận lúc import. */
+.import-wordlimit {
+    margin-top: 8px;
+}
+
+.import-wordlimit input {
+    width: 90px;
+}
+
+/* Ô chọn loại câu hỏi lúc import: thu nhỏ cho vừa dòng tiêu đề câu. */
+.import-type {
+    font-size: 0.85em !important;
+    min-height: 0 !important;
+    padding: 5px 24px 5px 8px !important;
+}
+
+.import-type > .icon {
+    padding: 5px !important;
+}
+
+/* ---- Màn xem lại / chấm bài ---- */
+.sub-summary {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+}
+
+.sub-answer-head {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+/* Điểm đẩy sang phải, đọc cả cột thẳng hàng cho nhanh. */
+.sub-answer-score {
+    color: #767676;
+    margin-left: auto;
+}
+
+.sub-label {
+    color: #767676;
+    font-size: 0.85em;
+    font-style: italic;
+    margin: 10px 0 4px;
+}
+
+.sub-question {
+    line-height: 1.6;
+}
+
+.sub-given {
+    background: #f7f9fb;
+    border-left: 3px solid #bbb;
+    padding: 8px 12px;
+}
+
+/* Câu máy chấm sai: viền đỏ để lướt qua là thấy ngay mình sai ở đâu. */
+.sub-given.wrong {
+    border-left-color: #db2828;
+}
+
+.sub-correct {
+    background: #f6fff6;
+    border-left: 3px solid #21ba45;
+    padding: 8px 12px;
+}
+
+.sub-grade {
+    border-top: 1px dashed #ccc;
+    margin-top: 12px;
+    padding-top: 10px;
+}
+
+.sub-comment {
+    margin-top: 10px !important;
+}
+
+/* Editor nhả <p> inline ở #ExamCreation; các màn này cần xuống dòng bình thường. */
+.sub-detail p {
+    display: block;
+    margin: 0 0 6px;
+}
+
+/* ---- Xem lại bài: dựng lại bố cục màn làm bài ---- */
+.sub-passage {
+    background: #fafafa;
+    border-left: 3px solid #ccc;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    font-style: italic;
+}
+.sub-choices { margin: 10px 0 6px 0; }
+.sub-choice {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+/* Học sinh chọn sai: tô đỏ. Chọn trúng đáp án thì luật .key ở dưới đè lên. */
+.sub-choice.picked { background: #fff0f0; }
+.sub-choice.key    { background: #f0fff4; }
+
+/* Chấm tròn thay cho radio + nhãn chữ: viền xám = không liên quan,
+   đỏ đặc = học sinh chọn (sai), xanh đặc = đáp án đúng.
+   Chọn trúng đáp án thì .key nằm SAU nên thắng -> ra chấm xanh. */
+.sub-dot {
+    flex: none;
+    width: 13px;
+    height: 13px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+.sub-choice.picked .sub-dot { border-color: #db2828; background: #db2828; }
+.sub-choice.key    .sub-dot { border-color: #21ba45; background: #21ba45; }
+
+/* Nội dung phương án là HTML -> renderHTML sinh <p>; ép inline cho khỏi xuống dòng. */
+.sub-choice-text p { display: inline; margin: 0; }
+
+/* Chuong "bai cho cham" tren thanh giao vien. Label dat trong long muc chu
+   khong dung `floating` (tran ra ngoai dinh thanh). */
+.tk-bell {
+    position: relative;
+}
+
+.tk-bell .ui.label {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    margin: 0;
+    padding: 2px 5px;
+    min-width: 16px;
+    line-height: 1.1;
+}

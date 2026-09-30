@@ -11,13 +11,11 @@ import SubjectBrowser from './SubjectBrowser';
 class Dashboard extends Component {
     state = {
         folders: [],
-        activeItem: 'mine',
         activeFolder: null,
         folderExams: [],
         nextUrl: '',
     };
 
-    handleItemClick = (e, {name}) => this.setState({activeItem: name});
 
     examCreation = () => {
         this.props.history.push('/create-exam');
@@ -79,7 +77,7 @@ class Dashboard extends Component {
     };
 
     render() {
-        let {activeItem, folders, folderExams} = this.state;
+        let {folders, folderExams} = this.state;
         let folderOptions = folders.map(f => ({text: f.name, value: f.id}));
         folderOptions.unshift({text: '---root---', value: null});
         let {exams} = this.globalState;
@@ -88,7 +86,8 @@ class Dashboard extends Component {
         if (!this.isTeacher()) return <SubjectBrowser/>;
 
         return <div id='ExamCreation' className='margin'>
-            <Menu id='leftMenu' vertical pointing>
+            {/* Chi con 2 nut tao de. `pointing` da bo: khong con muc nao de tro. */}
+            <Menu id='leftMenu' vertical>
                 <Menu.Item>
                     <Link to='/create-exam'>
                         <Button fluid primary>Create Exam</Button>
@@ -98,14 +97,6 @@ class Dashboard extends Component {
                             <Icon name='file word outline'/> Nhập từ Word
                         </Button>
                     </Link>
-                </Menu.Item>
-
-                <Menu.Item name='mine' active={activeItem === 'mine'} onClick={this.handleItemClick}>
-                    <Icon name='database'/> My tests
-                </Menu.Item>
-
-                <Menu.Item name='shared' active={activeItem === 'shared'} onClick={this.handleItemClick}>
-                    <Icon name='cloud'/> Shared with me
                 </Menu.Item>
             </Menu>
 
