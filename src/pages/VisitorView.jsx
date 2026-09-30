@@ -19,7 +19,7 @@ class VisitorView extends Component {
                   <Route path='/' element={<Dashboard/>}/>
                   <Route path='/do-exam/:examId' element={<DoExam/>}/>
                   <Route path='/payment/result' element={<PaymentResult/>}/>
-                  <Route path='/payment/:examId' element={<Payment/>}/>
+                  <Route path='/payment/:packageId' element={<Payment/>}/>
                   <Route path='/profile' element={<Profile/>}/>
                   <Route path='/my-exams' element={<MySubmissions/>}/>
                   <Route path='/billing' element={<Billing/>}/>

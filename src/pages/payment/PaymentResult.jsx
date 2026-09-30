@@ -56,7 +56,6 @@ export default function PaymentResult() {
         return () => { cancelled = true; clearInterval(dongHo); };
     }, [inv]);
 
-    const examUrl = payment && payment.exam_id ? '/do-exam/' + payment.exam_id : '/';
     const isPaid = payment && payment.status === 'PAID';
     // Chưa có phản hồi lần nào cũng là đang chờ — không để trang trắng.
     const dangCho = !error && (!payment || payment.status === 'PENDING');
@@ -99,10 +98,14 @@ export default function PaymentResult() {
                 <Icon name='check circle' color='green' size='huge'/>
                 <Header as='h2'>
                     Thanh toán thành công
-                    <Header.Subheader>Đã mở khoá đề, vào làm được ngay.</Header.Subheader>
+                    <Header.Subheader>
+                        Lượt thi đã được cộng vào tài khoản, chọn đề là làm được ngay.
+                    </Header.Subheader>
                 </Header>
-                <Button primary size='large' onClick={() => navigate(examUrl)}>
-                    <Icon name='play'/> Vào làm bài
+                {/* Mua gói xong không có ĐỀ nào để vào thẳng — gói dùng cho mọi
+                    đề. Về trang chọn đề thay vì đoán bừa một đề. */}
+                <Button primary size='large' onClick={() => navigate('/')}>
+                    <Icon name='play'/> Chọn đề để làm
                 </Button>
             </div>}
 
@@ -132,8 +135,8 @@ export default function PaymentResult() {
                     Thanh toán không thành công
                     <Header.Subheader>Chưa trừ tiền. Thử lại được.</Header.Subheader>
                 </Header>
-                <Button primary onClick={() => navigate('/payment/' + payment.exam_id)}>
-                    <Icon name='redo'/> Thử lại
+                <Button primary onClick={() => navigate('/packages')}>
+                    <Icon name='redo'/> Chọn gói và thử lại
                 </Button>
                 <div className='text-muted tk-pay-inv'>Mã đơn: {inv}</div>
             </div>}

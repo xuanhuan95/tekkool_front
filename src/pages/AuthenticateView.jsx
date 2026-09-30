@@ -43,7 +43,7 @@ class AuthenticateView extends Component {
                   <Route path='/billing' element={<Billing/>}/>
                   <Route path='/profile' element={<Profile/>}/>
                   <Route path='/payment/result' element={<PaymentResult/>}/>
-                  <Route path='/payment/:examId' element={<Payment/>}/>
+                  <Route path='/payment/:packageId' element={<Payment/>}/>
                   <Route path='/subject/:subjectId' element={<Dashboard/>}/>
                   <Route path='*' element={<Dashboard/>}/>
 

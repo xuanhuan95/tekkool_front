@@ -1,7 +1,8 @@
 import React, {Component} from 'react';
 import withRouter from '../../withRouter';
-import {Button, Form, Header, Icon, Label, Loader, Message,
-        Modal, Segment, Table} from 'semantic-ui-react';
+import {Button, Card, Form, Header, Icon, Label, Loader, Message,
+        Modal, Segment, Statistic, Table} from 'semantic-ui-react';
+import {connectGlobalState} from '../../stateUtils';
 import Api from '../../services/api';
 
 
@@ -16,13 +17,24 @@ const tien = (n) => (n || 0).toLocaleString('vi-VN') + ' đ';
  * cho đề nào cũng được. Lượt trừ lúc BẮT ĐẦU vào thi, không phải lúc nộp.
  */
 class PackageList extends Component {
-    state = {goi: null, form: null, saving: false, error: null, msg: null};
+    state = {goi: null, vi: null, form: null, saving: false, error: null, msg: null};
 
     componentDidMount = () => this.load();
 
+    // group là string id ('teacher' | 'student' | 'visitor').
+    laGiaoVien = () => {
+        let {auth} = this.globalState;
+        return !!(auth && auth.user && auth.user.group === 'teacher');
+    };
+
     load = async () => {
+        let gv = this.laGiaoVien();
         // ?all=1: giáo viên thấy cả gói đã ẩn để sửa lại hoặc bật lên.
-        this.setState({goi: await Api.get('package/list?all=1')});
+        // Học sinh chỉ thấy gói đang bán — BE tự lọc, tham số này chỉ mở thêm.
+        this.setState({goi: await Api.get('package/list' + (gv ? '?all=1' : ''))});
+
+        // Số lượt còn lại: chỉ học sinh cần. Giáo viên không tốn lượt nào.
+        if (!gv) this.setState({vi: await Api.get('payment/wallet')});
     };
 
     moTao = () => this.setState({
@@ -57,6 +69,8 @@ class PackageList extends Component {
     render() {
         let {goi, form, saving, error, msg} = this.state;
         if (!goi) return <Loader active inline='centered' className='margin'/>;
+
+        if (!this.laGiaoVien()) return this.renderMua(goi);
 
         return <div className='tk-dash margin'>
             <div className='tk-dash-bar'>
@@ -138,6 +152,70 @@ class PackageList extends Component {
         </div>;
     }
 
+    /** Màn học sinh: chọn gói để mua. Không có nút sửa/xoá nào. */
+    renderMua(goi) {
+        let {vi} = this.state;
+        // ?het-luot=1: DoExam đẩy sang đây khi vào thi mà ví rỗng — nói thẳng
+        // lý do, không để học sinh tự đoán vì sao bị đá ra khỏi đề.
+        let hetLuot = (this.props.location.search || '').indexOf('het-luot=1') >= 0;
+
+        return <div className='tk-dash margin'>
+            <div className='tk-dash-bar'>
+                <Header as='h2' className='tk-dash-title'>
+                    Gói thi thử
+                    <Header.Subheader>
+                        Mua gói để lấy lượt thi. Mỗi lần bắt đầu vào thi trừ 1 lượt.
+                    </Header.Subheader>
+                </Header>
+                {vi && <Statistic size='small' color={vi.remaining > 0 ? 'green' : 'red'}>
+                    <Statistic.Value>{vi.remaining}</Statistic.Value>
+                    <Statistic.Label>lượt còn lại</Statistic.Label>
+                </Statistic>}
+            </div>
+
+            {hetLuot && <Message warning icon>
+                <Icon name='hourglass end'/>
+                <Message.Content>
+                    <Message.Header>Bạn đã hết lượt thi</Message.Header>
+                    Chọn một gói bên dưới để tiếp tục làm bài.
+                </Message.Content>
+            </Message>}
+
+            {!goi.length
+                ? <Segment placeholder>
+                    <Header icon>
+                        <Icon name='cube' color='grey'/>
+                        Chưa có gói nào đang bán
+                        <Header.Subheader>
+                            Giáo viên chưa mở bán gói nào — liên hệ giáo viên của bạn.
+                        </Header.Subheader>
+                    </Header>
+                </Segment>
+                : <Card.Group itemsPerRow={3} stackable>
+                    {goi.map(p =>
+                        <Card key={p.id}>
+                            <Card.Content>
+                                <Card.Header>{p.name}</Card.Header>
+                                <Card.Meta>{p.turns} lượt thi thử</Card.Meta>
+                                {p.description && <Card.Description>{p.description}</Card.Description>}
+                            </Card.Content>
+                            <Card.Content>
+                                <div style={{fontSize: '1.6em'}}><b>{tien(p.price)}</b></div>
+                                <div style={{color: '#888', fontSize: '.9em'}}>
+                                    {tien(Math.round(p.price / p.turns))} mỗi lượt
+                                </div>
+                            </Card.Content>
+                            <Card.Content extra>
+                                <Button primary fluid
+                                        onClick={() => this.props.history.push('/payment/' + p.id)}>
+                                    <Icon name='credit card'/> Mua gói này
+                                </Button>
+                            </Card.Content>
+                        </Card>)}
+                </Card.Group>}
+        </div>;
+    }
+
     renderForm(f, saving, error) {
         let dat = (k, v) => this.setState({form: {...f, [k]: v}});
 
@@ -181,4 +259,4 @@ class PackageList extends Component {
     }
 }
 
-export default withRouter(PackageList);
+export default withRouter(connectGlobalState(PackageList));
