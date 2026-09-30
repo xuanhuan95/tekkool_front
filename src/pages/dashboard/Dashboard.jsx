@@ -97,6 +97,11 @@ class Dashboard extends Component {
                             <Icon name='file word outline'/> Nhập từ Word
                         </Button>
                     </Link>
+                    <Link to='/draw-exam'>
+                        <Button fluid className='margin-top'>
+                            <Icon name='random'/> Rút từ ngân hàng
+                        </Button>
+                    </Link>
                 </Menu.Item>
             </Menu>
 

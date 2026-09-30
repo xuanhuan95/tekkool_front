@@ -5,6 +5,7 @@ import Dashboard from './dashboard/Dashboard';
 import CreateExam from './exam-creation/CreateExam';
 import DoExam from './exam-creation/DoExam';
 import ImportExam from './exam-creation/ImportExam';
+import DrawExam from './exam-creation/DrawExam';
 import MySubmissions from './my/MySubmissions';
 import SubmissionDetail from './my/SubmissionDetail';
 import ToGrade from './my/ToGrade';
@@ -28,6 +29,8 @@ class AuthenticateView extends Component {
                   <Route path='/edit-exam/:examId' element={<CreateExam/>}/>
                   <Route path='/create-exam' element={<CreateExam/>}/>
                   <Route path='/import-exam' element={<ImportExam/>}/>
+                  <Route path='/draw-exam' element={<DrawExam/>}/>
+                  <Route path='/draw-exam/:subject' element={<DrawExam/>}/>
                   <Route path='/my-exams' element={<MySubmissions/>}/>
                   <Route path='/my-exams/:id' element={<SubmissionDetail/>}/>
                   <Route path='/to-grade' element={<ToGrade/>}/>
