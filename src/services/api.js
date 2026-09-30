@@ -54,4 +54,15 @@ class BaseApi {
 }
 
 const Api = new BaseApi();
+
+// Token phien nam o DUY NHAT mot cho: window.token (api.js doc) + localStorage
+// (giu qua lan mo trang). BE xoay token moi lan dang nhap va xoa phien khi
+// dang xuat, nen moi cho nhan token moi deu phai goi ham nay — quen mot cho
+// la request tiep theo mang token da bi xoa, BE tra 400.
+export function setToken(token) {
+  window.token = token || '';
+  if (token) window.localStorage.setItem('sessionToken', token);
+  else window.localStorage.removeItem('sessionToken');
+}
+
 export default Api;
