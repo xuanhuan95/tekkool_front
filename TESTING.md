@@ -60,7 +60,7 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 | # | Ca | Phải đúng |
 |---|---|---|
 | T3.1 | Rút đề từ ngân hàng | Trộn theo **nhóm ngữ liệu**, không tách câu khỏi văn bản đọc hiểu |
-| T3.2 | Ngân hàng không đủ câu | Báo thiếu, không trả đề thiếu câu trong im lặng |
+| T3.2 | Ngân hàng không đủ câu | Báo thiếu, không trả đề thiếu câu trong im lặng ✅ *(đã có)* |
 | T3.3 | Kiểm tra trùng | Phát hiện câu trùng trước khi lưu |
 
 ### T5. Chấm tự luận — **điểm chết**
@@ -94,9 +94,9 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 | S2.3 | **F5 ngay sau khi nộp** | Trả bài đã nộp, **không** trừ lượt ✅ *(đã có: cửa sổ 15 phút)* |
 | S2.4 | Vào lại sau 15 phút | Mới tính là thi lại, lúc đó mới trừ lượt ✅ *(đã có)* |
 | S2.5 | Hết lượt | 402 + popup mua gói, **không** tạo `Attempt` |
-| S2.6 | Giáo viên mở đề của chính mình | Không trừ lượt |
-| S2.7 | Đề miễn phí | Không trừ lượt |
-| S2.8 | Hết giờ rồi mới vào lại | Lượt cũ đóng `auto`, không mở lượt mới âm thầm |
+| S2.6 | Giáo viên mở đề của chính mình | Không trừ lượt ✅ *(đã có)* |
+| S2.7 | Đề miễn phí | Không trừ lượt ✅ *(đã có)* |
+| S2.8 | Hết giờ rồi mới vào lại | Lượt cũ đóng `auto`, không mở lượt mới âm thầm ✅ *(đã có)* |
 
 > **Cảnh báo cho react-query** (RULES.md mục 3): `GET exam/during_test` trừ
 > lượt. Bọc nó bằng `useQuery` mà quên `retry: false` là một lần retry = một
@@ -127,12 +127,12 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 ### S5–S6. Xem điểm
 | # | Ca | Phải đúng |
 |---|---|---|
-| S5.1 | Còn câu chờ chấm | Hiện "chờ chấm", **không** hiện điểm tạm như điểm cuối |
-| S5.2 | Mẫu số khi chưa chấm xong | Là `graded_max_score`, không phải `max_score` cả bài |
+| S5.1 | Còn câu chờ chấm | Hiện "chờ chấm", **không** hiện điểm tạm như điểm cuối ✅ |
+| S5.2 | Mẫu số khi chưa chấm xong | Là `graded_max_score`, không phải `max_score` cả bài ✅ |
 | S5.3 | Bảng điểm từng phần | Hai khối cùng tên gộp làm **một** ✅ *(đã có)* |
 | S5.4 | Thứ tự các phần | Giữ thứ tự trong bài, không tự sắp lại theo số La Mã ✅ *(đã có)* |
 | S5.5 | Bài cũ không có `section_name` | Rơi về dòng tổng, **không** hiện bảng rỗng ✅ *(đã có)* |
-| S5.6 | Thời gian làm bài sau F5 | Lấy `duration_sec`, không hiện "0 phút" |
+| S5.6 | Thời gian làm bài sau F5 | Lấy `duration_sec`, không hiện "0 phút" ✅ |
 | S5.7 | Giờ hiển thị | BE trả UTC thiếu `Z` → vẫn ra giờ VN ✅ *(đã có)* |
 
 ---
@@ -147,7 +147,7 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 | BE `test_docx.py` | 22 | T1 nhập .docx: loại câu, đáp án, đề/phần rỗng |
 | BE `core_question_bank.py` (self-check) | — | T2 trọng số, T3 rút đề |
 | BE `core_grading.py` (self-check) | — | S4.4/4.5 nhiều cách viết, hoa thường, Unicode NFC/NFD |
-| FE `npm test` | 128 | 12 file, gồm DoExam (S2/S3) và DrawExam/ImportExam (T3) |
+| FE `npm test` | 133 | 12 file, gồm DoExam (S2/S3/S5) và DrawExam/ImportExam (T3) |
 
 **Thứ tự bổ sung** — theo mức thiệt hại nếu hỏng:
 
@@ -159,8 +159,11 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 6. ~~`S4.4/4.5` nhiều cách viết đáp án~~ ✅ *(tìm ra bug Unicode NFC/NFD)*
 7. ~~`T1` nhập .docx~~ ✅ *(tìm ra lỗ: phần rỗng đi qua im lặng)*
 
-Hết danh sách. Còn `S5.1/5.2/5.6`, `S2.6/2.7/2.8`, `T3.2` chưa có test riêng —
-mức thiệt hại thấp hơn, bổ sung khi chạm vào các màn đó.
+8. ~~`S5.1/5.2/5.6` màn kết quả~~ ✅
+9. ~~`S2.6/2.7/2.8`, `T3.2`~~ ✅ *(đã có sẵn trong `test_attempt.py`, `core_question_bank.py`
+   và `DrawExam.test.tsx` — bảng trên trước đây ghi sót dấu ✅)*
+
+Hết danh sách — mọi ca trong tài liệu này đều đã có test.
 
 ## Quy ước viết test
 

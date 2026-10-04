@@ -235,3 +235,87 @@ describe('DoExam: mất mạng khi đang làm (S3.4)', () => {
         expect(khac.checked).toBe(false);
     });
 });
+
+// ──────────────────────────────────────────────────────────────────────
+// S5.1/5.2 còn câu chờ chấm · S5.6 thời gian làm bài sau F5
+// ──────────────────────────────────────────────────────────────────────
+
+/** Vào lại đề đã nộp (BE trả `da_nop`) — đường duy nhất tới màn kết quả. */
+const daNop = (them: Record<string, unknown>) => ({
+    ...DE, da_nop: true, status: 'GRADING', ...them,
+});
+
+describe('DoExam: màn kết quả khi còn câu chờ chấm (S5.1/S5.2)', () => {
+    it('mẫu số là graded_max_score, KHÔNG phải max_score cả bài', async () => {
+        // Bài 10 trắc nghiệm (10đ) + 2 tự luận (2đ). Máy mới chấm phần trắc
+        // nghiệm: 8/10. Lấy mẫu số 12 thành "8/12" — học sinh đọc ra là mình
+        // sai 4 câu, trong khi thực tế chỉ sai 2 và 2 câu kia chưa ai chấm.
+        vi.spyOn(Api, 'get').mockResolvedValue(daNop({
+            score: 8, graded_max_score: 10, max_score: 12, pending_count: 2,
+        }));
+        ve();
+        await screen.findByText('Đã nộp bài');
+
+        await screen.findByText('8/10');
+        // Khẳng định ngược: "8/12" KHÔNG được xuất hiện ở đâu cả. Thiếu dòng
+        // này thì test vẫn xanh nếu màn hình in cả hai con số.
+        expect(screen.queryByText('8/12')).toBeNull();
+    });
+
+    it('chưa chấm xong thì nói rõ "chờ chấm", không trình điểm tạm như điểm cuối', async () => {
+        // "Điểm của bạn: 8" khi còn 2 câu chưa chấm là nói dối: điểm cuối có
+        // thể là 10. Học sinh đóng máy, tưởng đó là điểm thật.
+        vi.spyOn(Api, 'get').mockResolvedValue(daNop({
+            score: 8, graded_max_score: 10, max_score: 12, pending_count: 2,
+        }));
+        ve();
+        await screen.findByText('Đã nộp bài');
+
+        expect(document.body.textContent).toMatch(/chờ giáo viên chấm/);
+        expect(screen.queryByText(/Điểm của bạn/)).toBeNull();
+    });
+
+    it('chấm xong hết thì mới hiện điểm cuối trên tổng cả bài', async () => {
+        // Mặt còn lại của hai test trên: pending_count = 0 thì PHẢI có điểm
+        // cuối. Không có test này thì xoá luôn nhánh hiện điểm vẫn xanh.
+        vi.spyOn(Api, 'get').mockResolvedValue(daNop({
+            score: 11, graded_max_score: 12, max_score: 12,
+            pending_count: 0, status: 'GRADED',
+        }));
+        ve();
+        await screen.findByText('Đã nộp bài');
+
+        await screen.findByText('11/12');
+        expect(document.body.textContent).not.toMatch(/chờ giáo viên chấm/);
+    });
+});
+
+describe('DoExam: thời gian làm bài sau F5 (S5.6)', () => {
+    it('lấy duration_sec của bài đã nộp, không hiện "0 phút"', async () => {
+        // F5 ở màn kết quả: state.passedTime về 0 vì component dựng lại.
+        // Chỉ đọc passedTime là học sinh thấy "làm trong 0 phút" sau khi ngồi
+        // làm 23 phút — con số sai nằm ngay cạnh điểm, đọc là mất tin cả trang.
+        vi.spyOn(Api, 'get').mockResolvedValue(daNop({
+            score: 9, graded_max_score: 10, max_score: 10,
+            pending_count: 0, status: 'GRADED', duration_sec: 23 * 60 + 40,
+        }));
+        ve();
+        await screen.findByText('Đã nộp bài');
+
+        // 1420s -> 23 phút (làm tròn xuống), không phải 0.
+        await screen.findByText(/Thời gian làm bài: 23 phút/);
+    });
+
+    it('bài cũ không có duration_sec thì rơi về passedTime, không nổ', async () => {
+        // Bài nộp trước khi BE lưu duration_sec. Phải ra 0 phút một cách êm,
+        // không được NaN hay trắng màn.
+        vi.spyOn(Api, 'get').mockResolvedValue(daNop({
+            score: 9, graded_max_score: 10, max_score: 10, pending_count: 0,
+        }));
+        ve();
+        await screen.findByText('Đã nộp bài');
+
+        expect(document.body.textContent).toMatch(/Thời gian làm bài: 0 phút/);
+        expect(document.body.textContent).not.toMatch(/NaN/);
+    });
+});
