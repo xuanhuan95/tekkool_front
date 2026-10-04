@@ -1,9 +1,11 @@
-import React, {Component} from 'react';
+import {Component} from 'react';
 import Loading from '../../components/Loading';
 import {Link} from 'react-router-dom';
 import withRouter from '../../withRouter';
-import {Header, Icon, Label, Message, Segment, Table} from 'semantic-ui-react';
+import type {RouterProps} from '../../withRouter';
+import {Header, Icon, Message, Segment, Table} from 'semantic-ui-react';
 import Api from '../../services/api';
+import type {Submission} from '../../types/submission';
 import {fmtDate, fmtDuration, ScoreLabel} from './fmt';
 
 /**
@@ -15,8 +17,10 @@ import {fmtDate, fmtDuration, ScoreLabel} from './fmt';
  *
  * ponytail: tách hai file là hai chỗ phải sửa mỗi lần đổi cách hiện bảng.
  */
-class ToGrade extends Component {
-    state = {subs: null, error: null};
+type State = {subs: Submission[] | null; error: string | null};
+
+class ToGrade extends Component<RouterProps, State> {
+    state: State = {subs: null, error: null};
 
     all = () => !this.props.match.params.examId;
 
@@ -25,7 +29,7 @@ class ToGrade extends Component {
             let url = this.all() ? 'exam/pending'
                                  : 'exam/to_grade/' + this.props.match.params.examId;
             this.setState({subs: await Api.get(url)});
-        } catch (e) {
+        } catch (e: any) {
             this.setState({error: (e && (e.error || e.message)) || 'Không tải được danh sách'});
         }
     };

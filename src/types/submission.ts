@@ -16,6 +16,18 @@ export type Submission = {
      * có field này — optional thật, không phải để FE tự đoán.
      */
     phan?: ScoreSection[];
+    /** Hết giờ, máy nộp thay. */
+    auto_submitted?: boolean;
+    exam_id?: string;
+    teacher_comment?: string | null;
+    graded_at?: string | null;
+    attempt_id?: string | null;
+    /**
+     * Tên học sinh. CHỈ có ở hai endpoint cho giáo viên (`exam/to_grade/<id>`,
+     * `exam/pending`) và `exam/submission/<id>` — `exam/my_submissions` không
+     * trả, vì học sinh tự xem bài mình thì không cần tên mình.
+     */
+    student?: string | null;
 };
 
 export type SubmissionStatus = 'GRADING' | 'GRADED';

@@ -1,7 +1,8 @@
 import React from 'react';
 import {Grid, Icon} from 'semantic-ui-react';
+import type {CSSProperties} from 'react';
 
-const style = {
+const style: Record<string, CSSProperties> = {
     rowStyle:{ border: '1px solid #666', height: '86px'},
     noSpace:{ padding: '0 !important', margin: '0 !important'},
 }

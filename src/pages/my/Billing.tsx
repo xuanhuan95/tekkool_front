@@ -1,24 +1,29 @@
 import React, {Component} from 'react';
 import Loading from '../../components/Loading';
-import {Link} from 'react-router-dom';
 import {Icon} from 'semantic-ui-react';
+import type {SemanticICONS} from 'semantic-ui-react';
 import Api from '../../services/api';
+import type {Payment} from '../../types/payment';
 import {fmtDate, fmtMoney} from './fmt';
 
-const STATUS = {
+type StatusStyle = {cls: string; text: string; icon: SemanticICONS};
+
+const STATUS: Record<string, StatusStyle> = {
     PAID: {cls: 'free', text: 'Đã thanh toán', icon: 'check circle'},
     PENDING: {cls: 'paid', text: 'Chờ thanh toán', icon: 'clock outline'},
     FAILED: {cls: 'err', text: 'Thất bại', icon: 'times circle'},
 };
 
 /** Lịch sử thanh toán, mỗi đơn chỉ thẳng sang bài đã làm bằng đơn đó. */
-export default class Billing extends Component {
-    state = {orders: null, error: null};
+type State = {orders: Payment[] | null; error: string | null};
+
+export default class Billing extends Component<{}, State> {
+    state: State = {orders: null, error: null};
 
     componentDidMount = async () => {
         try {
             this.setState({orders: await Api.get('payment/history')});
-        } catch (e) {
+        } catch (e: any) {
             this.setState({error: (e && (e.error || e.message)) || 'Không tải được lịch sử'});
         }
     };

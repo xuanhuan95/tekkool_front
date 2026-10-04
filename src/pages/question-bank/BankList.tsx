@@ -1,10 +1,43 @@
-import React, {Component} from 'react';
+import {Component} from 'react';
 import Loading from '../../components/Loading';
 import {Link} from 'react-router-dom';
 import withRouter from '../../withRouter';
+import type {RouterProps} from '../../withRouter';
 import {Button, Card, Form, Header, Icon, Label, Message, Modal, Segment} from 'semantic-ui-react';
 import Api from '../../services/api';
 import {TEN_LOAI} from '../exam-creation/blockTypes';
+import type {BlockType} from '../exam-creation/blockTypes';
+import type {Folder} from '../../types/exam';
+
+/** Một ngân hàng câu hỏi. `blocks` = số khối ngữ liệu đang có bên trong. */
+type Bank = {id: string; name: string; subject: string; blocks: number};
+
+/** Form "tạo đề từ ngân hàng". matran/per_type khoá theo mã loại khối. */
+type DeForm = {
+    name?: string;
+    duration?: number;
+    folder?: string;
+    /** Số khối mỗi loại mà đề sẽ rút. */
+    matran?: Record<string, number>;
+    /** Số khối mỗi loại ngân hàng ĐANG có — để báo thiếu. */
+    per_type?: Record<string, number>;
+};
+
+type State = {
+    banks: Bank[] | null;
+    subjects: string[];
+    open: boolean;
+    saving: boolean;
+    name: string;
+    subject: string;
+    error: string | null;
+    de: Bank | null;
+    deForm: DeForm;
+    deSaving: boolean;
+    deError: string | null;
+    folders: Folder[];
+    daTao: {name: string; folder?: string} | null;
+};
 
 /**
  * Danh sách ngân hàng câu hỏi.
@@ -13,8 +46,8 @@ import {TEN_LOAI} from '../exam-creation/blockTypes';
  * một rổ chung, gắn tên môn đoán từ tên thư mục. Giờ ngân hàng có tên, có môn,
  * tạo bằng tay — môn là bắt buộc vì ma trận rút đề tra cứu theo tên môn.
  */
-class BankList extends Component {
-    state = {banks: null, subjects: [], open: false, saving: false,
+class BankList extends Component<RouterProps, State> {
+    state: State = {banks: null, subjects: [], open: false, saving: false,
              name: '', subject: '', error: null,
              // Form "Tao de tu ngan hang": de = ten + thoi gian + gia + ma tran.
              de: null, deForm: {}, deSaving: false, deError: null,
@@ -31,7 +64,7 @@ class BankList extends Component {
 
     /** Mở form tạo đề. Ma trận lấy từ BE (chuẩn của môn) chứ không chép bảng
      *  sang FE — hai bảng lệch nhau thì giáo viên đặt một đằng, rút một nẻo. */
-    moTaoDe = async (b) => {
+    moTaoDe = async (b: Bank) => {
         this.setState({de: b, deError: null, deForm: {}, deSaving: false});
         let cap = await Api.post('question_bank/capacity', {bank: b.id});
         this.setState({deForm: {
@@ -42,8 +75,13 @@ class BankList extends Component {
 
     taoDe = async () => {
         let {de, deForm} = this.state;
-        if (!(deForm.name || '').trim())
-            return this.setState({deError: 'Chưa đặt tên đề'});
+        // Chỉ bấm được từ trong modal nên `de` luôn có. Chặn cho chắc: thiếu
+        // `de` mà vẫn gọi thì BE nhận bank=undefined và tạo đề rỗng.
+        if (!de) return;
+        if (!(deForm.name || '').trim()) {
+            this.setState({deError: 'Chưa đặt tên đề'});
+            return;
+        }
 
         this.setState({deSaving: true, deError: null});
         let r = await Api.post('exam/create_from_bank', {
@@ -51,8 +89,10 @@ class BankList extends Component {
             folder: deForm.folder || null,
             matran: deForm.matran,
         });
-        if (r && r.error)
-            return this.setState({deSaving: false, deError: r.error});
+        if (r && r.error) {
+            this.setState({deSaving: false, deError: r.error});
+            return;
+        }
         // Khong vao /edit-exam: de ngan hang khong co cau co dinh de sua.
         // Ve dung thu muc vua xep de vao, giao vien thay de nam o dau.
         this.setState({de: null, deSaving: false,
@@ -61,19 +101,21 @@ class BankList extends Component {
 
     save = async () => {
         let {name, subject} = this.state;
-        if (!name.trim()) return this.setState({error: 'Chưa nhập tên ngân hàng'});
-        if (!subject) return this.setState({error: 'Chưa chọn môn học'});
+        if (!name.trim()) { this.setState({error: 'Chưa nhập tên ngân hàng'}); return; }
+        if (!subject) { this.setState({error: 'Chưa chọn môn học'}); return; }
 
         this.setState({saving: true, error: null});
         let r = await Api.post('question_bank/create', {name, subject});
-        if (r && r.error)
-            return this.setState({saving: false, error: r.error});
+        if (r && r.error) {
+            this.setState({saving: false, error: r.error});
+            return;
+        }
 
         this.setState({open: false, saving: false, name: '', subject: '',
                        banks: await Api.get('question_bank/list')});
     };
 
-    remove = async (b) => {
+    remove = async (b: Bank) => {
         if (!window.confirm('Xoá ngân hàng “' + b.name + '”? '
             + b.blocks + ' khối bên trong mất theo, không lấy lại được.')) return;
         await Api.post('question_bank/remove', {id: b.id});
@@ -86,10 +128,11 @@ class BankList extends Component {
         if (!de) return null;
 
         let f = deForm, mt = f.matran || {}, co = f.per_type || {};
-        let dat = (k, v) => this.setState({deForm: {...f, [k]: v}});
-        let datMT = (t, v) => dat('matran', {...mt, [t]: Math.max(0, parseInt(v) || 0)});
+        let dat = (k: keyof DeForm, v: unknown) => this.setState({deForm: {...f, [k]: v}});
+        let datMT = (t: string, v: unknown) => dat('matran', {...mt, [t]: Math.max(0, parseInt(String(v)) || 0)});
         // Không cho lưu đề mà ngân hàng chưa đủ khối — học sinh sẽ vào và gặp 409.
         let thieu = Object.keys(mt).filter(t => mt[t] > 0 && (co[t] || 0) < mt[t]);
+        const tenLoai = (t: string) => TEN_LOAI[t as BlockType] || t;
 
         return <Modal open size='small' onClose={() => this.setState({de: null})}>
             <Modal.Header>Tạo đề từ “{de.name}”</Modal.Header>
@@ -97,16 +140,16 @@ class BankList extends Component {
                 <Form error={!!deError}>
                     <Form.Input label='Tên đề' value={f.name || ''} autoFocus
                                 placeholder='Ví dụ: Kiểm tra giữa kỳ I'
-                                onChange={(e, {value}) => dat('name', value)}/>
+                                onChange={(_e, {value}) => dat('name', value)}/>
                     <Form.Group widths='equal'>
                         <Form.Input label='Thời gian (phút)' type='number' min='0'
                                     value={f.duration}
-                                    onChange={(e, {value}) => dat('duration', parseInt(value) || 0)}/>
+                                    onChange={(_e, {value}) => dat('duration', parseInt(value) || 0)}/>
                         <Form.Select label='Thư mục' placeholder='Không xếp thư mục'
                                      value={f.folder || ''}
                                      options={[{key: '', text: '— Không xếp —', value: ''}]
                                          .concat(folders.map(x => ({key: x.id, text: x.name, value: x.id})))}
-                                     onChange={(e, {value}) => dat('folder', value)}/>
+                                     onChange={(_e, {value}) => dat('folder', value)}/>
                     </Form.Group>
 
                     <Header as='h5'>
@@ -118,14 +161,14 @@ class BankList extends Component {
                     <Form.Group widths='equal'>
                         {Object.keys(mt).map(t =>
                             <Form.Input key={t} type='number' min='0' value={mt[t]}
-                                        label={(TEN_LOAI[t] || t) + ' (có ' + (co[t] || 0) + ')'}
+                                        label={tenLoai(t) + ' (có ' + (co[t] || 0) + ')'}
                                         error={mt[t] > 0 && (co[t] || 0) < mt[t]}
-                                        onChange={(e, {value}) => datMT(t, value)}/>)}
+                                        onChange={(_e, {value}) => datMT(t, value)}/>)}
                     </Form.Group>
 
                     {!!thieu.length && <Message warning
                         header='Ngân hàng chưa đủ khối'
-                        content={'Thiếu: ' + thieu.map(t => TEN_LOAI[t] || t).join(', ')
+                        content={'Thiếu: ' + thieu.map(tenLoai).join(', ')
                                  + '. Nhập thêm đề hoặc giảm số khối lại.'}/>}
                     <Message error content={deError}/>
                 </Form>
@@ -230,13 +273,13 @@ class BankList extends Component {
                     <Form error={!!error}>
                         <Form.Input label='Tên ngân hàng' placeholder='Ví dụ: Ngữ văn 12 — HK1'
                                     value={name} autoFocus
-                                    onChange={(e, {value}) => this.setState({name: value})}/>
+                                    onChange={(_e, {value}) => this.setState({name: value})}/>
                         {/* Môn BẮT BUỘC: ma trận rút đề tra theo tên môn, thiếu
                             môn thì không biết mỗi đề cần mấy khối loại nào. */}
                         <Form.Select label='Môn học' required
                                      placeholder='Chọn môn' options={subjectOptions}
                                      value={subject}
-                                     onChange={(e, {value}) => this.setState({subject: value})}/>
+                                     onChange={(_e, {value}) => this.setState({subject: String(value ?? '')})}/>
                         <Message error content={error}/>
                     </Form>
                 </Modal.Content>
