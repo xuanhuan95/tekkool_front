@@ -5,11 +5,17 @@ import type {Question, Section} from "../Default";
 export type BaseQuestionProps = {
     question: Question;
     section: Section;
+    /**
+     * ponytail: `setNestedValue` đã sửa `section` TẠI CHỖ (cùng object nằm
+     * trong `exam`), nên lời gọi này không mang dữ liệu gì — nó chỉ báo cho
+     * store biết "có thay đổi, vẽ lại đi". Section truyền xuống một hàm
+     * `touch`; chữ ký giữ nguyên để 5 file câu hỏi khỏi phải sửa.
+     */
     setSectionState: (state: {section: Section}) => void;
 };
 
-// ponytail: van la class component — 5 loai cau hoi ke thua lop nay. Chuyen
-// sang function component lam cung luc voi connectGlobalState o lat sau.
+// ponytail: van la class component — 5 loai cau hoi ke thua lop nay. Khong
+// con dinh global state; chuyen sang function component de sau, khong gap.
 export default class BaseQuestion<P extends BaseQuestionProps = BaseQuestionProps,
                                   S = {}> extends React.Component<P, S> {
     setQuestionState = (newState: {data?: Record<string, any>}) => {

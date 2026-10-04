@@ -17,7 +17,7 @@ type AuthState = {
 };
 
 /**
- * Phiên đăng nhập. Thay cho `globalState.auth` của `stateUtils`.
+ * Phiên đăng nhập. 
  *
  * Chỉ có phiên nằm ở đây. Dữ liệu máy chủ (danh sách đề, bài nộp…) đi qua
  * react-query — nhét vào store nữa là có hai nguồn sự thật phải tự đồng bộ.

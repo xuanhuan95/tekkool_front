@@ -22,6 +22,11 @@ export type Exam = {
     section_label: string;
     duration: number;
     sections: Section[];
+    /** Tiêu đề góc trái/phải của bản in. Đề tạo mới chưa có -> optional. */
+    left_header?: string;
+    right_header?: string;
+    /** Chủ đề. CreateExam gán từ người đang đăng nhập trước khi POST. */
+    user?: string;
 };
 
 export default class Default {

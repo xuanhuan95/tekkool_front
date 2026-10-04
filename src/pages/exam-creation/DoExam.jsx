@@ -5,7 +5,7 @@ import renderHTML from '../../components/SafeHtml';
 import Passage from '../../components/Passage';
 import striptags from 'striptags';
 
-import {connectGlobalState} from "../../stateUtils";
+import {useAuthStore} from "../../stores/authStore";
 import {Segment, Radio, Grid, Button, Icon, Rail, Sticky, Message} from 'semantic-ui-react';
 import {numToChar} from "../../services/tools";
 import {Editor} from "../../components/Editor";
@@ -94,11 +94,14 @@ class DoExam extends React.Component {
     setAnswer = async (questionId, answer) => {
         let {exam} = this.state;
 
-        let {auth} = this.globalState;
+        // ponytail: doc store ngoai React (getState) thay vi hook — DoExam van
+        // la class component. Chuyen ca file 429 dong sang hooks chi de lay mot
+        // id nguoi dung la rui ro khong dang, day la duong lam bai va tru luot.
+        let user = useAuthStore.getState().user;
 
         await Api.post('exam/save_answer/' + questionId, {
             answer:answer,
-            user_id: auth.user.id
+            user_id: user && user.id
         });
 
         exam.sections.forEach((section)=> {
@@ -426,4 +429,4 @@ class DoExam extends React.Component {
     }
 }
 
-export default withRouter(connectGlobalState(DoExam));
+export default withRouter(DoExam);

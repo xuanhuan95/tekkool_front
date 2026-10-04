@@ -2,7 +2,6 @@ import React, {Component} from 'react';
 import {Button, Checkbox, Dropdown, Header, Icon, Input, Label, Message, Modal, Radio, Segment, Table} from 'semantic-ui-react';
 import {Link} from 'react-router-dom';
 import withRouter from '../../withRouter';
-import {connectGlobalState} from '../../stateUtils';
 import {Editor} from '../../components/Editor';
 import Api from '../../services/api';
 import {TEN_LOAI} from './blockTypes';
@@ -632,4 +631,4 @@ class ImportExam extends Component {
     }
 }
 
-export default withRouter(connectGlobalState(ImportExam));
+export default withRouter(ImportExam);
