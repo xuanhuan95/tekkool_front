@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+
+    // Di trú dần: .jsx cũ và .tsx mới chạy song song. Bỏ allowJs khi file
+    // .jsx cuối cùng đã chuyển xong.
+    "allowJs": true,
+    // ponytail: KHÔNG checkJs. Bật là 6.645 dòng JS cũ phun lỗi cùng lúc,
+    // không ai sửa nổi -> tắt strict để cho qua, mất luôn mục đích dùng TS.
+    "checkJs": false,
+
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    // Vite lo việc sinh file; tsc chỉ dùng để kiểm tra kiểu.
+    "noEmit": true
+  },
+  "include": ["src"]
+}
