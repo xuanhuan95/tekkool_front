@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * Tranh minh hoạ màn đăng nhập: hai học sinh đứng hai bên tờ đề thi.

@@ -1,11 +1,12 @@
-import React, {useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import Loading from '../../components/Loading';
 import {useNavigate, useParams} from 'react-router-dom';
 import {Button, Segment, Icon, Message} from 'semantic-ui-react';
 
 import Api from "../../services/api";
+import type {Package, CheckoutForm} from "../../types/payment";
 
-const tien = (n) => (n || 0).toLocaleString('vi-VN') + ' đ';
+const tien = (n?: number) => (n || 0).toLocaleString('vi-VN') + ' đ';
 
 /**
  * Trang xác nhận mua một GÓI lượt thi.
@@ -17,44 +18,45 @@ export default function Payment() {
     const {packageId} = useParams();
     const navigate = useNavigate();
 
-    const [goi, setGoi] = useState(null);
-    const [error, setError] = useState(null);
+    const [goi, setGoi] = useState<Package | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [redirecting, setRedirecting] = useState(false);
 
     useEffect(() => {
         // Không có endpoint đọc một gói — danh sách gói ngắn, lọc ở FE rẻ hơn
         // một route mới.
         Api.get('package/list')
-            .then(ds => {
-                let g = (ds || []).find(p => p.id === packageId);
-                if (!g) return setError('Không tìm thấy gói này');
+            .then((ds: Package[]) => {
+                const g = (ds || []).find(p => p.id === packageId);
+                if (!g) { setError('Không tìm thấy gói này'); return; }
                 setGoi(g);
             })
-            .catch(e => setError(e.error || e.message || 'Không tải được thông tin gói'));
+            .catch((e: any) => setError(e.error || e.message || 'Không tải được thông tin gói'));
     }, [packageId]);
 
     const pay = async () => {
         setRedirecting(true);
         setError(null);
 
-        let res;
+        let res: CheckoutForm;
         try {
-            res = await Api.post('payment/checkout', {package_id: packageId});
-        } catch (e) {
+            res = await Api.post<CheckoutForm>('payment/checkout', {package_id: packageId});
+        } catch (e: any) {
             setRedirecting(false);
-            return setError(e.error || e.message || 'Không tạo được đơn thanh toán');
+            setError(e.error || e.message || 'Không tạo được đơn thanh toán');
+            return;
         }
 
         // ponytail: SePay yeu cau POST form, khong phai redirect GET -> dung
         // form an roi submit(). Khong co cach nao ngan hon ma van dung chuan.
-        let form = document.createElement('form');
+        const form = document.createElement('form');
         form.method = 'POST';
         form.action = res.action_url;
 
         // ponytail: fields la mang [[key, value]] — thu tu field quyet dinh chu ky,
         // object bi Flask sap xep lai theo alphabet.
         res.fields.forEach(([key, value]) => {
-            let input = document.createElement('input');
+            const input = document.createElement('input');
             input.type = 'hidden';
             input.name = key;
             input.value = value;

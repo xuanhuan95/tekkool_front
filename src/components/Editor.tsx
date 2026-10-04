@@ -1,60 +1,36 @@
-import React, {useEffect, useRef, useState} from "react";
+import {useEffect, useRef, useState} from "react";
+import type {ReactNode, MutableRefObject} from "react";
 import {useEditor, EditorContent} from '@tiptap/react';
+import type {Editor as TiptapEditor} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import {Extension} from '@tiptap/core';
 import {Plugin} from '@tiptap/pm/state';
+import type {Node as PMNode} from '@tiptap/pm/model';
+import type {EditorView} from '@tiptap/pm/view';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
 import CheckItem from './CheckItem';
+import {measure, trimToFit, WORD} from './textLimit';
+import type {Unit} from './textLimit';
 
 import './Editor.css';
 
 // Lấy text thuần của doc ProseMirror. Mỗi block là 1 ranh giới ('\n').
 // NFC bắt buộc — 'ệ' gõ trên macOS là e + 2 dấu rời (NFD) nên .length ra 3 thay
 // vì 1, cùng một câu lệch tới 35%.
-const docText = (doc) => doc.textBetween(0, doc.content.size, '\n', '\n').normalize('NFC');
+const docText = (doc: PMNode): string => doc.textBetween(0, doc.content.size, '\n', '\n').normalize('NFC');
 
-const WORD = 'word';
-
-// Đếm theo đơn vị giáo viên chọn.
-// 'word': tách theo dấu cách — đúng cho CẢ Tiếng Anh ("I am a student" = 4 từ)
-//   lẫn Ngữ văn ("Trường Trung học phổ thông" = 5 chữ), vì tiếng Việt viết rời
-//   từng tiếng nên "đếm chữ/tiếng" chính là tách dấu cách.
-// 'char': ponytail: đếm THÔ (không trim, không gộp space) — trim thì space cuối
-//   tính 0 nên gõ space vô hạn được ở mốc 20/20, nhìn như hỏng.
-function measure(text, unit) {
-    if (unit !== WORD) return text.length;
-    const t = text.trim();
-    return t === '' ? 0 : t.split(/\s+/).length;
-}
-
-const docSize = (doc, unit) => measure(docText(doc), unit);
-
-// Cắt phần dán cho vừa hạn mức. Chặt nhị phân trên số ký tự rồi (nếu đếm từ)
-// lùi về ranh giới từ gần nhất — cắt giữa chữ thì "student" thành "stud".
-function trimToFit(head, pasted, max, unit) {
-    let lo = 0, hi = pasted.length;
-    while (lo < hi) {
-        const mid = Math.ceil((lo + hi) / 2);
-        if (measure(head + pasted.slice(0, mid), unit) <= max) lo = mid; else hi = mid - 1;
-    }
-    let cut = pasted.slice(0, lo);
-    if (unit === WORD && lo < pasted.length) {
-        // Bỏ từ bị cắt dở ("stud") VÀ space cuối. Giữ space thì head thành
-        // "...rat " -> gõ tiếp 1 chữ là sang từ thứ 6 nên bị chặn, trong khi gõ
-        // space lại lọt (trim bỏ đi, vẫn 5 từ) — đúng ngược ý muốn.
-        cut = cut.replace(/\s*\S*$/, '');
-    }
-    return cut;
-}
+const docSize = (doc: PMNode, unit: Unit): number => measure(docText(doc), unit);
 
 // ponytail: chặn ở filterTransaction của plugin ProseMirror, KHÔNG ở
 // handleKeyDown — bộ gõ tiếng Việt (Telex/VNI) đi qua IME composition chứ không
 // sinh keydown, gõ "dda" -> "đa" lọt thẳng; paste và kéo-thả cũng vậy. Mọi thay
 // đổi đều qua transaction nên đây là tầng duy nhất kín.
 // (option filterTransaction truyền thẳng cho useEditor bị tiptap lờ đi.)
-const SizeLimit = (limitRef) => Extension.create({
+type Limit = {max: number; unit: Unit};
+
+const SizeLimit = (limitRef: MutableRefObject<Limit>) => Extension.create({
     name: 'sizeLimit',
     addProseMirrorPlugins() {
         // Vị trí vừa chặn một space vì đã đủ từ. Chỉ sống đến lần gõ kế tiếp:
@@ -65,7 +41,7 @@ const SizeLimit = (limitRef) => Extension.create({
                 // ponytail: gõ nhanh / IME nhả cả cụm -> cả cụm là MỘT transaction,
                 // filterTransaction từ chối trọn gói nên không vào được chữ nào dù
                 // vẫn còn chỗ. Ở đây cắt vừa đủ rồi chèn, phần thừa bỏ.
-                handleTextInput: (view, from, to, text) => {
+                handleTextInput: (view: EditorView, from: number, to: number, text: string) => {
                     const {max, unit} = limitRef.current;
                     if (!(max > 0)) return false;
                     const doc = docText(view.state.doc);
@@ -112,19 +88,33 @@ const SizeLimit = (limitRef) => Extension.create({
 });
 
 // Nút toolbar. active = đang bật định dạng đó cho vùng đang chọn.
-function Btn({onClick, active, title, children}) {
+type BtnProps = {
+    onClick: () => void;
+    title: string;
+    children: ReactNode;
+    /** Khong truyen = nut hanh dong (khong co trang thai bat/tat). */
+    active?: boolean;
+};
+
+function Btn({onClick, active, title, children}: BtnProps) {
     return <button type='button' title={title}
                    className={'tt-btn' + (active ? ' active' : '')}
                    onMouseDown={e => e.preventDefault()}
                    onClick={onClick}>{children}</button>
 }
 
-function Toolbar({editor, type, onToAnswerButton}) {
+type ToolbarProps = {
+    editor: TiptapEditor | null;
+    type?: string;
+    onToAnswerButton?: (selected: string) => void;
+};
+
+function Toolbar({editor, type, onToAnswerButton}: ToolbarProps) {
     if (!editor) return null;
     // ponytail: setTextAlign luôn GÁN, không gỡ -> bấm căn trái để sửa đoạn lỡ
     // căn phải sẽ lưu text-align:left, rác vẫn nằm trong HTML. Toggle như Bold:
     // đang active thì bấm lại là unset, trả đoạn về không style.
-    const align = a => editor.chain().focus()[
+    const align = (a: string) => editor.chain().focus()[
         editor.isActive({textAlign: a}) ? 'unsetTextAlign' : 'setTextAlign'](a).run();
 
     // Bôi đen một đoạn -> thay bằng chỗ trống, đoạn đó thành đáp án.
@@ -135,7 +125,7 @@ function Toolbar({editor, type, onToAnswerButton}) {
         editor.chain().focus().insertContent(
             type === 'ErrorIdentify' ? {type: 'checkItem'} : '__________'
         ).run();
-        onToAnswerButton(selected);
+        onToAnswerButton && onToAnswerButton(selected);
     };
 
     return <div className='tt-toolbar'>
@@ -158,20 +148,38 @@ function Toolbar({editor, type, onToAnswerButton}) {
     </div>
 }
 
-export function Editor(props) {
+export type EditorProps = {
+    text?: string;
+    placeholder?: string;
+    /** 'ErrorIdentify' chen o tich thay vi gach chan. */
+    type?: string;
+    onChange?: (html: string) => void;
+    onToAnswerButton?: (selected: string) => void;
+    onPaste?: (e: {target: {innerText: string}}) => void;
+    onKeyUp?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
+    onBlur?: () => void;
+    disableReturn?: boolean;
+    disableStyle?: boolean;
+    /** Shim cho code cu: KHONG phai ref cua React, xem useEffect ben duoi. */
+    refMedium?: {current: any};
+    maxChars?: number;
+    maxWords?: number;
+};
+
+export function Editor(props: EditorProps) {
     const {
         text, placeholder, type, onChange, onToAnswerButton,
         onPaste, onKeyUp, onBlur, disableReturn, disableStyle, refMedium, maxChars, maxWords,
     } = props;
 
-    const timeout = useRef(null);
+    const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [size, setSize] = useState(0);
     // maxWords thắng nếu truyền cả hai — đề chỉ đặt 1 đơn vị.
-    const unit = maxWords > 0 ? WORD : 'char';
-    const max = maxWords > 0 ? maxWords : maxChars;
+    const unit: Unit = maxWords && maxWords > 0 ? WORD : 'char';
+    const max = (maxWords && maxWords > 0 ? maxWords : maxChars) || 0;
     // ponytail: useEditor bắt closure 1 lần -> đọc hạn mức qua ref, không thì
     // đổi giới hạn giữa chừng handler vẫn dùng số cũ.
-    const limit = useRef({max, unit});
+    const limit = useRef<Limit>({max, unit});
     limit.current = {max, unit};
 
     const editor = useEditor({
@@ -190,9 +198,9 @@ export function Editor(props) {
         content: text || '',
         editorProps: {
             // disableReturn: chặn xuống dòng cho ô 1 dòng (đáp án).
-            handleKeyDown: (view, event) =>
+            handleKeyDown: (_view: EditorView, event: KeyboardEvent) =>
                 disableReturn && event.key === 'Enter' ? (event.preventDefault(), true) : false,
-            handlePaste: (view, event) => {
+            handlePaste: (view: EditorView, event: ClipboardEvent) => {
                 // ponytail: filterTransaction chặn cả cụm khi paste vượt hạn (bỏ
                 // sạch, khó chịu) -> tự cắt phần thừa rồi chèn text thuần.
                 const {max, unit} = limit.current;
@@ -213,7 +221,7 @@ export function Editor(props) {
                 }
                 if (!onPaste) return false;
                 // Code cũ đọc event.target.innerText -> đợi paste xong mới gọi.
-                setTimeout(() => onPaste({target: {innerText: editor.getText()}}), 0);
+                setTimeout(() => onPaste({target: {innerText: editor ? editor.getText() : ''}}), 0);
                 return false;
             },
         },
@@ -235,7 +243,7 @@ export function Editor(props) {
             medium: {
                 // ponytail: emitUpdate=true — medium-editor cũ bắn editableInput khi
                 // setContent, FillBlank/ErrorIdentify dựa vào đó để lưu data.answer.
-                setContent: html => editor.commands.setContent(html || '', true),
+                setContent: (html?: string) => editor.commands.setContent(html || '', true),
                 getContent: () => editor.getHTML(),
                 get elements() { return [editor.view.dom] },
             },
@@ -255,7 +263,9 @@ export function Editor(props) {
         }
     }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => () => timeout.current && clearTimeout(timeout.current), []);
+    useEffect(() => () => {
+        if (timeout.current) clearTimeout(timeout.current);
+    }, []);
 
     return <div className='tt-editor' onKeyUp={onKeyUp}>
         {!disableStyle && <Toolbar editor={editor} type={type} onToAnswerButton={onToAnswerButton}/>}

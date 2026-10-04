@@ -1,11 +1,12 @@
-import React, {useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import Loading from './Loading';
 import {useNavigate} from 'react-router-dom';
 import {Button, Icon, Modal} from 'semantic-ui-react';
 
 import Api from '../services/api';
+import type {Package} from '../types/payment';
 
-const tien = (n) => (n || 0).toLocaleString('vi-VN') + ' đ';
+const tien = (n?: number) => (n || 0).toLocaleString('vi-VN') + ' đ';
 
 /**
  * Popup chặn khi học sinh vào thi mà hết lượt.
@@ -15,8 +16,8 @@ const tien = (n) => (n || 0).toLocaleString('vi-VN') + ' đ';
  * một kiểu chặn. Chặn TẠI CHỖ thay vì đẩy sang trang khác: học sinh bấm vào đề
  * là đang muốn làm đề đó, đá ra trang mua gói rồi quay lại là mất dấu.
  */
-export default function HetLuotModal({open, onClose}) {
-    const [goi, setGoi] = useState(null);
+export default function HetLuotModal({open, onClose}: {open?: boolean; onClose?: () => void}) {
+    const [goi, setGoi] = useState<Package[] | null>(null);
     const navigate = useNavigate();
 
     // Tải gói khi popup mở, không phải lúc mount: phần lớn lần vào thi là còn

@@ -1,8 +1,9 @@
-import React, {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {Icon} from 'semantic-ui-react';
 import {Link, useLocation, useNavigate} from 'react-router-dom';
 
 import Api, {setToken} from '../services/api';
+import type {Wallet} from '../types/payment';
 
 /**
  * Thanh điều hướng của học sinh.
@@ -11,10 +12,10 @@ import Api, {setToken} from '../services/api';
  * semantic-ui — Dropdown ở đây phải nhồi link router, nút, và dải phân cách
  * vào `options`, cuối cùng dài hơn 30 dòng JSX tự viết mà vẫn phải đè CSS.
  */
-export default function StudentNav({user}) {
+export default function StudentNav({user}: {user?: {name?: string; email?: string} | null}) {
     const [open, setOpen] = useState(false);
-    const [vi, setVi] = useState(null);
-    const box = useRef(null);
+    const [vi, setVi] = useState<Wallet | null>(null);
+    const box = useRef<HTMLDivElement>(null);
     const {pathname} = useLocation();
     const navigate = useNavigate();
 
@@ -22,8 +23,8 @@ export default function StudentNav({user}) {
     // trên màn, người dùng phải bấm đúng nút mới tắt được.
     useEffect(() => {
         if (!open) return;
-        const away = e => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
-        const esc = e => { if (e.key === 'Escape') setOpen(false); };
+        const away = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
+        const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
         document.addEventListener('mousedown', away);
         document.addEventListener('keydown', esc);
         return () => {
@@ -51,7 +52,7 @@ export default function StudentNav({user}) {
         window.location.href = '/';
     };
 
-    const go = (to) => { setOpen(false); navigate(to); };
+    const go = (to: string) => { setOpen(false); navigate(to); };
 
     const name = (user && user.name) || 'Bạn';
     const initial = name.trim().charAt(0) || '?';

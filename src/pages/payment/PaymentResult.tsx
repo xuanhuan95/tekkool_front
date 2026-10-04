@@ -1,9 +1,10 @@
-import React, {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import Loading from '../../components/Loading';
 import {useNavigate, useSearchParams} from 'react-router-dom';
 import {Button, Header, Icon, Message, Progress, Segment} from 'semantic-ui-react';
 
 import Api from "../../services/api";
+import type {Payment} from "../../types/payment";
 
 // Ngân hàng báo về qua IPN, thường 10–60 giây sau khi quét. Hỏi 90 giây rồi
 // mới buông — bản cũ dừng ở 31 giây, đúng lúc phần lớn giao dịch chưa về.
@@ -14,14 +15,14 @@ export default function PaymentResult() {
     const [searchParams] = useSearchParams();
     const inv = searchParams.get('inv');
 
-    const [payment, setPayment] = useState(null);
-    const [error, setError] = useState(null);
+    const [payment, setPayment] = useState<Payment | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [giay, setGiay] = useState(0);      // đã chờ bao lâu
     const [hetGio, setHetGio] = useState(false);
     const batDau = useRef(Date.now());
 
     useEffect(() => {
-        if (!inv) return setError('Thiếu mã đơn hàng');
+        if (!inv) { setError('Thiếu mã đơn hàng'); return; }
 
         // ponytail: cancelled chặn setState sau khi rời trang — vòng lặp await
         // này không dừng lại theo unmount như setInterval, phải tự chặn.
@@ -40,7 +41,7 @@ export default function PaymentResult() {
                 let res;
                 try {
                     res = await Api.get('payment/status/' + inv);
-                } catch (e) {
+                } catch (e: any) {
                     if (!cancelled) setError(e.error || e.message || 'Không tra cứu được đơn hàng');
                     return;
                 }
