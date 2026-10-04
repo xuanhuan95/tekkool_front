@@ -12,13 +12,40 @@ import {Editor} from "../../components/Editor";
 import Api from "../../services/api";
 import HetLuotModal from "../../components/HetLuotModal";
 import {round} from "../my/fmt";
+import type {RouterProps} from '../../withRouter';
+import type {Question, Section} from './Default';
+import type {ScoreSection, Submission} from '../../types/submission';
+
+
+/**
+ * Đề như `exam/during_test/<id>` trả về. Khác `Exam` của màn soạn đề ở hai
+ * chỗ: mỗi câu mang thêm `markedAnswer` (bài làm đang dở), và đề có
+ * `remaining_sec` — đồng hồ chốt ở SERVER, không tính lại từ `duration`.
+ */
+type Cau = Question & {markedAnswer?: string | null};
+
+type Phan = Omit<Section, 'questions'> & {questions: Cau[]};
+
+type DeThi = {
+    id: string;
+    name?: string;
+    duration?: number;
+    sections: Phan[];
+    /** Giây còn lại của lượt. null/undefined = đề không giới hạn giờ. */
+    remaining_sec?: number | null;
+    /** BE trả bài đã nộp thay vì đề khi học sinh F5 sau lúc nộp. */
+    da_nop?: boolean;
+};
+
+/** Lấy câu lỗi từ exception của Api. */
+const loi = (e: any, mac_dinh: string) => (e && (e.error || e.message)) || mac_dinh;
 
 
 // Bang diem tung phan tren man "Da nop bai".
 // Chia 2 nhom theo pending chu khong theo block_type: hoc sinh quan tam
 // "cho ai cham", khong quan tam loai cau. Phan nao con cau chua cham thi ca
 // phan do la "cho giao vien" — cham nua voi mot phan con te hon khong cham.
-function BangDiem({phan}) {
+function BangDiem({phan}: {phan: ScoreSection[]}) {
     const may = phan.filter(p => !p.pending);
     const nguoi = phan.filter(p => p.pending);
     const tong = may.reduce((t, p) => t + p.score, 0);
@@ -45,27 +72,39 @@ function BangDiem({phan}) {
 }
 
 
-class DoExam extends React.Component {
-    state = {
+type State = {
+    exam: DeThi | null;
+    startAt: Date | null;
+    passedTime: number;
+    remainingTime: number;
+    loadError: string | null;
+    hetLuot: boolean;
+    submitting: boolean;
+    submitted: boolean;
+    /** Bài đã nộp, để vẽ màn kết quả. Bản cũ thiếu trong state khởi tạo. */
+    result: (Submission & {phan?: ScoreSection[]}) | null;
+    /** Mốc cho <Sticky> của cột phải. Phải là ref ĐÃ gắn, không phải biến thường. */
+    contextRef: HTMLElement | null;
+};
+
+class DoExam extends React.Component<RouterProps, State> {
+    state: State = {
         exam: null,
-        answers: [],
         startAt: null,
-        endAt: null,
         passedTime: 0,
         remainingTime: 0,
         loadError: null,
         hetLuot: false,
         submitting: false,
-        submitted: false
+        submitted: false,
+        result: null,
+        contextRef: null,
     };
 
-    constructor(props) {
-        super(props);
+    /** id của setInterval đếm giờ. null khi đề không giới hạn thời gian. */
+    _counter: ReturnType<typeof setInterval> | null = null;
 
-        this._counter = null;
-    }
-
-    handleContextRef = contextRef => this.setState({contextRef});
+    handleContextRef = (contextRef: HTMLElement | null) => this.setState({contextRef});
 
     componentDidMount = async () => {
         let {examId} = this.props.match.params;
@@ -73,26 +112,27 @@ class DoExam extends React.Component {
         // ponytail: api.js reject khi code!==200 -> không bắt thì 403 (đề có phí)
         // nuốt im lặng thành loader quay mãi.
         try {
-            let exam = await Api.get('exam/during_test/' + examId);
+            const exam: DeThi & {da_nop?: boolean} = await Api.get('exam/during_test/' + examId);
             // Vua nop xong roi F5: BE tra ve bai da nop (da_nop) thay vi de,
             // khong tru them luot. Hien thang man ket qua.
             if (exam && exam.da_nop) {
-                return this.setState({submitted: true, result: exam});
+                return this.setState({submitted: true, result: exam as any});
             }
             // ponytail: de da hien ra man hinh la da doc duoc -> tinh gio NGAY.
             // Nut Start cu cho thi sinh doc het de roi moi bam, tinh gio bang 0.
             this.setState({exam}, this.startExam);
-        } catch (e) {
+        } catch (e: any) {
             // 402 = hết lượt -> chặn TẠI CHỖ bằng popup, không đá sang trang
             // khác: học sinh đang muốn làm đúng đề này.
             if (e && e.code === 402) return this.setState({hetLuot: true});
             if (e && e.code === 403) return this.props.history.push('/packages');
-            this.setState({loadError: (e && (e.error || e.message)) || 'Không tải được đề thi'});
+            this.setState({loadError: loi(e, 'Không tải được đề thi')});
         }
     };
 
-    setAnswer = async (questionId, answer) => {
-        let {exam} = this.state;
+    setAnswer = async (questionId: string, answer: string) => {
+        const {exam} = this.state;
+        if (!exam) return;
 
         // ponytail: doc store ngoai React (getState) thay vi hook — DoExam van
         // la class component. Chuyen ca file 429 dong sang hooks chi de lay mot
@@ -104,15 +144,13 @@ class DoExam extends React.Component {
             user_id: user && user.id
         });
 
-        exam.sections.forEach((section)=> {
-            section.questions.map(question => {
-                if(question.id === questionId){
-                    question.markedAnswer = answer;
-                    return question;
-                }
-                return question;
-            })
-        });
+        // ponytail: sửa TẠI CHỖ rồi setState để vẽ lại — giữ nguyên hành vi
+        // bản cũ. Bản cũ viết bằng `.map()` nhưng vứt kết quả đi, đọc như code
+        // immutable trong khi thật ra vẫn gán thẳng vào `question`; ai dọn
+        // "map không dùng kết quả" mà bỏ dòng gán là mất luôn bài đang làm.
+        exam.sections.forEach(section => section.questions.forEach(q => {
+            if (q.id === questionId) q.markedAnswer = answer;
+        }));
         this.setState({exam});
     };
 
@@ -122,9 +160,9 @@ class DoExam extends React.Component {
     //
     // Bo qua cau `data` rong y het luc render, neu khong bang se danh so lech
     // so voi "Question N" trong bai.
-    dsCau = () => {
-        let {exam} = this.state;
-        let ds = [];
+    dsCau = (): Array<{q: Cau; so: number}> => {
+        const {exam} = this.state;
+        const ds: Array<{q: Cau; so: number}> = [];
         (exam ? exam.sections : []).forEach(s => (s.questions || []).forEach(q => {
             if (!q.data || !Object.keys(q.data).length) return;
             ds.push({q, so: ds.length + 1});
@@ -142,14 +180,17 @@ class DoExam extends React.Component {
 
     // ponytail: bug gốc 2018 — rời trang giữa chừng thì setInterval đếm giờ vẫn
     // chạy và setState trên component đã unmount (React 18 cảnh báo memory leak).
-    componentWillUnmount = () => {
-        clearInterval(this._counter);
+    componentWillUnmount = () => this.stopCounter();
+
+    stopCounter = () => {
+        if (this._counter) clearInterval(this._counter);
+        this._counter = null;
     };
 
     // ponytail: bug gốc 2018 — finish() chỉ alert(), không gọi API nào. Giờ nó
     // là chỗ ĐÓNG LƯỢT THI: nộp bài xong đơn hết hiệu lực, làm lại phải mua đơn mới.
     finish = async () => {
-        let {passedTime, submitting, submitted} = this.state;
+        const {passedTime, submitting, submitted} = this.state;
         if (submitting || submitted) return;
 
         // Canh bao cau chua lam TRUOC khi hoi nop. Khong chan cung: hoc sinh
@@ -171,15 +212,16 @@ class DoExam extends React.Component {
             result = await Api.post('exam/submit/' + this.props.match.params.examId);
         } catch (e) {
             this.setState({submitting: false});
-            return alert((e && (e.error || e.message)) || 'Nộp bài thất bại, thử lại.');
+            return alert(loi(e, 'Nộp bài thất bại, thử lại.'));
         }
 
-        clearInterval(this._counter);
+        this.stopCounter();
         this.setState({submitting: false, submitted: true, passedTime, result});
     };
 
     startExam = () => {
-        let {exam} = this.state;
+        const {exam} = this.state;
+        if (!exam) return;
         // ponytail: đồng hồ chạy trên SERVER. `remaining_sec` là số giây thật sự
         // còn lại của lượt (server chốt hạn nộp lúc mở lượt), không phải
         // exam.duration — đóng tab 20 phút rồi mở lại thì mất đúng 20 phút đó,
@@ -187,20 +229,21 @@ class DoExam extends React.Component {
         // null = đề không giới hạn thời gian.
         let limit = exam.remaining_sec;
         if (limit === null || limit === undefined) limit = (exam.duration || 0) * 60;
+        const han = limit;
 
         // Mốc để trừ đi thời gian trôi tại máy học sinh giữa hai tick.
         this.setState({startAt: new Date(), remainingTime: limit});
         if (!limit) return;
 
         this._counter = setInterval(() => {
-            let passedTime = this.calculPassedTime();
+            const passedTime = this.calculPassedTime();
             // max(0) — khong thi giay cuoi hien '-1:-05' truoc khi kip nop.
-            let remainingTime = Math.max(0, limit - passedTime);
+            const remainingTime = Math.max(0, han - passedTime);
             this.setState({passedTime, remainingTime});
 
             // Het gio thi nop thay thi sinh, khong de ho lam tiep vo han.
             if (remainingTime <= 0) {
-                clearInterval(this._counter);
+                this.stopCounter();
                 this.autoSubmit();
             }
         }, 1000);
@@ -212,7 +255,7 @@ class DoExam extends React.Component {
         if (this.state.submitting || this.state.submitted) return;
 
         this.setState({submitting: true});
-        let result;
+        let result = null;
         try {
             result = await Api.post('exam/submit/' + this.props.match.params.examId);
         } catch (e) {
@@ -222,13 +265,11 @@ class DoExam extends React.Component {
         alert('Đã hết giờ làm bài. Bài của bạn được nộp tự động.');
     };
 
-    calculPassedTime = () => {
-        return Math.round((+new Date() - +this.state.startAt) / 1000);
-    };
+    calculPassedTime = () =>
+        Math.round((Date.now() - Number(this.state.startAt)) / 1000);
 
     render() {
-        const {contextRef} = this.state;
-        let {exam, remainingTime, startAt} = this.state;
+        const {contextRef, exam, remainingTime, startAt} = this.state;
         let qIdx = 0;
 
         if (this.state.loadError) {
@@ -244,7 +285,7 @@ class DoExam extends React.Component {
         }
 
         if (this.state.submitted) {
-            let r = this.state.result;
+            const r = this.state.result;
             return <Segment className='margin text-center' padded='very'>
                 <Icon name='check circle' color='green' size='huge'/>
                 <h2>Đã nộp bài</h2>
@@ -307,7 +348,7 @@ class DoExam extends React.Component {
                                                 onChange={answer => this.setAnswer(q.id, answer)}
                                                 disableReturn={true}
                                                 disableStyle={true}
-                                                text={q.markedAnswer}
+                                                text={q.markedAnswer || undefined}
                                             />
                                         </div>
                                         }
@@ -334,14 +375,14 @@ class DoExam extends React.Component {
                                             <div className='no-margin no-padding'>
                                                 {/* ponytail: bug gốc 2018 — mọi câu chung name='answer' nên
                                                     chọn câu sau bỏ chọn câu trước. Nhóm radio theo id câu hỏi. */}
-                                                {q.data.answers && q.data.answers.map((answer, i) => {
-                                                    let checked = answer.value === q.markedAnswer;
+                                                {q.data.answers && q.data.answers.map((answer: {value: string}, i: number) => {
+                                                    const checked = answer.value === q.markedAnswer;
 
                                                     return <div key={i}>
                                                         <Radio type='radio' value={answer.value}
                                                                label={numToChar(i) + '. ' + answer.value}
                                                                name={'answer-' + q.id}
-                                                               onChange={(e, {value}) => this.setAnswer(q.id, value)}
+                                                               onChange={(_e, {value}) => this.setAnswer(q.id, String(value))}
                                                                checked={checked}
                                                         />
                                                     </div>
@@ -360,7 +401,7 @@ class DoExam extends React.Component {
                                                 disableStyle={true}
                                                 maxChars={q.data.max_chars}
                                                 maxWords={q.data.max_words}
-                                                text={q.markedAnswer}
+                                                text={q.markedAnswer || undefined}
                                             />
                                         </div>
                                         }
@@ -374,7 +415,7 @@ class DoExam extends React.Component {
 
                     <Rail position='right' style={{width: '24%', margin: 0, padding: 0}} className='text-center margin-top'>
                         <Sticky context={contextRef}>
-                            {startAt && exam.duration > 0 &&
+                            {startAt && (exam.duration || 0) > 0 &&
                             <h1 className={'text-center' + (remainingTime <= 60 ? ' time-up' : '')}>
                                 {Math.floor(remainingTime / 60)}:{String(remainingTime % 60).padStart(2, '0')}
                             </h1>
@@ -388,19 +429,19 @@ class DoExam extends React.Component {
                                 Khong co no thi hoc sinh chi biet minh bo sot
                                 dung luc bam Nop — qua muon de tim lai cau nao. */}
                             {startAt && (() => {
-                                let ds = this.dsCau();
+                                const ds = this.dsCau();
                                 // Tinh MOT lan thanh Set, khong goi chuaLam()
                                 // lai trong vong lap (O(n^2) khong vi co).
-                                let trong = new Set(this.chuaLam().map(c => c.q.id));
+                                const trong = new Set(this.chuaLam().map(c => c.q.id));
                                 return <div className='tk-cau-nav'>
                                     <div className='tk-cau-grid'>
                                         {ds.map(({q, so}) => {
-                                            let xong = !trong.has(q.id);
+                                            const xong = !trong.has(q.id);
                                             return <button key={q.id} type='button'
                                                     className={'tk-cau' + (xong ? ' xong' : '')}
                                                     title={xong ? 'Đã làm' : 'Chưa làm'}
                                                     onClick={() => {
-                                                        let el = document.getElementById('cau-' + q.id);
+                                                        const el = document.getElementById('cau-' + q.id);
                                                         if (el) el.scrollIntoView({behavior: 'smooth', block: 'center'});
                                                     }}>
                                                 {so}
