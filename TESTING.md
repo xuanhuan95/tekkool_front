@@ -45,6 +45,7 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 | T1.2 | Câu trắc nghiệm nhiều phương án | Giữ đúng `correctAnswerId` ✅ *(đã có)* |
 | T1.3 | Ngữ liệu dùng chung cho 3 câu | In **một lần** ở câu đầu nhóm (đã có `Passage.test.js`) |
 | T1.4 | Đề rỗng, **phần không đọc được câu nào** | Báo rõ, không đi qua im lặng ✅ *(đã có)* |
+| T1.5 | **Import xong vào đúng ngăn ngân hàng** | `.docx` → `block_type` đúng: ngữ liệu + trắc nghiệm = `DocHieu`, "khoảng 200 chữ" = `VietDoan` ✅ |
 
 ### T2. Trọng số điểm — **điểm chết**
 | # | Ca | Phải đúng |
@@ -144,10 +145,10 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 | BE `test_attempt.py` | 40 | S2 trừ lượt, S4.7/4.8 nộp hai lần |
 | BE `test_submission.py` | 32 | S4 chấm máy, T5 vào điểm tay, S5 bảng điểm |
 | BE `test_payment.py` | 51 | S1 toàn bộ: sai khoá, replay, lệch tiền, cộng lượt |
-| BE `test_docx.py` | 22 | T1 nhập .docx: loại câu, đáp án, đề/phần rỗng |
+| BE `test_docx.py` | 30 | T1 nhập .docx: loại câu, đáp án, đề/phần rỗng, **lát nối sang ngân hàng** |
 | BE `core_question_bank.py` (self-check) | — | T2 trọng số, T3 rút đề |
 | BE `core_grading.py` (self-check) | — | S4.4/4.5 nhiều cách viết, hoa thường, Unicode NFC/NFD |
-| FE `npm test` | 133 | 12 file, gồm DoExam (S2/S3/S5) và DrawExam/ImportExam (T3) |
+| FE `npm test` | 147 | 13 file, gồm DoExam (S2/S3/S5) và DrawExam/ImportExam (T1/T3) |
 
 **Thứ tự bổ sung** — theo mức thiệt hại nếu hỏng:
 
@@ -162,8 +163,29 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 8. ~~`S5.1/5.2/5.6` màn kết quả~~ ✅
 9. ~~`S2.6/2.7/2.8`, `T3.2`~~ ✅ *(đã có sẵn trong `test_attempt.py`, `core_question_bank.py`
    và `DrawExam.test.tsx` — bảng trên trước đây ghi sót dấu ✅)*
+10. ~~`T1.5` lát nối import → ngân hàng~~ ✅ *(khe hở giữa hai bộ test: `test_docx.py`
+    dừng ở payload, `core_question_bank._demo()` bắt đầu từ dict viết tay —
+    không ai chạy payload THẬT qua `split_blocks()`)*
 
 Hết danh sách — mọi ca trong tài liệu này đều đã có test.
+
+### Lát nối — vì sao đáng một mục riêng
+
+Hai đầu của luồng import được giữ kỹ, khúc giữa thì không:
+
+```
+.docx → parse_questions()      test_docx.py
+      → đổi loại câu, giới hạn từ      ← lát nối, trước đây trống
+      → question_bank/save
+          → split_blocks()     core_question_bank._demo()
+      → tồn kho / rút đề       DrawExam.test.tsx
+```
+
+`block_type` quyết định câu nằm ngăn nào, mà nó tính từ `type` và `max_words`
+của payload FE gửi lên. Gửi sai thì BE phân loại **đúng theo dữ liệu sai**:
+tồn kho báo đủ, rút đề ra sai cấu trúc, không ai thấy gì bất thường cho tới
+lúc học sinh đang thi. Bảy ca mới (3 BE + 4 FE) đều đã kiểm chứng đỏ bằng
+cách đặt lại bug tương ứng.
 
 ## Quy ước viết test
 

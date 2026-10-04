@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 
 import Api from '../../services/api';
@@ -124,5 +124,157 @@ describe('ImportExam: chặn lưu sai chỗ', () => {
         // không màn nào rút ra được.
         expect(nut.disabled).toBe(true);
         expect(screen.getByText(/Muốn lưu vào ngân hàng thì vào/)).toBeTruthy();
+    });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// Lát nối: thao tác trên màn hình → payload gửi lên question_bank/save
+// ──────────────────────────────────────────────────────────────────────
+//
+// `convertData` được test riêng, `split_blocks` có self-check bên BE. Khúc
+// giữa thì không ai giữ: thứ quyết định câu vào ngăn nào trong ngân hàng là
+// `type` và `max_words` của CHÍNH payload này. Gửi sai thì BE phân loại đúng
+// theo dữ liệu sai — khối nằm nhầm ngăn, tồn kho báo đủ mà rút đề ra sai cấu
+// trúc, giáo viên không thấy gì bất thường cho tới lúc học sinh đang thi.
+
+/** Đề có một câu trắc nghiệm và một câu tự luận, để đổi loại và nhập giới hạn từ. */
+const DE_HON_HOP = {
+    ...DE,
+    sections: [{
+        id: 'S1',
+        name: 'Phần I',
+        question_type: 'MultipleChoice',
+        questions: [
+            DE.sections[0].questions[0],
+            {
+                id: 'Q2',
+                type: 'FreeAnswer',
+                data: {question: '<p>Viết đoạn văn về quê hương.</p>'},
+            },
+        ],
+    }],
+};
+
+/** Nạp đề hỗn hợp, trả về hàm đọc payload đã gửi lên question_bank/save. */
+async function napDeHonHop() {
+    const daGui: any[] = [];
+    vi.spyOn(Api, 'post').mockImplementation(async (url: string, body?: any) => {
+        if (url === 'question_bank/capacity') return {slots: {}, capacity: 0, per_type: {}};
+        if (url === 'question_bank/save') { daGui.push(body); return {saved: 2}; }
+        return {};
+    });
+    vi.spyOn(Api, 'upload').mockResolvedValue({exams: [DE_HON_HOP], warnings: []});
+
+    const input = document.querySelector('input[type=file]') as HTMLInputElement;
+    fireEvent.change(input, {target: {files: [new File(['x'], 'de.docx')]}});
+    await screen.findByText(/Đọc được 1 đề/);
+
+    return {
+        daGui,
+        luu: () => fireEvent.click(screen.getByText(/Lưu 1 đề vào ngân hàng/)),
+        cau: (qid: string) => daGui[0].sections[0].questions.find((q: any) => q.id === qid),
+    };
+}
+
+/**
+ * Đổi loại câu ĐẦU TIÊN. Mỗi câu một Dropdown riêng và cả hai cùng liệt kê 5
+ * loại, nên `getByText('Đúng / Sai')` khớp nhiều phần tử — phải tìm trong
+ * đúng dropdown của câu 1.
+ */
+function doiLoaiCau1(ten: string) {
+    const dd = document.querySelectorAll('.import-type')[0] as HTMLElement;
+    fireEvent.click(dd);
+    fireEvent.click(within(dd).getByText(ten));
+}
+
+describe('ImportExam: payload quyết định câu vào ngăn nào', () => {
+    it('giới hạn từ nhập trên màn hình phải đi lên BE dạng SỐ', async () => {
+        ve();
+        const t = await napDeHonHop();
+
+        // Ô "giới hạn từ" chỉ hiện ở câu không phải trắc nghiệm.
+        const o = document.querySelector('.import-wordlimit input') as HTMLInputElement;
+        fireEvent.change(o, {target: {value: '200'}});
+
+        t.luu();
+        await screen.findByText(/Đã thêm 2 khối/);
+
+        // BE so max_words với ngưỡng 50/400 để chia TraLoiNgan/VietDoan/VietBai.
+        // Gửi chuỗi '200' thì so sánh trong Python 3 ném TypeError, còn Python 2
+        // so chuỗi với số ra kết quả tuỳ ý — cả hai đều cho ngăn sai.
+        expect(t.cau('Q2').data.max_words).toBe(200);
+    });
+
+    it('đổi loại câu thì payload mang loại MỚI, không giữ loại parser đoán', async () => {
+        ve();
+        const t = await napDeHonHop();
+
+        // Parser chỉ đoán được Trắc nghiệm / Tự luận. Ba loại còn lại giáo viên
+        // tự chọn — và chính lựa chọn đó quyết định ngăn trong ngân hàng.
+        doiLoaiCau1('Đúng / Sai');
+
+        t.luu();
+        await screen.findByText(/Đã thêm 2 khối/);
+
+        expect(t.cau('Q1').type).toBe('TrueFalse');
+        // Và phải sạch dữ liệu riêng của loại cũ: answers của trắc nghiệm còn
+        // sót lại thì BE lưu nguyên vào Question.data, TrueFalse.jsx đọc phải
+        // mảng phương án ở chỗ nó chờ boolean.
+        expect(t.cau('Q1').data.answers).toBeUndefined();
+    });
+
+    it('đổi loại một câu KHÔNG được đổi loại câu khác trong cùng phần', async () => {
+        ve();
+        const t = await napDeHonHop();
+
+        doiLoaiCau1('Đúng / Sai');
+
+        t.luu();
+        await screen.findByText(/Đã thêm 2 khối/);
+
+        // Câu 2 không bị đụng tới. BE nhận `type` của từng câu, nên một câu
+        // đổi mà kéo cả phần đổi theo là cả phần vào nhầm ngăn.
+        expect(t.cau('Q2').type).toBe('FreeAnswer');
+    });
+
+    it('ngữ liệu sửa trên màn hình đi lên cho CẢ nhóm, không riêng câu đầu', async () => {
+        const daGui: any[] = [];
+        vi.spyOn(Api, 'post').mockImplementation(async (url: string, body?: any) => {
+            if (url === 'question_bank/capacity') return {slots: {}, capacity: 0, per_type: {}};
+            if (url === 'question_bank/save') { daGui.push(body); return {saved: 1}; }
+            return {};
+        });
+        // Hai câu chung một passageId — BE gom chúng thành MỘT khối DocHieu
+        // theo đúng field này. Mất passageId là tách câu khỏi bài đọc.
+        vi.spyOn(Api, 'upload').mockResolvedValue({
+            exams: [{
+                ...DE,
+                sections: [{
+                    id: 'S1', name: 'Phần I', question_type: 'MultipleChoice',
+                    questions: [1, 2].map(i => ({
+                        id: 'Q' + i,
+                        type: 'MultipleChoice',
+                        data: {
+                            question: '<p>Câu ' + i + '</p>',
+                            passage: '<p>Quê hương là chùm khế ngọt</p>',
+                            passageId: 'P1',
+                            answers: [{id: 'A1', value: '2'}],
+                            correctAnswerId: 'A1',
+                        },
+                    })),
+                }],
+            }],
+            warnings: [],
+        });
+        ve();
+        const input = document.querySelector('input[type=file]') as HTMLInputElement;
+        fireEvent.change(input, {target: {files: [new File(['x'], 'de.docx')]}});
+        await screen.findByText(/Đọc được 1 đề/);
+
+        fireEvent.click(screen.getByText(/Lưu 1 đề vào ngân hàng/));
+        await screen.findByText(/Đã thêm 1 khối/);
+
+        const qs = daGui[0].sections[0].questions;
+        expect(qs.map((q: any) => q.data.passageId)).toEqual(['P1', 'P1']);
     });
 });
