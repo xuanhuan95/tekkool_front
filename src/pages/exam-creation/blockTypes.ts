@@ -1,4 +1,4 @@
-// Tên tiếng Việt của 7 loại khối — khớp TEN_LOAI trong core_question_bank.py.
+// Tên tiếng Việt của 8 loại khối — khớp TEN_LOAI trong core_question_bank.py.
 // Để riêng vì hai màn dùng chung: DrawExam (rút đề) và ImportExam (tồn kho).
 export const TEN_LOAI = {
     DocHieu: 'Đọc hiểu (ngữ liệu + 5 câu)',
@@ -9,4 +9,6 @@ export const TEN_LOAI = {
     VietDoan: 'Viết đoạn văn',
     VietBai: 'Viết bài văn',
     DienTu: 'Bài điền từ',
-};
+} as const;
+
+export type BlockType = keyof typeof TEN_LOAI;
