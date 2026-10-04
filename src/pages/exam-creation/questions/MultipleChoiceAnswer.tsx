@@ -1,20 +1,33 @@
 import React from 'react';
-import BaseQuestion from './BaseQuestion';
 import {Editor} from "../../../components/Editor";
 import {Form, Radio} from 'semantic-ui-react';
 import striptags from "striptags";
+import {numToChar} from "../../../services/tools";
 
 
-export default class MultipleChoiceAnswer extends BaseQuestion {
-    constructor(props) {
-        super(props);
+// ponytail: KHONG ke thua BaseQuestion. No tung ke thua nhung khong he dung
+// setQuestionData/setQuestionState — moi thay doi deu di nguoc len cha qua
+// callback. Ke thua thua lam no doi them 3 prop ma cha chua bao gio truyen.
+type Props = {
+    answerId: string;
+    value: string;
+    order: number;
+    isCorrect: boolean;
+    /**
+     * Tên nhóm radio, do câu hỏi cha truyền xuống kèm id của nó.
+     * ponytail: bug gốc — mọi đáp án chung name='answer', nên chọn đáp án đúng
+     * ở câu 2 là câu 1 mất lựa chọn. Cùng bug đã sửa ở DoExam và TrueFalse.
+     */
+    groupName: string;
+    selectCorrectAnswer: (answerId: string) => void;
+    updateAnswer: (answerId: string, value: string) => void;
+    removeAnswer: (answerId: string) => void;
+    focusNewInput: () => void;
+};
 
-        this.state = {
-            correct: false
-        };
-
-        this.me = React.createRef();
-    }
+export default class MultipleChoiceAnswer extends React.Component<Props> {
+    // Shim ref cua Editor: {current: {medium: {getContent, setContent}}}.
+    me = React.createRef<any>();
 
     getAnswerContent = () => {
         let content = this.me.current.medium.getContent();
@@ -31,7 +44,7 @@ export default class MultipleChoiceAnswer extends BaseQuestion {
         this.props.focusNewInput();
     };
 
-    handleEnter = ({keyCode}) => {
+    handleEnter = ({keyCode}: {keyCode: number}) => {
         if (keyCode === 13) {
             // Set value manual for avoiding adding new line in value
             let value = this.getAnswerContent();
@@ -41,29 +54,24 @@ export default class MultipleChoiceAnswer extends BaseQuestion {
         }
     };
 
-    handleSelect = (e, {value}) => {
+    handleSelect = (_e: unknown, {value}: {value?: any}) => {
         this.props.selectCorrectAnswer(value);
     };
 
-    numToChar = (n) => {
-        //convert int to string uppercase
-        return String.fromCharCode(65 + n);
-    };
-
     render() {
-        let {answerId, isCorrect, order, value} = this.props;
+        let {answerId, isCorrect, order, value, groupName} = this.props;
 
         return <Form.Group inline className='answer'>
             <Radio
                 onChange={this.handleSelect}
                 checked={isCorrect}
                 key='radio'
-                name='answer'
+                name={groupName}
                 value={answerId}
                 style={{padding: 'auto'}}
             />
 
-            <span style={{marginRight: '3px'}}>{this.numToChar(order)}.</span>
+            <span style={{marginRight: '3px'}}>{numToChar(order)}.</span>
 
             <Editor
                 refMedium={this.me}

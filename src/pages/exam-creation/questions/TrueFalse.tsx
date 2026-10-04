@@ -1,4 +1,3 @@
-import React from 'react';
 import BaseQuestion from './BaseQuestion';
 
 import {Form, Radio} from 'semantic-ui-react';
@@ -7,21 +6,11 @@ import {Editor} from "../../../components/Editor";
 
 
 export default class TrueFalse extends BaseQuestion {
-    setQuestionData = (newData) => {
-        let {data} = this.props.question;
-
-        Object.keys(newData).forEach(k => {
-            data[k] = newData[k];
-        });
-
-        this.setQuestionState({data});
-    };
-
     // ponytail: bug gốc — `label === 'A.True' && checked`. Semantic chỉ phát
     // onChange cho nút VỪA được chọn (checked luôn true), nhưng công thức đó
     // đọc như "True chỉ khi đang tick", dễ bị sửa nhầm thành lật ngược.
     // Đáp án do chính nút được bấm quyết định, không cần `checked`.
-    onChangeAnswer = (e, {label}) => {
+    onChangeAnswer = (_e: unknown, {label}: {label?: any}) => {
         this.setQuestionData({answer: label === 'A.True'});
     };
 

@@ -7,23 +7,10 @@ import {Editor} from "../../../components/Editor";
 
 
 export default class FillBlank extends BaseQuestion {
-    constructor(props) {
-        super(props);
+    // Shim ref cua Editor: {current: {medium: {setContent}}} — xem Editor.tsx.
+    refAnswer = React.createRef<any>();
 
-        this.refAnswer = React.createRef();
-    }
-
-    setQuestionData = (newData) => {
-        let {data} = this.props.question;
-
-        Object.keys(newData).forEach(k => {
-            data[k] = newData[k];
-        });
-
-        this.setQuestionState({data});
-    };
-
-    onToAnswerButton = (answer) => {
+    onToAnswerButton = (answer: string) => {
         this.refAnswer.current.medium.setContent(answer);
     };
 
@@ -36,7 +23,7 @@ export default class FillBlank extends BaseQuestion {
                 text={data.question}
                 placeholder='Type your Fill-in-blank question here...'
                 onToAnswerButton={this.onToAnswerButton}
-                onChange={question => this.setQuestionData({question})}
+                onChange={(question: string) => this.setQuestionData({question})}
             />
 
             <AnswerLabel />
@@ -45,7 +32,7 @@ export default class FillBlank extends BaseQuestion {
                 refMedium={this.refAnswer}
                 text={data.answer}
                 placeholder='Type your answer here...'
-                onChange={answer => this.setQuestionData({answer})}
+                onChange={(answer: string) => this.setQuestionData({answer})}
             />
         </Form>
     }

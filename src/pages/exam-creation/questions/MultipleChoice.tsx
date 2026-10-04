@@ -11,18 +11,16 @@ import {uuid} from "../../../tools";
 
 
 export default class MultipleChoice extends BaseQuestion {
-    constructor(props) {
-        super(props);
-        this.refNewAnswer = React.createRef();
-        this.refQuestion = React.createRef();
-    }
+    // Shim ref cua Editor: {current: {medium: {...}}} — xem Editor.tsx.
+    refNewAnswer = React.createRef<any>();
+    refQuestion = React.createRef<any>();
 
     getAnswers = () => {
         let {answers} = this.props.question.data;
         return answers || [];
     };
 
-    cleanAnswer = (content) => {
+    cleanAnswer = (content: string) => {
         return striptags(content, ['b', 'i', 'u']).replace('&nbsp;', '');
     };
 
@@ -31,7 +29,7 @@ export default class MultipleChoice extends BaseQuestion {
         return this.cleanAnswer(content);
     };
 
-    addAnswer = (answer) => {
+    addAnswer = (answer: string) => {
         if (!answer) return;
 
         // Check auto parse answers for multi input at same time
@@ -57,15 +55,16 @@ export default class MultipleChoice extends BaseQuestion {
         data.answers = answers;
         this.setQuestionData(data);
 
-        this.setState({answers}, () => {
-            this.resetAnswerInput();
-        })
+        // ponytail: ban cu goi setState({answers}, cb) tren component KHONG co
+        // state — `answers` chang ai doc, setState chi duoc dung lam "chay sau
+        // khi ve xong". setQuestionData o tren da ve lai roi, goi thang la du.
+        this.resetAnswerInput();
     };
 
-    removeAnswer = (answerId) => {
+    removeAnswer = (answerId: string) => {
         let {data} = this.props.question;
 
-        data.answers = data.answers.filter(answer => answer.id !== answerId);
+        data.answers = data.answers.filter((answer: any) => answer.id !== answerId);
 
         this.setQuestionData(data);
     };
@@ -75,7 +74,7 @@ export default class MultipleChoice extends BaseQuestion {
         this.refNewAnswer.current.medium.elements[0].focus();
     };
 
-    updateAnswer = (answerId, value) => {
+    updateAnswer = (answerId: string, value: string) => {
         let {data} = this.props.question;
 
         setNestedValue(data, `answers[id=${answerId}].value`, value);
@@ -88,11 +87,11 @@ export default class MultipleChoice extends BaseQuestion {
         this.refNewAnswer.current.medium.setContent('&nbsp;');
     };
 
-    selectCorrectAnswer = (answerId) => {
+    selectCorrectAnswer = (answerId: string) => {
         this.setQuestionData({correctAnswerId: answerId});
     };
 
-    handleEnter = ({keyCode}) => {
+    handleEnter = ({keyCode}: {keyCode: number}) => {
         let value = this.getAnswerContent();
 
         if (keyCode === 13) {
@@ -101,17 +100,7 @@ export default class MultipleChoice extends BaseQuestion {
         }
     };
 
-    setQuestionData = (newData) => {
-        let {data} = this.props.question;
-
-        Object.keys(newData).forEach(k => {
-            data[k] = newData[k];
-        });
-
-        this.setQuestionState({data});
-    };
-
-    onPasteQuestionData = (event) => {
+    onPasteQuestionData = (event: any) => {
         // Check auto parse answers for multi input at same time
         let content = event.target.innerText.replace(/\s*A\s*\.\s*/g, '( ͡° ͜ʖ ͡°)');
         let tmp = content.split('( ͡° ͜ʖ ͡°)');
@@ -134,14 +123,14 @@ export default class MultipleChoice extends BaseQuestion {
                 type='MultipleChoice'
                 placeholder='Type your Multiple-choice question here...'
                 refMedium={this.refQuestion}
-                onChange={question => this.setQuestionData({question})}
-                onPaste={event => this.onPasteQuestionData(event)}
+                onChange={(question: string) => this.setQuestionData({question})}
+                onPaste={(event: any) => this.onPasteQuestionData(event)}
                 text={question}
              />
 
              <AnswerLabel/>
 
-            {answers.map((answer, idx) => {
+            {answers.map((answer: any, idx: number) => {
                 let isCorrect = correctAnswerId === answer.id;
 
                 // Detect if current answer is latest answer, use for deciding should we add new answer
@@ -156,6 +145,7 @@ export default class MultipleChoice extends BaseQuestion {
                     <MultipleChoiceAnswer
                         value={answer.value}
                         answerId={answer.id}
+                        groupName={'answer-' + this.props.question.id}
                         order={idx}
                         selectCorrectAnswer={this.selectCorrectAnswer}
                         isCorrect={isCorrect}

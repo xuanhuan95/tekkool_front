@@ -18,6 +18,16 @@ export type BaseQuestionProps = {
 // con dinh global state; chuyen sang function component de sau, khong gap.
 export default class BaseQuestion<P extends BaseQuestionProps = BaseQuestionProps,
                                   S = {}> extends React.Component<P, S> {
+    /**
+     * Gộp vài field vào `question.data`. Năm loại câu hỏi đều có một bản sao
+     * y hệt hàm này — gom về đây.
+     */
+    setQuestionData = (newData: Record<string, any>) => {
+        const {data} = this.props.question;
+        Object.assign(data, newData);
+        this.setQuestionState({data});
+    };
+
     setQuestionState = (newState: {data?: Record<string, any>}) => {
         const {question, section, setSectionState} = this.props;
 

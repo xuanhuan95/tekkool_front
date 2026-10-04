@@ -2,6 +2,7 @@ import React from 'react';
 
 import {Dropdown, Form, Input} from 'semantic-ui-react';
 import BaseQuestion from './BaseQuestion';
+import type {BaseQuestionProps} from './BaseQuestion';
 import {Editor} from "../../../components/Editor";
 
 
@@ -10,29 +11,19 @@ import {Editor} from "../../../components/Editor";
 // dấu cách. Đếm ký tự vẫn giữ cho đề nào cần.
 const UNITS = [{key: 'w', value: 'word', text: 'từ'}, {key: 'c', value: 'char', text: 'ký tự'}];
 
-export default class FreeAnswer extends BaseQuestion {
-    constructor(props) {
-        super(props);
+type State = {showLimit: boolean};
 
-        this.refAnswer = React.createRef();
-        this.state = {showLimit: false};
-    }
+export default class FreeAnswer extends BaseQuestion<BaseQuestionProps, State> {
+    state: State = {showLimit: false};
 
-    setQuestionData = (newData) => {
-        let {data} = this.props.question;
-
-        Object.keys(newData).forEach(k => {
-            data[k] = newData[k];
-        });
-
-        this.setQuestionState({data});
-    };
+    // Shim ref cua Editor: {current: {medium: {setContent}}} — xem Editor.tsx.
+    refAnswer = React.createRef<any>();
 
     // Chỉ giữ 1 đơn vị trong data — để cả hai thì Editor phải đoán, đề cũng khó hiểu.
-    setLimit = (n, unit) => this.setQuestionData(
+    setLimit = (n: number, unit: string) => this.setQuestionData(
         unit === 'word' ? {max_words: n, max_chars: 0} : {max_chars: n, max_words: 0});
 
-    onToAnswerButton = (answer) => {
+    onToAnswerButton = (answer: string) => {
         this.refAnswer.current.medium.setContent(answer);
     };
 
@@ -50,18 +41,18 @@ export default class FreeAnswer extends BaseQuestion {
                 text={data.question}
                 placeholder='Type your Open-ended question here...'
                 onToAnswerButton={this.onToAnswerButton}
-                onChange={question => this.setQuestionData({question})}
+                onChange={(question: string) => this.setQuestionData({question})}
             />
 
             {showLimit ?
                 <Input
                     type='number' min={0} className='margin-top limit-input'
                     label={<Dropdown value={unit} options={UNITS}
-                                     onChange={(e, {value}) => this.setLimit(limit, value)}/>}
+                                     onChange={(_e, {value}) => this.setLimit(limit, value as string)}/>}
                     labelPosition='right'
                     placeholder='Giới hạn bài viết (0 = bỏ giới hạn)'
                     value={limit || ''}
-                    onChange={(e, {value}) => this.setLimit(parseInt(value, 10) || 0, unit)}
+                    onChange={(_e, {value}) => this.setLimit(parseInt(value, 10) || 0, unit)}
                 />
                 :
                 <a className='cursor' onClick={() => this.setState({showLimit: true})}>
