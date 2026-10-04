@@ -280,10 +280,10 @@ class DoExam extends React.Component<RouterProps, State> {
         // TRƯỚC nhánh loader, không thì học sinh nhìn vòng quay mãi.
         if (this.state.hetLuot) return <HetLuotModal open/>;
 
-        if (!exam) {
-            return <Loading/>;
-        }
-
+        // ponytail: man KET QUA phai dung TRUOC nhanh loader. F5 ngay sau khi
+        // nop: BE tra bai da nop (da_nop) chu KHONG tra de, nen `exam` van null
+        // -> nhanh `if (!exam)` nuot mat man ket qua va hoc sinh nhin vong quay
+        // mai, khong bao gio thay diem. Cung ly do voi hetLuot o tren.
         if (this.state.submitted) {
             const r = this.state.result;
             return <Segment className='margin text-center' padded='very'>
@@ -317,6 +317,10 @@ class DoExam extends React.Component<RouterProps, State> {
                 </Button>}
                 <Button onClick={() => this.props.history.push('/')}>Về trang chủ</Button>
             </Segment>;
+        }
+
+        if (!exam) {
+            return <Loading/>;
         }
 
         return <Grid id="Exam" className='margin padding'>
