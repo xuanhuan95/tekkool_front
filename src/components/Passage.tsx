@@ -1,5 +1,5 @@
-import React from 'react';
 import renderHTML from './SafeHtml';
+import type {Question} from '../pages/exam-creation/Default';
 
 /**
  * Ngữ liệu đọc hiểu dùng chung cho cả nhóm câu ("Đọc văn bản 1 và trả lời các
@@ -12,8 +12,8 @@ import renderHTML from './SafeHtml';
  *
  * `prev` là câu liền trước trong cùng section (các câu cùng nhóm luôn liền kề).
  */
-export default function Passage({question, prev}) {
-    let {passage, passageId} = question.data || {};
+export default function Passage({question, prev}: {question: Question; prev?: Question}) {
+    const {passage, passageId} = question.data || {};
     if (!passage) return null;
     if (prev && prev.data && prev.data.passageId === passageId) return null;
 

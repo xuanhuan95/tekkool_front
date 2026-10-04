@@ -1,4 +1,3 @@
-import React from 'react';
 
 /**
  * Loading dùng chung cho cả app. Chỉ có hình chạy, không chữ.
@@ -12,7 +11,7 @@ import React from 'react';
  *
  * Hình: bốn trụ nâng lên hạ xuống theo sóng chạy từ trái sang phải.
  */
-export default function Loading({overlay, size}) {
+export default function Loading({overlay, size}: {overlay?: boolean; size?: number}) {
     // aria-busy + role=status + aria-label: không còn chữ trên màn hình thì
     // trình đọc màn hình phải lấy nhãn từ đây, nếu không nó im lặng hoàn toàn.
     return <div className={'tk-load' + (overlay ? ' tk-load-overlay' : '')}

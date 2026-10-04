@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import Loading from '../../components/Loading';
 import {useNavigate, useParams} from 'react-router-dom';
 import {Icon} from 'semantic-ui-react';
@@ -6,51 +6,8 @@ import striptags from 'striptags';
 
 import Api from '../../services/api';
 
-// Icon + màu nhận theo TÊN môn, không theo thứ tự trong danh sách — giáo viên
-// thêm môn mới đứng trước là mọi môn sau đó đổi icon, Toán thành chiếc lá.
-//
-// Tên icon đã đối chiếu với semantic-ui-css/components/icon.css: gõ sai tên
-// thì Semantic render ô trống chứ không báo lỗi. 'atom', 'microscope',
-// 'landmark' KHÔNG có trong bộ này — đừng thay vào.
-const SUBJECTS = [
-    {key: 'van',     icon: 'pencil alternate', bg: 'linear-gradient(135deg,#f97316,#ea580c)', match: ['van', 'ngu van']},
-    {key: 'anh',     icon: 'language',   bg: 'linear-gradient(135deg,#0ea5e9,#0369a1)', match: ['tieng anh', 'anh', 'english', 'ngoai ngu']},
-    {key: 'toan',    icon: 'calculator', bg: 'linear-gradient(135deg,#6366f1,#4338ca)', match: ['toan']},
-    {key: 'ly',      icon: 'magnet',     bg: 'linear-gradient(135deg,#f59e0b,#b45309)', match: ['ly', 'vat ly']},
-    {key: 'hoa',     icon: 'flask',      bg: 'linear-gradient(135deg,#14b8a6,#0f766e)', match: ['hoa', 'hoa hoc']},
-    {key: 'sinh',    icon: 'dna',        bg: 'linear-gradient(135deg,#16a34a,#15803d)', match: ['sinh', 'sinh hoc']},
-    {key: 'su',      icon: 'hourglass half', bg: 'linear-gradient(135deg,#b45309,#78350f)', match: ['lich su', 'su']},
-    {key: 'dia',     icon: 'map outline', bg: 'linear-gradient(135deg,#0891b2,#155e75)', match: ['dia ly', 'dia li', 'dia']},
-    {key: 'gdcd',    icon: 'balance scale', bg: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', match: ['gdcd', 'giao duc cong dan', 'cong dan']},
-    {key: 'tin',     icon: 'laptop',     bg: 'linear-gradient(135deg,#64748b,#334155)', match: ['tin hoc', 'tin']},
-];
-
-// Môn lạ (giáo viên tự đặt tên) vẫn phải có icon — không để trống.
-const FALLBACK = {icon: 'folder open', bg: 'linear-gradient(135deg,#94a3b8,#475569)'};
-
-// Bỏ dấu để 'Hoá' và 'Hóa', 'Địa lý' và 'Dia ly' cùng khớp một mục.
-// ponytail: normalize('NFD') + xoá dấu thanh là cách stdlib, không cần thư viện
-// bỏ dấu tiếng Việt. Riêng 'đ' không phải ký tự có dấu tổ hợp nên xử riêng.
-function bodau(s) {
-    return (s || '')
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-        .toLowerCase().trim();
-}
-
-function subjectStyle(name) {
-    const n = bodau(name);
-    // Khớp cả cụm trước, rồi mới khớp tiền tố — 'Lịch sử' phải ra 'su' chứ
-    // không dính vào 'sinh'. So bằng ranh giới từ, không dùng includes().
-    for (const s of SUBJECTS) {
-        if (s.match.some(m => n === m)) return s;
-    }
-    for (const s of SUBJECTS) {
-        if (s.match.some(m => n.startsWith(m + ' ') || n.endsWith(' ' + m))) return s;
-    }
-    return FALLBACK;
-}
+import {subjectStyle} from './subjectStyle';
+import type {Folder, ExamSummary} from '../../types/exam';
 
 
 /**
@@ -64,22 +21,22 @@ export default function SubjectBrowser() {
     const navigate = useNavigate();
     const {subjectId} = useParams();   // undefined = đang ở trang chủ
 
-    const [subjects, setSubjects] = useState(null);
-    const [folders, setFolders] = useState([]);   // bộ đề con của môn
-    const [folderId, setFolderId] = useState(null); // null = xem đề ngay trong môn
-    const [exams, setExams] = useState(null);
-    const [error, setError] = useState(null);
+    const [subjects, setSubjects] = useState<Folder[] | null>(null);
+    const [folders, setFolders] = useState<Folder[]>([]);   // bộ đề con của môn
+    const [folderId, setFolderId] = useState<string | null>(null); // null = xem đề ngay trong môn
+    const [exams, setExams] = useState<ExamSummary[] | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     // Môn đang mở lấy từ danh sách đã tải, không giữ bản sao trong state —
     // vào thẳng /subject/<id> thì `subjects` còn null, chờ tải xong mới có.
     const subject = subjects && subjectId
-        ? subjects.find(f => f.id === subjectId)
+        ? subjects.find((f: Folder) => f.id === subjectId)
         : null;
 
     useEffect(() => {
         Api.get('folder/subjects')
             .then(setSubjects)
-            .catch(e => setError(e.error || e.message || 'Không tải được danh sách môn học'));
+            .catch((e: any) => setError(e.error || e.message || 'Không tải được danh sách môn học'));
     }, []);
 
     // Đổi môn (bấm thẻ, F5, Back) thì tải lại bộ đề + đề của môn đó.
@@ -96,24 +53,24 @@ export default function SubjectBrowser() {
 
         Api.get('exam/browse?folder=' + subjectId)
             .then(setExams)
-            .catch(e => setError(e.error || e.message || 'Không tải được danh sách đề'));
+            .catch((e: any) => setError(e.error || e.message || 'Không tải được danh sách đề'));
     }, [subjectId]);
 
     // Chọn bộ đề trong môn: KHÔNG đổi URL. Bộ đề là bộ lọc trong một trang,
     // không phải trang mới — đẩy vào URL nữa thì Back phải bấm nhiều lần mới
     // ra khỏi môn.
-    const pickFolder = (id) => {
+    const pickFolder = (id: string | null) => {
         setFolderId(id);
         setExams(null);
         Api.get('exam/browse?folder=' + (id === null ? subjectId : id))
             .then(setExams)
-            .catch(e => setError(e.error || e.message || 'Không tải được danh sách đề'));
+            .catch((e: any) => setError(e.error || e.message || 'Không tải được danh sách đề'));
     };
 
     // Vào thẳng đề. Hết lượt thì BE trả 402 và DoExam bật HetLuotModal chặn
     // tại chỗ — KHÔNG hỏi trước ở đây, vì số lượt còn lại là chuyện của ví
     // chứ không phải của từng đề, hỏi mỗi lần bấm là thừa một vòng mạng.
-    const openExam = (exam) => navigate('/do-exam/' + exam.id);
+    const openExam = (exam: ExamSummary) => navigate('/do-exam/' + exam.id);
 
     if (error) return <div className='tk'><div className='tk-wrap'>
         <div className='tk-empty'>
@@ -222,7 +179,7 @@ export default function SubjectBrowser() {
                                     {striptags(exam.name) || 'Đề không tên'}
                                 </span>
                                 <span className='tk-exam-meta'>
-                                    {exam.duration > 0 &&
+                                    {!!exam.duration && exam.duration > 0 &&
                                     <span><Icon name='clock outline'/> {exam.duration} phút</span>}
                                     <span><Icon name='play circle outline'/> Bắt đầu làm bài</span>
                                 </span>

@@ -6,6 +6,7 @@ import {connectGlobalState} from '../../stateUtils';
 import {Editor} from '../../components/Editor';
 import Api from '../../services/api';
 import {TEN_LOAI} from './blockTypes';
+import {convertData} from './convertData';
 
 
 // Cot phai: van ban goc tu file Word, danh so dong + to mau tu khoa de
@@ -73,26 +74,6 @@ const QUESTION_TYPES = [
 // nhu boolean, FillBlank.jsx nhu chuoi HTML. Doi loai ma bung nguyen data cu thi
 // TrueFalse an phai chuoi HTML -> ca hai radio deu khong checked, giao vien tuong
 // chua chon, luu xong cham may sai. Nen giu dung phan dung chung, bo phan rieng.
-function convertData(data, to) {
-    // question / passage / passageId / max_words dung chung moi loai.
-    let {question, passage, passageId, max_words} = data;
-    let next = {question};
-    if (passage) { next.passage = passage; next.passageId = passageId; }
-
-    if (to === 'MultipleChoice' || to === 'ErrorIdentify') {
-        // Giu lai phuong an neu von la trac nghiem, khong thi giao vien tu them.
-        next.answers = data.answers || [];
-        if (data.correctAnswerId) next.correctAnswerId = data.correctAnswerId;
-    } else if (to === 'FreeAnswer') {
-        if (max_words) next.max_words = max_words;
-    }
-    // TrueFalse: khong set data.answer — TrueFalse.jsx coi undefined la CHUA CHON
-    // va bo checked ca hai radio. Dat san true/false la gan bua dap an dung.
-    // FillBlank: khong set data.answer — de trong cho giao vien go.
-    return next;
-}
-
-
 class ImportExam extends Component {
     state = {
         loading: false,

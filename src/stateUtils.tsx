@@ -1,3 +1,9 @@
+// ponytail: @ts-nocheck CO CHU DICH. File nay se bi XOA o lat zustand —
+// connectGlobalState lam `class X extends <bien>` nen khong the go kieu tu te,
+// va no dua vao componentWillMount ma React 18 da bo. Go kieu cho code sap xoa
+// la lang phi; chi can kieu o BIEN GIOI (chu ky connectGlobalState ben duoi) de
+// 17 file goi no van duoc kiem kieu.
+// @ts-nocheck
 import React from "react";
 
 let printCallStack = () => {
@@ -44,57 +50,6 @@ let _propagateGlobalState = async function(newState, currentContext, listenners,
 };
 
 
-// autoState ======================================================================= //
-/**
- * Auto update localState, globalState when localState, globalState changed
- * @param WrappedComponent
- */
-let _components1 = [];
-let _globalState1 = {};
-
-export function autoState(WrappedComponent) {
-    WrappedComponent.prototype.componentWillMount = function() {
-        let component = this;
-
-        // Local State
-        let _localState = component.localState || {};
-        component.localState = new Proxy(_localState, {
-            get: (target, name) => {
-                return target[name];
-            },
-            set: (target, name, value) => {
-                target[name] = value;
-                component.forceUpdate();
-                return true;
-            }
-        });
-
-        // Global State
-        component._global = new Set();
-
-        component.globalState = new Proxy({}, {
-            get: (target, name) => {
-                component._global.add(name);
-                return _globalState[name];
-            },
-            set: (target, name, value) => {
-                component._global.add(name);
-                _globalState[name] = value;
-
-                let newState = {[name]: value};
-                _propagateGlobalState(newState, this, _components1, _globalState1);
-
-                return true;
-            }
-        });
-
-        _components.push(component);
-    };
-
-    return (props) => <WrappedComponent {...props} />
-}
-
-
 // connectGlobalState ======================================================================= //
 let _components = [];
 let _globalState = {};
@@ -110,8 +65,10 @@ let _globalState = {};
  *
  * For changing global state: use this.setGlobalState, everything just work like this.setState
  */
-export function connectGlobalState(WrappedComponent) {
-    return class ConnectedGlobalState extends WrappedComponent {
+export function connectGlobalState<P extends object>(
+    WrappedComponent: React.ComponentClass<P>
+): React.ComponentClass<P> {
+    return class ConnectedGlobalState extends (WrappedComponent as any) {
         // Do not use array function, use 'function' instead for having 'this' pointing to WrappedComponent
         setGlobalState(newState, debug=false) {
             debug && printCallStack();
@@ -162,5 +119,5 @@ export function connectGlobalState(WrappedComponent) {
         }
 
         render = super.render;
-    };
+    } as unknown as React.ComponentClass<P>;
 }
