@@ -1,7 +1,8 @@
 import React, {Component} from 'react';
+import Loading from '../../components/Loading';
 import {Link} from 'react-router-dom';
 import withRouter from '../../withRouter';
-import {Button, Header, Icon, Label, Loader, Message, Segment, Table} from 'semantic-ui-react';
+import {Button, Header, Icon, Label, Message, Segment, Table} from 'semantic-ui-react';
 import Api from '../../services/api';
 import {TEN_LOAI} from './blockTypes';
 
@@ -66,7 +67,7 @@ class DrawExam extends Component {
         let {stats, cap, error, drawing, warn} = this.state;
 
         if (error) return <Message negative className='margin'>{error}</Message>;
-        if (!stats || !cap) return <Loader active inline='centered' className='margin'/>;
+        if (!stats || !cap) return <Loading/>;
 
         let per = stats.per_type || {};
         let slots = cap.slots || {};

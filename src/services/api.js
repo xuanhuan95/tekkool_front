@@ -20,11 +20,25 @@ class BaseApi {
         method: method,
         body: JSON.stringify(data)
       })
-        .then(res => res.json())
-        .then(json => {
-          if (json.code && json.code !== 200) reject(json);
-          resolve(json);
-        })
+        // BE lỗi nặng (500) trả trang HTML, không phải JSON. res.json() ném
+        // SyntaxError không có .code -> mọi chỗ bắt `e.code === 402` trượt,
+        // học sinh hết lượt thấy "Unexpected token '<'" thay vì popup mua gói.
+        // Đọc text trước rồi mới parse: hỏng thì dựng lỗi MANG code = HTTP status.
+        .then(res => res.text().then(body => {
+          let json;
+          try {
+            json = JSON.parse(body);
+          } catch (e) {
+            return reject({code: res.status,
+                           error: 'Máy chủ lỗi (' + res.status + ')'});
+          }
+          // Thiếu `return` ở đây là reject xong vẫn chạy tiếp resolve.
+          if (json.code && json.code !== 200) return reject(json);
+          // BE có chỗ abort() -> body JSON nhưng không kèm `code`; status mới
+          // là nguồn sự thật.
+          if (!res.ok) return reject({code: res.status, ...json});
+          return resolve(json);
+        }))
         .catch(e => reject(e));
     });
   }

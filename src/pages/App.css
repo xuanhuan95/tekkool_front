@@ -753,6 +753,17 @@ body {
    tính bề rộng itemsPerRow dựa trên đúng con số -1em đó. */
 .tk-dash {
     overflow-x: hidden;
+    /* Chặn bề ngang: màn 2000px mà để trang kéo hết thì ba thẻ gói giãn
+       thành dải dài, mắt phải quét ngang cả mét để so giá. 1120px đủ cho
+       3 cột thẻ.
+       Khoảng cách mép dùng `padding` chứ không phải class `.margin` của app:
+       class đó là `margin: 10px !important`, mà `!important` trên shorthand
+       đè mọi margin-left/right — kể cả `margin-inline: auto` — nên khối không
+       canh giữa được. Đã bỏ `.margin` khỏi 4 trang dùng `.tk-dash`. */
+    box-sizing: border-box;
+    max-width: 1120px;
+    margin: 10px auto;
+    padding: 0 10px;
 }
 
 .tk-folders {
@@ -865,10 +876,284 @@ body {
 /* Bản cũ để width: 480px cứng -> tràn màn điện thoại. Quét QR thì gần như
    chắc chắn đang cầm điện thoại, đây mới là màn hình chính của luồng này. */
 .tk-pay-result { margin: 3em auto; max-width: 480px; padding: 0 16px; }
-/* Loader Semantic là position:absolute — phải có khối cao thật để nó neo vào,
-   không thì nó rơi ra ngoài luồng và trang trông như trắng trơn. */
-.tk-pay-spin { height: 60px; position: relative; }
 .tk-pay-bar { margin: 18px 0 4px !important; }
 .tk-pay-warn { margin-top: 20px !important; text-align: left; }
 .tk-pay-inv { font-size: .85em; margin-top: 14px; }
 .tk-pay-result .ui.button { margin: 6px 4px 0; }
+
+/* ---- Thẻ gói lượt thi (dùng chung popup hết lượt + trang mua gói) ---- */
+/* Gói hiện ở 3 chỗ với 3 kiểu khác nhau: popup hết lượt, trang mua, trang
+   xác nhận. Một bộ lớp dùng chung, không mỗi chỗ một style inline. */
+.tk-goi-list { display: grid; gap: 16px; margin-top: 18px;
+    /* 3 gói kéo hết 1120px thì mỗi thẻ rỗng giữa; chặn lại cho khối gọn.
+       KHÔNG margin-inline:auto — căn giữa thì lưới lệch phải so với tiêu đề
+       "Gói thi thử" đang bám mép trái, hai khối không thẳng hàng. */
+    max-width: 860px; }
+/* auto-fit + minmax: 1 gói chiếm hết bề ngang, 3 gói chia 3 cột, điện thoại
+   tự về 1 cột. Không cần itemsPerRow tính tay theo số gói. */
+@media (min-width: 560px) {
+    .tk-goi-list { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+}
+
+.tk-goi {
+    background: var(--tk-card, #fff);
+    border: 1px solid var(--tk-line, #e1e7f2);
+    border-radius: var(--tk-r, 14px);
+    padding: 26px 20px;
+    text-align: center;
+    cursor: pointer;
+    /* Nút thật, không phải div bấm được: bàn phím Tab tới được, Enter chạy. */
+    font: inherit; color: inherit; width: 100%;
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+    /* Cột: mô tả dài ngắn khác nhau giữa các gói, nếu không xếp cột thì gói
+       có mô tả 2 dòng đẩy giá lệch hàng so với gói mô tả 1 dòng. `auto` đẩy
+       mô tả xuống đáy nên tên/lượt/giá luôn thẳng hàng ngang các thẻ. */
+    display: flex;
+    flex-direction: column;
+}
+.tk-goi:hover, .tk-goi:focus-visible {
+    border-color: var(--tk-primary, #2f6fe4);
+    box-shadow: var(--tk-shadow-lift, 0 8px 20px rgba(31, 41, 51, .12));
+    transform: translateY(-2px);
+}
+/* Giữ viền focus — bỏ outline là người dùng bàn phím mất dấu hoàn toàn. */
+.tk-goi:focus-visible { outline: 2px solid var(--tk-primary, #2f6fe4); outline-offset: 2px; }
+
+.tk-goi-ten { font-weight: 600; font-size: 1.05em; color: var(--tk-ink, #16203a); }
+.tk-goi-luot {
+    /* Thẻ là flex column -> align-items mặc định stretch kéo viên thuốc rộng
+       hết thẻ, nhìn như thanh ngang chứ không phải nhãn. `align-self: center`
+       trả nó về co theo chữ. inline-block một mình không chặn được stretch. */
+    align-self: center;
+    display: inline-block; margin: 8px 0 10px;
+    background: var(--tk-primary-soft, #eef3fc);
+    color: var(--tk-primary-dark, #1b4fb5);
+    border-radius: 999px; padding: 3px 12px;
+    font-size: .88em; font-weight: 600;
+}
+.tk-goi-gia { font-size: 1.45em; font-weight: 700; color: var(--tk-ink, #16203a); }
+/* Ví lượt còn lại trên thanh tiêu đề. Thay <Statistic> của Semantic: component
+   đó ép font serif cho số và in hoa nhãn, lạc hẳn hệ chữ của trang. */
+.tk-vi {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    background: var(--tk-primary-soft, #eef3fc);
+    border-radius: 999px;
+    padding: 7px 16px;
+}
+.tk-vi-so {
+    font-size: 1.35em; font-weight: 700; line-height: 1;
+    color: var(--tk-primary-dark, #1b4fb5);
+}
+.tk-vi-nhan { font-size: .9em; font-weight: 600; color: var(--tk-primary-dark, #1b4fb5); }
+/* Hết lượt: đỏ nhạt để nhận ra ngay, nhưng không hét lên như số 0 đỏ cũ —
+   trang này là nơi mua thêm, không phải nơi báo lỗi. */
+.tk-vi.het { background: #fdecec; }
+.tk-vi.het .tk-vi-so, .tk-vi.het .tk-vi-nhan { color: #b42318; }
+
+.tk-goi-mota {
+    color: var(--tk-muted, #636e8a); font-size: .85em;
+    line-height: 1.55;
+    /* auto: day mo ta xuong day the, de ten/luot/gia thang hang giua cac
+       the du mo ta dai ngan khac nhau. 8px la khoang cach toi thieu. */
+    margin-top: auto; padding-top: 10px;
+    /* Chặn độ dài dòng + cân dòng: mô tả 2 dòng mà dòng cuối còn 2 chữ nhìn
+       rất lệch. `balance` chia đều, `max-inline-size` giữ dòng không quá dài
+       trên thẻ rộng. Trình duyệt cũ bỏ qua balance -> xuống dòng như cũ. */
+    max-inline-size: 30ch;
+    margin-inline: auto;
+    text-wrap: balance;
+    /* Mô tả căn giữa theo thẻ -> cạnh trái răng cưa khi xuống 2 dòng.
+       Căn trái trong khối đã cân chiều rộng là đọc dễ nhất. */
+    text-align: left;
+}
+
+/* ---- Trang xác nhận mua gói ---- */
+/* Dùng chung khung với .tk-pay-result: cùng luồng, cùng bề ngang, và đã có
+   sẵn max-width + padding chống tràn trên điện thoại. */
+.tk-pay-sum {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 12px 0; border-bottom: 1px solid var(--tk-line, #e1e7f2);
+}
+.tk-pay-sum:last-of-type { border-bottom: 0; }
+.tk-pay-sum .k { color: var(--tk-muted, #636e8a); }
+.tk-pay-sum .v { font-weight: 600; color: var(--tk-ink, #16203a); }
+.tk-pay-sum.total .v { font-size: 1.5em; color: var(--tk-primary-dark, #1b4fb5); }
+
+/* ---- Popup hết lượt ---- */
+.tk-het-icon {
+    width: 64px; height: 64px; margin: 6px auto 14px;
+    border-radius: 50%;
+    background: var(--tk-primary-soft, #eef3fc);
+    color: var(--tk-primary-dark, #1b4fb5);  /* dark: primary tren nen soft chi 4.18:1 */
+    display: flex; align-items: center; justify-content: center;
+}
+.tk-het-icon .icon { margin: 0 !important; }
+.tk-het-title { margin: 0 0 6px; color: var(--tk-ink, #16203a); }
+
+/* ---- Bảng điều hướng câu hỏi khi làm bài ---- */
+/* Không có bảng này thì học sinh chỉ biết mình bỏ sót đúng lúc bấm Nộp —
+   quá muộn để tìm lại câu nào còn trống. */
+.tk-cau-nav { margin-top: 14px; text-align: left; }
+.tk-cau-grid {
+    /* auto-fill + trần 44px: 5 cột `1fr` + aspect-ratio nghĩa là cột rộng
+       bao nhiêu ô cao bấy nhiêu — trong Rail hẹp thì vừa, đặt chỗ rộng là
+       ô phình thành vuông 130px cho một chữ số. 44px đúng ngưỡng vùng
+       chạm tối thiểu, không to hơn vô ích. */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(38px, 44px));
+    gap: 6px;
+}
+.tk-cau {
+    aspect-ratio: 1; min-height: 38px; max-height: 44px;
+    border: 1px solid var(--tk-line, #e1e7f2);
+    background: #fff; color: var(--tk-muted, #636e8a);
+    border-radius: 8px; cursor: pointer;
+    font: 600 .9em/1 inherit;
+    transition: background .12s, border-color .12s;
+}
+.tk-cau:hover { border-color: var(--tk-primary, #2f6fe4); }
+.tk-cau:focus-visible { outline: 2px solid var(--tk-primary, #2f6fe4); outline-offset: 1px; }
+/* Đã làm = tô đậm. Chưa làm để trắng: cái cần tìm là ô TRỐNG, nên nó phải
+   là thứ nổi lên giữa các ô đã tô, không phải ngược lại. */
+.tk-cau.xong {
+    background: var(--tk-primary, #2f6fe4);
+    border-color: var(--tk-primary, #2f6fe4);
+    color: #fff;
+}
+.tk-cau-dem { margin-top: 10px; font-size: .9em; color: var(--tk-muted, #636e8a); }
+.tk-cau-dem .du { color: var(--tk-green, #15803d); font-weight: 600; }
+
+/* ============================================================
+   Semantic `primary` theo màu app.
+   Thư viện cứng #2185D0 — xanh, nhưng lệch tông so với #2f6fe4
+   của trang đăng nhập, để cạnh nhau là thấy hai sắc xanh khác
+   nhau. 21 chỗ đang dùng <Button primary>, sửa từng chỗ là thừa:
+   đổi ở đây một lần ăn cả.
+   ============================================================ */
+.ui.primary.button,
+.ui.primary.buttons .button {
+    background-color: var(--tk-primary, #2f6fe4);
+    /* Dáng chung cho mọi nút chính trong app, lấy theo .tka-btn của trang
+       đăng nhập nhưng BỎ text-transform: uppercase — chữ hoa tiếng Việt
+       có dấu ("THANH TOÁN") chen dấu vào khoảng dòng, nút dài đọc rối.
+       Giữ bo 6px và nét đậm để vẫn cùng một ngôn ngữ hình. */
+    border-radius: 6px;
+    font-family: var(--tk-font);
+    font-weight: 700;
+    letter-spacing: .01em;
+}
+.ui.primary.button:hover,
+.ui.primary.buttons .button:hover,
+.ui.primary.button:focus,
+.ui.primary.buttons .button:focus {
+    background-color: var(--tk-primary-dark, #1b4fb5);
+}
+/* Giữ viền focus nhìn thấy được — Semantic bỏ outline, người dùng
+   bàn phím mất dấu hẳn con trỏ. */
+.ui.primary.button:focus-visible {
+    outline: 2px solid var(--tk-primary-dark, #1b4fb5);
+    outline-offset: 2px;
+}
+
+/* Nút phụ (basic) đi cùng dáng với nút chính, nếu không hai nút cạnh nhau
+   lệch bo góc. */
+.ui.basic.button {
+    border-radius: 6px;
+    font-family: var(--tk-font);
+    font-weight: 600;
+}
+.ui.basic.button:hover { color: var(--tk-primary-dark, #1b4fb5) !important; }
+
+/* ============================================================
+   Loading dùng chung (components/Loading.jsx)
+   Bốn trụ nâng lên hạ xuống, sóng chạy từ trái sang phải.
+   Chỉ động transform + opacity -> trình duyệt đẩy xuống GPU, không
+   phải tính lại bố cục mỗi khung hình. Đổi `height` hay `y` của trụ thì
+   ngược lại: mỗi khung hình là một lần layout lại, giật trên máy yếu.
+   ============================================================ */
+.tk-load {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 16px;
+}
+
+/* Overlay: PHỦ lên nội dung đang có chứ không thay thế nó, nên khung trang
+   đứng yên trong lúc tải. Nền mờ nhẹ để chữ dưới vẫn thấy lờ mờ — người dùng
+   biết dữ liệu cũ còn đó, chỉ đang làm mới. */
+.tk-load-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    background: rgba(244, 246, 251, .72);
+    backdrop-filter: blur(2px);
+    /* Chặn bấm xuyên qua trong lúc tải — bấm vào dữ liệu cũ sắp bị thay
+       là nguồn lỗi, không phải tính năng. */
+    cursor: progress;
+}
+/* Cha của overlay phải có position để `inset: 0` bám đúng. */
+.tk-load-host { position: relative; min-height: 120px; }
+
+.tk-load-svg { display: block; margin: 0 auto; }
+.tk-load-svg rect {
+    fill: var(--tk-primary, #2f6fe4);
+    /* Gốc biến đổi ở ĐÁY trụ: scaleY co giãn từ chân lên, chân đứng yên.
+       Bỏ dòng này thì trụ co về tâm, nhìn như nhấp nháy chứ không phải nâng. */
+    transform-origin: 50% 100%;
+    animation: tk-load-song 1.1s cubic-bezier(.5, .05, .5, .95) infinite;
+}
+/* Lệch pha .1s mỗi trụ: sóng chạy từ trái sang phải. Cùng pha thì bốn trụ
+   nhấp đồng loạt, nhìn như một khối giật chứ không phải sóng. */
+.tk-load-svg rect:nth-of-type(2) { animation-delay: .1s; }
+.tk-load-svg rect:nth-of-type(3) { animation-delay: .2s; }
+.tk-load-svg rect:nth-of-type(4) { animation-delay: .3s; }
+
+/* Trụ vươn cao rồi hạ về .45. Mờ 45% lúc thấp để con sóng nổi bật,
+   không phải bốn trụ đặc nhấp đều. */
+@keyframes tk-load-song {
+    0%, 60%, 100% { transform: scaleY(.45); opacity: .45; }
+    30%           { transform: scaleY(1);   opacity: 1; }
+}
+
+/* Người bật "giảm chuyển động" trong hệ điều hành thường vì chóng mặt hoặc
+   rối loạn tiền đình. Tắt nâng hạ, giữ nhấp nháy mờ để vẫn biết đang tải. */
+@media (prefers-reduced-motion: reduce) {
+    .tk-load-svg rect {
+        animation: tk-load-nhap 1.6s ease-in-out infinite;
+        transform: scaleY(1);
+    }
+    @keyframes tk-load-nhap { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+}
+
+/* Bang diem tung phan tren man "Da nop bai". Man do text-center nen bang phai
+   tu can trai lai, khong thi cot diem nhay lung tung theo do dai ten phan. */
+.tk-ketqua {
+    max-width: 420px;
+    margin: 18px auto;
+    text-align: left;
+}
+.tk-ketqua-nhom {
+    font-weight: 700;
+    margin-top: 14px;
+    margin-bottom: 4px;
+}
+.tk-ketqua-nhom:first-child { margin-top: 0; }
+.tk-ketqua-dong {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 0 5px 14px;
+    border-bottom: 1px solid var(--tk-border, #e8ebf2);
+}
+.tk-ketqua-dong i { color: var(--tk-muted, #636e8a); font-style: normal; }
+/* Man hep: ten phan va diem deu gay 2 dong roi so le nhau, doc khong ra dong
+   nao di voi dong nao. Xep doc, diem thut vao duoi ten. */
+@media (max-width: 460px) {
+    .tk-ketqua-dong { display: block; }
+    .tk-ketqua-dong b, .tk-ketqua-dong i { display: block; padding-left: 12px; }
+}
+/* Tong chi hien khi co tu 2 phan may cham tro len — mot phan thi dong tong
+   chi lap lai chinh no. */
+.tk-ketqua-tong { border-bottom: none; border-top: 2px solid var(--tk-border, #e8ebf2); }

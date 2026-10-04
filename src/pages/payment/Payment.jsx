@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
+import Loading from '../../components/Loading';
 import {useNavigate, useParams} from 'react-router-dom';
-import {Button, Segment, Icon, Loader, Message} from 'semantic-ui-react';
+import {Button, Segment, Icon, Message} from 'semantic-ui-react';
 
 import Api from "../../services/api";
 
@@ -64,12 +65,16 @@ export default function Payment() {
         form.submit();
     };
 
-    if (!goi && !error) return <Loader active/>;
+    // <Loading/> tu co kich thuoc, khong can khoi neo nhu Loader cu cua
+    // Semantic (position:absolute -> tra tran giua trang rong la trang tron).
+    if (!goi && !error) return <div className='tk-pay-result'>
+        <Loading/>
+    </div>;
 
-    return <div style={{width: '480px', margin: '3em auto'}}>
-        <h2 className='text-center'>Mua gói thi thử</h2>
+    return <div className='tk-pay-result'>
+        <Segment padded='very'>
+            <h2 className='text-center tk-het-title'>Xác nhận mua gói</h2>
 
-        <Segment className='text-center'>
             {error && <Message negative>
                 {error}
                 <div className='margin-top'>
@@ -80,21 +85,30 @@ export default function Payment() {
             </Message>}
 
             {goi && <div>
-                <h3>{goi.name}</h3>
-                {goi.description && <p style={{color: '#666'}}>{goi.description}</p>}
+                <div className='tk-pay-sum'>
+                    <span className='k'>Gói</span>
+                    <span className='v'>{goi.name}</span>
+                </div>
+                <div className='tk-pay-sum'>
+                    <span className='k'>Số lượt thi</span>
+                    <span className='v'>{goi.turns} lượt</span>
+                </div>
+                <div className='tk-pay-sum total'>
+                    <span className='k'>Thành tiền</span>
+                    <span className='v'>{tien(goi.price)}</span>
+                </div>
 
-                <p style={{fontSize: '1.3em', margin: '0.6em 0'}}>
-                    <b>{goi.turns}</b> lượt thi thử
-                </p>
-                <p style={{fontSize: '1.6em', margin: '0.4em 0 1em'}}>
-                    <b>{tien(goi.price)}</b>
-                    <span style={{fontSize: '0.5em', color: '#888', display: 'block'}}>
-                        {tien(Math.round(goi.price / goi.turns))} mỗi lượt
-                    </span>
-                </p>
+                {goi.description && <p className='tk-goi-mota'>{goi.description}</p>}
 
-                <Button primary fluid loading={redirecting} disabled={redirecting} onClick={pay}>
+                <Button primary fluid size='large' className='margin-top'
+                        loading={redirecting} disabled={redirecting} onClick={pay}>
                     <Icon name='credit card'/> Thanh toán
+                </Button>
+                {/* Loi ra: vao nham goi thi phai quay lai duoc, khong chi co
+                    mot nut tra tien. */}
+                <Button basic fluid className='margin-top'
+                        disabled={redirecting} onClick={() => navigate('/packages')}>
+                    Chọn gói khác
                 </Button>
             </div>}
         </Segment>

@@ -106,6 +106,8 @@ class ImportExam extends Component {
         progress: 0,
         folder: null,
         bankInfo: null,
+        trung: {},       // id cau -> {score, khop[]}; chi hien so, khong chan luu
+        dangDoTrung: false,
     };
 
     // Ngan hang lay tu ?bank= — mot thuc the co ten va co mon, giao vien tu tao.
@@ -270,6 +272,27 @@ class ImportExam extends Component {
         });
     };
 
+    // Đo trùng với câu đã có trong ngân hàng. Chỉ hiện số — người import tự
+    // quyết có lưu hay không, y như Azota. Gọi riêng chứ không gộp vào save:
+    // đo xong mới hiện nút Lưu thì giáo viên còn kịp nhìn trước khi bấm.
+    doTrung = async () => {
+        let chosen = this.state.exams.filter(e => this.state.picked[e.id]);
+        if (!chosen.length) return;
+        this.setState({dangDoTrung: true});
+        try {
+            let gop = {};
+            for (let e of chosen) {
+                let r = await Api.post('question_bank/check_trung',
+                    {...e, bank: this.bankId()});
+                Object.assign(gop, r.trung || {});
+            }
+            this.setState({trung: gop, dangDoTrung: false});
+        } catch (err) {
+            // Đo trùng hỏng KHÔNG được chặn việc lưu — nó là thông tin thêm.
+            this.setState({dangDoTrung: false});
+        }
+    };
+
     // toBank=true: cắt thành khối rồi bỏ vào ngân hàng câu hỏi, KHÔNG tạo đề.
     // Đề sinh ra lúc học sinh bấm thi, rút ngẫu nhiên từ ngân hàng.
     save = async (toBank) => {
@@ -309,6 +332,22 @@ class ImportExam extends Component {
 
     folderName = () => this.state.folder && this.state.folder.name;
 
+    // Chip "Tỷ lệ trùng" — chỉ hiện khi câu có trùng. Màu theo mức, nhưng
+    // KHÔNG màu đỏ: đây là cảnh báo để đọc, không phải lỗi phải sửa. Câu cùng
+    // khung ("Cho hàm số y=f(x)... nghịch biến trên khoảng nào") đo ra 80-90%
+    // mà vẫn là hai câu khác nhau — bôi đỏ thì giáo viên tắt tính năng đi.
+    renderChipTrung = (qid) => {
+        let t = this.state.trung[qid];
+        if (!t) return null;
+        let pct = (t.score * 100).toFixed(2);
+        let mau = t.score >= 0.95 ? 'orange' : t.score >= 0.8 ? 'yellow' : 'grey';
+        let ds = t.khop.map(k => (k.trong_file ? 'trong file này' : (k.khoi || k.id))
+            + ' — ' + (k.score * 100).toFixed(2) + '%').join('\n');
+        return <Label size='tiny' color={mau} title={'Trùng với:\n' + ds}>
+            Tỷ lệ trùng: {pct}%
+        </Label>;
+    };
+
     renderQuestion = (exam, section, q, idx) => {
         // ErrorIdentify cung la chon 1 trong 4 phuong an -> dung chung UI dap an.
         let isMC = q.type === 'MultipleChoice' || q.type === 'ErrorIdentify';
@@ -334,6 +373,7 @@ class ImportExam extends Component {
                           options={QUESTION_TYPES.map(t => ({key: t.key, value: t.key, text: t.text}))}
                           onChange={(e, {value}) => this.setType(exam.id, q.id, value)}/>
                 {noKey && <Label size='tiny' color='orange'>chưa có đáp án đúng</Label>}
+                {this.renderChipTrung(q.id)}
                 <Icon name='trash alternate outline' link color='grey'
                       title='Xoá câu này'
                       onClick={() => this.removeQuestion(exam.id, q.id)}/>
@@ -362,9 +402,11 @@ class ImportExam extends Component {
     };
 
     renderExam = (exam) => {
-        let {picked, openId} = this.state;
+        let {picked, openId, trung} = this.state;
         let missing = this.missingKeys(exam);
         let isOpen = openId === exam.id;
+        let soTrung = exam.sections.reduce(
+            (n, s) => n + s.questions.filter(q => trung[q.id]).length, 0);
 
         return <Segment key={exam.id}>
             <div className='import-exam-head'>
@@ -383,6 +425,11 @@ class ImportExam extends Component {
                     {this.countQuestions(exam)} câu
                     {missing > 0 && <Label size='tiny' color='orange' className='margin-left'>
                         {missing} câu thiếu đáp án
+                    </Label>}
+                    {/* Chip trùng của từng câu nằm trong phần "Xem & sửa" — đề
+                        thu gọn thì không thấy gì. Đếm lên đây để biết nên mở đề nào. */}
+                    {soTrung > 0 && <Label size='tiny' color='yellow' className='margin-left'>
+                        {soTrung} câu trùng
                     </Label>}
                 </span>
 
@@ -521,7 +568,8 @@ class ImportExam extends Component {
     };
 
     render() {
-        let {loading, error, exams, warnings, picked, saving, progress, banked, bank} = this.state;
+        let {loading, error, exams, warnings, picked, saving, progress, banked, bank,
+             dangDoTrung, trung} = this.state;
         let chosen = exams.filter(e => picked[e.id]).length;
 
         return <div className='margin import-exam'>
@@ -578,13 +626,22 @@ class ImportExam extends Component {
                             onClick={() => this.save(false)}>
                         <Icon name='save'/> Tạo thẳng {chosen} đề
                     </Button>
+                    {/* Đo trùng là tuỳ chọn, không phải bước bắt buộc trước khi
+                        lưu: ngân hàng rỗng thì đo xong vẫn ra 0, bắt bấm là thừa. */}
+                    <Button basic loading={dangDoTrung}
+                            disabled={!chosen || saving || !this.bankId()}
+                            onClick={this.doTrung}>
+                        <Icon name='copy outline'/> Kiểm tra trùng lặp
+                    </Button>
                     <span className='import-save-hint'>
                         {saving ? `Đang lưu ${progress}/${chosen}…`
                             : banked ? `Đã thêm ${banked} khối vào ngân hàng.`
                             : !this.bankId()
                                 ? <span>Muốn lưu vào ngân hàng thì vào <Link to='/question-bank'>
                                     Ngân hàng câu hỏi</Link> chọn một ngân hàng rồi bấm “Nhập đề”.</span>
-                                : 'Vào ngân hàng: cắt thành khối để sau này rút đề ngẫu nhiên.'}
+                                : Object.keys(trung).length
+                                    ? `Có ${Object.keys(trung).length} câu trùng với ngân hàng — xem chip trên từng câu rồi tự quyết.`
+                                    : 'Vào ngân hàng: cắt thành khối để sau này rút đề ngẫu nhiên.'}
                     </span>
                 </Segment>
             </Segment.Group>}

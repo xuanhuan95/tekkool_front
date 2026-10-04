@@ -1,11 +1,12 @@
 import React, {Component} from 'react';
+import Loading from '../../components/Loading';
 import withRouter from '../../withRouter';
 import {connectGlobalState} from '../../stateUtils';
-import {Button, Form, Header, Icon, Input, Label, Loader, Message, Segment, TextArea} from 'semantic-ui-react';
+import {Button, Form, Header, Icon, Input, Label, Message, Segment, TextArea} from 'semantic-ui-react';
 import renderHTML from '../../components/SafeHtml';
 import Api from '../../services/api';
 import {numToChar} from '../../services/tools';
-import {fmtDate, fmtDuration, ScoreLabel} from './fmt';
+import {fmtDate, fmtDuration, round, ScoreLabel} from './fmt';
 
 /**
  * Xem lại một bài đã nộp. MỘT màn cho cả hai vai:
@@ -90,7 +91,7 @@ class SubmissionDetail extends Component {
                 {!a.auto_graded && a.score === null &&
                 <Label size='tiny' color='yellow'>chờ chấm</Label>}
                 <span className='sub-answer-score'>
-                    {a.score === null ? '—' : a.score} / {a.max_score}
+                    {a.score === null ? '—' : round(a.score)} / {round(a.max_score)}
                 </span>
             </div>
 
@@ -166,7 +167,7 @@ class SubmissionDetail extends Component {
         let {sub, error, saving, saved, teacherComment} = this.state;
 
         if (error) return <Message negative className='margin'>{error}</Message>;
-        if (!sub) return <Loader active inline='centered' className='margin'/>;
+        if (!sub) return <Loading/>;
 
         let grading = this.canGrade();
 

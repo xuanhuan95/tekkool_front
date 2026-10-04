@@ -1,7 +1,8 @@
 import withRouter from '../../withRouter';
 import React, {Component} from 'react';
+import Loading from '../../components/Loading';
 import {Link} from 'react-router-dom';
-import {Button, Card, Header, Icon, Input, Loader, Segment} from 'semantic-ui-react';
+import {Button, Card, Header, Icon, Input, Segment} from 'semantic-ui-react';
 import {connectGlobalState} from "../../stateUtils";
 import Api from '../../services/api';
 import ExamFile from './ExamFile';
@@ -89,7 +90,7 @@ class Dashboard extends Component {
         let {exams} = this.globalState;
         if (!exams) exams = [];
 
-        if (!folders) return <Loader active inline='centered' className='margin'/>;
+        if (!folders) return <Loading/>;
 
         let folderOptions = folders.map(f => ({text: f.name, value: f.id}));
         folderOptions.unshift({text: '(ngoài thư mục)', value: null});
@@ -115,7 +116,7 @@ class Dashboard extends Component {
             </Segment>
         </div>;
 
-        return <div className='tk-dash margin'>
+        return <div className='tk-dash'>
             <div className='tk-dash-bar'>
                 <Header as='h2' className='tk-dash-title'>
                     Kho đề của tôi
@@ -181,24 +182,27 @@ class Dashboard extends Component {
                 )}
             </Card.Group>
 
-            {activeFolder && <Segment className='tk-exams'>
+            {activeFolder && <Segment className='tk-exams tk-load-host'>
                 <Header as='h4'>
                     <Icon name='folder open outline'/>
                     <Header.Content>
                         {(folders.find(f => f.id === activeFolder) || {}).name}
                     </Header.Content>
                 </Header>
-                {loadingExams ? <Loader active inline='centered'/>
-                    : !hienTrong.length
-                        ? <p className='text-muted'>
-                            {q ? 'Không có đề nào khớp trong thư mục này.'
-                               : 'Thư mục trống — dùng “Tự soạn” hoặc “Nhập Word” ở thẻ trên.'}
-                        </p>
-                        : hienTrong.map(exam =>
-                            <div className='tk-exam-row' key={exam.id}>
-                                <ExamFile exam={exam} folderOptions={folderOptions}
-                                          moveToFolder={this.moveToFolder}/>
-                            </div>)}
+                {/* Overlay chứ không thay chỗ: tên thư mục và khung Segment đứng
+                    yên trong lúc tải, bấm sang thư mục khác không thấy trang
+                    nhảy. `tk-load-host` cho overlay chỗ bám. */}
+                {loadingExams && <Loading overlay/>}
+                {!hienTrong.length
+                    ? !loadingExams && <p className='text-muted'>
+                        {q ? 'Không có đề nào khớp trong thư mục này.'
+                           : 'Thư mục trống — dùng “Tự soạn” hoặc “Nhập Word” ở thẻ trên.'}
+                    </p>
+                    : hienTrong.map(exam =>
+                        <div className='tk-exam-row' key={exam.id}>
+                            <ExamFile exam={exam} folderOptions={folderOptions}
+                                      moveToFolder={this.moveToFolder}/>
+                        </div>)}
             </Segment>}
 
             {!!hienNgoai.length && <Segment className='tk-exams'>

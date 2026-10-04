@@ -7,17 +7,21 @@
 /* Font khai trong fonts.css — dùng chung cả app. */
 
 :root {
-    /* Giữ CAM làm màu chính — logo và toàn bộ app đang là cam,
-       đổi sang xanh là phải sửa cả màn giáo viên. */
-    --tk-primary: #e8590c;
-    --tk-primary-soft: #fff4ed;
-    --tk-primary-dark: #c2410c;
-    --tk-ink: #1f2933;
-    --tk-muted: #667085;
-    --tk-line: #e7e3df;
-    --tk-bg: #faf7f4;
+    /* XANH, lấy đúng của trang đăng nhập (auth.css): đăng nhập xong mà
+       màu đổi hẳn từ xanh sang cam thì như lạc sang app khác.
+       --tk-primary = .tka-btn, --tk-primary-dark = trạng thái hover. */
+    --tk-primary: #2f6fe4;
+    --tk-primary-soft: #eef3fc;
+    --tk-primary-dark: #1b4fb5;
+    --tk-ink: #16203a;
+    /* #7b869e của auth.css chỉ đạt 3.65:1 trên nền trắng — dưới chuẩn
+       WCAG AA 4.5:1 cho chữ thường. Tối thêm một bậc, giữ nguyên sắc. */
+    --tk-muted: #636e8a;
+    --tk-line: #e1e7f2;
+    --tk-bg: #f4f6fb;
     --tk-card: #ffffff;
-    --tk-green: #16a34a;
+    /* #16a34a chỉ đạt 3.30:1 trên nền trắng. */
+    --tk-green: #15803d;
     --tk-green-soft: #ecfdf3;
 
 
@@ -348,7 +352,7 @@
     transition: background .18s, color .18s;
 }
 
-.tk-back:hover { background: var(--tk-primary-soft); color: var(--tk-primary); }
+.tk-back:hover { background: var(--tk-primary-soft); color: var(--tk-primary-dark); }
 .tk-back:focus-visible { outline: 2px solid var(--tk-primary); outline-offset: 2px; }
 
 .tk-folder-row {
@@ -518,7 +522,7 @@
 
 .tk-field input:focus {
     border-color: var(--tk-primary);
-    box-shadow: 0 0 0 3px rgba(232, 89, 12, .12);
+    box-shadow: 0 0 0 3px rgba(47, 111, 228, .18);  /* xanh cua --tk-primary; viet rgba nen sed doi hex khong bat duoc */
     outline: none;
 }
 

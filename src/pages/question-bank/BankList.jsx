@@ -1,8 +1,8 @@
 import React, {Component} from 'react';
+import Loading from '../../components/Loading';
 import {Link} from 'react-router-dom';
 import withRouter from '../../withRouter';
-import {Button, Card, Form, Header, Icon, Label, Loader, Message,
-        Modal, Segment} from 'semantic-ui-react';
+import {Button, Card, Form, Header, Icon, Label, Message, Modal, Segment} from 'semantic-ui-react';
 import Api from '../../services/api';
 import {TEN_LOAI} from '../exam-creation/blockTypes';
 
@@ -142,11 +142,11 @@ class BankList extends Component {
 
     render() {
         let {banks, subjects, open, saving, name, subject, error} = this.state;
-        if (!banks) return <Loader active inline='centered' className='margin'/>;
+        if (!banks) return <Loading/>;
 
         let subjectOptions = subjects.map(s => ({key: s, text: s, value: s}));
 
-        return <div className='tk-dash margin'>
+        return <div className='tk-dash'>
             <div className='tk-dash-bar'>
                 <Header as='h2' className='tk-dash-title'>
                     Ngân hàng câu hỏi

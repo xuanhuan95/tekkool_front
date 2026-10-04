@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
+import Loading from '../../components/Loading';
 import withRouter from '../../withRouter';
-import {Button, Card, Form, Header, Icon, Label, Loader, Message,
-        Modal, Segment, Statistic, Table} from 'semantic-ui-react';
+import {Button, Form, Header, Icon, Label, Message, Modal, Segment, Table} from 'semantic-ui-react';
 import {connectGlobalState} from '../../stateUtils';
 import Api from '../../services/api';
 
@@ -68,11 +68,11 @@ class PackageList extends Component {
 
     render() {
         let {goi, form, saving, error, msg} = this.state;
-        if (!goi) return <Loader active inline='centered' className='margin'/>;
+        if (!goi) return <Loading/>;
 
         if (!this.laGiaoVien()) return this.renderMua(goi);
 
-        return <div className='tk-dash margin'>
+        return <div className='tk-dash'>
             <div className='tk-dash-bar'>
                 <Header as='h2' className='tk-dash-title'>
                     Gói thi thử
@@ -106,7 +106,6 @@ class PackageList extends Component {
                             <Table.HeaderCell>Gói</Table.HeaderCell>
                             <Table.HeaderCell textAlign='center'>Số lượt</Table.HeaderCell>
                             <Table.HeaderCell textAlign='right'>Giá</Table.HeaderCell>
-                            <Table.HeaderCell textAlign='right'>Mỗi lượt</Table.HeaderCell>
                             <Table.HeaderCell textAlign='center'>Trạng thái</Table.HeaderCell>
                             <Table.HeaderCell/>
                         </Table.Row>
@@ -125,11 +124,6 @@ class PackageList extends Component {
                                     <Label circular color='blue'>{p.turns}</Label>
                                 </Table.Cell>
                                 <Table.Cell textAlign='right'>{tien(p.price)}</Table.Cell>
-                                {/* Đơn giá mỗi lượt: cho giáo viên thấy gói to có
-                                    thật sự rẻ hơn không, khỏi tự bấm máy tính. */}
-                                <Table.Cell textAlign='right' style={{color: '#888'}}>
-                                    {tien(Math.round(p.price / p.turns))}
-                                </Table.Cell>
                                 <Table.Cell textAlign='center'>
                                     {p.active
                                         ? <Label basic color='green' size='small'>Đang bán</Label>
@@ -159,18 +153,16 @@ class PackageList extends Component {
         // lý do, không để học sinh tự đoán vì sao bị đá ra khỏi đề.
         let hetLuot = (this.props.location.search || '').indexOf('het-luot=1') >= 0;
 
-        return <div className='tk-dash margin'>
+        return <div className='tk-dash'>
             <div className='tk-dash-bar'>
-                <Header as='h2' className='tk-dash-title'>
-                    Gói thi thử
-                    <Header.Subheader>
-                        Mua gói để lấy lượt thi. Mỗi lần bắt đầu vào thi trừ 1 lượt.
-                    </Header.Subheader>
-                </Header>
-                {vi && <Statistic size='small' color={vi.remaining > 0 ? 'green' : 'red'}>
-                    <Statistic.Value>{vi.remaining}</Statistic.Value>
-                    <Statistic.Label>lượt còn lại</Statistic.Label>
-                </Statistic>}
+                <Header as='h2' className='tk-dash-title'>Gói thi thử</Header>
+                {/* Không dùng <Statistic> của Semantic: component đó ép font
+                    serif cho số và in hoa cho nhãn, lạc hẳn khỏi phần còn lại
+                    của trang. Một thẻ nhỏ cùng hệ chữ là đủ. */}
+                {vi && <div className={'tk-vi' + (vi.remaining > 0 ? '' : ' het')}>
+                    <span className='tk-vi-so'>{vi.remaining}</span>
+                    <span className='tk-vi-nhan'>lượt còn lại</span>
+                </div>}
             </div>
 
             {hetLuot && <Message warning icon>
@@ -191,28 +183,17 @@ class PackageList extends Component {
                         </Header.Subheader>
                     </Header>
                 </Segment>
-                : <Card.Group itemsPerRow={3} stackable>
+                : <div className='tk-goi-list'>
                     {goi.map(p =>
-                        <Card key={p.id}>
-                            <Card.Content>
-                                <Card.Header>{p.name}</Card.Header>
-                                <Card.Meta>{p.turns} lượt thi thử</Card.Meta>
-                                {p.description && <Card.Description>{p.description}</Card.Description>}
-                            </Card.Content>
-                            <Card.Content>
-                                <div style={{fontSize: '1.6em'}}><b>{tien(p.price)}</b></div>
-                                <div style={{color: '#888', fontSize: '.9em'}}>
-                                    {tien(Math.round(p.price / p.turns))} mỗi lượt
-                                </div>
-                            </Card.Content>
-                            <Card.Content extra>
-                                <Button primary fluid
-                                        onClick={() => this.props.history.push('/payment/' + p.id)}>
-                                    <Icon name='credit card'/> Mua gói này
-                                </Button>
-                            </Card.Content>
-                        </Card>)}
-                </Card.Group>}
+                        <button key={p.id} type='button' className='tk-goi'
+                                onClick={() => this.props.history.push('/payment/' + p.id)}>
+                            <div className='tk-goi-ten'>{p.name}</div>
+                            <div className='tk-goi-luot'>{p.turns} lượt thi thử</div>
+                            <div className='tk-goi-gia'>{tien(p.price)}</div>
+                            {p.description &&
+                                <div className='tk-goi-mota'>{p.description}</div>}
+                        </button>)}
+                </div>}
         </div>;
     }
 
@@ -237,9 +218,6 @@ class PackageList extends Component {
                                     value={f.order}
                                     onChange={(e, {value}) => dat('order', parseInt(value) || 0)}/>
                     </Form.Group>
-                    {f.turns > 0 && f.price > 0 &&
-                        <Message size='mini' info
-                                 content={'Mỗi lượt ' + tien(Math.round(f.price / f.turns))}/>}
                     <Form.TextArea label='Mô tả' rows={2} value={f.description || ''}
                                    placeholder='Hiện trên trang bán gói cho học sinh'
                                    onChange={(e, {value}) => dat('description', value)}/>

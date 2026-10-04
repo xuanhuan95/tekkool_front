@@ -1,5 +1,5 @@
 import React, {Component, Fragment} from 'react';
-import {Loader} from 'semantic-ui-react';
+import Loading from '../components/Loading';
 
 import {connectGlobalState} from "../stateUtils";
 
@@ -31,7 +31,7 @@ class Home extends Component {
     render() {
         let {isReady} = this.state;
         if (!isReady) {
-            return <Loader active/>
+            return <Loading/>
         }
 
         let {auth} = this.globalState;

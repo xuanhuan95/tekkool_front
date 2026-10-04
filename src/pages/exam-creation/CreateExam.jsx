@@ -1,6 +1,7 @@
 import withRouter from '../../withRouter';
 import React from 'react';
-import {Segment, Icon, Menu, Loader, Divider, Modal, Grid, Sticky, Input} from 'semantic-ui-react';
+import Loading from '../../components/Loading';
+import {Segment, Icon, Menu, Divider, Modal, Grid, Sticky, Input} from 'semantic-ui-react';
 import toast from 'react-hot-toast';
 
 import Api from "../../services/api";
@@ -125,7 +126,7 @@ class CreateExam extends React.Component {
     render() {
         let {isReady, modalPrint} = this.state;
         if (!isReady) {
-            return <Loader active/>
+            return <Loading/>
         }
 
         let {exam} = this.globalState;

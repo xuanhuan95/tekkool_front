@@ -1,15 +1,48 @@
 import withRouter from '../../withRouter';
 import React, {Fragment} from 'react';
+import Loading from '../../components/Loading';
 import renderHTML from '../../components/SafeHtml';
 import Passage from '../../components/Passage';
 import striptags from 'striptags';
 
 import {connectGlobalState} from "../../stateUtils";
-import {Dimmer, Loader, Segment, Radio, Grid, Button, Icon, Rail, Sticky, Message} from 'semantic-ui-react';
+import {Segment, Radio, Grid, Button, Icon, Rail, Sticky, Message} from 'semantic-ui-react';
 import {numToChar} from "../../services/tools";
 import {Editor} from "../../components/Editor";
 import Api from "../../services/api";
 import HetLuotModal from "../../components/HetLuotModal";
+import {round} from "../my/fmt";
+
+
+// Bang diem tung phan tren man "Da nop bai".
+// Chia 2 nhom theo pending chu khong theo block_type: hoc sinh quan tam
+// "cho ai cham", khong quan tam loai cau. Phan nao con cau chua cham thi ca
+// phan do la "cho giao vien" — cham nua voi mot phan con te hon khong cham.
+function BangDiem({phan}) {
+    const may = phan.filter(p => !p.pending);
+    const nguoi = phan.filter(p => p.pending);
+    const tong = may.reduce((t, p) => t + p.score, 0);
+    const tongMax = may.reduce((t, p) => t + p.max_score, 0);
+    return <div className='tk-ketqua'>
+        {may.length > 0 && <Fragment>
+            <div className='tk-ketqua-nhom'>Phần trắc nghiệm:</div>
+            {may.map(p => <div className='tk-ketqua-dong' key={p.ten}>
+                <span>{p.ten}</span>
+                <b>{round(p.score)}/{round(p.max_score)} điểm</b>
+            </div>)}
+            {may.length > 1 && <div className='tk-ketqua-dong tk-ketqua-tong'>
+                <span>Tổng</span><b>{round(tong)}/{round(tongMax)} điểm</b>
+            </div>}
+        </Fragment>}
+        {nguoi.length > 0 && <Fragment>
+            <div className='tk-ketqua-nhom'>Phần tự luận:</div>
+            {nguoi.map(p => <div className='tk-ketqua-dong' key={p.ten}>
+                <span>{p.ten}</span>
+                <i>chờ giáo viên chấm</i>
+            </div>)}
+        </Fragment>}
+    </div>;
+}
 
 
 class DoExam extends React.Component {
@@ -41,6 +74,11 @@ class DoExam extends React.Component {
         // nuốt im lặng thành loader quay mãi.
         try {
             let exam = await Api.get('exam/during_test/' + examId);
+            // Vua nop xong roi F5: BE tra ve bai da nop (da_nop) thay vi de,
+            // khong tru them luot. Hien thang man ket qua.
+            if (exam && exam.da_nop) {
+                return this.setState({submitted: true, result: exam});
+            }
             // ponytail: de da hien ra man hinh la da doc duoc -> tinh gio NGAY.
             // Nut Start cu cho thi sinh doc het de roi moi bam, tinh gio bang 0.
             this.setState({exam}, this.startExam);
@@ -75,6 +113,30 @@ class DoExam extends React.Component {
         this.setState({exam});
     };
 
+    // Danh sach cau theo DUNG thu tu hien tren man, kem so thu tu. Dung cho
+    // ca bang dieu huong lan canh bao truoc khi nop — mot nguon su that, khong
+    // dem hai noi roi lech nhau.
+    //
+    // Bo qua cau `data` rong y het luc render, neu khong bang se danh so lech
+    // so voi "Question N" trong bai.
+    dsCau = () => {
+        let {exam} = this.state;
+        let ds = [];
+        (exam ? exam.sections : []).forEach(s => (s.questions || []).forEach(q => {
+            if (!q.data || !Object.keys(q.data).length) return;
+            ds.push({q, so: ds.length + 1});
+        }));
+        return ds;
+    };
+
+    // Chua lam = chua co markedAnswer. Editor tra ve HTML nen chuoi rong that
+    // su co the la '<p></p>' hoac '<br>' — striptags roi trim moi biet.
+    chuaLam = () => this.dsCau().filter(({q}) => {
+        let a = q.markedAnswer;
+        if (a === null || a === undefined) return true;
+        return !striptags(String(a)).replace(/&nbsp;/g, ' ').trim();
+    });
+
     // ponytail: bug gốc 2018 — rời trang giữa chừng thì setInterval đếm giờ vẫn
     // chạy và setState trên component đã unmount (React 18 cảnh báo memory leak).
     componentWillUnmount = () => {
@@ -86,6 +148,17 @@ class DoExam extends React.Component {
     finish = async () => {
         let {passedTime, submitting, submitted} = this.state;
         if (submitting || submitted) return;
+
+        // Canh bao cau chua lam TRUOC khi hoi nop. Khong chan cung: hoc sinh
+        // co quyen bo cau kho, va het gio thi autoSubmit van phai nop duoc.
+        // Chi bao ro dang bo bao nhieu cau va la nhung cau nao.
+        let thieu = this.chuaLam();
+        if (thieu.length) {
+            let ten = thieu.map(c => c.so).join(', ');
+            if (!window.confirm(
+                'Còn ' + thieu.length + ' câu chưa làm: câu ' + ten + '.\n\n' +
+                'Nộp bài bây giờ thì những câu này tính 0 điểm. Vẫn nộp?')) return;
+        }
 
         if (!window.confirm('Nộp bài? Sau khi nộp, muốn làm lại đề này sẽ tính thêm một lượt.')) return;
 
@@ -164,7 +237,7 @@ class DoExam extends React.Component {
         if (this.state.hetLuot) return <HetLuotModal open/>;
 
         if (!exam) {
-            return <Dimmer active={true}><Loader/></Dimmer>;
+            return <Loading/>;
         }
 
         if (this.state.submitted) {
@@ -172,14 +245,27 @@ class DoExam extends React.Component {
             return <Segment className='margin text-center' padded='very'>
                 <Icon name='check circle' color='green' size='huge'/>
                 <h2>Đã nộp bài</h2>
-                <p>Thời gian làm bài: {Math.floor(this.state.passedTime / 60)} phút</p>
+                {/* Uu tien duration_sec tu bai da nop: sau F5 thi passedTime
+                    trong state ve 0, hien "0 phut" la sai. */}
+                <p>Thời gian làm bài: {Math.floor(
+                    ((r && r.duration_sec) || this.state.passedTime) / 60)} phút</p>
 
-                {/* Trac nghiem may cham xong ngay; tu luan cho giao vien. */}
-                {r && r.pending_count > 0 &&
-                <p>Phần trắc nghiệm: <b>{r.score}/{r.max_score}</b> điểm.
-                    Còn {r.pending_count} câu tự luận chờ giáo viên chấm.</p>}
-                {r && r.pending_count === 0 && r.max_score > 0 &&
-                <p>Điểm của bạn: <b>{r.score}/{r.max_score}</b></p>}
+                {/* Tach tung phan thay vi mot con so gop: hoc sinh can biet
+                    phan nao may da cham, phan nao con cho giao vien. Bai cu
+                    (nop truoc khi co section_name) khong co r.phan -> roi ve
+                    dong tong nhu truoc, khong hien bang rong. */}
+                {r && r.phan && r.phan.length > 0 ? <BangDiem phan={r.phan}/> : <Fragment>
+                    {/* Mau so phai la graded_max_score (diem toi da cua rieng
+                        phan DA cham), khong phai max_score ca bai: bai 10 trac
+                        nghiem + 2 tu luan hien '0/12' lam hoc sinh tuong sai
+                        het 12 cau. */}
+                    {r && r.pending_count > 0 &&
+                    <p>Phần trắc nghiệm: <b>{round(r.score)}/{round(r.graded_max_score)}</b> điểm.
+                        Còn {r.pending_count} câu tự luận chờ giáo viên chấm
+                        (tổng cả bài {round(r.max_score)} điểm).</p>}
+                    {r && r.pending_count === 0 && r.max_score > 0 &&
+                    <p>Điểm của bạn: <b>{round(r.score)}/{round(r.max_score)}</b></p>}
+                </Fragment>}
 
                 {r && r.id &&
                 <Button primary onClick={() => this.props.history.push('/my-exams/' + r.id)}>
@@ -207,7 +293,8 @@ class DoExam extends React.Component {
                                     return <Fragment key={q.id}>
                                         <Passage question={q} prev={s.questions[idx - 1]}/>
 
-                                        <i><b>Question {qIdx}:</b></i>
+                                        {/* id de bang dieu huong ben phai cuon toi dung cau. */}
+                                        <i id={'cau-' + q.id}><b>Question {qIdx}:</b></i>
 
                                         {q.type === 'FillBlank' &&
                                         <div className='question FillBlank'>
@@ -293,6 +380,37 @@ class DoExam extends React.Component {
                             {startAt && !exam.duration &&
                             <div className='text-center'>Không giới hạn thời gian</div>
                             }
+
+                            {/* Bang cau hoi: o to = da lam, o trang = chua.
+                                Khong co no thi hoc sinh chi biet minh bo sot
+                                dung luc bam Nop — qua muon de tim lai cau nao. */}
+                            {startAt && (() => {
+                                let ds = this.dsCau();
+                                // Tinh MOT lan thanh Set, khong goi chuaLam()
+                                // lai trong vong lap (O(n^2) khong vi co).
+                                let trong = new Set(this.chuaLam().map(c => c.q.id));
+                                return <div className='tk-cau-nav'>
+                                    <div className='tk-cau-grid'>
+                                        {ds.map(({q, so}) => {
+                                            let xong = !trong.has(q.id);
+                                            return <button key={q.id} type='button'
+                                                    className={'tk-cau' + (xong ? ' xong' : '')}
+                                                    title={xong ? 'Đã làm' : 'Chưa làm'}
+                                                    onClick={() => {
+                                                        let el = document.getElementById('cau-' + q.id);
+                                                        if (el) el.scrollIntoView({behavior: 'smooth', block: 'center'});
+                                                    }}>
+                                                {so}
+                                            </button>;
+                                        })}
+                                    </div>
+                                    <div className='tk-cau-dem'>
+                                        {trong.size === 0
+                                            ? <span className='du'><Icon name='check circle'/> Đã làm hết</span>
+                                            : <span>Còn <b>{trong.size}</b>/{ds.length} câu chưa làm</span>}
+                                    </div>
+                                </div>;
+                            })()}
 
                             {startAt &&
                             <Button onClick={this.finish} color='blue' fluid className='margin-top'

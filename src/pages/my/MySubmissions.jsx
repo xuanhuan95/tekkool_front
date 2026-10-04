@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
+import Loading from '../../components/Loading';
 import {Link} from 'react-router-dom';
-import {Icon, Loader} from 'semantic-ui-react';
+import {Icon} from 'semantic-ui-react';
 import Api from '../../services/api';
 import {fmtDate, fmtDuration, ScoreLabel} from './fmt';
 
@@ -28,7 +29,7 @@ export default class MySubmissions extends Component {
         </div></div>;
 
         if (!subs) return <div className='tk'><div className='tk-wrap'>
-            <Loader active inline='centered'/>
+            <Loading/>
         </div></div>;
 
         return <div className='tk'><div className='tk-wrap'>

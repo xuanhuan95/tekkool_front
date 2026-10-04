@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
+import Loading from './Loading';
 import {useNavigate} from 'react-router-dom';
-import {Button, Card, Header, Icon, Modal} from 'semantic-ui-react';
+import {Button, Icon, Modal} from 'semantic-ui-react';
 
 import Api from '../services/api';
 
@@ -27,37 +28,30 @@ export default function HetLuotModal({open, onClose}) {
 
     return <Modal open={!!open} size='tiny' onClose={onClose} closeIcon={!!onClose}>
         <Modal.Content>
-            <Header icon textAlign='center'>
-                <Icon name='hourglass end' color='orange'/>
-                Bạn đã hết lượt thi
-                <Header.Subheader>
-                    Mỗi lần bắt đầu vào thi trừ 1 lượt. Mua thêm gói để làm tiếp đề này.
-                </Header.Subheader>
-            </Header>
+            <div className='text-center'>
+                <div className='tk-het-icon'>
+                    <Icon name='ticket' size='big'/>
+                </div>
+                <h2 className='tk-het-title'>Bạn đã hết lượt thi</h2>
+            </div>
 
             {/* Gói hiện ngay trong popup: thấy giá rồi mới quyết, không phải
                 bấm sang trang khác mới biết mua bao nhiêu tiền. */}
             {goi === null
-                ? null
+                ? <Loading/>
                 : !goi.length
-                    ? <p className='text-center' style={{color: '#888'}}>
+                    ? <p className='text-center text-muted'>
                         Chưa có gói nào đang bán — liên hệ giáo viên của bạn.
                     </p>
-                    : <Card.Group itemsPerRow={goi.length >= 3 ? 3 : goi.length} stackable>
+                    : <div className='tk-goi-list'>
                         {goi.map(p =>
-                            <Card key={p.id} link onClick={() => navigate('/payment/' + p.id)}>
-                                <Card.Content textAlign='center'>
-                                    <Card.Header>{p.name}</Card.Header>
-                                    <Card.Meta>{p.turns} lượt</Card.Meta>
-                                    <div style={{fontSize: '1.3em', marginTop: '.4em'}}>
-                                        <b>{tien(p.price)}</b>
-                                    </div>
-                                    <div style={{color: '#888', fontSize: '.85em'}}>
-                                        {tien(Math.round(p.price / p.turns))} mỗi lượt
-                                    </div>
-                                </Card.Content>
-                            </Card>)}
-                    </Card.Group>}
+                            <button key={p.id} type='button' className='tk-goi'
+                                    onClick={() => navigate('/payment/' + p.id)}>
+                                <div className='tk-goi-ten'>{p.name}</div>
+                                <div className='tk-goi-luot'>{p.turns} lượt</div>
+                                <div className='tk-goi-gia'>{tien(p.price)}</div>
+                            </button>)}
+                    </div>}
         </Modal.Content>
         <Modal.Actions>
             <Button basic onClick={() => navigate('/')}>

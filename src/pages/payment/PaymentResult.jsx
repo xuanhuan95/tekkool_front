@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
+import Loading from '../../components/Loading';
 import {useNavigate, useSearchParams} from 'react-router-dom';
-import {Button, Header, Icon, Loader, Message, Progress, Segment} from 'semantic-ui-react';
+import {Button, Header, Icon, Message, Progress, Segment} from 'semantic-ui-react';
 
 import Api from "../../services/api";
 
@@ -62,16 +63,33 @@ export default function PaymentResult() {
 
     return <div className='tk-pay-result'>
         <Segment padded='very' textAlign='center'>
-            {error && <Message negative>{error}</Message>}
+            {/* Loi tra cuu khong co loi ra thi khach ket o day — tien da
+                chuyen roi ma khong biet di dau. Luon kem ma don + duong
+                sang lich su thanh toan. */}
+            {error && <div>
+                <Icon name='exclamation triangle' color='red' size='huge'/>
+                <Header as='h2'>
+                    Không tra cứu được đơn
+                    <Header.Subheader>
+                        Đơn vẫn được ghi nhận. Nếu đã trừ tiền thì lượt sẽ về,
+                        xem lại ở Thanh toán của tôi.
+                    </Header.Subheader>
+                </Header>
+                <Message negative className='tk-pay-warn'>{error}</Message>
+                <Button primary onClick={() => window.location.reload()}>
+                    <Icon name='refresh'/> Thử lại
+                </Button>
+                <Button basic onClick={() => navigate('/billing')}>
+                    Thanh toán của tôi
+                </Button>
+                <div className='text-muted tk-pay-inv'>Mã đơn: {inv}</div>
+            </div>}
 
             {dangCho && !hetGio && <div>
-                {/* Loader phải nằm TRONG một khối có kích thước. Bản cũ trả
-                    <Loader active> trần giữa trang rỗng: Semantic đặt nó
-                    position:absolute, không có gì neo -> màn hình trắng trơn,
-                    đúng cái khách thấy sau khi quét QR xong. */}
-                <div className='tk-pay-spin'>
-                    <Loader active inline='centered' size='large'/>
-                </div>
+                {/* <Loading/> tự có kích thước. Khối neo `.tk-pay-spin` cũ
+                    (height:60px) là của Loader Semantic position:absolute —
+                    giữ lại thì nó CẮT mất phần dưới của hình 72px + dòng chữ. */}
+                <Loading size={72}/>
 
                 <Header as='h2'>
                     Đang chờ ngân hàng xác nhận

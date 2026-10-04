@@ -50,14 +50,14 @@ class TopToolbar extends React.Component {
         // nguyen menu cu — doi ca hai mot luc la hai thu phai kiem tra.
         if (!user || user.group !== 'teacher') return <StudentNav user={user}/>;
 
-        return <Menu id='topMenu' color='orange' inverted>
+        return <Menu id='topMenu' color='blue' inverted>
             <Menu.Item>
                 <Link to='/'>
                     <Icon name='home'/> Thi thử SPT
                 </Link>
             </Menu.Item>
 
-            <Menu color='orange' inverted floated='right'>
+            <Menu color='blue' inverted floated='right'>
                 {/* Chuong = loi vao man cham bai, kiem bao "co bai moi". Truoc
                     day la muc chu "Can cham" — chu thi khong noi duoc CO MAY
                     BAI, giao vien van phai bam vao moi biet co viec hay khong. */}

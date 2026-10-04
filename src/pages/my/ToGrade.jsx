@@ -1,7 +1,8 @@
 import React, {Component} from 'react';
+import Loading from '../../components/Loading';
 import {Link} from 'react-router-dom';
 import withRouter from '../../withRouter';
-import {Header, Icon, Label, Loader, Message, Segment, Table} from 'semantic-ui-react';
+import {Header, Icon, Label, Message, Segment, Table} from 'semantic-ui-react';
 import Api from '../../services/api';
 import {fmtDate, fmtDuration, ScoreLabel} from './fmt';
 
@@ -33,7 +34,7 @@ class ToGrade extends Component {
         let {subs, error} = this.state;
 
         if (error) return <Message negative className='margin'>{error}</Message>;
-        if (!subs) return <Loader active inline='centered' className='margin'/>;
+        if (!subs) return <Loading/>;
 
         if (!subs.length) return <Segment placeholder className='margin'>
             <Header icon>

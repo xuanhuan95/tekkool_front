@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
+import Loading from '../../components/Loading';
 import {useNavigate, useParams} from 'react-router-dom';
-import {Icon, Loader} from 'semantic-ui-react';
+import {Icon} from 'semantic-ui-react';
 import striptags from 'striptags';
 
 import Api from '../../services/api';
@@ -109,9 +110,9 @@ export default function SubjectBrowser() {
             .catch(e => setError(e.error || e.message || 'Không tải được danh sách đề'));
     };
 
-    // Vào thẳng đề. Hết lượt thì BE trả 402 và DoExam tự đẩy sang trang mua
-    // gói — KHÔNG chặn ở đây, vì số lượt còn lại là chuyện của ví chứ không
-    // phải của từng đề, hỏi trước mỗi lần bấm là thừa một vòng mạng.
+    // Vào thẳng đề. Hết lượt thì BE trả 402 và DoExam bật HetLuotModal chặn
+    // tại chỗ — KHÔNG hỏi trước ở đây, vì số lượt còn lại là chuyện của ví
+    // chứ không phải của từng đề, hỏi mỗi lần bấm là thừa một vòng mạng.
     const openExam = (exam) => navigate('/do-exam/' + exam.id);
 
     if (error) return <div className='tk'><div className='tk-wrap'>
@@ -123,11 +124,11 @@ export default function SubjectBrowser() {
     </div></div>;
 
     if (!subjects) return <div className='tk'><div className='tk-wrap'>
-        <Loader active inline='centered'/>
+        <Loading/>
     </div></div>;
 
     // Link hỏng hoặc môn đã bị xoá: subjects tải xong rồi mà không khớp id nào.
-    // Không bắt được ca này thì trang treo Loader vĩnh viễn.
+    // Không bắt được ca này thì trang treo màn đang tải vĩnh viễn.
     if (subjectId && !subject) return <div className='tk'><div className='tk-wrap'>
         <div className='tk-empty'>
             <Icon name='question circle outline'/>
@@ -198,7 +199,11 @@ export default function SubjectBrowser() {
             )}
         </div>}
 
-        {!exams ? <Loader active inline='centered'/>
+        {/* Overlay chứ không thay chỗ: đổi bộ đề thì tên môn và hàng chip đứng
+            yên, chỉ vùng danh sách mờ đi. Trước đây `!exams` trả Loading THAY
+            cho cả khối, khối co lại rồi bung ra -> trang giật mỗi lần bấm. */}
+        <div className='tk-load-host'>
+        {!exams ? <Loading overlay/>
             : !exams.length
                 ? <div className='tk-empty'>
                     <Icon name='file outline'/>
@@ -228,5 +233,6 @@ export default function SubjectBrowser() {
                         </button>
                     )}
                 </div>}
+        </div>
     </div></div>;
 }

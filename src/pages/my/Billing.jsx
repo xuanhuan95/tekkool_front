@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
+import Loading from '../../components/Loading';
 import {Link} from 'react-router-dom';
-import {Icon, Loader} from 'semantic-ui-react';
+import {Icon} from 'semantic-ui-react';
 import Api from '../../services/api';
 import {fmtDate, fmtMoney} from './fmt';
 
@@ -34,7 +35,7 @@ export default class Billing extends Component {
         </div></div>;
 
         if (!orders) return <div className='tk'><div className='tk-wrap'>
-            <Loader active inline='centered'/>
+            <Loading/>
         </div></div>;
 
         // Chỉ cộng đơn ĐÃ trả — đơn treo chưa mất tiền, cộng vào là báo sai.
