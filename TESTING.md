@@ -7,7 +7,7 @@ xem điểm.
 Nguyên tắc chọn test: **ưu tiên chỗ hỏng thì mất tiền hoặc mất điểm của học
 sinh.** Không test getter/setter, không test "component render không lỗi".
 
-Chạy: `npm test` (FE) · `python3 test_submission.py test_attempt.py test_payment.py` (BE)
+Chạy: `npm test` (FE) · `python3 test_submission.py test_attempt.py test_payment.py test_docx.py` (BE)
 
 **Test chỉ có giá trị nếu nó đỏ khi bug quay lại.** Mỗi ca thêm vào đây đều
 đã được kiểm chứng bằng cách đặt lại bug cũ rồi xem test đỏ. Cách này đã bắt
@@ -41,10 +41,10 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 ### T1. Soạn đề, nhập từ .docx
 | # | Ca | Phải đúng |
 |---|---|---|
-| T1.1 | Nhập .docx có 5 loại câu | Nhận đủ 5, không nuốt loại nào |
-| T1.2 | Câu trắc nghiệm nhiều phương án | Giữ đúng `correctAnswerId` |
+| T1.1 | Nhập .docx có 5 loại câu | Nhận đủ 5, không nuốt loại nào ✅ *(đã có)* |
+| T1.2 | Câu trắc nghiệm nhiều phương án | Giữ đúng `correctAnswerId` ✅ *(đã có)* |
 | T1.3 | Ngữ liệu dùng chung cho 3 câu | In **một lần** ở câu đầu nhóm (đã có `Passage.test.js`) |
-| T1.4 | Đề rỗng | Không cho lưu, báo rõ |
+| T1.4 | Đề rỗng, **phần không đọc được câu nào** | Báo rõ, không đi qua im lặng ✅ *(đã có)* |
 
 ### T2. Trọng số điểm — **điểm chết**
 | # | Ca | Phải đúng |
@@ -144,6 +144,7 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 | BE `test_attempt.py` | 40 | S2 trừ lượt, S4.7/4.8 nộp hai lần |
 | BE `test_submission.py` | 32 | S4 chấm máy, T5 vào điểm tay, S5 bảng điểm |
 | BE `test_payment.py` | 51 | S1 toàn bộ: sai khoá, replay, lệch tiền, cộng lượt |
+| BE `test_docx.py` | 22 | T1 nhập .docx: loại câu, đáp án, đề/phần rỗng |
 | BE `core_question_bank.py` (self-check) | — | T2 trọng số, T3 rút đề |
 | BE `core_grading.py` (self-check) | — | S4.4/4.5 nhiều cách viết, hoa thường, Unicode NFC/NFD |
 | FE `npm test` | 128 | 12 file, gồm DoExam (S2/S3) và DrawExam/ImportExam (T3) |
@@ -156,7 +157,10 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 4. ~~`T2` trọng số~~ ✅ *(self-check sẵn có, đã kiểm chứng bắt được bug)*
 5. ~~`S3.2/3.4` hết giờ và mất mạng~~ ✅
 6. ~~`S4.4/4.5` nhiều cách viết đáp án~~ ✅ *(tìm ra bug Unicode NFC/NFD)*
-7. Còn lại: `T1` nhập .docx
+7. ~~`T1` nhập .docx~~ ✅ *(tìm ra lỗ: phần rỗng đi qua im lặng)*
+
+Hết danh sách. Còn `S5.1/5.2/5.6`, `S2.6/2.7/2.8`, `T3.2` chưa có test riêng —
+mức thiệt hại thấp hơn, bổ sung khi chạm vào các màn đó.
 
 ## Quy ước viết test
 
