@@ -5,9 +5,7 @@ import {Button, Header, Icon, Label, Message, Segment, Table} from 'semantic-ui-
 import Loading from '../../components/Loading';
 import Api from '../../services/api';
 import type {BankCapacity, BankStats} from '../../types/exam';
-import {TEN_LOAI} from './blockTypes';
-
-const ten = (t: string) => (TEN_LOAI as Record<string, string>)[t] || t;
+import {tenLoai} from './blockTypes';
 
 const loi = (e: any, mac_dinh: string) => (e && (e.error || e.message)) || mac_dinh;
 
@@ -109,7 +107,7 @@ export default function DrawExam() {
                 <Message.Content>
                     <Message.Header>Mỗi học sinh làm lại được {lan} lần</Message.Header>
                     Lượt sau không gặp lại khối nào của lượt trước.
-                    {nghen && <span> Nghẽn ở <b>{ten(nghen[0])}</b> — soạn
+                    {nghen && <span> Nghẽn ở <b>{tenLoai(nghen[0])}</b> — soạn
                         thêm loại này thì làm lại được nhiều lần hơn.</span>}
                 </Message.Content>
             </Message>
@@ -135,7 +133,7 @@ export default function DrawExam() {
                     const co = per[t] || 0, can = slots[t];
                     const duoc = Math.floor(co / can);
                     return <Table.Row key={t} negative={duoc < 1}>
-                        <Table.Cell>{ten(t)}</Table.Cell>
+                        <Table.Cell>{tenLoai(t)}</Table.Cell>
                         <Table.Cell textAlign='center'>{can}</Table.Cell>
                         <Table.Cell textAlign='center'>{co}</Table.Cell>
                         <Table.Cell textAlign='center'>
@@ -146,7 +144,7 @@ export default function DrawExam() {
                     </Table.Row>;
                 })}
                 {ngoai.map(t => <Table.Row key={t} warning>
-                    <Table.Cell>{ten(t)}</Table.Cell>
+                    <Table.Cell>{tenLoai(t)}</Table.Cell>
                     <Table.Cell colSpan='3' textAlign='center'>
                         <Icon name='info circle'/>
                         {per[t]} khối, không nằm trong ma trận môn này nên không được rút

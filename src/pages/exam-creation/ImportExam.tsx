@@ -1,18 +1,56 @@
 import React, {Component} from 'react';
 import {Button, Checkbox, Dropdown, Header, Icon, Input, Label, Message, Modal, Radio, Segment, Table} from 'semantic-ui-react';
+import type {SemanticCOLORS} from 'semantic-ui-react';
 import {Link} from 'react-router-dom';
 import withRouter from '../../withRouter';
 import {Editor} from '../../components/Editor';
 import Api from '../../services/api';
-import {TEN_LOAI} from './blockTypes';
-import {convertData} from './convertData';
+import {tenLoai} from './blockTypes';
+import {convertData, type QuestionData} from './convertData';
+import type {RouterProps} from '../../withRouter';
+import type {BankCapacity, Folder, QuestionBank} from '../../types/exam';
+
+
+/**
+ * Đề như `import_docx/preview` trả về — CHƯA lưu, chính là payload sẽ gửi
+ * lên `exam/create`. Khác `Exam` của màn soạn đề: có thêm `source` (văn bản
+ * gốc trong file Word) để dựng cột phải.
+ */
+type ImportQuestion = {id: string; type: string; data: QuestionData};
+
+type ImportSection = {
+    id: string;
+    name: string;
+    question_type?: string;
+    questions: ImportQuestion[];
+};
+
+type ImportedExam = {
+    id: string;
+    name: string;
+    duration?: number;
+    sections: ImportSection[];
+    /** Từng dòng văn bản gốc, backend đã escape sẵn. */
+    source?: string[];
+};
+
+/** Kết quả đo trùng của MỘT câu — `question_bank/check_trung`. */
+type TrungInfo = {
+    score: number;
+    khop: Array<{id?: string; khoi?: string; score: number; trong_file?: boolean}>;
+};
+
+
+/** Lấy câu lỗi từ exception của Api — ba endpoint ở đây trả ba field khác nhau. */
+const loi = (e: any, mac_dinh: string) =>
+    (e && (e.message || e.description || e.error)) || mac_dinh;
 
 
 // Cot phai: van ban goc tu file Word, danh so dong + to mau tu khoa de
 // giao vien soi cho parser doc sai. Chuoi da duoc backend escape san.
 // ponytail: to mau bang regex thuan, khong keo them thu vien highlight —
 // chi co 3 loai token can phan biet.
-function highlight(html) {
+function highlight(html: string) {
     // Moc cau truc chi tinh khi o DAU dong: 'Nhung Cau chuyen nay...' giua
     // dong khong phai moc. To toi het dau cham/hai cham neu co, khong thi het
     // cum 'VAN BAN 2' / 'DE SO 5'. Cho </b> lot vao giua vi marker in dam cua
@@ -24,7 +62,7 @@ function highlight(html) {
     return html.replace(/(^|<br>|\s)([A-D]\s*\.)(\s)/g, '$1<em class="src-a">$2</em>$3');
 }
 
-function SourceView({lines}) {
+function SourceView({lines}: {lines?: string[]}) {
     if (!lines || !lines.length)
         return <div className='src-empty'>Không có văn bản gốc cho đề này.</div>;
 
@@ -41,7 +79,13 @@ function SourceView({lines}) {
 // (MultipleChoiceAnswer.jsx:61), man nay hien 20 de cung luc nen moi radio se
 // chung MOT group: chon dap an cau 2 lam bo chon cau 1. Radio o day lay
 // name theo question.id.
-function Answers({question, onPick, onEdit}) {
+type AnswersProps = {
+    question: ImportQuestion;
+    onPick: (answerId: string) => void;
+    onEdit: (answerId: string, value: string) => void;
+};
+
+function Answers({question, onPick, onEdit}: AnswersProps) {
     let {answers = [], correctAnswerId} = question.data;
 
     return answers.map((a, i) =>
@@ -73,8 +117,29 @@ const QUESTION_TYPES = [
 // nhu boolean, FillBlank.jsx nhu chuoi HTML. Doi loai ma bung nguyen data cu thi
 // TrueFalse an phai chuoi HTML -> ca hai radio deu khong checked, giao vien tuong
 // chua chon, luu xong cham may sai. Nen giu dung phan dung chung, bo phan rieng.
-class ImportExam extends Component {
-    state = {
+type State = {
+    loading: boolean;
+    error: string | null;
+    exams: ImportedExam[];
+    warnings: string[];
+    /** id đề -> có tick hay không. */
+    picked: Record<string, boolean>;
+    openId: string | null;
+    infoId: string | null;
+    saving: boolean;
+    progress: number;
+    folder: Folder | null;
+    bankInfo: QuestionBank | null;
+    trung: Record<string, TrungInfo>;
+    dangDoTrung: boolean;
+    /** Số khối vừa thêm, cho dòng hint. Bản cũ thiếu trong state khởi tạo. */
+    banked: number;
+    /** Tồn kho ngân hàng đang nhập vào. null = không có ?bank= hoặc tải hỏng. */
+    bank: BankCapacity | null;
+};
+
+class ImportExam extends Component<RouterProps, State> {
+    state: State = {
         loading: false,
         error: null,
         exams: [],
@@ -88,6 +153,8 @@ class ImportExam extends Component {
         bankInfo: null,
         trung: {},       // id cau -> {score, khop[]}; chi hien so, khong chan luu
         dangDoTrung: false,
+        banked: 0,
+        bank: null,
     };
 
     // Ngan hang lay tu ?bank= — mot thuc the co ten va co mon, giao vien tu tao.
@@ -98,65 +165,66 @@ class ImportExam extends Component {
     componentDidMount = async () => {
         let id = new URLSearchParams(this.props.location.search).get('folder');
         if (id) {
-            let folders = await Api.get('folder/list');
+            const folders: Folder[] = await Api.get('folder/list');
             this.setState({folder: folders.find(f => f.id === id) || null});
         }
         if (this.bankId()) {
-            let banks = await Api.get('question_bank/list');
+            const banks: QuestionBank[] = await Api.get('question_bank/list');
             this.setState({bankInfo: banks.find(b => b.id === this.bankId()) || null});
         }
         this.loadBank();
     };
 
-    refFile = React.createRef();
+    refFile = React.createRef<HTMLInputElement>();
 
-    pickFile = () => this.refFile.current.click();
+    pickFile = () => this.refFile.current && this.refFile.current.click();
 
-    upload = async ({target}) => {
-        let file = target.files[0];
+    upload = async ({target}: React.ChangeEvent<HTMLInputElement>) => {
+        const file = target.files && target.files[0];
         if (!file) return;
 
         this.setState({loading: true, error: null, exams: [], warnings: []});
 
         try {
-            let res = await Api.upload('import_docx/preview', file);
+            const res: {exams: ImportedExam[]; warnings?: string[]} =
+                await Api.upload('import_docx/preview', file);
             // ponytail: mặc định tick HẾT. File 20 đề mà bỏ tick hết thì giáo
             // viên phải bấm 20 lần; bỏ bớt vài đề dễ hơn chọn lại từ đầu.
-            let picked = {};
+            const picked: Record<string, boolean> = {};
             res.exams.forEach(e => picked[e.id] = true);
             // Mở sẵn đề đầu để thấy ngay là xem/sửa được, không phải bấm dò.
             let openId = res.exams.length ? res.exams[0].id : null;
             this.setState({exams: res.exams, warnings: res.warnings || [], picked, openId});
         } catch (e) {
-            this.setState({error: e.message || e.description || 'Không đọc được file'});
+            this.setState({error: loi(e, 'Không đọc được file')});
         } finally {
             target.value = '';   // cho phép chọn lại đúng file vừa chọn
             this.setState({loading: false});
         }
     };
 
-    toggle = (id) => this.setState(({picked}) => ({picked: {...picked, [id]: !picked[id]}}));
+    toggle = (id: string) => this.setState(({picked}) => ({picked: {...picked, [id]: !picked[id]}}));
 
     // ponytail: chi mo MOT de. Moi o soan la mot instance TipTap; 20 de x 12 cau
     // x (1 than + 4 dap an) ~ 1200 ProseMirror view -> trinh duyet i ra. Mo mot
     // de la ~60, chay muot.
-    toggleOpen = (id) => this.setState(({openId}) => ({openId: openId === id ? null : id}));
+    toggleOpen = (id: string) => this.setState(({openId}) => ({openId: openId === id ? null : id}));
 
     toggleAll = () => {
         let {exams, picked} = this.state;
         let all = exams.every(e => picked[e.id]);
-        let next = {};
+        const next: Record<string, boolean> = {};
         exams.forEach(e => next[e.id] = !all);
         this.setState({picked: next});
     };
 
     // ponytail: sua TAI CHO tren state.exams — payload nay chinh la cai gui len
     // exam/create, khong can shape trung gian nao khac.
-    patchExam = (examId, fn) => this.setState(({exams}) => ({
+    patchExam = (examId: string, fn: (exam: ImportedExam) => ImportedExam) => this.setState(({exams}) => ({
         exams: exams.map(e => e.id === examId ? fn({...e}) : e),
     }));
 
-    patchQuestion = (examId, qid, fn) => this.patchExam(examId, exam => {
+    patchQuestion = (examId: string, qid: string, fn: (q: ImportQuestion) => ImportQuestion) => this.patchExam(examId, exam => {
         exam.sections = exam.sections.map(s => ({
             ...s,
             questions: s.questions.map(q => q.id === qid ? fn({...q}) : q),
@@ -164,15 +232,15 @@ class ImportExam extends Component {
         return exam;
     });
 
-    setName = (examId, name) => this.patchExam(examId, e => ({...e, name}));
+    setName = (examId: string, name: string) => this.patchExam(examId, e => ({...e, name}));
 
-    setBody = (examId, qid, html) =>
+    setBody = (examId: string, qid: string, html: string) =>
         this.patchQuestion(examId, qid, q => ({...q, data: {...q.data, question: html}}));
 
     // ponytail: doi loai phai cap nhat CA section.question_type — BE luu field nay
     // (core_docx lay tu cau dau section) va man soan de doc no de biet phan nay
     // thuoc dang gi. Sua moi q.type thi phan bi gan nham loai cua cau da doi.
-    setType = (examId, qid, type) => this.patchExam(examId, exam => {
+    setType = (examId: string, qid: string, type: string) => this.patchExam(examId, exam => {
         exam.sections = exam.sections.map(s => {
             if (!s.questions.some(q => q.id === qid)) return s;
 
@@ -187,7 +255,7 @@ class ImportExam extends Component {
     // ponytail: ngu lieu la BAN SAO trong tung cau cung nhom, nen sua thi phai
     // ghi lai cho CA NHOM theo passageId. Sua moi cau dau thi cau 2-5 giu ban cu
     // -> luu xong hoc sinh doc phai van ban chua sua.
-    setPassage = (examId, passageId, html) => this.patchExam(examId, exam => {
+    setPassage = (examId: string, passageId: string | undefined, html: string) => this.patchExam(examId, exam => {
         exam.sections = exam.sections.map(sec => ({
             ...sec,
             questions: sec.questions.map(q => q.data.passageId === passageId
@@ -196,37 +264,37 @@ class ImportExam extends Component {
         return exam;
     });
 
-    setCorrect = (examId, qid, answerId) =>
+    setCorrect = (examId: string, qid: string, answerId: string) =>
         this.patchQuestion(examId, qid, q => ({...q, data: {...q.data, correctAnswerId: answerId}}));
 
-    setAnswer = (examId, qid, answerId, value) =>
+    setAnswer = (examId: string, qid: string, answerId: string, value: string) =>
         this.patchQuestion(examId, qid, q => ({
             ...q,
             data: {
                 ...q.data,
-                answers: q.data.answers.map(a => a.id === answerId ? {...a, value} : a),
+                answers: (q.data.answers || []).map(a => a.id === answerId ? {...a, value} : a),
             },
         }));
 
-    removeQuestion = (examId, qid) => this.patchExam(examId, exam => {
+    removeQuestion = (examId: string, qid: string) => this.patchExam(examId, exam => {
         exam.sections = exam.sections
             .map(s => ({...s, questions: s.questions.filter(q => q.id !== qid)}))
             .filter(s => s.questions.length);   // phần rỗng thì bỏ luôn
         return exam;
     });
 
-    countQuestions = (exam) => exam.sections.reduce((n, s) => n + s.questions.length, 0);
+    countQuestions = (exam: ImportedExam) => exam.sections.reduce((n, s) => n + s.questions.length, 0);
 
     // Câu trắc nghiệm chưa chọn đáp án đúng -> chấm máy sẽ luôn ra 0 điểm.
-    missingKeys = (exam) => exam.sections.reduce((n, s) =>
+    missingKeys = (exam: ImportedExam) => exam.sections.reduce((n, s) =>
         n + s.questions.filter(q => q.type === 'MultipleChoice' && !q.data.correctAnswerId).length, 0);
 
     // Thống kê cho modal "Thông tin đề": gom câu theo từng tiêu chí.
-    examStats = (exam) => {
-        let all = [];
+    examStats = (exam: ImportedExam) => {
+        const all: Array<{q: ImportQuestion; s: ImportSection; no: number}> = [];
         exam.sections.forEach(s => s.questions.forEach((q, i) => all.push({q, s, no: i + 1})));
 
-        let rows = [
+        const rows: Array<[string, typeof all]> = [
             ['Tổng số câu trắc nghiệm', all.filter(x => x.q.type === 'MultipleChoice')],
             ['Tổng số câu tự luận', all.filter(x => x.q.type !== 'MultipleChoice')],
             ['Câu trắc nghiệm chưa có đáp án đúng',
@@ -241,7 +309,7 @@ class ImportExam extends Component {
 
     // ponytail: cuon toi cau bang id DOM thay vi ref — 240 cau ma giu ref het
     // thi phai quan ly map ref, trong khi id da co san tu payload.
-    jumpTo = (examId, qid) => {
+    jumpTo = (examId: string, qid: string) => {
         this.setState({infoId: null, openId: examId}, () => {
             let el = document.getElementById('imp-' + qid);
             if (el) {
@@ -269,18 +337,22 @@ class ImportExam extends Component {
             this.setState({trung: gop, dangDoTrung: false});
         } catch (err) {
             // Đo trùng hỏng KHÔNG được chặn việc lưu — nó là thông tin thêm.
-            this.setState({dangDoTrung: false});
+            // Nhưng phải NÓI ra: bản cũ nuốt lỗi, giáo viên bấm xong thấy
+            // spinner tắt mà không có chip nào, tưởng ngân hàng sạch trùng.
+            this.setState({dangDoTrung: false, error: loi(err, 'Không đo được trùng lặp')});
         }
     };
 
     // toBank=true: cắt thành khối rồi bỏ vào ngân hàng câu hỏi, KHÔNG tạo đề.
     // Đề sinh ra lúc học sinh bấm thi, rút ngẫu nhiên từ ngân hàng.
-    save = async (toBank) => {
+    save = async (toBank: boolean) => {
         let {exams, picked} = this.state;
         let chosen = exams.filter(e => picked[e.id]);
         if (!chosen.length) return;
 
-        this.setState({saving: true, error: null, progress: 0});
+        // banked phải về 0: lần lưu trước để lại số cũ thì dòng hint vẫn khoe
+        // "Đã thêm N khối" trong khi lần này tạo thẳng đề, chưa động vào ngân hàng.
+        this.setState({saving: true, error: null, progress: 0, banked: 0});
         try {
             // ponytail: gọi tuần tự, không Promise.all. 20 đề x 12 câu = 240
             // lượt ghi Question; bắn song song dễ làm server 2 nhân nghẹn.
@@ -306,7 +378,7 @@ class ImportExam extends Component {
             }
             else this.props.history.push('/');
         } catch (e) {
-            this.setState({error: e.message || 'Lưu thất bại', saving: false});
+            this.setState({error: loi(e, 'Lưu thất bại'), saving: false});
         }
     };
 
@@ -316,11 +388,11 @@ class ImportExam extends Component {
     // KHÔNG màu đỏ: đây là cảnh báo để đọc, không phải lỗi phải sửa. Câu cùng
     // khung ("Cho hàm số y=f(x)... nghịch biến trên khoảng nào") đo ra 80-90%
     // mà vẫn là hai câu khác nhau — bôi đỏ thì giáo viên tắt tính năng đi.
-    renderChipTrung = (qid) => {
+    renderChipTrung = (qid: string) => {
         let t = this.state.trung[qid];
         if (!t) return null;
         let pct = (t.score * 100).toFixed(2);
-        let mau = t.score >= 0.95 ? 'orange' : t.score >= 0.8 ? 'yellow' : 'grey';
+        const mau: SemanticCOLORS = t.score >= 0.95 ? 'orange' : t.score >= 0.8 ? 'yellow' : 'grey';
         let ds = t.khop.map(k => (k.trong_file ? 'trong file này' : (k.khoi || k.id))
             + ' — ' + (k.score * 100).toFixed(2) + '%').join('\n');
         return <Label size='tiny' color={mau} title={'Trùng với:\n' + ds}>
@@ -328,7 +400,7 @@ class ImportExam extends Component {
         </Label>;
     };
 
-    renderQuestion = (exam, section, q, idx) => {
+    renderQuestion = (exam: ImportedExam, section: ImportSection, q: ImportQuestion, idx: number) => {
         // ErrorIdentify cung la chon 1 trong 4 phuong an -> dung chung UI dap an.
         let isMC = q.type === 'MultipleChoice' || q.type === 'ErrorIdentify';
         let noKey = isMC && !q.data.correctAnswerId;
@@ -351,7 +423,7 @@ class ImportExam extends Component {
                 <Dropdown compact selection className='import-type'
                           value={q.type}
                           options={QUESTION_TYPES.map(t => ({key: t.key, value: t.key, text: t.text}))}
-                          onChange={(e, {value}) => this.setType(exam.id, q.id, value)}/>
+                          onChange={(_e, {value}) => this.setType(exam.id, q.id, String(value))}/>
                 {noKey && <Label size='tiny' color='orange'>chưa có đáp án đúng</Label>}
                 {this.renderChipTrung(q.id)}
                 <Icon name='trash alternate outline' link color='grey'
@@ -367,8 +439,8 @@ class ImportExam extends Component {
                 <Input size='mini' type='number' min={0} label='giới hạn từ'
                        labelPosition='left' placeholder='0 = không giới hạn'
                        value={q.data.max_words || 0}
-                       onChange={(e, {value}) => this.patchQuestion(exam.id, q.id, qq => {
-                           let data = {...qq.data, max_words: parseInt(value, 10) || 0};
+                       onChange={(_e, {value}) => this.patchQuestion(exam.id, q.id, qq => {
+                           const data: QuestionData = {...qq.data, max_words: parseInt(value, 10) || 0};
                            // 0 = khong gioi han -> bo han field, khong ghi rac vao DB.
                            if (!data.max_words) delete data.max_words;
                            return {...qq, data};
@@ -381,7 +453,7 @@ class ImportExam extends Component {
         </div>;
     };
 
-    renderExam = (exam) => {
+    renderExam = (exam: ImportedExam) => {
         let {picked, openId, trung} = this.state;
         let missing = this.missingKeys(exam);
         let isOpen = openId === exam.id;
@@ -393,13 +465,13 @@ class ImportExam extends Component {
                 <Checkbox checked={!!picked[exam.id]} onChange={() => this.toggle(exam.id)}/>
 
                 <Input transparent value={exam.name} className='import-exam-name'
-                       onChange={(e, {value}) => this.setName(exam.id, value)}/>
+                       onChange={(_e, {value}) => this.setName(exam.id, String(value))}/>
 
                 <Input size='mini' type='number' min={0} label='phút'
                        labelPosition='right' className='import-exam-num'
                        value={exam.duration === undefined ? 45 : exam.duration}
-                       onChange={(e, {value}) =>
-                           this.patchExam(exam.id, ex => ({...ex, duration: parseInt(value, 10) || 0}))}/>
+                       onChange={(_e, {value}) =>
+                           this.patchExam(exam.id, ex => ({...ex, duration: parseInt(String(value), 10) || 0}))}/>
 
                 <span className='import-exam-meta'>
                     {this.countQuestions(exam)} câu
@@ -522,7 +594,7 @@ class ImportExam extends Component {
                     <div className='text-muted'>
                         {lan > 0
                             ? <span>Đủ rút {lan} đề không trùng khối
-                                {nghen && <span> · nghẽn ở <b>{TEN_LOAI[nghen[0]] || nghen[0]}</b></span>}
+                                {nghen && <span> · nghẽn ở <b>{tenLoai(nghen[0])}</b></span>}
                               </span>
                             : 'Chưa đủ khối để rút một đề hoàn chỉnh — nhập thêm đề bên dưới.'}
                     </div>
@@ -539,7 +611,7 @@ class ImportExam extends Component {
                     let co = per[t] || 0, duoc = Math.floor(co / slots[t]);
                     return <Label key={t} basic
                                   color={duoc < 1 ? 'red' : duoc < 4 ? 'yellow' : 'green'}>
-                        {TEN_LOAI[t] || t}
+                        {tenLoai(t)}
                         <Label.Detail>{co} khối · rút được {duoc}</Label.Detail>
                     </Label>;
                 })}
@@ -548,8 +620,8 @@ class ImportExam extends Component {
     };
 
     render() {
-        let {loading, error, exams, warnings, picked, saving, progress, banked, bank,
-             dangDoTrung, trung} = this.state;
+        const {loading, error, exams, warnings, picked, saving, progress, banked,
+               dangDoTrung, trung} = this.state;
         let chosen = exams.filter(e => picked[e.id]).length;
 
         return <div className='margin import-exam'>

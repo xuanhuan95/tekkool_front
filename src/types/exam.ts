@@ -34,4 +34,13 @@ export type BankCapacity = {
      */
     bottleneck?: [string, number] | null;
     subject?: string;
+    /** Tồn kho theo loại. Có mặt khi hỏi theo `bank` — ImportExam đọc để vẽ bảng. */
+    per_type?: Record<string, number>;
+};
+
+/** Một ngân hàng câu hỏi — `question_bank/list`. */
+export type QuestionBank = {
+    id: string;
+    name: string;
+    subject?: string;
 };

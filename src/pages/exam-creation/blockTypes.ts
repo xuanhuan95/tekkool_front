@@ -12,3 +12,9 @@ export const TEN_LOAI = {
 } as const;
 
 export type BlockType = keyof typeof TEN_LOAI;
+
+/**
+ * Tên tiếng Việt của một loại khối, không có thì trả lại chính mã loại.
+ * ponytail: BE thêm loại mới là FE hiện mã thay vì rỗng — vẫn đọc được.
+ */
+export const tenLoai = (t: string) => (TEN_LOAI as Record<string, string>)[t] || t;
