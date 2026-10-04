@@ -14,3 +14,24 @@ export type ExamSummary = {
     question_count?: number;
     price?: number;
 };
+
+/** Tồn kho ngân hàng câu hỏi — `question_bank/stats`. */
+export type BankStats = {
+    /** Số khối đang có, theo từng loại. Loại chưa có khối nào thì vắng mặt. */
+    per_type: Record<string, number>;
+    total?: number;
+};
+
+/** Sức chứa ngân hàng — `question_bank/capacity`. */
+export type BankCapacity = {
+    /** Ma trận: mỗi đề cần bao nhiêu khối mỗi loại. BE lấy từ MA_TRAN của môn. */
+    slots: Record<string, number>;
+    /** Số lần một học sinh làm lại được mà không gặp lại khối cũ. */
+    capacity: number;
+    /**
+     * Loại đang chặn `capacity`. BE trả [loại, số lần] chứ không phải chuỗi —
+     * FE chỉ đọc phần tử [0].
+     */
+    bottleneck?: [string, number] | null;
+    subject?: string;
+};
