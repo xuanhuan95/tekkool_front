@@ -7,7 +7,11 @@ xem điểm.
 Nguyên tắc chọn test: **ưu tiên chỗ hỏng thì mất tiền hoặc mất điểm của học
 sinh.** Không test getter/setter, không test "component render không lỗi".
 
-Chạy: `npm test` (FE) · `python3 test_submission.py` (BE)
+Chạy: `npm test` (FE) · `python3 test_submission.py test_attempt.py test_payment.py` (BE)
+
+**Test chỉ có giá trị nếu nó đỏ khi bug quay lại.** Mỗi ca thêm vào đây đều
+đã được kiểm chứng bằng cách đặt lại bug cũ rồi xem test đỏ. Cách này đã bắt
+được hai test giả tự tin nhầm (xem `banked` ở ImportExam và `da_nop` ở DoExam).
 
 ---
 
@@ -135,19 +139,22 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 
 ## Hiện trạng
 
-| Nhóm | Đã có | Còn thiếu |
+| Nhóm | Số ca | Phủ |
 |---|---|---|
-| BE `test_submission.py` | 36 ca | T2.2, S1.*, S2.1/2/5–8, S4.7/8 |
-| FE `fmt.test.ts` | 10 ca | — |
-| FE cũ (chạy bằng `node`) | 3 file | chuyển sang `.test.ts` |
+| BE `test_attempt.py` | 40 | S2 trừ lượt, S4.7/4.8 nộp hai lần |
+| BE `test_submission.py` | 32 | S4 chấm máy, T5 vào điểm tay, S5 bảng điểm |
+| BE `test_payment.py` | 51 | S1 toàn bộ: sai khoá, replay, lệch tiền, cộng lượt |
+| BE `core_question_bank.py` (self-check) | — | T2 trọng số, T3 rút đề |
+| FE `npm test` | 124 | 12 file, gồm DoExam (S2/S3) và DrawExam/ImportExam (T3) |
 
 **Thứ tự bổ sung** — theo mức thiệt hại nếu hỏng:
 
-1. `S2` trừ lượt (mất tiền học sinh — đã hỏng thật)
-2. `S4.7/4.8` nộp hai lần (điểm nhân đôi)
-3. `S1` thanh toán (cộng lượt sai)
-4. `T2` trọng số (điểm sai cả lớp)
-5. Phần còn lại
+1. ~~`S2` trừ lượt~~ ✅
+2. ~~`S4.7/4.8` nộp hai lần~~ ✅
+3. ~~`S1` thanh toán~~ ✅
+4. ~~`T2` trọng số~~ ✅ *(self-check sẵn có, đã kiểm chứng bắt được bug)*
+5. Còn lại: `T1` nhập .docx, `S3.2/3.4` hết giờ và mất mạng, `S4.4/4.5`
+   nhiều cách viết đáp án
 
 ## Quy ước viết test
 
