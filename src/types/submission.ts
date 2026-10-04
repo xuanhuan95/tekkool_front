@@ -41,3 +41,39 @@ export type ScoreSection = {
     pending: number;
     block_type?: string | null;
 };
+
+/**
+ * Một câu trong bài đã nộp (`exam/submission/<id>`). Chỉ endpoint này trả
+ * `answers`; danh sách bài nộp không kèm để khỏi tải cả đề mỗi dòng.
+ */
+export type SubmissionAnswer = {
+    question_id: string;
+    question_text?: string;
+    /** Bài học sinh làm: id phương án (trắc nghiệm) hoặc HTML (tự luận). */
+    answer?: string | null;
+    /** null = chưa chấm. 0 không phải chưa chấm. */
+    score: number | null;
+    max_score: number;
+    /** Máy chấm được (trắc nghiệm, điền khuyết) -> giáo viên không sửa tay. */
+    auto_graded?: boolean;
+    comment?: string | null;
+    /** Đáp án đúng dạng chữ, chỉ có ở câu máy chấm. */
+    correct?: string | null;
+    correct_id?: string | null;
+    answers?: AnswerChoice[];
+    /** Ngữ liệu đọc hiểu dùng chung cho cả nhóm câu. */
+    passage?: string | null;
+    passage_id?: string | null;
+};
+
+export type AnswerChoice = {
+    id: string;
+    value?: string;
+};
+
+/** Bài nộp kèm chi tiết từng câu — dạng `exam/submission/<id>` trả về. */
+export type SubmissionDetail = Submission & {
+    answers?: SubmissionAnswer[];
+    /** BE tự quyết: true khi người gọi là chủ đề. Đây mới là quyền chấm. */
+    can_grade?: boolean;
+};

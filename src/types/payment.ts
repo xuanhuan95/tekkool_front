@@ -5,6 +5,10 @@ export type Package = {
     turns: number;
     price: number;
     description?: string;
+    /** false = ẩn khỏi trang bán. Chỉ `package/list?all=1` (giáo viên) trả gói đã ẩn. */
+    active?: boolean;
+    /** Thứ tự hiện trên trang bán. BE sắp theo `[order, price]`. */
+    order?: number;
 };
 
 /** BE trả về để FE dựng form POST sang SePay. */

@@ -2,7 +2,8 @@ import {useEffect, useRef, useState} from 'react';
 import {Icon} from 'semantic-ui-react';
 import {Link, useLocation, useNavigate} from 'react-router-dom';
 
-import Api, {setToken} from '../services/api';
+import Api from '../services/api';
+import {useAuthStore} from '../stores/authStore';
 import type {Wallet} from '../types/payment';
 
 /**
@@ -18,6 +19,8 @@ export default function StudentNav({user}: {user?: {name?: string; email?: strin
     const box = useRef<HTMLDivElement>(null);
     const {pathname} = useLocation();
     const navigate = useNavigate();
+    // BE xoá hẳn phiên rồi nạp lại trang — dùng chung với TopToolbar/UserBlock.
+    const logout = useAuthStore(s => s.signOut);
 
     // Bấm ra ngoài / bấm Esc thì đóng menu. Không có thì menu dính lại
     // trên màn, người dùng phải bấm đúng nút mới tắt được.
@@ -44,13 +47,6 @@ export default function StudentNav({user}: {user?: {name?: string; email?: strin
         Api.get('payment/wallet').then(setVi).catch(() => {});
     }, [pathname, user]);
 
-    const logout = async () => {
-        // BE xoa han phien. Bo token o FE truoc khi chuyen trang, neu khong
-        // lan mo sau van gui token da chet -> session/init tra 400.
-        try { await Api.get('session/logout'); } catch (e) { /* phien co the da het han */ }
-        setToken(null);
-        window.location.href = '/';
-    };
 
     const go = (to: string) => { setOpen(false); navigate(to); };
 
