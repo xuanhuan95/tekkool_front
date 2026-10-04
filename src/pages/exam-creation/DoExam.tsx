@@ -139,10 +139,19 @@ class DoExam extends React.Component<RouterProps, State> {
         // id nguoi dung la rui ro khong dang, day la duong lam bai va tru luot.
         let user = useAuthStore.getState().user;
 
-        await Api.post('exam/save_answer/' + questionId, {
-            answer:answer,
-            user_id: user && user.id
-        });
+        // ponytail: mang chap giua gio thi thi `await` nem, state khong doi VA
+        // khong co thong bao nao — hoc sinh bam dap an, thay nut khong sang,
+        // tuong minh bam hut nen bam lai; nop bai thi nhung cau do 0 diem.
+        // Bao ro mot cau roi return: khong ghi vao state ban chua luu duoc,
+        // neu khong man hinh noi "da chon" trong khi server khong co gi.
+        try {
+            await Api.post('exam/save_answer/' + questionId, {
+                answer: answer,
+                user_id: user && user.id
+            });
+        } catch (e) {
+            return alert(loi(e, 'Chưa lưu được câu trả lời. Kiểm tra mạng rồi chọn lại.'));
+        }
 
         // ponytail: sửa TẠI CHỖ rồi setState để vẽ lại — giữ nguyên hành vi
         // bản cũ. Bản cũ viết bằng `.map()` nhưng vứt kết quả đi, đọc như code

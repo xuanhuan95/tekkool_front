@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import {render, screen, waitFor} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter, Route, Routes, useLocation} from 'react-router-dom';
 
 import Api from '../../services/api';
@@ -149,5 +149,89 @@ describe('DoExam: đồng hồ chốt ở server', () => {
         ve();
         await screen.findByText(/1\+1/);
         await screen.findByText('0:05');
+    });
+});
+
+// ──────────────────────────────────────────────────────────────────────
+// S3.2 hết giờ · S3.4 mất mạng giữa chừng
+// ──────────────────────────────────────────────────────────────────────
+
+describe('DoExam: hết giờ (S3.2)', () => {
+    it('hết giờ thì tự nộp, KHÔNG hỏi confirm', async () => {
+        // finish() có window.confirm. Hết giờ mà vẫn hỏi "có chắc không" là vô
+        // nghĩa: thí sinh bấm Cancel rồi ngồi làm tiếp quá giờ.
+        vi.spyOn(Api, 'get').mockResolvedValue({...DE, remaining_sec: 2});
+        const post = vi.spyOn(Api, 'post').mockResolvedValue({score: 5, max_score: 10});
+        const hoi = vi.spyOn(window, 'confirm').mockReturnValue(false);
+        vi.spyOn(window, 'alert').mockImplementation(() => {});
+        ve();
+        await screen.findByText(/1\+1/);
+
+        // Đẩy đồng hồ máy qua hạn rồi cho interval chạy.
+        const that = Date.now();
+        vi.spyOn(Date, 'now').mockReturnValue(that + 3000);
+        await waitFor(() => {
+            const nop = post.mock.calls.filter(c => String(c[0]).startsWith('exam/submit'));
+            expect(nop.length).toBe(1);
+        });
+        expect(hoi).not.toHaveBeenCalled();
+    });
+
+    it('nộp tự động hỏng vẫn khoá bài, không trả về màn làm bài', async () => {
+        // Mạng rớt đúng lúc hết giờ: không được để thí sinh làm tiếp vô hạn
+        // trong khi server đã chốt hạn nộp.
+        vi.spyOn(Api, 'get').mockResolvedValue({...DE, remaining_sec: 2});
+        vi.spyOn(Api, 'post').mockRejectedValue({message: 'Network error'});
+        vi.spyOn(window, 'alert').mockImplementation(() => {});
+        ve();
+        await screen.findByText(/1\+1/);
+
+        const that = Date.now();
+        vi.spyOn(Date, 'now').mockReturnValue(that + 3000);
+        await screen.findByText('Đã nộp bài');
+    });
+});
+
+describe('DoExam: mất mạng khi đang làm (S3.4)', () => {
+    it('lưu đáp án hỏng phải báo cho học sinh, không im lặng nuốt', async () => {
+        // setAnswer `await Api.post(...)` rồi mới ghi vào state. Post ném thì
+        // state không đổi VÀ không có thông báo nào: học sinh bấm đáp án, thấy
+        // nút không sáng, tưởng mình bấm hụt, bấm lại — bài vẫn không được lưu.
+        vi.spyOn(Api, 'get').mockResolvedValue(DE);
+        vi.spyOn(Api, 'post').mockRejectedValue({message: 'Failed to fetch'});
+        const bao = vi.spyOn(window, 'alert').mockImplementation(() => {});
+        ve();
+        await screen.findByText(/1\+1/);
+
+        // Semantic Radio: click phải vào chính <input>, click <label> qua
+        // Node.click() không chạy onChange trong jsdom.
+        const o = document.querySelector('input[type=radio][value="2"]')!;
+        fireEvent.click(o);
+
+        await waitFor(() => expect(bao).toHaveBeenCalled());
+    });
+
+    it('đáp án đã lưu trước đó hiện lại sau khi vào lại đề', async () => {
+        // Vào lại giữa chừng: BE trả đề kèm markedAnswer. Không đọc field này
+        // thì bài làm 30 phút của học sinh hiện ra trắng trơn.
+        vi.spyOn(Api, 'get').mockResolvedValue({
+            ...DE,
+            sections: [{
+                ...DE.sections[0],
+                // DoExam so checked bằng answer.VALUE chứ không phải id
+                // (core_grading.py ghi rõ FE lưu value). Đặt 'A1' ở đây là
+                // test sai, không phải code sai.
+                questions: [{...DE.sections[0].questions[0], markedAnswer: '2'}],
+            }],
+        });
+        ve();
+        await screen.findByText(/1\+1/);
+
+        const o = document.querySelector('input[type=radio][value="2"]') as HTMLInputElement;
+        expect(o.checked).toBe(true);
+        // Phương án không chọn phải KHÔNG sáng — nếu không, test xanh kể cả
+        // khi mọi radio đều checked.
+        const khac = document.querySelector('input[type=radio][value="3"]') as HTMLInputElement;
+        expect(khac.checked).toBe(false);
     });
 });

@@ -106,9 +106,9 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 | # | Ca | Phải đúng |
 |---|---|---|
 | S3.1 | Đồng hồ đếm ngược | Theo `remaining_sec` của **server**, không theo giờ máy học sinh |
-| S3.2 | Hết giờ | Tự nộp, đánh dấu `auto_submitted` |
+| S3.2 | Hết giờ | Tự nộp, **không** hỏi confirm ✅ *(đã có)* |
 | S3.3 | Giáo viên sửa thời lượng giữa chừng | Lượt đang chạy **không** bị kéo dài/cắt ngắn |
-| S3.4 | Mất mạng rồi vào lại | Bài làm còn nguyên |
+| S3.4 | Mất mạng rồi vào lại | Bài làm còn nguyên; lưu hỏng phải **báo**, không nuốt ✅ *(đã có)* |
 
 ### S4. Nộp bài — **điểm chết**
 | # | Ca | Phải đúng |
@@ -116,8 +116,8 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 | S4.1 | Trắc nghiệm đúng | Được điểm ✅ *(đã có)* |
 | S4.2 | Bỏ trống | 0 điểm, **không** phải "chưa chấm" ✅ *(đã có)* |
 | S4.3 | Chọn "Sai" mà đáp án là Sai | Được điểm — `False` là falsy, `or ''` nuốt mất ✅ *(đã có)* |
-| S4.4 | Đáp án nhiều cách viết `a\|b` | Viết cách nào cũng đúng |
-| S4.5 | Khác hoa thường, thừa khoảng trắng | Vẫn đúng |
+| S4.4 | Đáp án nhiều cách viết `a\|b` | Viết cách nào cũng đúng ✅ *(đã có)* |
+| S4.5 | Khác hoa thường, thừa khoảng trắng, **NFC/NFD** | Vẫn đúng ✅ *(đã có)* |
 | S4.6 | Câu tự luận | Trả `None` → đẩy sang giáo viên ✅ *(đã có)* |
 | S4.7 | **Nộp hai lần cùng một lượt** | Trả lại bài cũ, **không** nhân đôi điểm |
 | S4.8 | Bấm Nộp đúng lúc hết giờ | Một `Submission` duy nhất |
@@ -145,7 +145,8 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 | BE `test_submission.py` | 32 | S4 chấm máy, T5 vào điểm tay, S5 bảng điểm |
 | BE `test_payment.py` | 51 | S1 toàn bộ: sai khoá, replay, lệch tiền, cộng lượt |
 | BE `core_question_bank.py` (self-check) | — | T2 trọng số, T3 rút đề |
-| FE `npm test` | 124 | 12 file, gồm DoExam (S2/S3) và DrawExam/ImportExam (T3) |
+| BE `core_grading.py` (self-check) | — | S4.4/4.5 nhiều cách viết, hoa thường, Unicode NFC/NFD |
+| FE `npm test` | 128 | 12 file, gồm DoExam (S2/S3) và DrawExam/ImportExam (T3) |
 
 **Thứ tự bổ sung** — theo mức thiệt hại nếu hỏng:
 
@@ -153,8 +154,9 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 2. ~~`S4.7/4.8` nộp hai lần~~ ✅
 3. ~~`S1` thanh toán~~ ✅
 4. ~~`T2` trọng số~~ ✅ *(self-check sẵn có, đã kiểm chứng bắt được bug)*
-5. Còn lại: `T1` nhập .docx, `S3.2/3.4` hết giờ và mất mạng, `S4.4/4.5`
-   nhiều cách viết đáp án
+5. ~~`S3.2/3.4` hết giờ và mất mạng~~ ✅
+6. ~~`S4.4/4.5` nhiều cách viết đáp án~~ ✅ *(tìm ra bug Unicode NFC/NFD)*
+7. Còn lại: `T1` nhập .docx
 
 ## Quy ước viết test
 
