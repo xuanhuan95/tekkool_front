@@ -348,7 +348,7 @@ class DoExam extends React.Component<RouterProps, State> {
                                     qIdx++;
 
                                     return <Fragment key={q.id}>
-                                        <Passage question={q} prev={s.questions[idx - 1]}/>
+                                        <Passage question={q} prev={s.questions[idx - 1]} questions={s.questions}/>
 
                                         {/* id de bang dieu huong ben phai cuon toi dung cau. */}
                                         <i id={'cau-' + q.id}><b>Question {qIdx}:</b></i>

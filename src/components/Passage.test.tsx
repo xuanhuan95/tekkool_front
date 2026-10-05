@@ -29,6 +29,44 @@ describe('Passage', () => {
     it('câu data rỗng không vỡ', () => expect(text({data: {}} as Question, A)).toBe(''));
     it('question không có data không vỡ', () => expect(text({} as Question, A)).toBe(''));
 
+    // Số văn bản sinh lúc HIỂN THỊ, theo thứ tự trong đề đang xem. Trước đây
+    // nhãn "VĂN BẢN n" nằm chết trong ngữ liệu từ lúc import: khối rút từ ngân
+    // hàng sang đề khác thì "Phần I" hiện "VĂN BẢN 2", hai khối cùng rút vào
+    // một đề còn cùng mang số 2.
+    //
+    // Nội dung fixture cố tình KHÔNG chứa chữ "văn bản" để không lẫn với nhãn.
+    const X = q('<p>Chùm khế ngọt</p>', 'GX');
+    const Y = q('<p>Trọn kiếp con người</p>', 'GY');
+    const nhan = (question: Question, prev: Question | undefined, questions: Question[]) =>
+        render(<Passage question={question} prev={prev} questions={questions}/>)
+            .container.querySelector('b');
+
+    it('hai văn bản: khối đầu là 1, khối sau là 2 — theo thứ tự đề MỚI', () => {
+        const qs = [X, X, Y, Y];
+        expect(nhan(X, undefined, qs)!.textContent).toBe('VĂN BẢN 1');
+        expect(nhan(Y, X, qs)!.textContent).toBe('VĂN BẢN 2');
+    });
+
+    it('một văn bản thì KHÔNG đánh số — "VĂN BẢN 1" trơ một mình là chữ thừa', () => {
+        expect(nhan(X, undefined, [X, X])).toBeNull();
+    });
+
+    it('số theo vị trí trong đề, không theo id của đề gốc', () => {
+        // GY vốn là "văn bản 2" ở đề cũ, nay đứng đầu -> phải là 1.
+        const qs = [Y, X];
+        expect(nhan(Y, undefined, qs)!.textContent).toBe('VĂN BẢN 1');
+        expect(nhan(X, Y, qs)!.textContent).toBe('VĂN BẢN 2');
+    });
+
+    it('câu lẻ không ngữ liệu xen giữa không làm lệch số', () => {
+        const qs = [X, plain, Y];
+        expect(nhan(Y, plain, qs)!.textContent).toBe('VĂN BẢN 2');
+    });
+
+    it('không truyền questions thì không đánh số (màn chưa cập nhật vẫn chạy)', () => {
+        expect(render(<Passage question={X}/>).container.querySelector('b')).toBeNull();
+    });
+
     // SafeHtml lọc XSS: nội dung đề do giáo viên nhập, code cũ render thô.
     it('lọc <script> trong ngữ liệu', () => {
         const xss = q('<p>An toàn</p><script>window.__hacked = 1</script>', 'G9');

@@ -89,7 +89,7 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
                     let columnWidthSingleChoice: any = 4;
 
                     return <Fragment key={q.id}>
-                        <Passage question={q} prev={s.questions[qi - 1]}/>
+                        <Passage question={q} prev={s.questions[qi - 1]} questions={s.questions}/>
 
                         {q.type === 'FillBlank' &&
                         <div className='question FillBlank' style={pageNonBreak}>
