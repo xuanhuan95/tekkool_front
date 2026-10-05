@@ -112,7 +112,13 @@ class DoExam extends React.Component<RouterProps, State> {
         // ponytail: api.js reject khi code!==200 -> không bắt thì 403 (đề có phí)
         // nuốt im lặng thành loader quay mãi.
         try {
-            const exam: DeThi & {da_nop?: boolean} = await Api.get('exam/during_test/' + examId);
+            // ?lam_lai=1 di thang xuong BE: bam vao de tu danh sach la CHU DONG
+            // muon lam bai. Khong co co nay thi BE coi moi lan vao de trong 15
+            // phut sau khi nop la "F5 xem lai ket qua" va day ra man ket qua cu
+            // — hoc sinh bam de ma khong vao duoc, tuong app hong.
+            const lamLai = new URLSearchParams(this.props.location.search).get('lam_lai') === '1';
+            const exam: DeThi & {da_nop?: boolean} = await Api.get(
+                'exam/during_test/' + examId + (lamLai ? '?lam_lai=1' : ''));
             // Vua nop xong roi F5: BE tra ve bai da nop (da_nop) thay vi de,
             // khong tru them luot. Hien thang man ket qua.
             if (exam && exam.da_nop) {
@@ -324,6 +330,13 @@ class DoExam extends React.Component<RouterProps, State> {
                 <Button primary onClick={() => this.props.history.push('/my-exams/' + r.id)}>
                     Xem lại bài làm
                 </Button>}
+                {/* Lam lai NGAY tu man ket qua: khong co nut nay thi hoc sinh
+                    phai ra danh sach de roi bam vao lai moi thi tiep duoc. */}
+                <Button onClick={() => {
+                    this.props.history.replace(
+                        '/do-exam/' + this.props.match.params.examId + '?lam_lai=1');
+                    window.location.reload();
+                }}>Làm lại</Button>
                 <Button onClick={() => this.props.history.push('/')}>Về trang chủ</Button>
             </Segment>;
         }

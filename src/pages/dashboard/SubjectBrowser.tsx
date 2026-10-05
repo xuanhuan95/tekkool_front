@@ -70,7 +70,11 @@ export default function SubjectBrowser() {
     // Vào thẳng đề. Hết lượt thì BE trả 402 và DoExam bật HetLuotModal chặn
     // tại chỗ — KHÔNG hỏi trước ở đây, vì số lượt còn lại là chuyện của ví
     // chứ không phải của từng đề, hỏi mỗi lần bấm là thừa một vòng mạng.
-    const openExam = (exam: ExamSummary) => navigate('/do-exam/' + exam.id);
+    // ?lam_lai=1: bam vao de tu danh sach la CHU DONG muon lam bai. Khong co
+    // co nay thi BE coi moi lan vao de trong 15 phut sau khi nop la "F5 xem
+    // lai ket qua" va day ra man ket qua cua bai cu — hoc sinh bam de ma khong
+    // vao duoc, tuong app hong.
+    const openExam = (exam: ExamSummary) => navigate('/do-exam/' + exam.id + '?lam_lai=1');
 
     if (error) return <div className='tk'><div className='tk-wrap'>
         <div className='tk-empty'>

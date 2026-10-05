@@ -42,8 +42,8 @@ function DaChuyenTrang() {
     return <div>ĐÃ RỜI TRANG</div>;
 }
 
-const ve = () => render(
-    <MemoryRouter initialEntries={['/do-exam/E1']}>
+const ve = (duong = '/do-exam/E1') => render(
+    <MemoryRouter initialEntries={[duong]}>
         <Routes>
             <Route path='/do-exam/:examId' element={<DoExam/>}/>
             <Route path='/packages' element={<DaChuyenTrang/>}/>
@@ -122,6 +122,55 @@ describe('DoExam: F5 ngay sau khi nộp', () => {
         // không hiện vì nhiều lý do khác và test sẽ xanh vì nhầm lý do.
         await screen.findByText('Đã nộp bài');
         expect(screen.queryByText(/1\+1/)).toBeNull();
+    });
+});
+
+describe('DoExam: vào đề để LÀM TIẾP sau khi vừa nộp', () => {
+    // Cửa sổ RECENT_SUBMIT_SEC (15 phút) của BE sinh ra để F5 không trừ thêm
+    // lượt. Nhưng `/do-exam/<id>` vừa là phòng thi vừa là màn kết quả, nên
+    // cùng cửa sổ đó chặn luôn người CHỦ ĐỘNG bấm vào đề để thi tiếp: học sinh
+    // bấm đề, bị đẩy ra kết quả bài cũ, 15 phút không làm gì được.
+    // Ý ĐỊNH phải do FE nói ra; BE đoán bằng đồng hồ thì sai một trong hai hướng.
+
+    it('bấm vào đề từ danh sách (?lam_lai=1) phải gửi cờ xuống BE', async () => {
+        const get = vi.spyOn(Api, 'get').mockResolvedValue(DE);
+        ve('/do-exam/E1?lam_lai=1');
+        await screen.findByText(/1\+1/);
+
+        const goi = get.mock.calls.map(c => String(c[0]))
+            .filter(u => u.startsWith('exam/during_test'));
+        expect(goi.length).toBe(1);
+        expect(goi[0]).toContain('lam_lai=1');
+    });
+
+    it('cờ phải là ?lam_lai=1 — api.ts tự nối &token=, dùng & là rơi vào path', async () => {
+        // `exam/during_test/E1&lam_lai=1` không có dấu ? nên api.ts nối
+        // `?token=` phía sau -> lam_lai nằm trong path, BE không bao giờ đọc
+        // được, và bug quay lại y nguyên mà test vẫn xanh nếu chỉ kiểm 'lam_lai'.
+        const get = vi.spyOn(Api, 'get').mockResolvedValue(DE);
+        ve('/do-exam/E1?lam_lai=1');
+        await screen.findByText(/1\+1/);
+        expect(String(get.mock.calls[0][0])).toBe('exam/during_test/E1?lam_lai=1');
+    });
+
+    it('F5 bình thường (không có cờ) thì KHÔNG gửi lam_lai', async () => {
+        // Đây là nửa còn lại: gửi cờ vô điều kiện thì F5 sau khi nộp lại mở
+        // lượt mới và trừ lượt — đúng con bug đã trừ oan 4 lượt trên production.
+        const get = vi.spyOn(Api, 'get').mockResolvedValue(DE);
+        ve();
+        await screen.findByText(/1\+1/);
+        expect(String(get.mock.calls[0][0])).not.toContain('lam_lai');
+    });
+
+    it('màn kết quả có nút Làm lại', async () => {
+        // Không có nút này thì học sinh phải ra danh sách đề rồi bấm vào lại.
+        vi.spyOn(Api, 'get').mockResolvedValue({
+            ...DE, da_nop: true, score: 8, max_score: 10,
+            graded_max_score: 10, pending_count: 0, status: 'GRADED',
+        });
+        ve();
+        await screen.findByText('Đã nộp bài');
+        expect(screen.getByText('Làm lại')).toBeTruthy();
     });
 });
 
