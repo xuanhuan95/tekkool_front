@@ -436,8 +436,8 @@ class ImportExam extends Component<RouterProps, State> {
 
             {!isMC &&
             <div className='import-wordlimit'>
-                <Input size='mini' type='number' min={0} label='giới hạn từ'
-                       labelPosition='left' placeholder='0 = không giới hạn'
+                <Input size='mini' type='number' min={0} label='khoảng ... từ'
+                       labelPosition='left' placeholder='0 = không ghi'
                        value={q.data.max_words || 0}
                        onChange={(_e, {value}) => this.patchQuestion(exam.id, q.id, qq => {
                            const data: QuestionData = {...qq.data, max_words: parseInt(value, 10) || 0};

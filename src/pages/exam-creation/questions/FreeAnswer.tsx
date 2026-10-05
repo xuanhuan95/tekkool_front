@@ -19,6 +19,8 @@ export default class FreeAnswer extends BaseQuestion<BaseQuestionProps, State> {
     // Shim ref cua Editor: {current: {medium: {setContent}}} — xem Editor.tsx.
     refAnswer = React.createRef<any>();
 
+    // Con số này KHÔNG chặn học sinh viết dài — chỉ hiện ở bộ đếm và dùng để
+    // xếp khối trong ngân hàng đề (TraLoiNgan / VietDoan / VietBai).
     // Chỉ giữ 1 đơn vị trong data — để cả hai thì Editor phải đoán, đề cũng khó hiểu.
     setLimit = (n: number, unit: string) => this.setQuestionData(
         unit === 'word' ? {max_words: n, max_chars: 0} : {max_chars: n, max_words: 0});
@@ -50,13 +52,13 @@ export default class FreeAnswer extends BaseQuestion<BaseQuestionProps, State> {
                     label={<Dropdown value={unit} options={UNITS}
                                      onChange={(_e, {value}) => this.setLimit(limit, value as string)}/>}
                     labelPosition='right'
-                    placeholder='Giới hạn bài viết (0 = bỏ giới hạn)'
+                    placeholder='Độ dài mong muốn (0 = không ghi)'
                     value={limit || ''}
                     onChange={(_e, {value}) => this.setLimit(parseInt(value, 10) || 0, unit)}
                 />
                 :
                 <a className='cursor' onClick={() => this.setState({showLimit: true})}>
-                    + Giới hạn độ dài bài làm
+                    + Độ dài mong muốn của bài làm
                 </a>}
         </Form>
     }
