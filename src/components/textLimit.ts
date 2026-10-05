@@ -20,23 +20,3 @@ export function measure(text: string, unit: Unit): number {
     const t = text.trim();
     return t === '' ? 0 : t.split(/\s+/).length;
 }
-
-/**
- * Cắt phần dán cho vừa hạn mức. Chặt nhị phân trên số ký tự rồi (nếu đếm từ)
- * lùi về ranh giới từ gần nhất — cắt giữa chữ thì "student" thành "stud".
- */
-export function trimToFit(head: string, pasted: string, max: number, unit: Unit): string {
-    let lo = 0, hi = pasted.length;
-    while (lo < hi) {
-        const mid = Math.ceil((lo + hi) / 2);
-        if (measure(head + pasted.slice(0, mid), unit) <= max) lo = mid; else hi = mid - 1;
-    }
-    let cut = pasted.slice(0, lo);
-    if (unit === WORD && lo < pasted.length) {
-        // Bỏ từ bị cắt dở ("stud") VÀ space cuối. Giữ space thì head thành
-        // "...rat " -> gõ tiếp 1 chữ là sang từ thứ 6 nên bị chặn, trong khi gõ
-        // space lại lọt (trim bỏ đi, vẫn 5 từ) — đúng ngược ý muốn.
-        cut = cut.replace(/\s*\S*$/, '');
-    }
-    return cut;
-}
