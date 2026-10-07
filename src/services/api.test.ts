@@ -1,11 +1,11 @@
 import {describe, it, expect, beforeEach, vi, afterEach} from 'vitest';
 import Api, {setToken} from './api';
 
-// Mọi request của app đi qua _call. Hai lỗi đã xảy ra thật được chốt ở đây:
-// (1) BE 500 trả HTML -> JSON.parse ném SyntaxError không có .code, chỗ nào
-//     bắt `e.code === 402` đều trượt, học sinh hết lượt thấy "Unexpected token '<'".
-// (2) reject xong thiếu `return` -> chạy tiếp resolve, Promise đã settle nên
-//     im lặng, lỗi biến mất.
+// Every app request goes through _call. Two bugs that really happened are pinned here:
+// (1) BE 500 returns HTML -> JSON.parse throws a SyntaxError with no .code, every
+//     `e.code === 402` catch misses, an out-of-turns student sees "Unexpected token '<'".
+// (2) reject without `return` -> resolve runs on, the Promise has already settled so
+//     it is silent and the error vanishes.
 
 function mockFetch(body: string, status = 200) {
     const f = vi.fn().mockResolvedValue({
@@ -24,47 +24,47 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 
-describe('_call: phân giải lỗi', () => {
-    it('BE trả HTML khi 500 -> lỗi PHẢI mang code = 500, không phải SyntaxError', async () => {
+describe('_call: error resolution', () => {
+    it('BE returns HTML on 500 -> error MUST carry code = 500, not a SyntaxError', async () => {
         mockFetch('<html><body>Internal Server Error</body></html>', 500);
         await expect(Api.get('exam/1')).rejects.toMatchObject({code: 500});
     });
 
-    it('hết lượt: code 402 phải tới nơi nguyên vẹn để FE mở popup mua gói', async () => {
+    it('out of turns: code 402 must arrive intact so FE opens the buy-a-package popup', async () => {
         mockFetch(JSON.stringify({code: 402, error: 'Hết lượt'}), 402);
         await expect(Api.get('exam/during_test')).rejects.toMatchObject({code: 402});
     });
 
-    it('abort() của BE: body JSON nhưng KHÔNG có code -> lấy HTTP status', async () => {
+    it('BE abort(): JSON body but NO code -> use the HTTP status', async () => {
         mockFetch(JSON.stringify({error: 'Forbidden'}), 403);
         await expect(Api.get('exam/1')).rejects.toMatchObject({code: 403, error: 'Forbidden'});
     });
 
-    it('200 kèm code lỗi trong body vẫn phải reject', async () => {
+    it('200 with an error code in the body must still reject', async () => {
         mockFetch(JSON.stringify({code: 400, error: 'Thiếu token'}), 200);
         await expect(Api.get('x')).rejects.toMatchObject({code: 400});
     });
 
-    it('thành công thì resolve đúng body', async () => {
+    it('success resolves with the body', async () => {
         mockFetch(JSON.stringify({code: 200, id: 'E1'}));
         await expect(Api.get('exam/E1')).resolves.toMatchObject({id: 'E1'});
     });
 
-    it('body rỗng khi 204 -> không được resolve undefined một cách im lặng', async () => {
+    it('empty body on 204 -> must not silently resolve undefined', async () => {
         mockFetch('', 204);
         await expect(Api.get('x')).rejects.toMatchObject({code: 204});
     });
 });
 
 describe('_call: token', () => {
-    it('có token thì gắn ?token= vào URL — token_required của BE đọc query string', async () => {
+    it('with a token, append ?token= to the URL — BE token_required reads the query string', async () => {
         setToken('TK1');
         const f = mockFetch(JSON.stringify({code: 200}));
         await Api.get('exam/list');
         expect(f.mock.calls[0][0]).toContain('?token=TK1');
     });
 
-    it('URL đã có ? thì nối bằng & chứ không phải ? thứ hai', async () => {
+    it('URL that already has ? is joined with & rather than a second ?', async () => {
         setToken('TK1');
         const f = mockFetch(JSON.stringify({code: 200}));
         await Api.get('exam/list?page=2');
@@ -72,7 +72,7 @@ describe('_call: token', () => {
         expect((f.mock.calls[0][0] as string).match(/\?/g)).toHaveLength(1);
     });
 
-    it('không có token thì không gắn gì', async () => {
+    it('without a token, append nothing', async () => {
         const f = mockFetch(JSON.stringify({code: 200}));
         await Api.get('session/init');
         expect(f.mock.calls[0][0]).not.toContain('token=');
@@ -80,13 +80,13 @@ describe('_call: token', () => {
 });
 
 describe('setToken', () => {
-    it('lưu cả window.token lẫn localStorage — mất một chỗ là F5 bị đăng xuất', () => {
+    it('stores both window.token and localStorage — lose one and F5 logs you out', () => {
         setToken('ABC');
         expect(window.token).toBe('ABC');
         expect(window.localStorage.getItem('sessionToken')).toBe('ABC');
     });
 
-    it('đăng xuất phải xoá CẢ HAI, token cũ bị BE huỷ, gửi lại là 400', () => {
+    it('logout must clear BOTH, the old token is revoked by BE, resending gives 400', () => {
         setToken('ABC');
         setToken('');
         expect(window.token).toBe('');
@@ -94,8 +94,8 @@ describe('setToken', () => {
     });
 });
 
-describe('phương thức', () => {
-    it('post gửi body JSON đúng method', async () => {
+describe('methods', () => {
+    it('post sends a JSON body with the right method', async () => {
         const f = mockFetch(JSON.stringify({code: 200}));
         await Api.post('exam/save', {name: 'Đề 1'});
         const opts = f.mock.calls[0][1] as RequestInit;
@@ -103,7 +103,7 @@ describe('phương thức', () => {
         expect(JSON.parse(opts.body as string)).toEqual({name: 'Đề 1'});
     });
 
-    it('delete dùng method DELETE', async () => {
+    it('delete uses the DELETE method', async () => {
         const f = mockFetch(JSON.stringify({code: 200}));
         await Api.delete('exam/E1');
         expect((f.mock.calls[0][1] as RequestInit).method).toBe('DELETE');

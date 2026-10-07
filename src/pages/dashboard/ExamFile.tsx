@@ -8,8 +8,8 @@ import Default from '../exam-creation/Default';
 import {useRefreshExams} from '../../queries/exams';
 import type {ExamSummary} from '../../types/exam';
 
-/** `value: ''` = "(ngoài thư mục)". Semantic không nhận `null` làm value
- * của Dropdown, nên dùng chuỗi rỗng rồi quy về null ở `moveToFolder`. */
+/** `value: ''` = "(outside any folder)". Semantic does not accept `null` as a Dropdown
+ * value, so use an empty string and map it back to null in `moveToFolder`. */
 export type FolderOption = {text: string; value: string};
 
 type Props = {
@@ -40,7 +40,7 @@ export default function ExamFile({exam, folderOptions, moveToFolder}: Props) {
             {striptags(exam.name) || '(đề không tên)'}
         </Link>
 
-        {/* Nhóm nút đẩy sang phải, dọc cả cột thẳng hàng cho nhanh. */}
+        {/* Button group pushed to the right, aligned down the whole column for quick scanning. */}
         <div className='tk-dexam-actions'>
             <Popup
                 trigger={<Button size='mini' basic icon title='Chuyển sang thư mục khác'>
@@ -56,8 +56,8 @@ export default function ExamFile({exam, folderOptions, moveToFolder}: Props) {
                 hideOnScroll
             />
 
-            {/* Lối vào chấm bài — không có nút này thì giáo viên không biết
-                học sinh đã nộp gì, bài tự luận treo mãi ở 'chờ chấm'. */}
+            {/* Entry to grading — without this button the teacher cannot tell what
+                students submitted, and essays stay stuck at 'awaiting grading'. */}
             <Link to={'/to-grade/' + exam.id}>
                 <Button size='mini' basic color='blue'>
                     <Icon name='check square outline'/> Bài nộp
@@ -68,8 +68,8 @@ export default function ExamFile({exam, folderOptions, moveToFolder}: Props) {
                 <Icon name='copy outline'/> Nhân bản
             </Button>
 
-            {/* Xoá là việc không gỡ lại được: để basic cho nó nhạt hơn
-                'Bài nộp', đừng để nút phá huỷ nổi nhất dòng. */}
+            {/* Deleting cannot be undone: keep it basic so it is paler than
+                'Submissions', don't let the destructive button be the most prominent in the row. */}
             <Button size='mini' basic icon title='Xoá đề' onClick={handleDelete}>
                 <Icon name='trash alternate outline' color='red'/>
             </Button>

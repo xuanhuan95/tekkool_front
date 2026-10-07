@@ -6,9 +6,10 @@ import {Button, Header, Icon, Message, Progress, Segment} from 'semantic-ui-reac
 import Api from "../../services/api";
 import type {Payment} from "../../types/payment";
 
-// Ngân hàng báo về qua IPN, thường 10–60 giây sau khi quét. Hỏi 90 giây rồi
-// mới buông — bản cũ dừng ở 31 giây, đúng lúc phần lớn giao dịch chưa về.
-const TONG_GIAY = 90;
+// The bank reports back via IPN, usually 10–60 seconds after the scan. Poll for 90
+// seconds before giving up — the old version stopped at 31, just when most
+// transactions had not arrived yet.
+const TOTAL_SECONDS = 90;
 
 export default function PaymentResult() {
     const navigate = useNavigate();
@@ -17,27 +18,27 @@ export default function PaymentResult() {
 
     const [payment, setPayment] = useState<Payment | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [giay, setGiay] = useState(0);      // đã chờ bao lâu
-    const [hetGio, setHetGio] = useState(false);
-    const batDau = useRef(Date.now());
+    const [seconds, setSeconds] = useState(0);      // how long we have waited
+    const [timedOut, setTimedOut] = useState(false);
+    const startedAt = useRef(Date.now());
 
     useEffect(() => {
         if (!inv) { setError('Thiếu mã đơn hàng'); return; }
 
-        // ponytail: cancelled chặn setState sau khi rời trang — vòng lặp await
-        // này không dừng lại theo unmount như setInterval, phải tự chặn.
+        // ponytail: cancelled blocks setState after leaving the page — this await loop
+        // does not stop on unmount like setInterval does, so we must guard it ourselves.
         let cancelled = false;
 
-        // Đồng hồ chạy riêng với vòng hỏi: khách phải thấy số nhích mỗi giây,
-        // không thì màn hình trông như treo và họ đóng tab.
-        let dongHo = setInterval(() => {
-            if (!cancelled) setGiay(Math.round((Date.now() - batDau.current) / 1000));
+        // The clock runs separately from the polling loop: the customer must see the number
+        // tick every second, otherwise the screen looks frozen and they close the tab.
+        let clock = setInterval(() => {
+            if (!cancelled) setSeconds(Math.round((Date.now() - startedAt.current) / 1000));
         }, 1000);
 
         (async () => {
-            // Hỏi đều 2 giây thay vì gấp đôi mỗi lần: khoảng cách giãn dần làm
-            // lần chờ cuối dài tới 16 giây, khách tưởng hỏng.
-            while (!cancelled && (Date.now() - batDau.current) / 1000 < TONG_GIAY) {
+            // Poll every 2 seconds instead of doubling each time: a growing interval makes
+            // the last wait up to 16 seconds and the customer thinks it is broken.
+            while (!cancelled && (Date.now() - startedAt.current) / 1000 < TOTAL_SECONDS) {
                 let res;
                 try {
                     res = await Api.get('payment/status/' + inv);
@@ -52,21 +53,21 @@ export default function PaymentResult() {
 
                 await new Promise(r => setTimeout(r, 2000));
             }
-            if (!cancelled) setHetGio(true);
+            if (!cancelled) setTimedOut(true);
         })();
 
-        return () => { cancelled = true; clearInterval(dongHo); };
+        return () => { cancelled = true; clearInterval(clock); };
     }, [inv]);
 
     const isPaid = payment && payment.status === 'PAID';
-    // Chưa có phản hồi lần nào cũng là đang chờ — không để trang trắng.
-    const dangCho = !error && (!payment || payment.status === 'PENDING');
+    // No response yet also counts as waiting — never leave a blank page.
+    const waiting = !error && (!payment || payment.status === 'PENDING');
 
     return <div className='tk-pay-result'>
         <Segment padded='very' textAlign='center'>
-            {/* Loi tra cuu khong co loi ra thi khach ket o day — tien da
-                chuyen roi ma khong biet di dau. Luon kem ma don + duong
-                sang lich su thanh toan. */}
+            {/* A lookup error with no way out strands the customer here — money already
+                sent and nowhere to go. Always include the order code + a link
+                to the payment history. */}
             {error && <div>
                 <Icon name='exclamation triangle' color='red' size='huge'/>
                 <Header as='h2'>
@@ -86,10 +87,10 @@ export default function PaymentResult() {
                 <div className='text-muted tk-pay-inv'>Mã đơn: {inv}</div>
             </div>}
 
-            {dangCho && !hetGio && <div>
-                {/* <Loading/> tự có kích thước. Khối neo `.tk-pay-spin` cũ
-                    (height:60px) là của Loader Semantic position:absolute —
-                    giữ lại thì nó CẮT mất phần dưới của hình 72px + dòng chữ. */}
+            {waiting && !timedOut && <div>
+                {/* <Loading/> has its own size. The old `.tk-pay-spin` anchor block
+                    (height:60px) was for the position:absolute Semantic Loader —
+                    keeping it would CLIP the bottom of the 72px image + the text. */}
                 <Loading size={72}/>
 
                 <Header as='h2'>
@@ -100,11 +101,11 @@ export default function PaymentResult() {
                     </Header.Subheader>
                 </Header>
 
-                {/* Thanh chạy để khách biết máy đang làm việc chứ không treo.
-                    Không có nó thì 60 giây im lặng đủ để người ta đóng tab. */}
-                <Progress percent={Math.min(100, Math.round(giay / TONG_GIAY * 100))}
+                {/* Progress bar so the customer knows the system is working, not frozen.
+                    Without it 60 seconds of silence is enough to make people close the tab. */}
+                <Progress percent={Math.min(100, Math.round(seconds / TOTAL_SECONDS * 100))}
                           size='small' color='blue' className='tk-pay-bar'/>
-                <div className='text-muted'>Đã chờ {giay} giây</div>
+                <div className='text-muted'>Đã chờ {seconds} giây</div>
 
                 <Message warning className='tk-pay-warn'>
                     <Icon name='warning sign'/>
@@ -121,16 +122,16 @@ export default function PaymentResult() {
                         Lượt thi đã được cộng vào tài khoản, chọn đề là làm được ngay.
                     </Header.Subheader>
                 </Header>
-                {/* Mua gói xong không có ĐỀ nào để vào thẳng — gói dùng cho mọi
-                    đề. Về trang chọn đề thay vì đoán bừa một đề. */}
+                {/* After buying a package there is no EXAM to jump straight into — a package
+                    works for every exam. Go to the exam picker instead of guessing one. */}
                 <Button primary size='large' onClick={() => navigate('/')}>
                     <Icon name='play'/> Chọn đề để làm
                 </Button>
             </div>}
 
-            {/* Hết 90 giây mà chưa về: KHÔNG kết luận thất bại — tiền có thể đã
-                trừ, chỉ là IPN chậm. Nói đúng tình trạng và cho lối tra lại. */}
-            {dangCho && hetGio && <div>
+            {/* 90 seconds up and nothing back: do NOT conclude failure — the money may
+                already be charged, IPN is just slow. State the real situation and offer a way to re-check. */}
+            {waiting && timedOut && <div>
                 <Icon name='clock outline' color='yellow' size='huge'/>
                 <Header as='h2'>
                     Ngân hàng chưa báo về

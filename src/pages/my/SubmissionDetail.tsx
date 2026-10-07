@@ -10,16 +10,17 @@ import {useAuthStore} from '../../stores/authStore';
 import type {SubmissionAnswer, SubmissionDetail as Sub} from '../../types/submission';
 import {fmtDate, fmtDuration, round, ScoreLabel} from './fmt';
 
-/** Điểm/nhận xét giáo viên đang gõ, khoá theo `question_id`. */
+/** Scores/comments the teacher is typing, keyed by `question_id`. */
 type Draft = Record<string, string>;
 
 /**
- * Xem lại một bài đã nộp. MỘT màn cho cả hai vai:
- *  - học sinh: đọc bài mình làm, đáp án đúng, điểm, lời phê
- *  - giáo viên (chủ đề): thêm ô nhập điểm + ô phê cho từng câu tự luận
+ * Review a submitted attempt. ONE screen for both roles:
+ *  - student: reads their own attempt, the correct answers, score, remarks
+ *  - teacher (exam owner): adds a score input + comment input for each essay question
  *
- * ponytail: không tách hai màn vì nội dung hiển thị y hệt nhau, chỉ khác chỗ
- * ô nhập có hiện hay không. Hai file là hai chỗ phải sửa mỗi lần đổi cách hiện bài.
+ * ponytail: not split into two screens because the displayed content is identical,
+ * only whether the inputs show differs. Two files means two places to edit every time
+ * the attempt display changes.
  */
 export default function SubmissionDetail() {
     const {id} = useParams();
@@ -39,11 +40,11 @@ export default function SubmissionDetail() {
             .catch((e: any) => setError((e && (e.error || e.message)) || 'Không xem được bài này'));
     }, [id]);
 
-    // Quyền chấm do BE quyết (`can_grade` = chủ đề). `user` chỉ để chắc chắn
-    // phiên còn sống — khách vãng lai không bao giờ mở được màn này.
+    // Grading permission is decided by the BE (`can_grade` = exam owner). `user` is only to
+    // make sure the session is alive — a casual visitor can never open this screen.
     const canGrade = !!(sub && sub.can_grade && user);
 
-    // Giá trị đang hiện trong ô điểm: ưu tiên cái giáo viên vừa gõ.
+    // Value currently shown in the score input: prefer what the teacher just typed.
     const scoreOf = (a: SubmissionAnswer) => {
         const v = scores[a.question_id];
         if (v !== undefined) return v;
@@ -57,8 +58,8 @@ export default function SubmissionDetail() {
         setSaving(true);
         setSaved(false);
         try {
-            // Lấy lại bản BE trả về: điểm tổng và trạng thái do BE tính,
-            // không tự đoán ở FE.
+            // Take back the version the BE returns: total score and status are computed by the BE,
+            // not guessed on the FE.
             const fresh = await Api.post<Sub>('exam/grade/' + id, {
                 scores, comments, teacher_comment: teacherComment,
             });
@@ -73,17 +74,17 @@ export default function SubmissionDetail() {
     };
 
     /**
-     * Hiện lại ĐÚNG những gì học sinh nhìn thấy lúc làm bài: ngữ liệu đọc hiểu
-     * in một lần đầu nhóm, trắc nghiệm hiện đủ A/B/C/D.
+     * Show EXACTLY what the student saw while taking the exam: the reading passage
+     * printed once at the start of the group, multiple choice showing all of A/B/C/D.
      *
-     * ponytail: trước đây chỉ in ra chuỗi học sinh đã chọn, giáo viên không
-     * thấy các phương án còn lại nên không biết em ấy đã cân nhắc giữa những gì.
+     * ponytail: it used to print only the string the student chose, so the teacher
+     * could not see the other options and did not know what the student weighed between.
      */
     const renderAnswer = (a: SubmissionAnswer, idx: number, list: SubmissionAnswer[]) => {
         const grading = canGrade && !a.auto_graded;
         const wrong = a.auto_graded && a.score === 0;
 
-        // Ngữ liệu chung: chỉ in ở câu ĐẦU nhóm, y như màn làm bài.
+        // Shared passage: printed only at the FIRST question of the group, same as the exam screen.
         const prev = list[idx - 1];
         const showPassage = a.passage && !(prev && prev.passage_id === a.passage_id);
 
@@ -95,8 +96,8 @@ export default function SubmissionDetail() {
 
             <div className='sub-answer-head'>
                 <b>Câu {idx + 1}</b>
-                {/* ponytail: bỏ nhãn Đúng/Sai — điểm '1 / 1' ngay bên cạnh đã nói
-                    điều đó rồi, và chấm màu ở từng phương án nói lần thứ ba. */}
+                {/* ponytail: dropped the Correct/Wrong label — the '1 / 1' score right next to it
+                    already says that, and the coloured dot on each option says it a third time. */}
                 {!a.auto_graded && a.score === null &&
                 <Label size='tiny' color='yellow'>chờ chấm</Label>}
                 <span className='sub-answer-score'>
@@ -106,11 +107,11 @@ export default function SubmissionDetail() {
 
             <div className='sub-question'>{renderHTML(a.question_text || '')}</div>
 
-            {/* Trắc nghiệm: hiện đủ phương án, đánh dấu cái học sinh chọn và
-                cái đúng — giống hệt màn làm bài, chỉ khác là khoá không sửa được.
+            {/* Multiple choice: show every option, mark the one the student chose and
+                the correct one — identical to the exam screen, only locked from editing.
 
-                ponytail: chấm tròn tô màu thay cho nhãn chữ 'đáp án' / 'đã chọn'.
-                Nền xanh/đỏ đã nói đủ; thêm nhãn nữa là nói ba lần một chuyện. */}
+                ponytail: a coloured dot instead of a text label 'answer' / 'chosen'.
+                The green/red background says enough; another label says the same thing three times. */}
             {!!choices.length &&
             <div className='sub-choices'>
                 {choices.map((c, i) => {
@@ -119,8 +120,8 @@ export default function SubmissionDetail() {
                     return <div key={c.id || i}
                                 className={'sub-choice' + (picked ? ' picked' : '') + (isKey ? ' key' : '')}>
                         <span className='sub-dot'/>
-                        {/* renderHTML chứ không nối chuỗi: nội dung phương án là HTML,
-                            in thẳng thì '->' hiện ra thành '-&gt;'. */}
+                        {/* renderHTML rather than string concatenation: the option content is HTML,
+                            printing it directly makes '->' show up as '-&gt;'. */}
                         <span className='sub-choice-text'>
                             {numToChar(i)}. {renderHTML(c.value || '')}
                         </span>
@@ -128,7 +129,7 @@ export default function SubmissionDetail() {
                 })}
             </div>}
 
-            {/* Tự luận / điền khuyết: không có phương án, hiện bài viết. */}
+            {/* Essay / fill-in: no options, show the written answer. */}
             {!choices.length &&
             <div>
                 <div className='sub-label'>Bài làm của học sinh</div>
@@ -137,8 +138,8 @@ export default function SubmissionDetail() {
                 </div>
             </div>}
 
-            {/* Đáp án đúng dạng chữ: chỉ cần khi KHÔNG có danh sách phương án
-                (điền khuyết, đúng/sai) — có A/B/C/D rồi thì đã đánh dấu ở trên. */}
+            {/* Correct answer as text: only needed when there is NO option list
+                (fill-in, true/false) — with A/B/C/D it is already marked above. */}
             {!choices.length && a.auto_graded && a.correct &&
             <div>
                 <div className='sub-label'>Đáp án đúng</div>

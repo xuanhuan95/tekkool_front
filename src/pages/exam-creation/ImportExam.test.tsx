@@ -5,12 +5,12 @@ import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import Api from '../../services/api';
 import ImportExam from './ImportExam';
 
-// Màn này là cửa duy nhất đưa đề vào hệ thống. Hai chỗ từng nói dối giáo viên:
-// dòng hint khoe "Đã thêm N khối" sau lần lưu sau đó không động vào ngân hàng,
-// và nút "Kiểm tra trùng lặp" hỏng mà im lặng — bấm xong không chip nào hiện,
-// trông y hệt "ngân hàng sạch trùng".
+// This screen is the only door for getting exams into the system. Two places once
+// lied to teachers: the hint line bragging "Đã thêm N khối" after a later save that
+// never touched the bank, and the "Kiểm tra trùng lặp" button failing silently —
+// no chip showed after the click, looking exactly like "bank has no duplicates".
 
-const DE = {
+const EXAM = {
     id: 'E1',
     name: 'Đề thử 1',
     duration: 45,
@@ -31,20 +31,20 @@ const DE = {
     }],
 };
 
-const ve = (duong = '/import-exam?bank=B1') => render(
-    <MemoryRouter initialEntries={[duong]}>
+const renderScreen = (path = '/import-exam?bank=B1') => render(
+    <MemoryRouter initialEntries={[path]}>
         <Routes>
             <Route path='/import-exam' element={<ImportExam/>}/>
-            {/* save(false) đẩy về '/' — không khai báo thì test nào chạm
-                vào "Tạo thẳng đề" sẽ nổ ở chỗ không liên quan. */}
+            {/* save(false) pushes to '/' — if not declared, any test that touches
+                "Tạo thẳng đề" would blow up somewhere unrelated. */}
             <Route path='/' element={<div>TRANG CHỦ</div>}/>
         </Routes>
     </MemoryRouter>
 );
 
-/** Bắt chước giáo viên chọn file .docx: BE trả về bản xem trước. */
-async function napFile() {
-    vi.spyOn(Api, 'upload').mockResolvedValue({exams: [DE], warnings: []});
+/** Imitate a teacher picking a .docx file: the BE returns the preview. */
+async function loadFile() {
+    vi.spyOn(Api, 'upload').mockResolvedValue({exams: [EXAM], warnings: []});
     const input = document.querySelector('input[type=file]') as HTMLInputElement;
     const file = new File(['x'], 'de.docx');
     fireEvent.change(input, {target: {files: [file]}});
@@ -59,93 +59,94 @@ beforeEach(() => {
     });
 });
 
-describe('ImportExam: dòng hint sau khi lưu', () => {
-    it('lần lưu sau thất bại thì không được giữ lại hint "đã thêm N khối"', async () => {
-        let lanDau = true;
+describe('ImportExam: hint line after saving', () => {
+    it('a failed later save must not keep the "added N blocks" hint', async () => {
+        let firstTime = true;
         vi.spyOn(Api, 'post').mockImplementation(async (url: string) => {
             if (url === 'question_bank/capacity') return {slots: {}, capacity: 0, per_type: {}};
             if (url === 'question_bank/save') {
-                if (lanDau) { lanDau = false; return {saved: 12}; }
+                if (firstTime) { firstTime = false; return {saved: 12}; }
                 throw {message: 'Ngân hàng đầy'};
             }
             return {};
         });
-        ve();
-        await napFile();
+        renderScreen();
+        await loadFile();
 
         fireEvent.click(screen.getByText(/Lưu 1 đề vào ngân hàng/));
         await screen.findByText('Đã thêm 12 khối vào ngân hàng.');
 
-        // Lần hai hỏng giữa chừng: KHÔNG khối nào được thêm. Hint cũ còn nguyên
-        // là giáo viên đọc xong tưởng lần này cũng vào 12 khối rồi đóng tab.
+        // The second run fails midway: NO block was added. If the old hint stays,
+        // the teacher reads it, assumes 12 blocks went in again, and closes the tab.
         fireEvent.click(screen.getByText(/Lưu 1 đề vào ngân hàng/));
         await screen.findByText('Ngân hàng đầy');
         expect(screen.queryByText('Đã thêm 12 khối vào ngân hàng.')).toBeNull();
     });
 });
 
-describe('ImportExam: đo trùng', () => {
-    it('đo trùng hỏng phải báo lỗi, không im lặng như thể sạch trùng', async () => {
+describe('ImportExam: duplicate check', () => {
+    it('a failed duplicate check must report an error, not stay silent as if clean', async () => {
         vi.spyOn(Api, 'post').mockImplementation(async (url: string) => {
             if (url === 'question_bank/capacity') return {slots: {}, capacity: 0, per_type: {}};
             if (url === 'question_bank/check_trung') throw {error: 'Ngân hàng đang bận'};
             return {};
         });
-        ve();
-        await napFile();
+        renderScreen();
+        await loadFile();
 
         fireEvent.click(screen.getByText(/Kiểm tra trùng lặp/));
         await screen.findByText('Ngân hàng đang bận');
     });
 
-    it('có câu trùng thì hiện tỷ lệ trên đúng câu đó', async () => {
+    it('a duplicate question shows its rate on exactly that question', async () => {
         vi.spyOn(Api, 'post').mockImplementation(async (url: string) => {
             if (url === 'question_bank/capacity') return {slots: {}, capacity: 0, per_type: {}};
             if (url === 'question_bank/check_trung')
                 return {trung: {Q1: {score: 0.97, khop: [{khoi: 'K9', score: 0.97}]}}};
             return {};
         });
-        ve();
-        await napFile();
+        renderScreen();
+        await loadFile();
 
         fireEvent.click(screen.getByText(/Kiểm tra trùng lặp/));
         await screen.findByText('1 câu trùng');
     });
 });
 
-describe('ImportExam: chặn lưu sai chỗ', () => {
-    it('không có ?bank= thì khoá nút lưu vào ngân hàng', async () => {
+describe('ImportExam: blocking saves in the wrong place', () => {
+    it('without ?bank= the save-to-bank button is locked', async () => {
         vi.spyOn(Api, 'post').mockResolvedValue({});
-        ve('/import-exam');
-        await napFile();
+        renderScreen('/import-exam');
+        await loadFile();
 
-        const nut = screen.getByText(/Lưu 1 đề vào ngân hàng/).closest('button')!;
-        // Khối không có ngân hàng thì rơi vào rổ chung không tên không môn,
-        // không màn nào rút ra được.
-        expect(nut.disabled).toBe(true);
+        const button = screen.getByText(/Lưu 1 đề vào ngân hàng/).closest('button')!;
+        // Blocks without a bank fall into a shared nameless, subject-less basket
+        // that no screen can draw from.
+        expect(button.disabled).toBe(true);
         expect(screen.getByText(/Muốn lưu vào ngân hàng thì vào/)).toBeTruthy();
     });
 });
 
 // ──────────────────────────────────────────────────────────────────────
-// Lát nối: thao tác trên màn hình → payload gửi lên question_bank/save
+// The seam: on-screen actions → payload sent to question_bank/save
 // ──────────────────────────────────────────────────────────────────────
 //
-// `convertData` được test riêng, `split_blocks` có self-check bên BE. Khúc
-// giữa thì không ai giữ: thứ quyết định câu vào ngăn nào trong ngân hàng là
-// `type` và `max_words` của CHÍNH payload này. Gửi sai thì BE phân loại đúng
-// theo dữ liệu sai — khối nằm nhầm ngăn, tồn kho báo đủ mà rút đề ra sai cấu
-// trúc, giáo viên không thấy gì bất thường cho tới lúc học sinh đang thi.
+// `convertData` is tested separately, `split_blocks` has a self-check on the BE.
+// Nobody guards the middle: what decides which slot a question goes into in the
+// bank is the `type` and `max_words` of THIS payload itself. Send them wrong and
+// the BE classifies correctly from wrong data — blocks land in the wrong slot,
+// stock reports enough yet drawn exams have the wrong structure, and the teacher
+// sees nothing unusual until students are mid-exam.
 
-/** Đề có một câu trắc nghiệm và một câu tự luận, để đổi loại và nhập giới hạn từ. */
-const DE_HON_HOP = {
-    ...DE,
+/** An exam with one multiple-choice and one free-answer question, to switch type and enter a word limit. */
+const MIXED_EXAM = {
+    ...EXAM,
     sections: [{
         id: 'S1',
         name: 'Phần I',
         question_type: 'MultipleChoice',
         questions: [
-            DE.sections[0].questions[0],
+            EXAM.sections[0].questions[0],
             {
                 id: 'Q2',
                 type: 'FreeAnswer',
@@ -155,100 +156,100 @@ const DE_HON_HOP = {
     }],
 };
 
-/** Nạp đề hỗn hợp, trả về hàm đọc payload đã gửi lên question_bank/save. */
-async function napDeHonHop() {
-    const daGui: any[] = [];
+/** Load the mixed exam, return helpers to read the payload sent to question_bank/save. */
+async function loadMixedExam() {
+    const sent: any[] = [];
     vi.spyOn(Api, 'post').mockImplementation(async (url: string, body?: any) => {
         if (url === 'question_bank/capacity') return {slots: {}, capacity: 0, per_type: {}};
-        if (url === 'question_bank/save') { daGui.push(body); return {saved: 2}; }
+        if (url === 'question_bank/save') { sent.push(body); return {saved: 2}; }
         return {};
     });
-    vi.spyOn(Api, 'upload').mockResolvedValue({exams: [DE_HON_HOP], warnings: []});
+    vi.spyOn(Api, 'upload').mockResolvedValue({exams: [MIXED_EXAM], warnings: []});
 
     const input = document.querySelector('input[type=file]') as HTMLInputElement;
     fireEvent.change(input, {target: {files: [new File(['x'], 'de.docx')]}});
     await screen.findByText(/Đọc được 1 đề/);
 
     return {
-        daGui,
-        luu: () => fireEvent.click(screen.getByText(/Lưu 1 đề vào ngân hàng/)),
-        cau: (qid: string) => daGui[0].sections[0].questions.find((q: any) => q.id === qid),
+        sent,
+        save: () => fireEvent.click(screen.getByText(/Lưu 1 đề vào ngân hàng/)),
+        question: (qid: string) => sent[0].sections[0].questions.find((q: any) => q.id === qid),
     };
 }
 
 /**
- * Đổi loại câu ĐẦU TIÊN. Mỗi câu một Dropdown riêng và cả hai cùng liệt kê 5
- * loại, nên `getByText('Đúng / Sai')` khớp nhiều phần tử — phải tìm trong
- * đúng dropdown của câu 1.
+ * Change the type of the FIRST question. Each question has its own Dropdown and
+ * both list the same 5 types, so `getByText('Đúng / Sai')` matches several
+ * elements — it must be looked up inside question 1's dropdown.
  */
-function doiLoaiCau1(ten: string) {
+function changeQuestion1Type(label: string) {
     const dd = document.querySelectorAll('.import-type')[0] as HTMLElement;
     fireEvent.click(dd);
-    fireEvent.click(within(dd).getByText(ten));
+    fireEvent.click(within(dd).getByText(label));
 }
 
-describe('ImportExam: payload quyết định câu vào ngăn nào', () => {
-    it('giới hạn từ nhập trên màn hình phải đi lên BE dạng SỐ', async () => {
-        ve();
-        const t = await napDeHonHop();
+describe('ImportExam: payload decides which slot a question goes into', () => {
+    it('the word limit typed on screen must reach the BE as a NUMBER', async () => {
+        renderScreen();
+        const t = await loadMixedExam();
 
-        // Ô "giới hạn từ" chỉ hiện ở câu không phải trắc nghiệm.
-        const o = document.querySelector('.import-wordlimit input') as HTMLInputElement;
-        fireEvent.change(o, {target: {value: '200'}});
+        // The "word limit" box only shows on non-multiple-choice questions.
+        const box = document.querySelector('.import-wordlimit input') as HTMLInputElement;
+        fireEvent.change(box, {target: {value: '200'}});
 
-        t.luu();
+        t.save();
         await screen.findByText(/Đã thêm 2 khối/);
 
-        // BE so max_words với ngưỡng 50/400 để chia TraLoiNgan/VietDoan/VietBai.
-        // Gửi chuỗi '200' thì so sánh trong Python 3 ném TypeError, còn Python 2
-        // so chuỗi với số ra kết quả tuỳ ý — cả hai đều cho ngăn sai.
-        expect(t.cau('Q2').data.max_words).toBe(200);
+        // The BE compares max_words against thresholds 50/400 to split TraLoiNgan/VietDoan/VietBai.
+        // Sending the string '200' makes the comparison raise TypeError in Python 3, and in
+        // Python 2 string-vs-number gives arbitrary results — both yield the wrong slot.
+        expect(t.question('Q2').data.max_words).toBe(200);
     });
 
-    it('đổi loại câu thì payload mang loại MỚI, không giữ loại parser đoán', async () => {
-        ve();
-        const t = await napDeHonHop();
+    it('changing a question type makes the payload carry the NEW type, not the parser guess', async () => {
+        renderScreen();
+        const t = await loadMixedExam();
 
-        // Parser chỉ đoán được Trắc nghiệm / Tự luận. Ba loại còn lại giáo viên
-        // tự chọn — và chính lựa chọn đó quyết định ngăn trong ngân hàng.
-        doiLoaiCau1('Đúng / Sai');
+        // The parser can only guess multiple choice / free answer. The teacher picks the
+        // other three — and that very choice decides the slot in the bank.
+        changeQuestion1Type('Đúng / Sai');
 
-        t.luu();
+        t.save();
         await screen.findByText(/Đã thêm 2 khối/);
 
-        expect(t.cau('Q1').type).toBe('TrueFalse');
-        // Và phải sạch dữ liệu riêng của loại cũ: answers của trắc nghiệm còn
-        // sót lại thì BE lưu nguyên vào Question.data, TrueFalse.jsx đọc phải
-        // mảng phương án ở chỗ nó chờ boolean.
-        expect(t.cau('Q1').data.answers).toBeUndefined();
+        expect(t.question('Q1').type).toBe('TrueFalse');
+        // And the old type's own data must be cleaned: leftover multiple-choice answers
+        // get stored whole into Question.data, and TrueFalse.jsx reads an array of
+        // options where it expects a boolean.
+        expect(t.question('Q1').data.answers).toBeUndefined();
     });
 
-    it('đổi loại một câu KHÔNG được đổi loại câu khác trong cùng phần', async () => {
-        ve();
-        const t = await napDeHonHop();
+    it('changing one question type must NOT change another question in the same section', async () => {
+        renderScreen();
+        const t = await loadMixedExam();
 
-        doiLoaiCau1('Đúng / Sai');
+        changeQuestion1Type('Đúng / Sai');
 
-        t.luu();
+        t.save();
         await screen.findByText(/Đã thêm 2 khối/);
 
-        // Câu 2 không bị đụng tới. BE nhận `type` của từng câu, nên một câu
-        // đổi mà kéo cả phần đổi theo là cả phần vào nhầm ngăn.
-        expect(t.cau('Q2').type).toBe('FreeAnswer');
+        // Question 2 is untouched. The BE takes each question's `type`, so one question
+        // changing and dragging the whole section along would send the whole section to the wrong slot.
+        expect(t.question('Q2').type).toBe('FreeAnswer');
     });
 
-    it('ngữ liệu sửa trên màn hình đi lên cho CẢ nhóm, không riêng câu đầu', async () => {
-        const daGui: any[] = [];
+    it('a passage edited on screen goes up for the WHOLE group, not just the first question', async () => {
+        const sent: any[] = [];
         vi.spyOn(Api, 'post').mockImplementation(async (url: string, body?: any) => {
             if (url === 'question_bank/capacity') return {slots: {}, capacity: 0, per_type: {}};
-            if (url === 'question_bank/save') { daGui.push(body); return {saved: 1}; }
+            if (url === 'question_bank/save') { sent.push(body); return {saved: 1}; }
             return {};
         });
-        // Hai câu chung một passageId — BE gom chúng thành MỘT khối DocHieu
-        // theo đúng field này. Mất passageId là tách câu khỏi bài đọc.
+        // Two questions share one passageId — the BE groups them into ONE DocHieu block
+        // by exactly this field. Losing passageId detaches a question from its reading.
         vi.spyOn(Api, 'upload').mockResolvedValue({
             exams: [{
-                ...DE,
+                ...EXAM,
                 sections: [{
                     id: 'S1', name: 'Phần I', question_type: 'MultipleChoice',
                     questions: [1, 2].map(i => ({
@@ -266,7 +267,7 @@ describe('ImportExam: payload quyết định câu vào ngăn nào', () => {
             }],
             warnings: [],
         });
-        ve();
+        renderScreen();
         const input = document.querySelector('input[type=file]') as HTMLInputElement;
         fireEvent.change(input, {target: {files: [new File(['x'], 'de.docx')]}});
         await screen.findByText(/Đọc được 1 đề/);
@@ -274,7 +275,7 @@ describe('ImportExam: payload quyết định câu vào ngăn nào', () => {
         fireEvent.click(screen.getByText(/Lưu 1 đề vào ngân hàng/));
         await screen.findByText(/Đã thêm 1 khối/);
 
-        const qs = daGui[0].sections[0].questions;
+        const qs = sent[0].sections[0].questions;
         expect(qs.map((q: any) => q.data.passageId)).toEqual(['P1', 'P1']);
     });
 });

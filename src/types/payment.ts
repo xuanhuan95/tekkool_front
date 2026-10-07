@@ -1,31 +1,31 @@
-/** Gói lượt thi đang bán. */
+/** Exam-turn package on sale. */
 export type Package = {
     id: string;
     name: string;
     turns: number;
     price: number;
     description?: string;
-    /** false = ẩn khỏi trang bán. Chỉ `package/list?all=1` (giáo viên) trả gói đã ẩn. */
+    /** false = hidden from the sales page. Only `package/list?all=1` (teacher) returns hidden packages. */
     active?: boolean;
-    /** Thứ tự hiện trên trang bán. BE sắp theo `[order, price]`. */
+    /** Display order on the sales page. BE sorts by `[order, price]`. */
     order?: number;
 };
 
-/** BE trả về để FE dựng form POST sang SePay. */
+/** BE returns this so FE can build the POST form to SePay. */
 export type CheckoutForm = {
     action_url: string;
-    /** Mảng [key, value] chứ KHÔNG phải object: thứ tự field quyết định chữ ký. */
+    /** Array of [key, value], NOT an object: field order determines the signature. */
     fields: Array<[string, string]>;
 };
 
-/** Số lượt còn lại. BE tính `remaining = bought - used` mỗi lần hỏi — không có bảng số dư. */
+/** Turns remaining. BE computes `remaining = bought - used` on every query — there is no balance table. */
 export type Wallet = {
     bought: number;
     used: number;
     remaining: number;
 };
 
-/** Đơn hàng. PENDING = chờ IPN từ ngân hàng về, chưa cộng lượt. */
+/** Order. PENDING = waiting for the IPN from the bank, turns not yet added. */
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'CANCELLED';
 
 export type Payment = {

@@ -12,31 +12,31 @@ import {uuid} from "../../../tools";
 
 
 /**
- * ponytail: ErrorIdentify tung la ban chep y het file nay (177 dong, khac
- * dung 4 cho). Gio no truyen 3 prop duoi day thay vi chep lai ca logic
- * parse "A. ... B. ...", them/xoa/sua phuong an.
+ * ponytail: ErrorIdentify used to be an exact copy of this file (177 lines,
+ * differing in exactly 4 places). Now it passes the props below instead of
+ * duplicating the logic for parsing "A. ... B. ...", adding/removing/editing options.
  *
- * `toAnswerButton` khong chi bat/tat mot nut: Editor an luon nut do khi
- * khong co `onToAnswerButton`, nen de mac dinh false la giu nguyen
- * MultipleChoice cu (khong co nut).
+ * `toAnswerButton` is not just an on/off switch for a button: Editor also hides
+ * that button when there is no `onToAnswerButton`, so defaulting to false keeps
+ * the old MultipleChoice unchanged (no button).
  */
 export type ChoiceProps = BaseQuestionProps & {
-    /** Class CSS cua form. `.ErrorIdentify` co CSS counter danh so o tich. */
+    /** CSS class of the form. `.ErrorIdentify` has a CSS counter that numbers the check boxes. */
     cssClass?: string;
-    /** Editor doc de biet chen o tich hay gach chan "______". */
+    /** Editor reads this to know whether to insert a check box or a "______" underline. */
     editorType?: string;
-    /** Bat nut "chuyen vung chon thanh dap an". */
+    /** Show the "turn selection into answer" button. */
     toAnswerButton?: boolean;
     placeholder?: string;
     /**
-     * Day icon xoa xuong cho thang hang voi o dap an. ErrorIdentify tat vi
-     * dong cua no cao hon, day them la lech nguoc len.
+     * Push the remove icon down to line up with the answer box. ErrorIdentify
+     * turns it off because its row is taller; pushing further would misalign it upward.
      */
     iconOffset?: boolean;
 };
 
 export default class MultipleChoice extends BaseQuestion<ChoiceProps> {
-    // Shim ref cua Editor: {current: {medium: {...}}} — xem Editor.tsx.
+    // Shim ref for Editor: {current: {medium: {...}}} — see Editor.tsx.
     refNewAnswer = React.createRef<any>();
     refQuestion = React.createRef<any>();
 
@@ -80,9 +80,9 @@ export default class MultipleChoice extends BaseQuestion<ChoiceProps> {
         data.answers = answers;
         this.setQuestionData(data);
 
-        // ponytail: ban cu goi setState({answers}, cb) tren component KHONG co
-        // state — `answers` chang ai doc, setState chi duoc dung lam "chay sau
-        // khi ve xong". setQuestionData o tren da ve lai roi, goi thang la du.
+        // ponytail: the old version called setState({answers}, cb) on a component
+        // with NO state — nobody read `answers`, setState was only used as "run
+        // after render". setQuestionData above already re-rendered, so calling directly is enough.
         this.resetAnswerInput();
     };
 
@@ -138,9 +138,9 @@ export default class MultipleChoice extends BaseQuestion<ChoiceProps> {
         }
     };
 
-    // Boi den mot doan -> Editor chen o tich vao cho do, con chu vua boi den
-    // thanh mot phuong an. Khong danh so A/B/C o day: CSS counter trong
-    // Editor.css lam viec do (ban cu dung Zepto, window.$ khong con ton tai).
+    // Select a span of text -> Editor inserts a check box there, and the selected
+    // text becomes an option. No A/B/C numbering here: the CSS counter in
+    // Editor.css does that (the old version used Zepto; window.$ no longer exists).
     onToAnswerButton = (content: string) => this.addAnswer(content);
 
     render() {

@@ -10,7 +10,7 @@ const correctChoiceLabel = (data: Record<string, any>) => {
 
 export default function PreviewAnswer() {
     const exam = useExamDraftStore(s => s.exam);
-    useExamDraftStore(s => s.version);   // vẽ lại khi exam bị sửa tại chỗ
+    useExamDraftStore(s => s.version);   // re-render when the exam is mutated in place
     if (!exam) return null;
 
     let qIdx = 0;

@@ -37,11 +37,13 @@
 }
 
 
-/* Dropdown đơn vị mặc định chỉ ~47px, bấm rất khó trúng — nới ra.
-   Phải dùng .ui.form .ui.input vì Semantic ép width:100% ở đúng hạng đó,
-   class trần thua specificity -> ô số giãn hết dòng, dropdown văng sang lề phải. */
+/* The unit dropdown is only ~47px by default and hard to hit; widen it.
+   Must use .ui.form .ui.input because Semantic forces width:100% at that
+   specificity; a bare class loses -> the number box stretches the full row and the
+   dropdown is pushed to the right margin. */
 .ui.form .ui.input.limit-input { width: 100%; max-width: 260px; }
-/* Semantic cho ô số flex:1 0 auto + width:100% -> shrink:0, nó không chịu co nên
-   label bị đẩy lòi khỏi khung. min-width:0 mới cho flex item co lại được. */
+/* Semantic gives the number input flex:1 0 auto + width:100% -> shrink:0, so it
+   won't shrink and the label is pushed out of the frame. min-width:0 lets the
+   flex item shrink. */
 .ui.form .ui.input.limit-input > input { width: auto; min-width: 0; flex: 1 1 auto; }
 .limit-input .ui.dropdown.label { min-width: 84px; flex: 0 0 auto; }

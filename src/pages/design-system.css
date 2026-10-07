@@ -1,0 +1,47 @@
+/* /design-system only. Layout of the catalogue page, plus forced :hover/:focus
+   looks so every state shows side by side as a static example.
+   The [data-demo-state] rules MIRROR the real ones in App.css / student.css:
+   change the real rule first, then the copy here. */
+
+.ds-section { margin-bottom: 44px; }
+.ds-section > h2 { font-size: 19px; font-weight: 600; margin: 0 0 4px; }
+.ds-section > p { color: var(--tk-muted); margin: 0 0 16px; }
+.ds-section > h3 { font-size: 15px; font-weight: 600; margin: 24px 0 10px; }
+
+.ds-row { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.ds-state { display: grid; gap: 6px; min-width: 0; }
+.ds-state > small { color: var(--tk-muted); font-size: 12px; }
+.ds-grow { flex: 1 1 320px; }
+
+.ds-swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.ds-swatch { background: var(--tk-card); border: 1px solid var(--tk-line); border-radius: var(--tk-r-sm); overflow: hidden; }
+.ds-swatch-color { display: grid; font-weight: 600; height: 56px; place-items: center; }
+.ds-swatch-meta { display: grid; font-size: 12.5px; gap: 2px; padding: 8px 10px; }
+.ds-swatch-meta code { font-size: 12px; }
+.ds-swatch-meta span { color: var(--tk-muted); }
+.ds-low { color: var(--tk-danger); font-weight: 600; }
+
+.ds-type-row { align-items: baseline; border-bottom: 1px solid var(--tk-line); display: flex; gap: 16px; padding: 10px 0; }
+.ds-type-row > small { color: var(--tk-muted); flex: none; font-size: 12px; width: 150px; }
+
+.ds-shape {
+    background: var(--tk-card); border: 1px solid var(--tk-line); color: var(--tk-muted);
+    display: grid; font-size: 12px; height: 72px; place-items: center; width: 132px;
+}
+.ds-space { background: var(--tk-primary-soft); border-left: 2px solid var(--tk-primary); height: 16px; }
+
+/* Static modal: semantic's .ui.modal is fixed + hidden until opened. */
+.ds-modal.ui.modal { display: block; left: auto; margin: 0; max-width: 420px; position: relative; top: auto; }
+
+/* ---- Forced states (mirror of the real rules) ---- */
+[data-demo-state=hover] .ui.primary.button { background-color: var(--tk-primary-dark); }
+[data-demo-state=focus] .ui.primary.button { outline: 2px solid var(--tk-primary-dark); outline-offset: 2px; }
+[data-demo-state=hover] .tk-btn { background: var(--tk-primary-dark); }
+[data-demo-state=hover] .tk-chip { border-color: var(--tk-primary); color: var(--tk-primary); }
+[data-demo-state=hover] .tk-icon-btn { background: var(--tk-primary-soft); border-color: var(--tk-line); color: var(--tk-primary); }
+[data-demo-state=hover] .tk-exam { border-color: var(--tk-primary); box-shadow: var(--tk-shadow); transform: translateX(3px); }
+[data-demo-state=hover] .tk-cfb-type { border-color: var(--block-color); box-shadow: var(--tk-shadow-lift); transform: translateY(-2px); }
+[data-demo-state=hover] .tk-qnav-cell { border-color: var(--tk-primary); }
+[data-demo-state=focus] :is(.tk-btn, .tk-chip, .tk-icon-btn, .tk-exam) { outline: 2px solid var(--tk-primary); outline-offset: 2px; }
+[data-demo-state=focus] .tk-qnav-cell { outline: 2px solid var(--tk-primary); outline-offset: 1px; }
+[data-demo-state=focus] .tk-field input { border-color: var(--tk-primary); box-shadow: 0 0 0 3px rgba(47, 111, 228, .18); }

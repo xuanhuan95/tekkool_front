@@ -3,7 +3,7 @@ import { BrowserRouter } from 'react-router-dom'
 
 import App from './pages/App';
 
-// Không có #root thì cả app không mount — lỗi to tiếng còn hơn trang trắng.
+// Without #root the whole app does not mount — a loud error beats a blank page.
 const root = document.getElementById('root');
 if (!root) throw new Error('Thiếu <div id="root"> trong index.html');
 

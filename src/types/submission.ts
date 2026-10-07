@@ -1,67 +1,67 @@
-/** Dữ liệu bài nộp BE trả về. Tên field khớp `Submission.to_dict` bên BE. */
+/** Submission data returned by BE. Field names match `Submission.to_dict` on BE. */
 export type Submission = {
     id: string;
     score: number;
     max_score: number;
-    /** Điểm tối đa của riêng phần ĐÃ chấm — không phải cả bài. */
+    /** Max score of only the part ALREADY graded — not the whole submission. */
     graded_max_score: number;
-    /** Số câu còn chờ giáo viên chấm. > 0 nghĩa là chưa có điểm cuối. */
+    /** Number of questions still waiting for the teacher to grade. > 0 means no final score yet. */
     pending_count: number;
     status: SubmissionStatus;
     duration_sec?: number;
     submitted_at?: string;
     exam_name?: string;
     /**
-     * Điểm gom theo phần. Bài nộp trước khi BE lưu `section_name` thì không
-     * có field này — optional thật, không phải để FE tự đoán.
+     * Score grouped by section. Submissions made before BE stored `section_name`
+     * lack this field — truly optional, not something for FE to guess.
      */
     phan?: ScoreSection[];
-    /** Hết giờ, máy nộp thay. */
+    /** Time ran out, the machine submitted on the student's behalf. */
     auto_submitted?: boolean;
     exam_id?: string;
     teacher_comment?: string | null;
     graded_at?: string | null;
     attempt_id?: string | null;
     /**
-     * Tên học sinh. CHỈ có ở hai endpoint cho giáo viên (`exam/to_grade/<id>`,
-     * `exam/pending`) và `exam/submission/<id>` — `exam/my_submissions` không
-     * trả, vì học sinh tự xem bài mình thì không cần tên mình.
+     * Student name. ONLY present on the two teacher endpoints (`exam/to_grade/<id>`,
+     * `exam/pending`) and `exam/submission/<id>` — `exam/my_submissions` does not
+     * return it, since a student viewing their own submission does not need their own name.
      */
     student?: string | null;
 };
 
 export type SubmissionStatus = 'GRADING' | 'GRADED';
 
-/** Một phần trong bảng điểm ("Phần I", "Phần II"...). */
+/** A section in the score table ("Phần I", "Phần II"...). */
 export type ScoreSection = {
     ten: string;
     score: number;
     max_score: number;
-    /** Số câu trong phần này còn chờ chấm. */
+    /** Number of questions in this section still waiting to be graded. */
     pending: number;
     block_type?: string | null;
 };
 
 /**
- * Một câu trong bài đã nộp (`exam/submission/<id>`). Chỉ endpoint này trả
- * `answers`; danh sách bài nộp không kèm để khỏi tải cả đề mỗi dòng.
+ * One question in a submitted attempt (`exam/submission/<id>`). Only this endpoint
+ * returns `answers`; the submission list omits it to avoid loading the whole exam per row.
  */
 export type SubmissionAnswer = {
     question_id: string;
     question_text?: string;
-    /** Bài học sinh làm: id phương án (trắc nghiệm) hoặc HTML (tự luận). */
+    /** The student's work: option id (multiple choice) or HTML (essay). */
     answer?: string | null;
-    /** null = chưa chấm. 0 không phải chưa chấm. */
+    /** null = not graded yet. 0 does not mean not graded. */
     score: number | null;
     max_score: number;
-    /** Máy chấm được (trắc nghiệm, điền khuyết) -> giáo viên không sửa tay. */
+    /** Machine-gradable (multiple choice, fill-in-the-blank) -> teachers do not edit by hand. */
     auto_graded?: boolean;
     comment?: string | null;
-    /** Đáp án đúng dạng chữ, chỉ có ở câu máy chấm. */
+    /** Correct answer as text, only present on machine-graded questions. */
     correct?: string | null;
     correct_id?: string | null;
     answers?: AnswerChoice[];
-    /** Ngữ liệu đọc hiểu dùng chung cho cả nhóm câu. */
+    /** Reading passage shared by the whole group of questions. */
     passage?: string | null;
     passage_id?: string | null;
 };
@@ -71,9 +71,9 @@ export type AnswerChoice = {
     value?: string;
 };
 
-/** Bài nộp kèm chi tiết từng câu — dạng `exam/submission/<id>` trả về. */
+/** Submission with per-question detail — the shape `exam/submission/<id>` returns. */
 export type SubmissionDetail = Submission & {
     answers?: SubmissionAnswer[];
-    /** BE tự quyết: true khi người gọi là chủ đề. Đây mới là quyền chấm. */
+    /** BE decides: true when the caller owns the exam. This is the real grading permission. */
     can_grade?: boolean;
 };

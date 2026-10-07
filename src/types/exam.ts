@@ -1,11 +1,11 @@
-/** Thư mục: vừa là MÔN (folder gốc) vừa là BỘ ĐỀ (folder con) — BE không tách hai loại. */
+/** Folder: both a SUBJECT (root folder) and an EXAM SET (child folder) — BE does not separate the two. */
 export type Folder = {
     id: string;
     name: string;
     parent?: string | null;
 };
 
-/** Đề như BE trả về ở các màn duyệt/làm bài (khác Exam trong màn soạn đề). */
+/** Exam as BE returns it on browse/take-exam screens (unlike Exam on the authoring screen). */
 export type ExamSummary = {
     id: string;
     name: string;
@@ -15,32 +15,35 @@ export type ExamSummary = {
     price?: number;
 };
 
-/** Tồn kho ngân hàng câu hỏi — `question_bank/stats`. */
+/** Question bank inventory — `question_bank/stats`. */
 export type BankStats = {
-    /** Số khối đang có, theo từng loại. Loại chưa có khối nào thì vắng mặt. */
+    /** Number of blocks available, per type. A type with no blocks is absent. */
     per_type: Record<string, number>;
     total?: number;
 };
 
-/** Sức chứa ngân hàng — `question_bank/capacity`. */
+/** Question bank capacity — `question_bank/capacity`. */
 export type BankCapacity = {
-    /** Ma trận: mỗi đề cần bao nhiêu khối mỗi loại. BE lấy từ MA_TRAN của môn. */
+    /** Matrix: how many blocks of each type an exam needs. BE takes it from the subject's MA_TRAN. */
     slots: Record<string, number>;
-    /** Số lần một học sinh làm lại được mà không gặp lại khối cũ. */
+    /** How many times a student can retake without meeting an old block again. */
     capacity: number;
     /**
-     * Loại đang chặn `capacity`. BE trả [loại, số lần] chứ không phải chuỗi —
-     * FE chỉ đọc phần tử [0].
+     * The type that is limiting `capacity`. BE returns [type, count], not a string —
+     * FE reads only element [0].
      */
     bottleneck?: [string, number] | null;
     subject?: string;
-    /** Tồn kho theo loại. Có mặt khi hỏi theo `bank` — ImportExam đọc để vẽ bảng. */
+    /** Inventory per type. Present when queried by `bank` — ImportExam reads it to draw the table. */
     per_type?: Record<string, number>;
 };
 
-/** Một ngân hàng câu hỏi — `question_bank/list`. */
+/** A question bank — `question_bank/list`. */
 export type QuestionBank = {
     id: string;
     name: string;
     subject?: string;
 };
+
+/** A slot in a bank exam's structure — each slot draws one block, order preserved. */
+export type StructureSlot = {loai: string; tieu_de: string};

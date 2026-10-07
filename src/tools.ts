@@ -3,17 +3,17 @@ export function uuid(): string {
     return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
 }
 
-/** Object bất kỳ — setNestedValue đi xuyên qua cây nên không biết trước hình dạng. */
+/** Any object — setNestedValue walks through the tree so the shape is not known up front. */
 type AnyObject = Record<string, any>;
 
 /**
- * Gán giá trị vào đường dẫn lồng nhau, SỬA TẠI CHỖ rồi trả về chính `obj`.
+ * Assign a value at a nested path, MUTATING IN PLACE and returning `obj` itself.
  *
  *   setNestedValue({a: {b: 1}}, 'a.b', 2)                     -> {a: {b: 2}}
  *   setNestedValue({a: {b: [1, 2]}}, 'a.b[0]', 2)             -> {a: {b: [2, 2]}}
  *   setNestedValue({a: [{id: 1, b: 1}]}, 'a[id=1].b', 5)      -> {a: [{id: 1, b: 5}]}
  *
- * Dạng `a[id=X]` so sánh bằng String() nên id số khớp với 'X' dạng chuỗi.
+ * The `a[id=X]` form compares with String(), so a numeric id matches 'X' as a string.
  */
 export function setNestedValue<T extends AnyObject>(obj: T, nested: string, value: unknown): T {
     const splitted = nested.split('.');

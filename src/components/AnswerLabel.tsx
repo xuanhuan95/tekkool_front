@@ -1,4 +1,4 @@
-/** Nhãn "Answers" đứng trước danh sách phương án, dùng ở 4 loại câu hỏi. */
+/** "Answers" label shown before the option list, used by 4 question types. */
 export function AnswerLabel() {
     return <div className='answer-label'>Answers</div>;
 }

@@ -1,40 +1,40 @@
 import {describe, it, expect} from 'vitest';
 import {measure} from './textLimit';
 
-describe('measure — đếm từ', () => {
-    it('Tiếng Anh: tách theo dấu cách', () => {
+describe('measure — word count', () => {
+    it('English: split on spaces', () => {
         expect(measure('I am a student', 'word')).toBe(4);
     });
 
-    it('Ngữ văn: tiếng Việt viết rời nên mỗi tiếng là một đơn vị', () => {
+    it('Literature: Vietnamese is written syllable by syllable so each is one unit', () => {
         expect(measure('Trường Trung học phổ thông', 'word')).toBe(5);
     });
 
-    it('ô trống đếm 0, không phải 1', () => {
+    it('empty box counts 0, not 1', () => {
         expect(measure('', 'word')).toBe(0);
         expect(measure('   ', 'word')).toBe(0);
     });
 
-    it('nhiều space liền nhau vẫn là một ranh giới', () => {
+    it('consecutive spaces are still a single boundary', () => {
         expect(measure('a    b', 'word')).toBe(2);
     });
 
-    it('xuống dòng cũng là ranh giới từ — mỗi block một dòng', () => {
+    it('a line break is also a word boundary — one line per block', () => {
         expect(measure('đoạn một\nđoạn hai', 'word')).toBe(4);
     });
 
-    it('space đầu/cuối không sinh ra từ ma', () => {
+    it('leading/trailing spaces do not create phantom words', () => {
         expect(measure('  bài làm  ', 'word')).toBe(2);
     });
 });
 
-describe('measure — đếm ký tự', () => {
-    it('đếm THÔ: space cuối PHẢI tính, nếu không gõ space được vô hạn ở mốc 20/20', () => {
+describe('measure — character count', () => {
+    it('RAW count: a trailing space MUST count, otherwise spaces can be typed forever at the 20/20 mark', () => {
         expect(measure('abc ', 'char')).toBe(4);
     });
 
-    it('NFC: "ệ" gõ trên macOS là 3 code point rời, phải đếm là 1', () => {
-        const nfd = 'ệ'.normalize('NFD');   // e + dấu mũ + dấu nặng
+    it('NFC: "ệ" typed on macOS is 3 separate code points, must count as 1', () => {
+        const nfd = 'ệ'.normalize('NFD');   // e + circumflex + dot below
         expect(nfd.length).toBeGreaterThan(1);
         expect(measure(nfd.normalize('NFC'), 'char')).toBe(1);
     });

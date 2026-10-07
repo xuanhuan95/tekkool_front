@@ -9,13 +9,13 @@ import type {Submission} from '../../types/submission';
 import {fmtDate, fmtDuration, ScoreLabel} from './fmt';
 
 /**
- * Bài học sinh nộp — giáo viên vào đây để chấm.
+ * Attempts students submitted — teachers come here to grade.
  *
- * Hai chế độ, MỘT file vì bảng hiển thị y hệt nhau:
- *  - /to-grade/:examId  → bài nộp vào một đề
- *  - /to-grade          → mọi bài đang chờ chấm, gom từ mọi đề
+ * Two modes, ONE file because the table displays identically:
+ *  - /to-grade/:examId  → attempts submitted to one exam
+ *  - /to-grade          → every attempt awaiting grading, gathered from all exams
  *
- * ponytail: tách hai file là hai chỗ phải sửa mỗi lần đổi cách hiện bảng.
+ * ponytail: two files means two places to edit every time the table display changes.
  */
 type State = {subs: Submission[] | null; error: string | null};
 

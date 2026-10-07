@@ -6,21 +6,21 @@ export type BaseQuestionProps = {
     question: Question;
     section: Section;
     /**
-     * ponytail: `setNestedValue` đã sửa `section` TẠI CHỖ (cùng object nằm
-     * trong `exam`), nên lời gọi này không mang dữ liệu gì — nó chỉ báo cho
-     * store biết "có thay đổi, vẽ lại đi". Section truyền xuống một hàm
-     * `touch`; chữ ký giữ nguyên để 5 file câu hỏi khỏi phải sửa.
+     * ponytail: `setNestedValue` already mutates `section` IN PLACE (the same
+     * object lives inside `exam`), so this call carries no data — it only tells
+     * the store "something changed, re-render". Section passes down a `touch`
+     * function; the signature is kept so the 5 question files need no changes.
      */
     setSectionState: (state: {section: Section}) => void;
 };
 
-// ponytail: van la class component — 5 loai cau hoi ke thua lop nay. Khong
-// con dinh global state; chuyen sang function component de sau, khong gap.
+// ponytail: still a class component — 5 question types extend this class. No
+// longer tied to global state; moving to a function component can wait.
 export default class BaseQuestion<P extends BaseQuestionProps = BaseQuestionProps,
                                   S = {}> extends React.Component<P, S> {
     /**
-     * Gộp vài field vào `question.data`. Năm loại câu hỏi đều có một bản sao
-     * y hệt hàm này — gom về đây.
+     * Merge a few fields into `question.data`. All five question types had an
+     * identical copy of this function — consolidated here.
      */
     setQuestionData = (newData: Record<string, any>) => {
         const {data} = this.props.question;

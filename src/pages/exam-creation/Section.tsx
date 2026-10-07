@@ -31,8 +31,8 @@ export default function Section({section}: Props) {
     const write = useExamDraftStore(s => s.setSectionState);
     const touch = useExamDraftStore(s => s.touch);
 
-    // Question component gọi `setSectionState({section})` sau khi đã tự sửa
-    // `question.data` tại chỗ — không có gì để ghi, chỉ cần vẽ lại.
+    // A question component calls `setSectionState({section})` after mutating
+    // `question.data` in place — nothing to write, just a re-render is needed.
     const setSectionState = (patch: SectionPatch | {section: SectionType}) => {
         if ('section' in patch) return touch();
         write(section.id, patch);
@@ -41,8 +41,8 @@ export default function Section({section}: Props) {
     const addQuestion = (questionType: string) => {
         const questions = [...section.questions,
             Default.question(questionType, section.exam, section.id)];
-        // Gộp một lần ghi: bản cũ gọi setSectionState hai lần liên tiếp nên
-        // vẽ lại hai lượt cho cùng một thao tác.
+        // Merged into a single write: the old version called setSectionState twice in a row,
+        // re-rendering twice for the same action.
         setSectionState({question_type: questionType, questions});
     };
 
@@ -50,9 +50,9 @@ export default function Section({section}: Props) {
         setSectionState({questions: section.questions.filter(q => q.id !== question.id)});
     };
 
-    // ponytail: ngu lieu la ban sao trong TUNG cau cung nhom -> sua phai ghi lai
-    // cho ca nhom theo passageId. Sua moi cau dau thi cac cau sau giu ban cu,
-    // hoc sinh doc phai van ban chua sua — loi im lang.
+    // ponytail: the passage is copied into EACH question of the group -> an edit must be written
+    // back to the whole group by passageId. Editing only the first question leaves the later ones
+    // with the old copy, and students read the unedited text — a silent bug.
     const setPassage = (passageId: string, html: string) => {
         const questions = section.questions.map(q =>
             q.data && q.data.passageId === passageId
@@ -74,7 +74,7 @@ export default function Section({section}: Props) {
             const QuestionView = questionTypes[question.type];
             const prev = questions[idx - 1];
             const {passage, passageId} = question.data || {};
-            // Chi hien o soan ngu lieu o cau DAU nhom.
+            // Only show the passage editor on the FIRST question of the group.
             const showPassage = passage &&
                 !(prev && prev.data && prev.data.passageId === passageId);
 

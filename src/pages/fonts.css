@@ -1,20 +1,15 @@
 /* ============================================================
-   Font dùng chung cho TOÀN app — học sinh lẫn giáo viên.
-   Nạp SAU semantic.min.css nên thắng về thứ tự, không cần !important.
+   Shared font for the WHOLE app, students and teachers alike.
+   Loaded AFTER semantic.min.css, so it wins by source order, no !important needed.
 
-   Semantic UI 2.5 khai Lato ở 21 selector (body, heading, button, input,
-   menu, card, modal...). Đè ở mỗi `body` là không đủ: những selector kia
-   khai thẳng font-family nên vẫn ăn Lato. Danh sách dưới đây chép đúng
-   từ semantic.min.css — thêm component Semantic mới thì rà lại bằng:
+   Semantic UI 2.5 sets Lato on 21 selectors (body, heading, button, input,
+   menu, card, modal...). Overriding `body` alone is not enough: those selectors
+   declare font-family directly and would still get Lato. The list below is copied
+   from semantic.min.css; when adding a new Semantic component, re-check with:
      grep -o '[^{}]*{[^}]*font-family:[ ]*Lato' node_modules/semantic-ui-css/semantic.min.css
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap');
-
-:root {
-    --tk-font: 'Inter', 'Helvetica Neue', Arial, sans-serif;
-    --tk-font-title: 'Newsreader', Georgia, serif;
-}
+/* Font families are tokens: --tk-font, --tk-font-title (src/styles/tokens.css). */
 
 body,
 .ui.text.container,
@@ -54,22 +49,22 @@ body,
     font-family: var(--tk-font);
 }
 
-/* Tiêu đề dùng serif, giống hai tầng chữ của màn học sinh. */
+/* Headings use serif, matching the two type tiers of the student screens. */
 h1, h2, h3, h4, h5,
 .ui.header {
     font-family: var(--tk-font-title);
 }
 
-/* Trừ ra: heading nằm trong thanh menu / nút là nhãn giao diện, không phải
-   tiêu đề nội dung — để serif ở đó nhìn lạc lõng. */
+/* Exception: headings inside a menu bar / button are UI labels, not content
+   titles; serif looks out of place there. */
 .ui.menu .ui.header,
 .ui.button .ui.header,
 .ui.menu h1, .ui.menu h2, .ui.menu h3, .ui.menu h4, .ui.menu h5 {
     font-family: var(--tk-font);
 }
 
-/* Icon của Semantic là font riêng (Icons/outline icons) — đè font-family vào
-   đây là mọi icon biến thành ô vuông. Trả lại đúng họ của nó. */
+/* Semantic icons use their own font (Icons/outline icons); overriding font-family
+   here would turn every icon into a square box. Restore its own family. */
 i.icon {
     font-family: Icons;
 }

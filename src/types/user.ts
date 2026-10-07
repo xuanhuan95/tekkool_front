@@ -1,20 +1,20 @@
-/** Người dùng BE trả về ở `session/init`, `session/login`, `user/register`. */
+/** User returned by BE at `session/init`, `session/login`, `user/register`. */
 export type User = {
     id: string;
     name: string;
     email: string;
     group: UserGroup;
-    /** Số lượt thi còn lại. Chỉ có ở học sinh. */
+    /** Remaining exam turns. Only present for students. */
     turns?: number;
 };
 
-/** `visitor` là phiên ẩn danh BE tự cấp — chưa đăng nhập nhưng vẫn có token. */
+/** `visitor` is an anonymous session BE issues itself — not logged in but still has a token. */
 export type UserGroup = 'visitor' | 'student' | 'teacher';
 
 /**
- * Phiên đăng nhập. `id` chính là TOKEN, không phải id người dùng —
- * tên field do BE đặt (`session/init` trả `{id, user}`), FE giữ nguyên
- * để khỏi phải dịch ở mọi chỗ đọc.
+ * Login session. `id` is the TOKEN, not the user id —
+ * the field name is set by BE (`session/init` returns `{id, user}`), FE keeps it
+ * as-is to avoid translating at every read site.
  */
 export type Auth = {
     id: string;

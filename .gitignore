@@ -28,3 +28,4 @@ semantic/
 
 # cau hinh cuc bo cua Claude Code
 .claude/
+.codegraph/

@@ -1,36 +1,12 @@
 /* ============================================================
-   Giao diện học sinh — trang chủ, màn môn học, hồ sơ.
-   Tách file riêng: App.css là của màn soạn đề (giáo viên), trộn
-   vào đó là mỗi lần sửa một bên phải dò cả hai.
+   Student UI: home page, subject screen, profile.
+   Kept in its own file: App.css belongs to the exam-authoring screen (teachers); mixing
+   them means every edit to one side requires checking both.
    ============================================================ */
 
-/* Font khai trong fonts.css — dùng chung cả app. */
+/* Tokens live in src/styles/tokens.css. */
 
-:root {
-    /* XANH, lấy đúng của trang đăng nhập (auth.css): đăng nhập xong mà
-       màu đổi hẳn từ xanh sang cam thì như lạc sang app khác.
-       --tk-primary = .tka-btn, --tk-primary-dark = trạng thái hover. */
-    --tk-primary: #2f6fe4;
-    --tk-primary-soft: #eef3fc;
-    --tk-primary-dark: #1b4fb5;
-    --tk-ink: #16203a;
-    /* #7b869e của auth.css chỉ đạt 3.65:1 trên nền trắng — dưới chuẩn
-       WCAG AA 4.5:1 cho chữ thường. Tối thêm một bậc, giữ nguyên sắc. */
-    --tk-muted: #636e8a;
-    --tk-line: #e1e7f2;
-    --tk-bg: #f4f6fb;
-    --tk-card: #ffffff;
-    /* #16a34a chỉ đạt 3.30:1 trên nền trắng. */
-    --tk-green: #15803d;
-    --tk-green-soft: #ecfdf3;
-
-
-    --tk-r: 14px;
-    --tk-shadow: 0 1px 2px rgba(31, 41, 51, .06), 0 8px 24px rgba(31, 41, 51, .06);
-    --tk-shadow-lift: 0 2px 4px rgba(31, 41, 51, .08), 0 16px 32px rgba(31, 41, 51, .12);
-}
-
-/* ---------- Khung chung ---------- */
+/* ---------- Shared frame ---------- */
 .tk {
     background: var(--tk-bg);
     min-height: 100%;
@@ -62,7 +38,7 @@
     margin: 0 0 24px;
 }
 
-/* ---------- Thanh điều hướng ---------- */
+/* ---------- Navigation bar ---------- */
 .tk-nav {
     background: var(--tk-card);
     border-bottom: 1px solid var(--tk-line);
@@ -130,8 +106,8 @@
     margin-left: auto;
 }
 
-/* Ví lượt: vừa là số dư vừa là nút sang trang mua gói. Cao 44px cho đủ
-   ngưỡng chạm, cùng chiều cao với .tk-icon-btn bên cạnh. */
+/* Attempts wallet: both a balance and a button to the buy-package page. 44px tall to
+   meet the touch-target threshold, same height as the neighboring .tk-icon-btn. */
 .tk-wallet {
     align-items: center;
     background: var(--tk-primary-soft);
@@ -155,7 +131,7 @@
 
 .tk-wallet > i.icon { margin: 0 !important; }
 
-/* Nút tròn 44px — đạt ngưỡng chạm tối thiểu, không phải icon trần. */
+/* Round 44px button: meets the minimum touch target, not a bare icon. */
 .tk-icon-btn {
     align-items: center;
     background: transparent;
@@ -184,7 +160,7 @@
 
 .tk-icon-btn > i.icon { margin: 0 !important; }
 
-/* Chữ cái đầu tên thay ảnh đại diện — không có ảnh thì khỏi tải gì. */
+/* First letter of the name replaces the avatar image; no image, nothing to load. */
 .tk-avatar {
     align-items: center;
     background: var(--tk-primary);
@@ -226,7 +202,7 @@
     white-space: nowrap;
 }
 
-/* Menu người dùng */
+/* User menu */
 .tk-menu {
     background: var(--tk-card);
     border: 1px solid var(--tk-line);
@@ -269,14 +245,14 @@
 .tk-menu-item:hover { background: var(--tk-primary-soft); }
 .tk-menu-item:focus-visible { outline: 2px solid var(--tk-primary); outline-offset: -2px; }
 .tk-menu-item > i.icon { color: var(--tk-muted); margin: 0 !important; width: 18px; }
-.tk-menu-item.danger { color: #b42318 !important; }
-.tk-menu-item.danger > i.icon { color: #b42318; }
+.tk-menu-item.danger { color: var(--tk-danger) !important; }
+.tk-menu-item.danger > i.icon { color: var(--tk-danger); }
 
 .tk-menu-sep { background: var(--tk-line); height: 1px; margin: 6px 0; }
 
 .tk-user { position: relative; }
 
-/* ---------- Thẻ môn học ---------- */
+/* ---------- Subject cards ---------- */
 .tk-grid {
     display: grid;
     gap: 18px;
@@ -305,7 +281,7 @@
 
 .tk-subject:focus-visible { outline: 2px solid var(--tk-primary); outline-offset: 2px; }
 
-/* Dải màu đầu thẻ — mỗi môn một sắc, nhận ra môn trước khi đọc chữ. */
+/* Color strip at the top of the card: one hue per subject, recognizable before reading the text. */
 .tk-subject-top {
     align-items: center;
     display: flex;
@@ -334,7 +310,7 @@
     font-size: 13.5px;
 }
 
-/* ---------- Danh sách đề ---------- */
+/* ---------- Exam list ---------- */
 .tk-back {
     align-items: center;
     background: none;
@@ -450,7 +426,7 @@
 
 .tk-exam-meta span { align-items: center; display: inline-flex; gap: 5px; }
 
-/* Giá: thẻ chữ có nhãn, không chỉ dựa vào màu để phân biệt. */
+/* Price: a labeled text tag, not relying on color alone to distinguish. */
 .tk-price {
     border-radius: 999px;
     flex: none;
@@ -461,9 +437,9 @@
 }
 
 .tk-price.paid { background: var(--tk-primary-soft); color: var(--tk-primary-dark); }
-.tk-price.free { background: var(--tk-green-soft); color: #15803d; }
+.tk-price.free { background: var(--tk-green-soft); color: var(--tk-green); }
 
-/* ---------- Trạng thái rỗng ---------- */
+/* ---------- Empty state ---------- */
 .tk-empty {
     background: var(--tk-card);
     border: 1px dashed var(--tk-line);
@@ -481,7 +457,7 @@
 
 .tk-empty-title { color: var(--tk-ink); font-size: 17px; font-weight: 600; margin-bottom: 5px; }
 
-/* ---------- Hồ sơ ---------- */
+/* ---------- Profile ---------- */
 .tk-narrow { max-width: 620px; }
 
 .tk-card {
@@ -522,16 +498,16 @@
 
 .tk-field input:focus {
     border-color: var(--tk-primary);
-    box-shadow: 0 0 0 3px rgba(47, 111, 228, .18);  /* xanh cua --tk-primary; viet rgba nen sed doi hex khong bat duoc */
+    box-shadow: 0 0 0 3px rgba(47, 111, 228, .18);  /* blue of --tk-primary; written as rgba so a sed hex swap cannot catch it */
     outline: none;
 }
 
-.tk-field input:disabled { background: var(--tk-muted-bg, #f4f2f0); color: var(--tk-muted); }
+.tk-field input:disabled { background: var(--tk-bg); color: var(--tk-muted); }
 
 .tk-field-hint { color: var(--tk-muted); font-size: 13px; margin-top: 6px; }
 
-/* Lỗi nằm NGAY dưới ô sai, không gom lên đầu trang. */
-.tk-field-error { color: #b42318; font-size: 13.5px; margin-top: 6px; }
+/* The error sits RIGHT below the offending field, not collected at the top of the page. */
+.tk-field-error { color: var(--tk-danger); font-size: 13.5px; margin-top: 6px; }
 
 .tk-btn {
     background: var(--tk-primary);
@@ -558,14 +534,14 @@
     padding: 11px 14px;
 }
 
-.tk-note.ok { background: var(--tk-green-soft); color: #15803d; }
-.tk-note.err { background: #fef3f2; color: #b42318; }
+.tk-note.ok { background: var(--tk-green-soft); color: var(--tk-green); }
+.tk-note.err { background: #fef3f2; color: var(--tk-danger); }
 
-/* ---------- Điện thoại ---------- */
+/* ---------- Phone ---------- */
 @media (max-width: 640px) {
     .tk-wrap { padding: 20px 14px 48px; }
     .tk-title { font-size: 23px; }
-    /* Nhãn chữ trong nav chiếm hết chỗ ở màn nhỏ — bỏ chữ, giữ icon. */
+    /* Text labels in the nav take all the room on small screens; drop the text, keep the icon. */
     .tk-nav-link span { display: none; }
     .tk-nav-link { padding: 11px; }
     .tk-user-name { display: none; }
@@ -576,7 +552,7 @@
     .tk-menu { min-width: 232px; }
 }
 
-/* ---------- Giảm chuyển động ---------- */
+/* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
     .tk *, .tk-nav * {
         animation: none !important;
@@ -585,9 +561,9 @@
     .tk-subject:hover, .tk-exam:hover { transform: none; }
 }
 
-/* Ba ô số trong modal tạo gói. Semantic cho `equal width` flex:1 1 auto, nhưng
-   min-width mặc định của flex item là `auto` -> ô không co nhỏ hơn nội dung,
-   nhãn "Thứ tự hiện" + spinner của type=number giữ ô ở 203px và ô thứ ba tràn
-   khỏi modal (đo được: kết thúc ở 602px trong khung 520px). Cùng lời giải với
-   .import-parsed ở App.css. */
+/* The three number inputs in the create-package modal. Semantic gives `equal width`
+   flex:1 1 auto, but a flex item's default min-width is `auto` -> the box can't shrink
+   below its content; the "Thứ tự hiện" (display order) label + the type=number spinner
+   hold the box at 203px and the third box overflows the modal (measured: ends at
+   602px in a 520px frame). Same fix as .import-parsed in App.css. */
 .ui.form .tk-pkg-nums.fields > .field { min-width: 0; }

@@ -1,27 +1,29 @@
 import renderHTML from './SafeHtml';
 import type {Question} from '../pages/exam-creation/Default';
 
-/** Danh sách passageId theo thứ tự xuất hiện trong section (bỏ trùng). */
-const nhomTrongPhan = (questions: Question[]): (string | undefined)[] => {
-    const ra: (string | undefined)[] = [];
+/** List of passageIds in order of appearance within the section (deduplicated). */
+const groupsInSection = (questions: Question[]): (string | undefined)[] => {
+    const out: (string | undefined)[] = [];
     for (const q of questions || []) {
         const id = q.data && q.data.passageId;
-        if (q.data && q.data.passage && !ra.includes(id)) ra.push(id);
+        if (q.data && q.data.passage && !out.includes(id)) out.push(id);
     }
-    return ra;
+    return out;
 };
 
 /**
- * Ngữ liệu đọc hiểu dùng chung cho cả nhóm câu ("Đọc văn bản 1 và trả lời các
- * câu hỏi từ 1 đến 5").
+ * Reading passage shared by a whole group of questions ("Read text 1 and answer
+ * questions 1 to 5").
  *
- * ponytail: mỗi câu trong nhóm giữ MỘT BẢN SAO ngữ liệu (data.passage) kèm
- * data.passageId. In thẳng ra là lặp 5 lần. Component này lọc theo passageId
- * để chỉ in ở câu ĐẦU nhóm — logic giống nhau ở màn làm bài, xem trước, in đề
- * và soạn đề nên để một chỗ, sửa một lần.
+ * ponytail: every question in the group keeps ONE COPY of the passage
+ * (data.passage) along with data.passageId. Printing as-is would repeat it 5
+ * times. This component filters by passageId so it prints only at the FIRST
+ * question of the group — the logic is the same in the exam-taking, preview,
+ * print and authoring screens, so it lives in one place, fixed once.
  *
- * `prev` là câu liền trước trong cùng section (các câu cùng nhóm luôn liền kề).
- * `questions` là cả section, chỉ dùng để đánh số văn bản.
+ * `prev` is the question right before in the same section (questions in the same
+ * group are always adjacent). `questions` is the whole section, used only to
+ * number the texts.
  */
 export default function Passage(
     {question, prev, questions}: {question: Question; prev?: Question; questions?: Question[]},
@@ -30,15 +32,15 @@ export default function Passage(
     if (!passage) return null;
     if (prev && prev.data && prev.data.passageId === passageId) return null;
 
-    // Đánh số theo THỨ TỰ TRONG ĐỀ ĐANG XEM, không phải số của đề gốc: khối rút
-    // từ ngân hàng mang theo số cũ thì "Phần I" lại hiện "Văn bản 2", mà hai
-    // khối cùng rút vào một đề còn cùng mang một số.
-    // Một văn bản thì không đánh số — "Văn bản 1" đứng trơ một mình là chữ thừa.
-    const nhom = nhomTrongPhan(questions || []);
-    const so = nhom.length > 1 ? nhom.indexOf(passageId) + 1 : 0;
+    // Number by POSITION IN THE EXAM BEING VIEWED, not the original exam's number:
+    // a block pulled from the bank that carries its old number would show "Part I"
+    // as "Text 2", and two blocks pulled into the same exam would share a number.
+    // A single text is not numbered — "Text 1" standing alone is surplus wording.
+    const groups = groupsInSection(questions || []);
+    const num = groups.length > 1 ? groups.indexOf(passageId) + 1 : 0;
 
     return <div className='passage'>
-        {so > 0 && <p><b>VĂN BẢN {so}</b></p>}
+        {num > 0 && <p><b>VĂN BẢN {num}</b></p>}
         {renderHTML(passage)}
     </div>;
 }

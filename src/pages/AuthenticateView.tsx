@@ -5,6 +5,7 @@ import CreateExam from './exam-creation/CreateExam';
 import DoExam from './exam-creation/DoExam';
 import ImportExam from './exam-creation/ImportExam';
 import DrawExam from './exam-creation/DrawExam';
+import CreateFromBank from './exam-creation/CreateFromBank';
 import BankList from './question-bank/BankList';
 import PackageList from './package/PackageList';
 import MySubmissions from './my/MySubmissions';
@@ -29,6 +30,7 @@ export default function AuthenticateView() {
               <Route path='/edit-exam/:examId' element={<CreateExam/>}/>
               <Route path='/create-exam' element={<CreateExam/>}/>
               <Route path='/import-exam' element={<ImportExam/>}/>
+              <Route path='/create-from-bank' element={<CreateFromBank/>}/>
               <Route path='/draw-exam' element={<DrawExam/>}/>
               <Route path='/draw-exam/:subject' element={<DrawExam/>}/>
               <Route path='/draw-exam/bank/:bankId' element={<DrawExam/>}/>

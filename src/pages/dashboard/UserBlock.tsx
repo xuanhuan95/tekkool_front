@@ -5,9 +5,9 @@ import {useAuthStore} from '../../stores/authStore';
 
 export default function UserBlock() {
     const user = useAuthStore(s => s.user);
-    // Bản cũ gán kết quả logout vào auth — BE trả {success} chứ không phải
-    // session, gán vào là auth.id thành undefined. Store xoá token rồi nạp
-    // lại trang cho App xin phiên ẩn danh mới.
+    // The old version assigned the logout result to auth — the BE returns {success}, not a
+    // session, so assigning it made auth.id undefined. The store clears the token and
+    // reloads the page so App requests a fresh anonymous session.
     const logout = useAuthStore(s => s.signOut);
 
     return <Menu id='topMenu'>

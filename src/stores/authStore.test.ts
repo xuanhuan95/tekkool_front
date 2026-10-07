@@ -15,7 +15,7 @@ const STUDENT = {id: 'u1', name: 'An', email: 'an@x.vn', group: 'student' as con
 describe('authStore.init', () => {
     beforeEach(reset);
 
-    it('gửi token đã lưu và nhận phiên về', async () => {
+    it('sends the saved token and receives the session', async () => {
         const get = vi.spyOn(Api, 'get').mockResolvedValue({id: 'tok-moi', user: STUDENT});
         window.localStorage.setItem('sessionToken', 'tok-cu');
 
@@ -26,12 +26,12 @@ describe('authStore.init', () => {
         expect(s.token).toBe('tok-moi');
         expect(s.user).toEqual(STUDENT);
         expect(s.ready).toBe(true);
-        // Token mới phải được ghi lại, nếu không lần F5 sau gửi token cũ.
+        // The new token must be written back, otherwise the next F5 sends the old one.
         expect(window.localStorage.getItem('sessionToken')).toBe('tok-moi');
         expect(window.token).toBe('tok-moi');
     });
 
-    it('chưa từng đăng nhập: gửi token rỗng, không nổ', async () => {
+    it('never logged in: sends an empty token, does not blow up', async () => {
         const get = vi.spyOn(Api, 'get').mockResolvedValue({id: 'khach', user: null});
 
         await useAuthStore.getState().init();
@@ -41,7 +41,7 @@ describe('authStore.init', () => {
         expect(useAuthStore.getState().ready).toBe(true);
     });
 
-    it('BE chết thì vẫn bật ready — không treo ở màn Loading', async () => {
+    it('BE down still sets ready — does not hang on the Loading screen', async () => {
         vi.spyOn(Api, 'get').mockRejectedValue({code: 500});
         window.localStorage.setItem('sessionToken', 'tok-chet');
 
@@ -50,7 +50,7 @@ describe('authStore.init', () => {
         const s = useAuthStore.getState();
         expect(s.ready).toBe(true);
         expect(s.user).toBeNull();
-        // Token chết phải bị xoá, không thì lần sau lại gửi đúng nó.
+        // The dead token must be removed, otherwise next time it is sent again.
         expect(window.localStorage.getItem('sessionToken')).toBeNull();
     });
 });
@@ -58,7 +58,7 @@ describe('authStore.init', () => {
 describe('authStore.signIn', () => {
     beforeEach(reset);
 
-    it('lưu token mới vào cả store lẫn localStorage', () => {
+    it('saves the new token to both the store and localStorage', () => {
         useAuthStore.getState().signIn('tok-login', STUDENT);
 
         expect(useAuthStore.getState().token).toBe('tok-login');
@@ -70,7 +70,7 @@ describe('authStore.signIn', () => {
 describe('authStore.setUser', () => {
     beforeEach(reset);
 
-    it('đổi hồ sơ nhưng GIỮ token — đổi tên không phải đăng nhập lại', () => {
+    it('profile change KEEPS the token — renaming does not require logging in again', () => {
         useAuthStore.getState().signIn('tok-login', STUDENT);
         useAuthStore.getState().setUser({...STUDENT, name: 'An B'});
 

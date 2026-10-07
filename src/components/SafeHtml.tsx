@@ -1,8 +1,9 @@
 import parse from 'html-react-parser';
 import DOMPurify from 'dompurify';
 
-// ponytail: thay react-render-html (chết từ 2018). Lọc XSS luôn — nội dung đề thi
-// do giáo viên nhập, code cũ render thô nên <script> chèn vào là chạy.
+// ponytail: replaces react-render-html (dead since 2018). Also filters XSS — exam
+// content is entered by teachers, and the old code rendered it raw so an injected
+// <script> would run.
 export default function renderHTML(html?: string | null) {
     return parse(DOMPurify.sanitize(html || ''));
 }

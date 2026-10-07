@@ -5,15 +5,15 @@ import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import Api from '../../services/api';
 import Payment from './Payment';
 
-// Màn ĐẨY TIỀN đi. Hỏng ở đây là học sinh bấm Thanh toán rồi SePay từ chối:
-//   - đổi thứ tự field  = chữ ký BE đã ký không còn khớp -> SePay trả lỗi
-//   - gửi thiếu field   = cũng hỏng chữ ký, cùng hậu quả
-//   - GET thay vì POST  = SePay không nhận
-//   - bấm hai lần       = hai đơn cho một lần mua
+// The screen that SENDS MONEY out. A break here means the student clicks Pay and SePay rejects it:
+//   - reordered fields  = the signature the BE signed no longer matches -> SePay errors
+//   - missing field     = also breaks the signature, same result
+//   - GET instead of POST = SePay does not accept it
+//   - double click      = two orders for one purchase
 
-const GOI = {id: 'P1', name: 'Nâng cao', turns: 10, price: 200000, description: 'Mười lượt'};
+const PACKAGE = {id: 'P1', name: 'Nâng cao', turns: 10, price: 200000, description: 'Mười lượt'};
 
-// Thứ tự này KHÔNG phải alphabet — cố ý, để test đỏ nếu ai sort lại.
+// This order is NOT alphabetical — on purpose, so the test goes red if anyone sorts it.
 const FIELDS: Array<[string, string]> = [
     ['operation', 'PURCHASE'],
     ['payment_method', 'BANK_TRANSFER'],
@@ -24,102 +24,102 @@ const FIELDS: Array<[string, string]> = [
     ['signature', 'chu-ky-da-ky'],
 ];
 
-let daSubmit = 0;
-let formCuoi: HTMLFormElement | null = null;
+let submitCount = 0;
+let lastForm: HTMLFormElement | null = null;
 
 beforeEach(() => {
-    daSubmit = 0;
-    formCuoi = null;
-    // jsdom chưa cài submit() -> tự gắn, đồng thời chộp lại form để soi.
+    submitCount = 0;
+    lastForm = null;
+    // jsdom has not implemented submit() -> attach our own and capture the form to inspect.
     HTMLFormElement.prototype.submit = function (this: HTMLFormElement) {
-        daSubmit++;
-        formCuoi = this;
+        submitCount++;
+        lastForm = this;
     };
-    vi.spyOn(Api, 'get').mockResolvedValue([GOI] as any);
+    vi.spyOn(Api, 'get').mockResolvedValue([PACKAGE] as any);
     vi.spyOn(Api, 'post').mockResolvedValue(
         {action_url: 'https://pay-sandbox.sepay.vn/v1/checkout/init', fields: FIELDS} as any);
 });
 
 afterEach(() => vi.restoreAllMocks());
 
-const mo = () => render(
+const renderPage = () => render(
     <MemoryRouter initialEntries={['/payment/P1']}>
         <Routes><Route path='/payment/:packageId' element={<Payment/>}/></Routes>
     </MemoryRouter>);
 
-/** Các field trong form đã submit, theo đúng thứ tự DOM. */
-const fieldsDaGui = (): Array<[string, string]> =>
-    Array.from(formCuoi!.querySelectorAll('input')).map(
+/** Fields in the submitted form, in exact DOM order. */
+const submittedFields = (): Array<[string, string]> =>
+    Array.from(lastForm!.querySelectorAll('input')).map(
         i => [i.name, i.value] as [string, string]);
 
-const bamThanhToan = async () => {
-    mo();
+const clickPay = async () => {
+    renderPage();
     await screen.findByText('Nâng cao');
     fireEvent.click(screen.getByText('Thanh toán').closest('button')!);
-    await waitFor(() => expect(daSubmit).toBe(1));
+    await waitFor(() => expect(submitCount).toBe(1));
 };
 
-describe('Payment — đẩy đơn sang SePay', () => {
-    it('hiện đúng gói trước khi trả tiền', async () => {
-        mo();
+describe('Payment — pushing the order to SePay', () => {
+    it('shows the right package before paying', async () => {
+        renderPage();
         await screen.findByText('Nâng cao');
         expect(screen.getByText('10 lượt')).toBeTruthy();
-        // toLocaleString('vi-VN') ra '200.000 đ'
+        // toLocaleString('vi-VN') gives '200.000 đ'
         expect(screen.getByText(/200[.,]000\s*đ/)).toBeTruthy();
     });
 
-    it('giữ NGUYÊN thứ tự field — sắp lại là hỏng chữ ký', async () => {
-        await bamThanhToan();
-        expect(fieldsDaGui()).toEqual(FIELDS);
+    it('keeps field order EXACTLY — reordering breaks the signature', async () => {
+        await clickPay();
+        expect(submittedFields()).toEqual(FIELDS);
     });
 
-    it('gửi đủ mọi field BE trả về, không bỏ sót cái nào', async () => {
-        await bamThanhToan();
-        expect(fieldsDaGui().length).toBe(FIELDS.length);
-        // signature mà rụng thì SePay từ chối ngay.
-        expect(fieldsDaGui().some(([k]) => k === 'signature')).toBe(true);
+    it('sends every field the BE returned, none dropped', async () => {
+        await clickPay();
+        expect(submittedFields().length).toBe(FIELDS.length);
+        // If signature is dropped, SePay rejects immediately.
+        expect(submittedFields().some(([k]) => k === 'signature')).toBe(true);
     });
 
-    it('POST sang đúng action_url, không phải GET', async () => {
-        await bamThanhToan();
-        expect(formCuoi!.method.toUpperCase()).toBe('POST');
-        expect(formCuoi!.action).toBe('https://pay-sandbox.sepay.vn/v1/checkout/init');
+    it('POSTs to the exact action_url, not GET', async () => {
+        await clickPay();
+        expect(lastForm!.method.toUpperCase()).toBe('POST');
+        expect(lastForm!.action).toBe('https://pay-sandbox.sepay.vn/v1/checkout/init');
     });
 
-    it('gửi package_id, KHÔNG gửi giá — giá phải do BE quyết', async () => {
-        await bamThanhToan();
-        const [duong, body] = (Api.post as any).mock.calls[0];
-        expect(duong).toBe('payment/checkout');
+    it('sends package_id, NOT the price — the BE must decide the price', async () => {
+        await clickPay();
+        const [path, body] = (Api.post as any).mock.calls[0];
+        expect(path).toBe('payment/checkout');
         expect(body).toEqual({package_id: 'P1'});
         expect(JSON.stringify(body)).not.toMatch(/price|amount/i);
     });
 
-    it('bấm liên tục chỉ tạo MỘT đơn', async () => {
-        mo();
+    it('rapid clicks create only ONE order', async () => {
+        renderPage();
         await screen.findByText('Nâng cao');
-        const nut = screen.getByText('Thanh toán').closest('button')!;
-        fireEvent.click(nut);
-        fireEvent.click(nut);
-        fireEvent.click(nut);
-        await waitFor(() => expect(daSubmit).toBe(1));
+        const button = screen.getByText('Thanh toán').closest('button')!;
+        fireEvent.click(button);
+        fireEvent.click(button);
+        fireEvent.click(button);
+        await waitFor(() => expect(submitCount).toBe(1));
         expect((Api.post as any).mock.calls.length).toBe(1);
     });
 
-    it('checkout lỗi thì báo người dùng, không im lặng đẩy đi', async () => {
+    it('on checkout error, tells the user instead of silently pushing on', async () => {
         (Api.post as any).mockRejectedValue({error: 'Gói này đã ngừng bán'});
-        mo();
+        renderPage();
         await screen.findByText('Nâng cao');
         fireEvent.click(screen.getByText('Thanh toán').closest('button')!);
         await screen.findByText('Gói này đã ngừng bán');
-        expect(daSubmit).toBe(0);
-        // Báo lỗi xong phải bấm lại được, không kẹt ở trạng thái loading.
+        expect(submitCount).toBe(0);
+        // After the error is shown the button must be clickable again, not stuck loading.
         expect(screen.getByText('Thanh toán').closest('button')!
             .hasAttribute('disabled')).toBe(false);
     });
 
-    it('gói không tồn tại thì báo, không hiện nút trả tiền', async () => {
+    it('unknown package shows an error, no pay button', async () => {
         (Api.get as any).mockResolvedValue([]);
-        mo();
+        renderPage();
         await screen.findByText('Không tìm thấy gói này');
         expect(screen.queryByText('Thanh toán')).toBeNull();
     });

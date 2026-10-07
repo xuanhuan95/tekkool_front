@@ -23,7 +23,7 @@ export default function CreateExam() {
     const user = useAuthStore(s => s.user);
 
     const exam = useExamDraftStore(s => s.exam);
-    useExamDraftStore(s => s.version);   // vẽ lại khi exam bị sửa tại chỗ
+    useExamDraftStore(s => s.version);   // re-render when the exam is mutated in place
     const setExam = useExamDraftStore(s => s.setExam);
     const patchExam = useExamDraftStore(s => s.patchExam);
     const addSection = useExamDraftStore(s => s.addSection);
@@ -37,7 +37,7 @@ export default function CreateExam() {
         let cancelled = false;
         setReady(false);
         (async () => {
-            // Có examId = sửa đề, không có = tạo mới.
+            // With an examId = editing an exam, without = creating a new one.
             const draft: Exam = examId
                 ? await Api.get<Exam>('exam/info/' + examId)
                 : Default.exam();
@@ -49,17 +49,17 @@ export default function CreateExam() {
         return () => { cancelled = true; };
     }, [examId, user, setExam]);
 
-    // ponytail: `save` đọc đề từ store lúc gọi (getState) chứ không khép vào
-    // closure — nếu không, interval giữ bản nháp của lần render đầu và auto-save
-    // ghi đè mọi thứ gõ sau đó.
+    // ponytail: `save` reads the exam from the store at call time (getState) instead of
+    // closing over it — otherwise the interval holds the first render's draft and auto-save
+    // overwrites everything typed afterwards.
     const save = async (successMsg: string) => {
         const current = useExamDraftStore.getState().exam;
         if (!current) return;
         await Api.post('exam/create', current);
 
-        // ponytail: exam/create KHÔNG nhận field folder (BE giữ folder của bản
-        // cũ, đề mới -> null). Gọi move_to_folder sẵn có thay vì sửa BE.
-        // Chỉ chạy một lần: sau đó folder đã có, lần save sau BE tự giữ.
+        // ponytail: exam/create does NOT accept a folder field (the BE keeps the old
+        // version's folder; a new exam -> null). Call the existing move_to_folder instead of changing the BE.
+        // Runs only once: after that the folder is set, and later saves keep it on the BE.
         const folder = new URLSearchParams(location.search).get('folder');
         if (folder && !movedToFolder.current) {
             await Api.post('exam/move_to_folder', {examId: current.id, folderId: folder});
@@ -69,8 +69,8 @@ export default function CreateExam() {
         toast.success(successMsg);
     };
 
-    // ponytail: bug gốc 2018 — không clear interval khi unmount, nên rời trang
-    // xong 2 phút sau vẫn POST exam/create bằng state cũ (sinh ra đề rỗng trong DB).
+    // ponytail: original 2018 bug — the interval wasn't cleared on unmount, so 2 minutes
+    // after leaving the page it still POSTed exam/create with stale state (creating empty exams in the DB).
     useEffect(() => {
         if (!ready) return;
         const id = setInterval(() => { save('Auto save successfully'); }, AUTO_SAVE_MS);
@@ -78,14 +78,14 @@ export default function CreateExam() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ready]);
 
-    // Lưu trước khi in nhưng không báo toast — người dùng đang chờ hộp in.
+    // Save before printing but without a toast — the user is waiting for the print dialog.
     const printExam = () => {
         setModalPrint(true);
         const current = useExamDraftStore.getState().exam;
         if (current) Api.post('exam/create', current);
     };
 
-    // ponytail: Element.closest + classList thay Zepto — bỏ luôn vendor/zepto.min.js.
+    // ponytail: Element.closest + classList replace Zepto — vendor/zepto.min.js is dropped entirely.
     const onMouseOver = ({target}: React.MouseEvent) =>
         (target as HTMLElement).closest('.exam-section-wrapper')?.classList.add('active');
 
@@ -211,9 +211,9 @@ type CardProps = {
 };
 
 /**
- * ponytail: tách riêng vì `<Sticky context>` cần một ref ĐÃ gắn. Bản cũ gán
- * `sectionContextRef` bằng biến thường trong callback ref nên lúc Sticky đọc
- * vẫn là null — thanh tiêu đề section không bao giờ dính.
+ * ponytail: split out because `<Sticky context>` needs a ref that is ALREADY attached. The old
+ * version assigned `sectionContextRef` to a plain variable in a callback ref, so when Sticky
+ * read it, it was still null — the section title bar never stuck.
  */
 function SectionCard({section, index, questionIndex, onRemove, onMouseOver, onMouseOut}: CardProps) {
     const [ref, setRef] = useState<HTMLElement | null>(null);

@@ -2,66 +2,66 @@ import {describe, it, expect} from 'vitest';
 import {fmtDate, fmtDuration, fmtMoney, round} from './fmt';
 
 describe('round', () => {
-    it('cắt đuôi float, không hiện 2.9999999999999996', () => {
-        // Văn: 10 câu x 0.3 điểm. 0.3 không biểu diễn chính xác trong float.
+    it('trims float tails, does not show 2.9999999999999996', () => {
+        // Literature: 10 questions x 0.3 points. 0.3 is not exactly representable as a float.
         const sum = Array(10).fill(0.3).reduce((a, b) => a + b, 0);
-        expect(sum).not.toBe(3);           // đây là lý do hàm này tồn tại
+        expect(sum).not.toBe(3);           // this is why the function exists
         expect(round(sum)).toBe(3);
     });
 
-    it('2.0 hiện là 2, 1.5 giữ nguyên', () => {
+    it('2.0 shows as 2, 1.5 stays', () => {
         expect(round(2.0)).toBe(2);
         expect(round(1.5)).toBe(1.5);
     });
 
-    it('không có điểm thì là 0, không phải NaN', () => {
+    it('no score is 0, not NaN', () => {
         expect(round(undefined)).toBe(0);
         expect(round(null)).toBe(0);
-        // 0 điểm là điểm thật, không được nhầm thành "chưa có".
+        // 0 points is a real score, must not be mistaken for "none yet".
         expect(round(0)).toBe(0);
     });
 });
 
 describe('fmtDate', () => {
-    it('BE trả UTC thiếu Z vẫn phải đổi đúng sang giờ Việt Nam', () => {
-        // datetime.utcnow().isoformat() không kèm 'Z'. Thiếu xử lý thì trình
-        // duyệt hiểu là giờ máy -> lệch 7 tiếng.
-        const khongZ = fmtDate('2026-10-04T06:00:00');
-        const coZ = fmtDate('2026-10-04T06:00:00Z');
-        expect(khongZ).toBe(coZ);
+    it('BE UTC without Z must still convert correctly to Vietnam time', () => {
+        // datetime.utcnow().isoformat() carries no 'Z'. Without handling, the
+        // browser reads it as local time -> off by 7 hours.
+        const withoutZ = fmtDate('2026-10-04T06:00:00');
+        const withZ = fmtDate('2026-10-04T06:00:00Z');
+        expect(withoutZ).toBe(withZ);
     });
 
-    it('rỗng hoặc rác thì hiện gạch, không vỡ', () => {
+    it('empty or garbage shows a dash, does not break', () => {
         expect(fmtDate(undefined)).toBe('—');
         expect(fmtDate('')).toBe('—');
-        expect(fmtDate('khong-phai-ngay')).toBe('—');
+        expect(fmtDate('not-a-date')).toBe('—');
     });
 });
 
 describe('fmtDuration', () => {
-    it('dưới 1 tiếng hiện phút', () => {
+    it('under 1 hour shows minutes', () => {
         expect(fmtDuration(90)).toBe('1 phút');
         expect(fmtDuration(45 * 60)).toBe('45 phút');
     });
 
-    it('từ 1 tiếng trở lên hiện giờ, phút đệm 0', () => {
+    it('1 hour or more shows hours, minutes zero-padded', () => {
         expect(fmtDuration(60 * 60)).toBe('1h00');
         expect(fmtDuration(65 * 60)).toBe('1h05');
         expect(fmtDuration(125 * 60)).toBe('2h05');
     });
 
-    it('không có thì hiện gạch', () => {
+    it('missing shows a dash', () => {
         expect(fmtDuration(undefined)).toBe('—');
         expect(fmtDuration(0)).toBe('—');
     });
 });
 
 describe('fmtMoney', () => {
-    it('phân cách nghìn theo kiểu Việt Nam', () => {
+    it('thousands separator in Vietnamese style', () => {
         expect(fmtMoney(50000)).toBe('50.000 đ');
     });
 
-    it('không có tiền thì là 0, không phải "undefined đ"', () => {
+    it('no amount is 0, not "undefined đ"', () => {
         expect(fmtMoney(undefined)).toBe('0 đ');
     });
 });

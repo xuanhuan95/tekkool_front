@@ -22,20 +22,20 @@ export type Exam = {
     section_label: string;
     duration: number;
     sections: Section[];
-    /** Tiêu đề góc trái/phải của bản in. Đề tạo mới chưa có -> optional. */
+    /** Left/right corner headings of the printout. Not set on a newly created exam -> optional. */
     left_header?: string;
     right_header?: string;
-    /** Chủ đề. CreateExam gán từ người đang đăng nhập trước khi POST. */
+    /** Owner. CreateExam sets it from the logged-in user before POST. */
     user?: string;
 };
 
 export default class Default {
-    // ponytail: bug gốc 2018 — BE apis/exam.py:39 đọc data['section_label']
-    // (bắt buộc) nhưng FE không có field này ở đâu cả -> mọi đề TẠO MỚI đều
-    // 500 KeyError khi Save. Model BE để StringField() không required nên
-    // thêm giá trị mặc định ở đây là đủ, không phải chạm tekkool_back.
-    // ponytail: 45 phut — dung con so DoExam hardcode truoc day, nay thanh mac
-    // dinh sua duoc. 0 = khong gioi han gio.
+    // ponytail: original 2018 bug — BE apis/exam.py:39 reads data['section_label']
+    // (required) but the FE has no such field anywhere -> every NEWLY CREATED exam
+    // got a 500 KeyError on Save. The BE model uses a non-required StringField(), so
+    // adding a default value here is enough, no need to touch tekkool_back.
+    // ponytail: 45 minutes — the number DoExam used to hardcode, now an editable
+    // default. 0 = no time limit.
     static DURATION = 45;
 
     static exam = (): Exam => ({
@@ -46,10 +46,10 @@ export default class Default {
         sections: []
     });
 
-    // ponytail: bug gốc 2018 — BE apis/exam.py:31 đọc s['question_type'] (bắt buộc)
-    // nhưng section chỉ có field này sau khi thêm câu hỏi đầu tiên. Bấm Save (hoặc
-    // auto-save sau 2 phút) khi section còn rỗng -> 500 KeyError. Model BE để
-    // StringField() không required nên giá trị mặc định ở đây là đủ.
+    // ponytail: original 2018 bug — BE apis/exam.py:31 reads s['question_type'] (required)
+    // but a section only has this field after the first question is added. Pressing Save (or
+    // auto-save after 2 minutes) while the section is empty -> 500 KeyError. The BE model
+    // uses a non-required StringField(), so a default value here is enough.
     static section = (examId: string): Section => ({
         id: 'S_' + uuid(),
         exam: examId,

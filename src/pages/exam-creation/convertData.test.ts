@@ -1,8 +1,8 @@
 import {describe, it, expect} from 'vitest';
 import {convertData, type QuestionData} from './convertData';
 
-// Test cũ chép lại convertData sang file test vì ImportExam là JSX. Giờ hàm
-// nằm ở module riêng nên import thẳng — hai bản không thể lệch nhau nữa.
+// The old test copied convertData into the test file because ImportExam was JSX. Now the
+// function lives in its own module and is imported directly — the two copies can't drift apart.
 
 const MC: QuestionData = {
     question: '<p>Bài thơ nói về mùa nào?</p>',
@@ -12,71 +12,71 @@ const MC: QuestionData = {
     passageId: 'E1_0_G1',
 };
 
-describe('convertData: giữ dữ liệu dùng chung', () => {
+describe('convertData: keeps shared data', () => {
     it.each(['FreeAnswer', 'TrueFalse', 'FillBlank', 'ErrorIdentify'])(
-        'đổi sang %s không được làm mất ngữ liệu của cả nhóm', (to) => {
+        'converting to %s must not lose the passage shared by the group', (to) => {
             const r = convertData(MC, to);
             expect(r.passage).toBe(MC.passage);
             expect(r.passageId).toBe(MC.passageId);
             expect(r.question).toBe(MC.question);
         });
 
-    it('câu không có ngữ liệu thì không đẻ ra passageId rỗng', () => {
+    it('a question without a passage does not produce an empty passageId', () => {
         const r = convertData({question: 'x'}, 'FreeAnswer');
         expect('passage' in r).toBe(false);
         expect('passageId' in r).toBe(false);
     });
 });
 
-describe('convertData: bỏ dữ liệu riêng của loại cũ', () => {
-    it('trắc nghiệm -> tự luận: bỏ phương án, không để rác trong DB', () => {
+describe('convertData: drops the old type\'s own data', () => {
+    it('multiple choice -> free answer: drops the options, leaves no junk in the DB', () => {
         const r = convertData(MC, 'FreeAnswer');
         expect(r.answers).toBeUndefined();
         expect(r.correctAnswerId).toBeUndefined();
     });
 
-    // data.answer nghĩa KHÁC NHAU từng loại — mang nguyên sang là chấm sai điểm.
-    it('TrueFalse không được ăn phải answer kiểu chuỗi của FillBlank', () => {
+    // data.answer means something DIFFERENT per type — carrying it over gives wrong scores.
+    it('TrueFalse must not inherit FillBlank\'s string answer', () => {
         const r = convertData({question: 'x', answer: '<p>chuỗi</p>'}, 'TrueFalse');
         expect(r.answer).toBeUndefined();
     });
 
-    it('FillBlank không được ăn phải answer kiểu boolean của TrueFalse', () => {
+    it('FillBlank must not inherit TrueFalse\'s boolean answer', () => {
         const r = convertData({question: 'x', answer: true}, 'FillBlank');
         expect(r.answer).toBeUndefined();
     });
 
-    it('TrueFalse phải để TRỐNG đáp án — đặt sẵn true/false là gán bừa', () => {
+    it('TrueFalse must leave the answer EMPTY — presetting true/false is arbitrary', () => {
         const r = convertData({question: 'x', answer: '<p>x</p>'}, 'TrueFalse');
         expect('answer' in r).toBe(false);
     });
 
-    it('trắc nghiệm không giữ giới hạn từ', () => {
+    it('multiple choice does not keep the word limit', () => {
         expect(convertData({question: 'x', max_words: 600}, 'MultipleChoice').max_words)
             .toBeUndefined();
     });
 });
 
-describe('convertData: dựng đủ field cho loại mới', () => {
-    it('tự luận giữ giới hạn từ', () => {
+describe('convertData: builds all fields for the new type', () => {
+    it('free answer keeps the word limit', () => {
         expect(convertData({question: 'Viết bài văn', max_words: 600}, 'FreeAnswer').max_words)
             .toBe(600);
     });
 
-    it('tự luận -> trắc nghiệm: answers là mảng rỗng để Answers() map được, không vỡ', () => {
+    it('free answer -> multiple choice: answers is an empty array so Answers() can map over it without breaking', () => {
         const r = convertData({question: 'Viết đoạn văn'}, 'MultipleChoice');
         expect(Array.isArray(r.answers)).toBe(true);
         expect(r.answers).toHaveLength(0);
         expect(r.correctAnswerId).toBeUndefined();
     });
 
-    it('ErrorIdentify dùng chung UI phương án với trắc nghiệm', () => {
+    it('ErrorIdentify shares the options UI with multiple choice', () => {
         expect(convertData(MC, 'ErrorIdentify').answers).toHaveLength(2);
     });
 
-    it('không sửa object gốc — màn import giữ bản cũ để hoàn tác', () => {
-        const goc = {...MC};
+    it('does not mutate the original object — the import screen keeps the old copy for undo', () => {
+        const original = {...MC};
         convertData(MC, 'FreeAnswer');
-        expect(MC).toEqual(goc);
+        expect(MC).toEqual(original);
     });
 });

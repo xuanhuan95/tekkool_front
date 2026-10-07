@@ -3,10 +3,10 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import Api from '../services/api';
 import type {ExamSummary, Folder} from '../types/exam';
 
-/** Một key duy nhất cho `exam/list` — Dashboard và ExamFile phải khớp nhau. */
+/** A single key for `exam/list` — Dashboard and ExamFile must match. */
 const EXAMS_KEY = ['exam', 'list'] as const;
 
-/** Đề NGOÀI thư mục (BE không nhận `folder` thì trả đúng nhóm này). */
+/** Exams OUTSIDE any folder (when no `folder` is passed, BE returns exactly this group). */
 export function useExams(enabled = true) {
     return useQuery({
         queryKey: EXAMS_KEY,
@@ -16,9 +16,9 @@ export function useExams(enabled = true) {
 }
 
 /**
- * Xoá / nhân bản / chuyển thư mục xong thì gọi hàm này. Thay cho bản cũ tự
- * `Api.get('exam/list')` rồi nhét vào global state ở ba chỗ khác nhau —
- * sót một chỗ là danh sách lệch với thực tế cho tới khi F5.
+ * Call this after delete / duplicate / move-to-folder. Replaces the old way of
+ * calling `Api.get('exam/list')` and stuffing it into global state in three
+ * different places — miss one and the list drifts from reality until F5.
  */
 export function useRefreshExams() {
     const qc = useQueryClient();

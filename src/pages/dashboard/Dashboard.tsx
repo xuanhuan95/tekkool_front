@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import type React from 'react';
 import {Link, useNavigate} from 'react-router-dom';
-import {Button, Card, Header, Icon, Input, Segment} from 'semantic-ui-react';
+import {Button, Card, Dropdown, Header, Icon, Input, Segment} from 'semantic-ui-react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import Loading from '../../components/Loading';
@@ -13,33 +13,33 @@ import ExamFile from './ExamFile';
 import type {FolderOption} from './ExamFile';
 import SubjectBrowser from './SubjectBrowser';
 
-// Bỏ dấu để gõ "toan" vẫn ra "Toán" — giáo viên tìm đề không phải gõ đủ dấu.
-const bodau = (s?: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+// Strip accents so typing "toan" still matches "Toán" — teachers searching for exams need not type full accents.
+const stripAccents = (s?: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
     .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
 
 /**
- * Trang chủ giáo viên: thư mục môn ở dạng thẻ, mở một thẻ ra danh sách đề.
+ * Teacher home: subject folders as cards, open a card to get the exam list.
  *
- * Bố cục cũ là <List> lồng với hai chữ 'Folder'/'Document' trần làm tiêu đề,
- * mọi đề nằm chung một cột dài. Giờ tách hai tầng rõ: chọn môn -> xem đề trong
- * môn. Đề ngoài thư mục gom riêng cuối trang.
+ * The old layout was a nested <List> with bare 'Folder'/'Document' words as headings,
+ * with every exam in one long column. Now two clear levels: pick a subject -> see the
+ * exams in it. Exams outside any folder are grouped separately at the bottom.
  *
- * ponytail: lọc tìm kiếm chạy ở FE trên danh sách đã tải. Một giáo viên có
- * vài chục đề, gọi API tìm kiếm là thừa một endpoint và một vòng mạng.
+ * ponytail: search filtering runs on the FE over the already-loaded list. A teacher has
+ * a few dozen exams, so calling a search API is an extra endpoint and a network round trip.
  */
 export default function Dashboard() {
     const navigate = useNavigate();
     const qc = useQueryClient();
-    // group là string id ('teacher' | 'student' | 'visitor').
+    // group is a string id ('teacher' | 'student' | 'visitor').
     const isTeacher = useAuthStore(s => s.user?.group) === 'teacher';
 
     const [activeFolder, setActiveFolder] = useState<string | null>(null);
     const [q, setQ] = useState('');
 
-    // Học sinh không bao giờ vẽ phần dưới -> `enabled` chặn luôn hai request.
-    // Bản cũ phải gọi vô điều kiện vì `auth` chưa chắc sẵn sàng lúc
-    // componentDidMount; store zustand có giá trị ngay từ lần vẽ đầu nên
-    // không còn cái bẫy đó.
+    // Students never render the part below -> `enabled` blocks both requests.
+    // The old version had to call unconditionally because `auth` might not be ready at
+    // componentDidMount; the zustand store has a value from the first render so
+    // that trap is gone.
     const {data: exams = []} = useExams(isTeacher);
     const {data: folders} = useFolders(isTeacher);
     const refreshExams = useRefreshExams();
@@ -64,13 +64,13 @@ export default function Dashboard() {
         setActiveFolder(folderId);
     };
 
-    // Tạo đề ngay trong folder: đề mới nằm sẵn trong môn, khỏi phải kéo tay.
-    // Quan trọng hơn thế: ImportExam lấy TÊN MÔN từ folder để gắn vào khối
-    // ngân hàng — import ngoài thư mục thì subject rỗng, màn rút đề trắng trơn.
+    // Create an exam right inside the folder: the new exam already sits in the subject, no manual drag.
+    // More importantly: ImportExam takes the SUBJECT NAME from the folder to attach to the
+    // bank block — importing outside a folder leaves subject empty and the draw screen blank.
     const addExam = (path: string, folderId: string) =>
         navigate(path + '?folder=' + folderId);
 
-    // Bấm lại đúng thư mục đang mở thì đóng lại — không có lối đóng nào khác.
+    // Clicking the folder that is already open closes it — there is no other way to close.
     const openFolder = (folderId: string) =>
         setActiveFolder(activeFolder === folderId ? null : folderId);
 
@@ -82,12 +82,12 @@ export default function Dashboard() {
         ...folders.map(f => ({text: f.name, value: f.id})),
     ];
 
-    const khop = (t?: string) => bodau(t).includes(bodau(q));
-    const hienFolder = q ? folders.filter(f => khop(f.name)) : folders;
-    const hienNgoai = q ? exams.filter(e => khop(e.name)) : exams;
-    const hienTrong = q ? folderExams.filter(e => khop(e.name)) : folderExams;
+    const matches = (t?: string) => stripAccents(t).includes(stripAccents(q));
+    const shownFolders = q ? folders.filter(f => matches(f.name)) : folders;
+    const shownLoose = q ? exams.filter(e => matches(e.name)) : exams;
+    const shownInFolder = q ? folderExams.filter(e => matches(e.name)) : folderExams;
 
-    // Chưa có gì cả: chỉ một lối đi, đừng bày ba nút.
+    // Nothing yet: a single path, don't lay out three buttons.
     if (!folders.length && !exams.length) return <div className='margin'>
         <Segment placeholder>
             <Header icon>
@@ -113,14 +113,14 @@ export default function Dashboard() {
             </Header>
             <Input icon='search' iconPosition='left' placeholder='Tìm đề, tìm môn...'
                    value={q} onChange={(_e, {value}) => setQ(value)}/>
-            {/* Lối vào ngân hàng: một màn riêng vì ngân hàng giờ là thực thể
-                có tên, không còn là thứ đoán ra từ tên thư mục. */}
+            {/* Entry to the bank: a separate screen because a bank is now a named
+                entity, no longer something guessed from the folder name. */}
             <Link to='/question-bank'>
                 <Button basic icon labelPosition='left'>
                     <Icon name='database'/> Ngân hàng câu hỏi
                 </Button>
             </Link>
-            {/* Gói thi thử: học sinh mua lượt ở đây, không mua từng đề nữa. */}
+            {/* Practice packages: students buy turns here, no longer per exam. */}
             <Link to='/packages'>
                 <Button basic icon labelPosition='left'>
                     <Icon name='cube'/> Gói thi thử
@@ -131,7 +131,7 @@ export default function Dashboard() {
             </Button>
         </div>
 
-        {q && !hienFolder.length && !hienNgoai.length && !hienTrong.length &&
+        {q && !shownFolders.length && !shownLoose.length && !shownInFolder.length &&
         <Segment placeholder>
             <Header icon>
                 <Icon name='search' color='grey'/>
@@ -140,30 +140,33 @@ export default function Dashboard() {
         </Segment>}
 
         <Card.Group itemsPerRow={3} stackable className='tk-folders'>
-            {hienFolder.map(f =>
+            {shownFolders.map(f =>
                 <Card key={f.id} link
                       className={activeFolder === f.id ? 'tk-folder active' : 'tk-folder'}
                       onClick={() => openFolder(f.id)}>
                     <Card.Content>
-                        {/* Icon nằm TRONG Card.Header: để ngoài thì Header là
-                            block, icon rơi xuống dòng riêng, thẻ cao gấp đôi. */}
+                        {/* Icon sits INSIDE Card.Header: outside, Header is a
+                            block, the icon drops to its own line and the card doubles in height. */}
                         <Card.Header>
                             <Icon name={activeFolder === f.id ? 'folder open' : 'folder'}
                                   color={activeFolder === f.id ? 'blue' : 'grey'}/>
                             {f.name}
                         </Card.Header>
                     </Card.Content>
-                    {/* Hai lối tạo đề luôn HIỆN, không giấu sau hover: bàn phím
-                        và màn cảm ứng không có hover, giấu đi là mất lối vào. */}
+                    {/* The "Create exam" button is always VISIBLE, not hidden behind hover: keyboards
+                        and touch screens have no hover, hiding it loses the entry point. */}
                     <Card.Content extra onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                        <Button size='mini' basic
-                                onClick={() => addExam('/create-exam', f.id)}>
-                            <Icon name='edit outline'/> Tự soạn
-                        </Button>
-                        <Button size='mini' basic
-                                onClick={() => addExam('/import-exam', f.id)}>
-                            <Icon name='file word outline'/> Nhập Word
-                        </Button>
+                        <Dropdown button className='mini basic icon tk-add-exam'
+                                  labeled icon='plus' text='Tạo đề'>
+                            <Dropdown.Menu>
+                                <Dropdown.Item icon='edit outline' text='Tự soạn'
+                                               onClick={() => addExam('/create-exam', f.id)}/>
+                                <Dropdown.Item icon='file word outline' text='Nhập Word'
+                                               onClick={() => addExam('/import-exam', f.id)}/>
+                                <Dropdown.Item icon='random' text='Từ ngân hàng đề'
+                                               onClick={() => addExam('/create-from-bank', f.id)}/>
+                            </Dropdown.Menu>
+                        </Dropdown>
                     </Card.Content>
                 </Card>
             )}
@@ -176,23 +179,23 @@ export default function Dashboard() {
                     {folders.find(f => f.id === activeFolder)?.name}
                 </Header.Content>
             </Header>
-            {/* Overlay chứ không thay chỗ: tên thư mục và khung Segment đứng
-                yên trong lúc tải, bấm sang thư mục khác không thấy trang
-                nhảy. `tk-load-host` cho overlay chỗ bám. */}
+            {/* Overlay rather than replacing: the folder name and Segment frame stay
+                still while loading, switching to another folder makes no page
+                jump. `tk-load-host` gives the overlay something to anchor to. */}
             {loadingExams && <Loading overlay/>}
-            {!hienTrong.length
+            {!shownInFolder.length
                 ? !loadingExams && <p className='text-muted'>
                     {q ? 'Không có đề nào khớp trong thư mục này.'
-                       : 'Thư mục trống — dùng “Tự soạn” hoặc “Nhập Word” ở thẻ trên.'}
+                       : 'Thư mục trống — bấm “Tạo đề” ở thẻ trên.'}
                 </p>
-                : hienTrong.map(exam =>
+                : shownInFolder.map(exam =>
                     <div className='tk-exam-row' key={exam.id}>
                         <ExamFile exam={exam} folderOptions={folderOptions}
                                   moveToFolder={moveToFolder}/>
                     </div>)}
         </Segment>}
 
-        {!!hienNgoai.length && <Segment className='tk-exams'>
+        {!!shownLoose.length && <Segment className='tk-exams'>
             <Header as='h4'>
                 <Icon name='file outline'/>
                 <Header.Content>
@@ -202,7 +205,7 @@ export default function Dashboard() {
                     </Header.Subheader>
                 </Header.Content>
             </Header>
-            {hienNgoai.map(exam =>
+            {shownLoose.map(exam =>
                 <div className='tk-exam-row' key={exam.id}>
                     <ExamFile exam={exam} folderOptions={folderOptions}
                               moveToFolder={moveToFolder}/>

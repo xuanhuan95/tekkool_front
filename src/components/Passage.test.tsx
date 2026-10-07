@@ -3,10 +3,10 @@ import {render} from '@testing-library/react';
 import Passage from './Passage';
 import type {Question} from '../pages/exam-creation/Default';
 
-// Ngữ liệu đọc hiểu in MỘT lần ở câu đầu nhóm, dùng ở 4 màn (làm bài, xem
-// trước, in đề, soạn đề) nên sai là hỏng cả 4.
-// Test cũ (Passage.test.js) chép lại điều kiện ra hàm riêng — chép sai thì
-// test vẫn xanh. Đây render chính component.
+// The reading passage prints ONCE at the first question of the group, used on 4
+// screens (exam-taking, preview, print, authoring), so a mistake breaks all 4.
+// The old test (Passage.test.js) copied the condition into its own function — a
+// wrong copy would still stay green. This one renders the component itself.
 
 const q = (passage: string | null, passageId: string | null) =>
     ({data: passage ? {passage, passageId} : {}}) as unknown as Question;
@@ -19,56 +19,56 @@ const text = (question: Question, prev?: Question) =>
     render(<Passage question={question} prev={prev}/>).container.textContent;
 
 describe('Passage', () => {
-    it('câu đầu section in ngữ liệu', () => expect(text(A)).toBe('Văn bản 1'));
-    it('câu 2 cùng nhóm KHÔNG in lại', () => expect(text(A, A)).toBe(''));
-    it('sang nhóm mới phải in ngữ liệu mới', () => expect(text(B, A)).toBe('Văn bản 2'));
-    it('câu 5 cùng nhóm 2 không in lại', () => expect(text(B, B)).toBe(''));
-    it('câu không có ngữ liệu thì không in gì', () => expect(text(plain, A)).toBe(''));
-    it('nhóm bắt đầu sau một câu lẻ vẫn phải in', () => expect(text(A, plain)).toBe('Văn bản 1'));
-    it('tự luận không ăn ngữ liệu của nhóm trước', () => expect(text(plain, B)).toBe(''));
-    it('câu data rỗng không vỡ', () => expect(text({data: {}} as Question, A)).toBe(''));
-    it('question không có data không vỡ', () => expect(text({} as Question, A)).toBe(''));
+    it('first question of the section prints the passage', () => expect(text(A)).toBe('Văn bản 1'));
+    it('question 2 in the same group does NOT reprint', () => expect(text(A, A)).toBe(''));
+    it('a new group must print the new passage', () => expect(text(B, A)).toBe('Văn bản 2'));
+    it('question 5 in group 2 does not reprint', () => expect(text(B, B)).toBe(''));
+    it('a question without a passage prints nothing', () => expect(text(plain, A)).toBe(''));
+    it('a group starting after a standalone question must still print', () => expect(text(A, plain)).toBe('Văn bản 1'));
+    it('an essay does not inherit the previous group\'s passage', () => expect(text(plain, B)).toBe(''));
+    it('a question with empty data does not break', () => expect(text({data: {}} as Question, A)).toBe(''));
+    it('a question without data does not break', () => expect(text({} as Question, A)).toBe(''));
 
-    // Số văn bản sinh lúc HIỂN THỊ, theo thứ tự trong đề đang xem. Trước đây
-    // nhãn "VĂN BẢN n" nằm chết trong ngữ liệu từ lúc import: khối rút từ ngân
-    // hàng sang đề khác thì "Phần I" hiện "VĂN BẢN 2", hai khối cùng rút vào
-    // một đề còn cùng mang số 2.
+    // The text number is generated at DISPLAY time, in the order of the exam being
+    // viewed. Previously the "VĂN BẢN n" label was hard-baked into the passage at
+    // import: a block pulled from the bank into another exam showed "Phần I" as
+    // "VĂN BẢN 2", and two blocks pulled into the same exam both carried number 2.
     //
-    // Nội dung fixture cố tình KHÔNG chứa chữ "văn bản" để không lẫn với nhãn.
+    // Fixture content deliberately does NOT contain the words "văn bản" so it cannot be confused with the label.
     const X = q('<p>Chùm khế ngọt</p>', 'GX');
     const Y = q('<p>Trọn kiếp con người</p>', 'GY');
-    const nhan = (question: Question, prev: Question | undefined, questions: Question[]) =>
+    const label = (question: Question, prev: Question | undefined, questions: Question[]) =>
         render(<Passage question={question} prev={prev} questions={questions}/>)
             .container.querySelector('b');
 
-    it('hai văn bản: khối đầu là 1, khối sau là 2 — theo thứ tự đề MỚI', () => {
+    it('two texts: first block is 1, second is 2 — in the NEW exam order', () => {
         const qs = [X, X, Y, Y];
-        expect(nhan(X, undefined, qs)!.textContent).toBe('VĂN BẢN 1');
-        expect(nhan(Y, X, qs)!.textContent).toBe('VĂN BẢN 2');
+        expect(label(X, undefined, qs)!.textContent).toBe('VĂN BẢN 1');
+        expect(label(Y, X, qs)!.textContent).toBe('VĂN BẢN 2');
     });
 
-    it('một văn bản thì KHÔNG đánh số — "VĂN BẢN 1" trơ một mình là chữ thừa', () => {
-        expect(nhan(X, undefined, [X, X])).toBeNull();
+    it('a single text is NOT numbered — "VĂN BẢN 1" alone is surplus wording', () => {
+        expect(label(X, undefined, [X, X])).toBeNull();
     });
 
-    it('số theo vị trí trong đề, không theo id của đề gốc', () => {
-        // GY vốn là "văn bản 2" ở đề cũ, nay đứng đầu -> phải là 1.
+    it('number follows position in the exam, not the original exam\'s id', () => {
+        // GY was "text 2" in the old exam, now it is first -> must be 1.
         const qs = [Y, X];
-        expect(nhan(Y, undefined, qs)!.textContent).toBe('VĂN BẢN 1');
-        expect(nhan(X, Y, qs)!.textContent).toBe('VĂN BẢN 2');
+        expect(label(Y, undefined, qs)!.textContent).toBe('VĂN BẢN 1');
+        expect(label(X, Y, qs)!.textContent).toBe('VĂN BẢN 2');
     });
 
-    it('câu lẻ không ngữ liệu xen giữa không làm lệch số', () => {
+    it('a standalone question without a passage in between does not shift the number', () => {
         const qs = [X, plain, Y];
-        expect(nhan(Y, plain, qs)!.textContent).toBe('VĂN BẢN 2');
+        expect(label(Y, plain, qs)!.textContent).toBe('VĂN BẢN 2');
     });
 
-    it('không truyền questions thì không đánh số (màn chưa cập nhật vẫn chạy)', () => {
+    it('without questions, no numbering (screens not yet updated still work)', () => {
         expect(render(<Passage question={X}/>).container.querySelector('b')).toBeNull();
     });
 
-    // SafeHtml lọc XSS: nội dung đề do giáo viên nhập, code cũ render thô.
-    it('lọc <script> trong ngữ liệu', () => {
+    // SafeHtml filters XSS: exam content is entered by teachers, the old code rendered it raw.
+    it('filters <script> in the passage', () => {
         const xss = q('<p>An toàn</p><script>window.__hacked = 1</script>', 'G9');
         const {container} = render(<Passage question={xss}/>);
         expect(container.querySelector('script')).toBeNull();

@@ -6,10 +6,10 @@ import {Editor} from "../../../components/Editor";
 
 
 export default class TrueFalse extends BaseQuestion {
-    // ponytail: bug gốc — `label === 'A.True' && checked`. Semantic chỉ phát
-    // onChange cho nút VỪA được chọn (checked luôn true), nhưng công thức đó
-    // đọc như "True chỉ khi đang tick", dễ bị sửa nhầm thành lật ngược.
-    // Đáp án do chính nút được bấm quyết định, không cần `checked`.
+    // ponytail: original bug — `label === 'A.True' && checked`. Semantic only fires
+    // onChange for the button JUST selected (checked is always true), but that
+    // formula reads like "True only when ticked", easy to "fix" into an inversion.
+    // The answer is decided by the clicked button itself, no need for `checked`.
     onChangeAnswer = (_e: unknown, {label}: {label?: any}) => {
         this.setQuestionData({answer: label === 'A.True'});
     };
@@ -26,8 +26,9 @@ export default class TrueFalse extends BaseQuestion {
 
             <AnswerLabel/>
 
-            {/* ponytail: bug gốc — mọi câu TrueFalse trong đề chung name='answer',
-                nên giáo viên chọn đáp án câu 2 là câu 1 bị bỏ chọn. Nhóm theo id câu. */}
+            {/* ponytail: original bug — every TrueFalse question in the exam shared
+                name='answer', so the teacher choosing question 2's answer cleared
+                question 1's. Group by question id. */}
             <Radio label='A.True' name={'answer-' + this.props.question.id}
                    checked={data.answer !== undefined && data.answer}
                    onChange={this.onChangeAnswer}/>

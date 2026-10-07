@@ -10,60 +10,64 @@ import {Segment, Radio, Grid, Button, Icon, Rail, Sticky, Message} from 'semanti
 import {numToChar} from "../../services/tools";
 import {Editor} from "../../components/Editor";
 import Api from "../../services/api";
-import HetLuotModal from "../../components/HetLuotModal";
+import OutOfTurnsModal from "../../components/OutOfTurnsModal";
 import {round} from "../my/fmt";
+import {blockStyle} from './blockTypes';
 import type {RouterProps} from '../../withRouter';
 import type {Question, Section} from './Default';
 import type {ScoreSection, Submission} from '../../types/submission';
 
 
 /**
- * Đề như `exam/during_test/<id>` trả về. Khác `Exam` của màn soạn đề ở hai
- * chỗ: mỗi câu mang thêm `markedAnswer` (bài làm đang dở), và đề có
- * `remaining_sec` — đồng hồ chốt ở SERVER, không tính lại từ `duration`.
+ * The exam as returned by `exam/during_test/<id>`. Differs from the authoring
+ * screen's `Exam` in two ways: each question carries `markedAnswer` (the
+ * in-progress answer), and the exam has `remaining_sec` — the clock is fixed
+ * on the SERVER, not recomputed from `duration`.
  */
-type Cau = Question & {markedAnswer?: string | null};
+type ExamQuestion = Question & {markedAnswer?: string | null};
 
-type Phan = Omit<Section, 'questions'> & {questions: Cau[]};
+/** `loai` only exists on exams drawn from the question bank — colors the section by block type. */
+type ExamSection = Omit<Section, 'questions'> & {questions: ExamQuestion[]; loai?: string};
 
-type DeThi = {
+type TestExam = {
     id: string;
     name?: string;
     duration?: number;
-    sections: Phan[];
-    /** Giây còn lại của lượt. null/undefined = đề không giới hạn giờ. */
+    sections: ExamSection[];
+    /** Seconds left in the attempt. null/undefined = exam has no time limit. */
     remaining_sec?: number | null;
-    /** BE trả bài đã nộp thay vì đề khi học sinh F5 sau lúc nộp. */
+    /** BE returns the submitted work instead of the exam when the student refreshes after submitting. */
     da_nop?: boolean;
 };
 
-/** Lấy câu lỗi từ exception của Api. */
-const loi = (e: any, mac_dinh: string) => (e && (e.error || e.message)) || mac_dinh;
+/** Extract the error message from an Api exception. */
+const errorMessage = (e: any, fallback: string) => (e && (e.error || e.message)) || fallback;
 
 
-// Bang diem tung phan tren man "Da nop bai".
-// Chia 2 nhom theo pending chu khong theo block_type: hoc sinh quan tam
-// "cho ai cham", khong quan tam loai cau. Phan nao con cau chua cham thi ca
-// phan do la "cho giao vien" — cham nua voi mot phan con te hon khong cham.
-function BangDiem({phan}: {phan: ScoreSection[]}) {
-    const may = phan.filter(p => !p.pending);
-    const nguoi = phan.filter(p => p.pending);
-    const tong = may.reduce((t, p) => t + p.score, 0);
-    const tongMax = may.reduce((t, p) => t + p.max_score, 0);
-    return <div className='tk-ketqua'>
-        {may.length > 0 && <Fragment>
-            <div className='tk-ketqua-nhom'>Phần trắc nghiệm:</div>
-            {may.map(p => <div className='tk-ketqua-dong' key={p.ten}>
+// Per-section score table on the "Submitted" screen.
+// Split into 2 groups by pending, not by block_type: students care about
+// "who grades this", not the question type. A section with any ungraded
+// question is "waiting for the teacher" as a whole — a half-graded section is
+// worse than an ungraded one.
+function ScoreTable({sections}: {sections: ScoreSection[]}) {
+    const auto = sections.filter(p => !p.pending);
+    const manual = sections.filter(p => p.pending);
+    const total = auto.reduce((t, p) => t + p.score, 0);
+    const totalMax = auto.reduce((t, p) => t + p.max_score, 0);
+    return <div className='tk-result'>
+        {auto.length > 0 && <Fragment>
+            <div className='tk-result-group'>Phần trắc nghiệm:</div>
+            {auto.map(p => <div className='tk-result-row' key={p.ten}>
                 <span>{p.ten}</span>
                 <b>{round(p.score)}/{round(p.max_score)} điểm</b>
             </div>)}
-            {may.length > 1 && <div className='tk-ketqua-dong tk-ketqua-tong'>
-                <span>Tổng</span><b>{round(tong)}/{round(tongMax)} điểm</b>
+            {auto.length > 1 && <div className='tk-result-row tk-result-total'>
+                <span>Tổng</span><b>{round(total)}/{round(totalMax)} điểm</b>
             </div>}
         </Fragment>}
-        {nguoi.length > 0 && <Fragment>
-            <div className='tk-ketqua-nhom'>Phần tự luận:</div>
-            {nguoi.map(p => <div className='tk-ketqua-dong' key={p.ten}>
+        {manual.length > 0 && <Fragment>
+            <div className='tk-result-group'>Phần tự luận:</div>
+            {manual.map(p => <div className='tk-result-row' key={p.ten}>
                 <span>{p.ten}</span>
                 <i>chờ giáo viên chấm</i>
             </div>)}
@@ -73,17 +77,17 @@ function BangDiem({phan}: {phan: ScoreSection[]}) {
 
 
 type State = {
-    exam: DeThi | null;
+    exam: TestExam | null;
     startAt: Date | null;
     passedTime: number;
     remainingTime: number;
     loadError: string | null;
-    hetLuot: boolean;
+    outOfTurns: boolean;
     submitting: boolean;
     submitted: boolean;
-    /** Bài đã nộp, để vẽ màn kết quả. Bản cũ thiếu trong state khởi tạo. */
+    /** The submitted work, used to draw the result screen. The old version missed it in the initial state. */
     result: (Submission & {phan?: ScoreSection[]}) | null;
-    /** Mốc cho <Sticky> của cột phải. Phải là ref ĐÃ gắn, không phải biến thường. */
+    /** Anchor for the right column's <Sticky>. Must be a ref that IS attached, not a plain variable. */
     contextRef: HTMLElement | null;
 };
 
@@ -94,14 +98,14 @@ class DoExam extends React.Component<RouterProps, State> {
         passedTime: 0,
         remainingTime: 0,
         loadError: null,
-        hetLuot: false,
+        outOfTurns: false,
         submitting: false,
         submitted: false,
         result: null,
         contextRef: null,
     };
 
-    /** id của setInterval đếm giờ. null khi đề không giới hạn thời gian. */
+    /** id of the countdown setInterval. null when the exam has no time limit. */
     _counter: ReturnType<typeof setInterval> | null = null;
 
     handleContextRef = (contextRef: HTMLElement | null) => this.setState({contextRef});
@@ -109,30 +113,32 @@ class DoExam extends React.Component<RouterProps, State> {
     componentDidMount = async () => {
         let {examId} = this.props.match.params;
 
-        // ponytail: api.js reject khi code!==200 -> không bắt thì 403 (đề có phí)
-        // nuốt im lặng thành loader quay mãi.
+        // ponytail: api.js rejects when code!==200 -> if not caught, a 403 (paid exam)
+        // is silently swallowed into a loader spinning forever.
         try {
-            // ?lam_lai=1 di thang xuong BE: bam vao de tu danh sach la CHU DONG
-            // muon lam bai. Khong co co nay thi BE coi moi lan vao de trong 15
-            // phut sau khi nop la "F5 xem lai ket qua" va day ra man ket qua cu
-            // — hoc sinh bam de ma khong vao duoc, tuong app hong.
-            const lamLai = new URLSearchParams(this.props.location.search).get('lam_lai') === '1';
-            const exam: DeThi & {da_nop?: boolean} = await Api.get(
-                'exam/during_test/' + examId + (lamLai ? '?lam_lai=1' : ''));
-            // Vua nop xong roi F5: BE tra ve bai da nop (da_nop) thay vi de,
-            // khong tru them luot. Hien thang man ket qua.
+            // ?lam_lai=1 goes straight to the BE: clicking an exam from the list means
+            // the student DELIBERATELY wants to take it. Without this flag the BE treats
+            // every entry within 15 minutes after submitting as "F5 to review the result"
+            // and pushes out the old result screen — the student clicks the exam, cannot
+            // get in, and thinks the app is broken.
+            const retake = new URLSearchParams(this.props.location.search).get('lam_lai') === '1';
+            const exam: TestExam & {da_nop?: boolean} = await Api.get(
+                'exam/during_test/' + examId + (retake ? '?lam_lai=1' : ''));
+            // Just submitted then F5: BE returns the submitted work (da_nop) instead of the
+            // exam, without deducting another attempt. Show the result screen directly.
             if (exam && exam.da_nop) {
                 return this.setState({submitted: true, result: exam as any});
             }
-            // ponytail: de da hien ra man hinh la da doc duoc -> tinh gio NGAY.
-            // Nut Start cu cho thi sinh doc het de roi moi bam, tinh gio bang 0.
+            // ponytail: once the exam is on screen it can be read -> start the clock NOW.
+            // The old Start button let candidates read the whole exam before pressing it,
+            // timing from zero.
             this.setState({exam}, this.startExam);
         } catch (e: any) {
-            // 402 = hết lượt -> chặn TẠI CHỖ bằng popup, không đá sang trang
-            // khác: học sinh đang muốn làm đúng đề này.
-            if (e && e.code === 402) return this.setState({hetLuot: true});
+            // 402 = out of attempts -> block IN PLACE with a popup, do not redirect
+            // elsewhere: the student wants to take exactly this exam.
+            if (e && e.code === 402) return this.setState({outOfTurns: true});
             if (e && e.code === 403) return this.props.history.push('/packages');
-            this.setState({loadError: loi(e, 'Không tải được đề thi')});
+            this.setState({loadError: errorMessage(e, 'Không tải được đề thi')});
         }
     };
 
@@ -140,61 +146,62 @@ class DoExam extends React.Component<RouterProps, State> {
         const {exam} = this.state;
         if (!exam) return;
 
-        // ponytail: doc store ngoai React (getState) thay vi hook — DoExam van
-        // la class component. Chuyen ca file 429 dong sang hooks chi de lay mot
-        // id nguoi dung la rui ro khong dang, day la duong lam bai va tru luot.
+        // ponytail: read the store outside React (getState) instead of a hook — DoExam is
+        // still a class component. Converting the whole 429-line file to hooks just to get
+        // a user id is an unjustified risk; this is the exam-taking and attempt-deducting path.
         let user = useAuthStore.getState().user;
 
-        // ponytail: mang chap giua gio thi thi `await` nem, state khong doi VA
-        // khong co thong bao nao — hoc sinh bam dap an, thay nut khong sang,
-        // tuong minh bam hut nen bam lai; nop bai thi nhung cau do 0 diem.
-        // Bao ro mot cau roi return: khong ghi vao state ban chua luu duoc,
-        // neu khong man hinh noi "da chon" trong khi server khong co gi.
+        // ponytail: if the network flickers mid-exam, `await` throws, state does not change
+        // AND there is no notification — the student clicks an answer, sees the button not
+        // light up, thinks they missed and clicks again; on submit those questions score 0.
+        // Report clearly in one sentence then return: do not write to state something that
+        // could not be saved, otherwise the screen says "selected" while the server has nothing.
         try {
             await Api.post('exam/save_answer/' + questionId, {
                 answer: answer,
                 user_id: user && user.id
             });
         } catch (e) {
-            return alert(loi(e, 'Chưa lưu được câu trả lời. Kiểm tra mạng rồi chọn lại.'));
+            return alert(errorMessage(e, 'Chưa lưu được câu trả lời. Kiểm tra mạng rồi chọn lại.'));
         }
 
-        // ponytail: sửa TẠI CHỖ rồi setState để vẽ lại — giữ nguyên hành vi
-        // bản cũ. Bản cũ viết bằng `.map()` nhưng vứt kết quả đi, đọc như code
-        // immutable trong khi thật ra vẫn gán thẳng vào `question`; ai dọn
-        // "map không dùng kết quả" mà bỏ dòng gán là mất luôn bài đang làm.
+        // ponytail: mutate IN PLACE then setState to re-render — keeps the old behavior.
+        // The old version used `.map()` but threw the result away, reading like immutable
+        // code while actually assigning straight into `question`; anyone cleaning up
+        // "map result unused" and dropping the assignment loses the in-progress work.
         exam.sections.forEach(section => section.questions.forEach(q => {
             if (q.id === questionId) q.markedAnswer = answer;
         }));
         this.setState({exam});
     };
 
-    // Danh sach cau theo DUNG thu tu hien tren man, kem so thu tu. Dung cho
-    // ca bang dieu huong lan canh bao truoc khi nop — mot nguon su that, khong
-    // dem hai noi roi lech nhau.
+    // Question list in EXACTLY the on-screen order, with sequence numbers. Used for
+    // both the navigation grid and the warning before submitting — one source of
+    // truth, not counted in two places that then drift apart.
     //
-    // Bo qua cau `data` rong y het luc render, neu khong bang se danh so lech
-    // so voi "Question N" trong bai.
-    dsCau = (): Array<{q: Cau; so: number}> => {
+    // Skips questions with empty `data` exactly like render does, otherwise the grid
+    // would number differently from "Question N" in the exam.
+    questionList = (): Array<{q: ExamQuestion; num: number}> => {
         const {exam} = this.state;
-        const ds: Array<{q: Cau; so: number}> = [];
+        const list: Array<{q: ExamQuestion; num: number}> = [];
         (exam ? exam.sections : []).forEach(s => (s.questions || []).forEach(q => {
             if (!q.data || !Object.keys(q.data).length) return;
-            ds.push({q, so: ds.length + 1});
+            list.push({q, num: list.length + 1});
         }));
-        return ds;
+        return list;
     };
 
-    // Chua lam = chua co markedAnswer. Editor tra ve HTML nen chuoi rong that
-    // su co the la '<p></p>' hoac '<br>' — striptags roi trim moi biet.
-    chuaLam = () => this.dsCau().filter(({q}) => {
+    // Unanswered = no markedAnswer yet. Editor returns HTML num a truly empty string
+    // can be '<p></p>' or '<br>' — only striptags then trim tells.
+    unanswered = () => this.questionList().filter(({q}) => {
         let a = q.markedAnswer;
         if (a === null || a === undefined) return true;
         return !striptags(String(a)).replace(/&nbsp;/g, ' ').trim();
     });
 
-    // ponytail: bug gốc 2018 — rời trang giữa chừng thì setInterval đếm giờ vẫn
-    // chạy và setState trên component đã unmount (React 18 cảnh báo memory leak).
+    // ponytail: original 2018 bug — leaving the page midway left the countdown
+    // setInterval running and calling setState on an unmounted component (React 18
+    // warns about a memory leak).
     componentWillUnmount = () => this.stopCounter();
 
     stopCounter = () => {
@@ -202,20 +209,20 @@ class DoExam extends React.Component<RouterProps, State> {
         this._counter = null;
     };
 
-    // ponytail: bug gốc 2018 — finish() chỉ alert(), không gọi API nào. Giờ nó
-    // là chỗ ĐÓNG LƯỢT THI: nộp bài xong đơn hết hiệu lực, làm lại phải mua đơn mới.
+    // ponytail: original 2018 bug — finish() only alert()ed, calling no API. Now it is
+    // where the attempt is CLOSED: after submitting the order expires, retaking needs a new order.
     finish = async () => {
         const {passedTime, submitting, submitted} = this.state;
         if (submitting || submitted) return;
 
-        // Canh bao cau chua lam TRUOC khi hoi nop. Khong chan cung: hoc sinh
-        // co quyen bo cau kho, va het gio thi autoSubmit van phai nop duoc.
-        // Chi bao ro dang bo bao nhieu cau va la nhung cau nao.
-        let thieu = this.chuaLam();
-        if (thieu.length) {
-            let ten = thieu.map(c => c.so).join(', ');
+        // Warn about unanswered questions BEFORE asking to submit. Not a hard block: students
+        // may skip hard questions, and when time runs out autoSubmit must still submit.
+        // Just state clearly how many questions are skipped and which ones.
+        let missing = this.unanswered();
+        if (missing.length) {
+            let names = missing.map(c => c.num).join(', ');
             if (!window.confirm(
-                'Còn ' + thieu.length + ' câu chưa làm: câu ' + ten + '.\n\n' +
+                'Còn ' + missing.length + ' câu chưa làm: câu ' + names + '.\n\n' +
                 'Nộp bài bây giờ thì những câu này tính 0 điểm. Vẫn nộp?')) return;
         }
 
@@ -227,7 +234,7 @@ class DoExam extends React.Component<RouterProps, State> {
             result = await Api.post('exam/submit/' + this.props.match.params.examId);
         } catch (e) {
             this.setState({submitting: false});
-            return alert(loi(e, 'Nộp bài thất bại, thử lại.'));
+            return alert(errorMessage(e, 'Nộp bài thất bại, thử lại.'));
         }
 
         this.stopCounter();
@@ -237,26 +244,26 @@ class DoExam extends React.Component<RouterProps, State> {
     startExam = () => {
         const {exam} = this.state;
         if (!exam) return;
-        // ponytail: đồng hồ chạy trên SERVER. `remaining_sec` là số giây thật sự
-        // còn lại của lượt (server chốt hạn nộp lúc mở lượt), không phải
-        // exam.duration — đóng tab 20 phút rồi mở lại thì mất đúng 20 phút đó,
-        // chứ không được cấp lại nguyên thời gian như bản đếm ở FE trước đây.
-        // null = đề không giới hạn thời gian.
+        // ponytail: the clock runs on the SERVER. `remaining_sec` is the real number of
+        // seconds left in the attempt (the server fixes the deadline when the attempt
+        // opens), not exam.duration — close the tab for 20 minutes and reopen and exactly
+        // those 20 minutes are lost, instead of getting the full time back as with the old
+        // FE-side counting. null = exam has no time limit.
         let limit = exam.remaining_sec;
         if (limit === null || limit === undefined) limit = (exam.duration || 0) * 60;
-        const han = limit;
+        const deadline = limit;
 
-        // Mốc để trừ đi thời gian trôi tại máy học sinh giữa hai tick.
+        // Reference point to subtract time elapsed on the student's machine between two ticks.
         this.setState({startAt: new Date(), remainingTime: limit});
         if (!limit) return;
 
         this._counter = setInterval(() => {
             const passedTime = this.calculPassedTime();
-            // max(0) — khong thi giay cuoi hien '-1:-05' truoc khi kip nop.
-            const remainingTime = Math.max(0, han - passedTime);
+            // max(0) — otherwise the last second shows '-1:-05' before the submit gets in.
+            const remainingTime = Math.max(0, deadline - passedTime);
             this.setState({passedTime, remainingTime});
 
-            // Het gio thi nop thay thi sinh, khong de ho lam tiep vo han.
+            // When time is up, submit for the candidate; do not let them continue indefinitely.
             if (remainingTime <= 0) {
                 this.stopCounter();
                 this.autoSubmit();
@@ -264,8 +271,8 @@ class DoExam extends React.Component<RouterProps, State> {
         }, 1000);
     };
 
-    // ponytail: tach khoi finish() vi finish() co window.confirm — het gio ma
-    // con hoi thi sinh 'co chac khong' la vo nghia, ho bam Cancel la lam tiep.
+    // ponytail: separate from finish() because finish() has window.confirm — asking the
+    // candidate 'are you sure' after time is up is pointless, they press Cancel and keep going.
     autoSubmit = async () => {
         if (this.state.submitting || this.state.submitted) return;
 
@@ -274,7 +281,7 @@ class DoExam extends React.Component<RouterProps, State> {
         try {
             result = await Api.post('exam/submit/' + this.props.match.params.examId);
         } catch (e) {
-            // Nop that bai van phai khoa bai lai, khong tra ve man lam bai.
+            // A failed submit must still lock the exam, not return to the exam screen.
         }
         this.setState({submitting: false, submitted: true, result});
         alert('Đã hết giờ làm bài. Bài của bạn được nộp tự động.');
@@ -291,33 +298,42 @@ class DoExam extends React.Component<RouterProps, State> {
             return <Message negative className='margin'>{this.state.loadError}</Message>;
         }
 
-        // Hết lượt: đề không tải được nên `exam` luôn null -> popup phải đứng
-        // TRƯỚC nhánh loader, không thì học sinh nhìn vòng quay mãi.
-        if (this.state.hetLuot) return <HetLuotModal open/>;
+        // Out of attempts: the exam cannot load num `exam` is always null -> the popup must
+        // come BEFORE the loader branch, otherwise the student stares at a spinner forever.
+        if (this.state.outOfTurns) return <OutOfTurnsModal open/>;
 
-        // ponytail: man KET QUA phai dung TRUOC nhanh loader. F5 ngay sau khi
-        // nop: BE tra bai da nop (da_nop) chu KHONG tra de, nen `exam` van null
-        // -> nhanh `if (!exam)` nuot mat man ket qua va hoc sinh nhin vong quay
-        // mai, khong bao gio thay diem. Cung ly do voi hetLuot o tren.
+        // ponytail: the RESULT screen must come BEFORE the loader branch. F5 right after
+        // submitting: BE returns the submitted work (da_nop), NOT the exam, num `exam` is
+        // still null -> the `if (!exam)` branch swallows the result screen and the student
+        // stares at a spinner, never seeing the score. Same reason as outOfTurns above.
         if (this.state.submitted) {
             const r = this.state.result;
-            return <Segment className='margin text-center' padded='very'>
-                <Icon name='check circle' color='green' size='huge'/>
+            // Celebrate only when JUST submitted; not on F5 reviewing the result (da_nop).
+            const celebrate = !(r && (r as {da_nop?: boolean}).da_nop);
+            return <Segment className='margin text-center tk-submitted' padded='very'>
+                {celebrate && <div className='tk-confetti' aria-hidden='true'>
+                    {Array.from({length: 18}, (_x, i) => <i key={i} style={{
+                        left: (i * 53) % 100 + '%',
+                        animationDelay: (i % 6) * 0.12 + 's',
+                        background: ['var(--tk-block-reading)', 'var(--tk-block-paragraph)', 'var(--tk-block-essay)', 'var(--tk-block-choice)', 'var(--tk-block-short)', 'var(--tk-block-essay-math)'][i % 6],
+                    }}/>)}
+                </div>}
+                <Icon name='check circle' color='green' size='huge' className='tk-submitted-icon'/>
                 <h2>Đã nộp bài</h2>
-                {/* Uu tien duration_sec tu bai da nop: sau F5 thi passedTime
-                    trong state ve 0, hien "0 phut" la sai. */}
+                {/* Prefer duration_sec from the submitted work: after F5 passedTime
+                    in state is 0, and showing "0 phút" would be wrong. */}
                 <p>Thời gian làm bài: {Math.floor(
                     ((r && r.duration_sec) || this.state.passedTime) / 60)} phút</p>
 
-                {/* Tach tung phan thay vi mot con so gop: hoc sinh can biet
-                    phan nao may da cham, phan nao con cho giao vien. Bai cu
-                    (nop truoc khi co section_name) khong co r.phan -> roi ve
-                    dong tong nhu truoc, khong hien bang rong. */}
-                {r && r.phan && r.phan.length > 0 ? <BangDiem phan={r.phan}/> : <Fragment>
-                    {/* Mau so phai la graded_max_score (diem toi da cua rieng
-                        phan DA cham), khong phai max_score ca bai: bai 10 trac
-                        nghiem + 2 tu luan hien '0/12' lam hoc sinh tuong sai
-                        het 12 cau. */}
+                {/* Split per section instead of one combined number: students need to know
+                    which sections the machine graded and which still wait for the teacher.
+                    Old submissions (made before section_name existed) have no r.phan -> fall
+                    back to the total line as before, no empty table. */}
+                {r && r.phan && r.phan.length > 0 ? <ScoreTable sections={r.phan}/> : <Fragment>
+                    {/* The denominator must be graded_max_score (max score of just the
+                        graded part), not the whole exam's max_score: an exam with 10
+                        multiple-choice + 2 essay questions showing '0/12' makes students
+                        think they got all 12 wrong. */}
                     {r && r.pending_count > 0 &&
                     <p>Phần trắc nghiệm: <b>{round(r.score)}/{round(r.graded_max_score)}</b> điểm.
                         Còn {r.pending_count} câu tự luận chờ giáo viên chấm
@@ -330,8 +346,8 @@ class DoExam extends React.Component<RouterProps, State> {
                 <Button primary onClick={() => this.props.history.push('/my-exams/' + r.id)}>
                     Xem lại bài làm
                 </Button>}
-                {/* Lam lai NGAY tu man ket qua: khong co nut nay thi hoc sinh
-                    phai ra danh sach de roi bam vao lai moi thi tiep duoc. */}
+                {/* Retake right from the result screen: without this button students
+                    must go back to the exam list and click in again to continue. */}
                 <Button onClick={() => {
                     this.props.history.replace(
                         '/do-exam/' + this.props.match.params.examId + '?lam_lai=1');
@@ -345,15 +361,29 @@ class DoExam extends React.Component<RouterProps, State> {
             return <Loading/>;
         }
 
+        const list = this.questionList();
+        // Compute ONCE into a Set, do not call unanswered() again inside the loop (pointless O(n^2)).
+        const emptyIds = new Set(this.unanswered().map(c => c.q.id));
+        const doneCount = list.length - emptyIds.size;
+        const durationSec = (exam.duration || 0) * 60;
+        // Under 5 minutes: yellow. Under 1 minute: red and blinking — num they submit before the system auto-submits.
+        const timerLevel = remainingTime <= 60 ? ' time-up' : remainingTime <= 300 ? ' time-low' : '';
+
         return <Grid id="Exam" className='margin padding'>
             <Grid.Column width={13}>
                 <div ref={this.handleContextRef}>
                     <Segment>
                         {exam.sections.map((s, idx) => {
-                            return <div className="section" style={{marginTop: '10px'}} key={s.id}>
-                                <h4>Part {idx + 1}: </h4>
-
-                                {renderHTML(s.name || '')}
+                            const m = blockStyle(s.loai);
+                            return <div className="section tk-part" key={s.id}
+                                        style={{'--block-color': m.color} as React.CSSProperties}>
+                                <div className='tk-part-head'>
+                                    <span className='tk-part-num'><Icon name={m.icon}/></span>
+                                    <div>
+                                        <small>Phần {idx + 1}</small>
+                                        <div className='tk-part-name'>{renderHTML(s.name || '')}</div>
+                                    </div>
+                                </div>
 
                                 {s.questions.map((q, idx) => {
                                     if (!Object.keys(q.data).length)
@@ -363,8 +393,11 @@ class DoExam extends React.Component<RouterProps, State> {
                                     return <Fragment key={q.id}>
                                         <Passage question={q} prev={s.questions[idx - 1]} questions={s.questions}/>
 
-                                        {/* id de bang dieu huong ben phai cuon toi dung cau. */}
-                                        <i id={'cau-' + q.id}><b>Question {qIdx}:</b></i>
+                                        {/* id num the navigation grid on the right can scroll to the right question. */}
+                                        <i id={'q-' + q.id} className={'tk-qlabel' + (emptyIds.has(q.id) ? '' : ' done')}>
+                                            <b>Question {qIdx}:</b>
+                                            {!emptyIds.has(q.id) && <Icon name='check circle' aria-label='Đã làm'/>}
+                                        </i>
 
                                         {q.type === 'FillBlank' &&
                                         <div className='question FillBlank'>
@@ -399,8 +432,8 @@ class DoExam extends React.Component<RouterProps, State> {
                                             {striptags(q.data.question) ? renderHTML(q.data.question) : ''}
 
                                             <div className='no-margin no-padding'>
-                                                {/* ponytail: bug gốc 2018 — mọi câu chung name='answer' nên
-                                                    chọn câu sau bỏ chọn câu trước. Nhóm radio theo id câu hỏi. */}
+                                                {/* ponytail: original 2018 bug — all questions shared name='answer' num
+                                                    choosing a later question cleared the earlier one. Group radios by question id. */}
                                                 {q.data.answers && q.data.answers.map((answer: {value: string}, i: number) => {
                                                     const checked = answer.value === q.markedAnswer;
 
@@ -442,45 +475,56 @@ class DoExam extends React.Component<RouterProps, State> {
                     <Rail position='right' style={{width: '24%', margin: 0, padding: 0}} className='text-center margin-top'>
                         <Sticky context={contextRef}>
                             {startAt && (exam.duration || 0) > 0 &&
-                            <h1 className={'text-center' + (remainingTime <= 60 ? ' time-up' : '')}>
-                                {Math.floor(remainingTime / 60)}:{String(remainingTime % 60).padStart(2, '0')}
-                            </h1>
+                            <div className={'tk-timer' + timerLevel}>
+                                <Icon name='clock outline'/>
+                                <h1>{Math.floor(remainingTime / 60)}:{String(remainingTime % 60).padStart(2, '0')}</h1>
+                                {/* Remaining ring: one glance tells how much is left, no mental math needed. */}
+                                <div className='tk-timer-bar'>
+                                    <span style={{width: (durationSec ? Math.min(100, remainingTime / durationSec * 100) : 0) + '%'}}/>
+                                </div>
+                            </div>
                             }
 
                             {startAt && !exam.duration &&
                             <div className='text-center'>Không giới hạn thời gian</div>
                             }
 
-                            {/* Bang cau hoi: o to = da lam, o trang = chua.
-                                Khong co no thi hoc sinh chi biet minh bo sot
-                                dung luc bam Nop — qua muon de tim lai cau nao. */}
-                            {startAt && (() => {
-                                const ds = this.dsCau();
-                                // Tinh MOT lan thanh Set, khong goi chuaLam()
-                                // lai trong vong lap (O(n^2) khong vi co).
-                                const trong = new Set(this.chuaLam().map(c => c.q.id));
-                                return <div className='tk-cau-nav'>
-                                    <div className='tk-cau-grid'>
-                                        {ds.map(({q, so}) => {
-                                            const xong = !trong.has(q.id);
+                            {/* Question grid: filled cell = done, blank = not yet.
+                                Without it students only learn they skipped something
+                                at the moment they press Submit — too late to find which one. */}
+                            {startAt && list.length > 0 &&
+                            <div className='tk-progress' role='progressbar' aria-valuemin={0}
+                                 aria-valuemax={list.length} aria-valuenow={doneCount}>
+                                <div className='tk-progress-text'>
+                                    <span>Đã làm</span><b>{doneCount}/{list.length} câu</b>
+                                </div>
+                                <div className='tk-progress-bar'>
+                                    <span style={{width: doneCount / list.length * 100 + '%'}}/>
+                                </div>
+                            </div>}
+
+                            {startAt &&
+                                <div className='tk-qnav'>
+                                    <div className='tk-qnav-grid'>
+                                        {list.map(({q, num}) => {
+                                            const done = !emptyIds.has(q.id);
                                             return <button key={q.id} type='button'
-                                                    className={'tk-cau' + (xong ? ' xong' : '')}
-                                                    title={xong ? 'Đã làm' : 'Chưa làm'}
+                                                    className={'tk-qnav-cell' + (done ? ' done' : '')}
+                                                    title={done ? 'Đã làm' : 'Chưa làm'}
                                                     onClick={() => {
-                                                        const el = document.getElementById('cau-' + q.id);
+                                                        const el = document.getElementById('q-' + q.id);
                                                         if (el) el.scrollIntoView({behavior: 'smooth', block: 'center'});
                                                     }}>
-                                                {so}
+                                                {num}
                                             </button>;
                                         })}
                                     </div>
-                                    <div className='tk-cau-dem'>
-                                        {trong.size === 0
-                                            ? <span className='du'><Icon name='check circle'/> Đã làm hết</span>
-                                            : <span>Còn <b>{trong.size}</b>/{ds.length} câu chưa làm</span>}
+                                    <div className='tk-qnav-count'>
+                                        {emptyIds.size === 0
+                                            ? <span className='done'><Icon name='check circle'/> Đã làm hết</span>
+                                            : <span>Còn <b>{emptyIds.size}</b>/{list.length} câu chưa làm</span>}
                                     </div>
-                                </div>;
-                            })()}
+                                </div>}
 
                             {startAt &&
                             <Button onClick={this.finish} color='blue' fluid className='margin-top'

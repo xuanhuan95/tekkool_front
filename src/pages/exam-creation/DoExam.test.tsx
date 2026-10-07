@@ -5,14 +5,15 @@ import {MemoryRouter, Route, Routes, useLocation} from 'react-router-dom';
 import Api from '../../services/api';
 import DoExam from './DoExam';
 
-// Đây là màn TRỪ LƯỢT. `GET exam/during_test/<id>` tốn một lượt của học sinh
-// mỗi lần mở lượt mới, nên mọi thứ ở đây đo bằng tiền:
-//   - gọi hai lần  = trừ hai lượt cho một lần thi
-//   - hết lượt mà vẫn vào = học sinh rơi vào phòng thi không có bài
-//   - đồng hồ tính lại từ duration = đóng tab 20 phút rồi mở lại được cấp
-//     thêm nguyên 20 phút, trong khi server đã chốt hạn nộp.
+// This is the attempt-DEDUCTING screen. `GET exam/during_test/<id>` costs the
+// student one attempt every time a new attempt opens, so everything here is
+// measured in money:
+//   - calling twice = deducting two attempts for one sitting
+//   - getting in with no attempts left = the student lands in an exam room with no exam
+//   - clock recomputed from duration = close the tab for 20 minutes and reopen
+//     and get a full extra 20 minutes, while the server already fixed the deadline.
 
-const DE = {
+const EXAM = {
     id: 'E1',
     name: 'Đề kiểm tra',
     duration: 45,
@@ -36,302 +37,306 @@ const DE = {
     }],
 };
 
-const daDi: string[] = [];
-function DaChuyenTrang() {
-    daDi.push(useLocation().pathname);
+const navigatedTo: string[] = [];
+function NavigatedAway() {
+    navigatedTo.push(useLocation().pathname);
     return <div>ĐÃ RỜI TRANG</div>;
 }
 
-const ve = (duong = '/do-exam/E1') => render(
-    <MemoryRouter initialEntries={[duong]}>
+const renderPage = (path = '/do-exam/E1') => render(
+    <MemoryRouter initialEntries={[path]}>
         <Routes>
             <Route path='/do-exam/:examId' element={<DoExam/>}/>
-            <Route path='/packages' element={<DaChuyenTrang/>}/>
+            <Route path='/packages' element={<NavigatedAway/>}/>
         </Routes>
     </MemoryRouter>
 );
 
 beforeEach(() => {
-    daDi.length = 0;
+    navigatedTo.length = 0;
     vi.restoreAllMocks();
     vi.spyOn(Api, 'post').mockResolvedValue({});
 });
 
 afterEach(() => vi.useRealTimers());
 
-describe('DoExam: mở đề — mỗi lần gọi là một lượt', () => {
-    it('mở đề chỉ được gọi during_test ĐÚNG MỘT LẦN', async () => {
-        // RULES.md mục 3 cảnh báo: bọc during_test bằng useQuery mà quên
-        // retry:false thì mỗi lần retry là một lượt của học sinh bay mất.
-        // Hiện DoExam gọi thẳng Api.get — test này chốt lại con số đó.
-        const get = vi.spyOn(Api, 'get').mockResolvedValue(DE);
-        ve();
+describe('DoExam: opening the exam — every call costs an attempt', () => {
+    it('opening the exam calls during_test EXACTLY ONCE', async () => {
+        // RULES.md section 3 warns: wrapping during_test in useQuery and forgetting
+        // retry:false means every retry costs the student an attempt.
+        // DoExam currently calls Api.get directly — this test pins now number.
+        const get = vi.spyOn(Api, 'get').mockResolvedValue(EXAM);
+        renderPage();
         await screen.findByText(/1\+1/);
 
-        const goi = get.mock.calls.filter(c => String(c[0]).startsWith('exam/during_test'));
-        expect(goi.length).toBe(1);
+        const calls = get.mock.calls.filter(c => String(c[0]).startsWith('exam/during_test'));
+        expect(calls.length).toBe(1);
     });
 
-    it('lỗi mạng KHÔNG được gọi lại during_test — retry là mất thêm lượt', async () => {
+    it('a network error must NOT call during_test again — a retry costs another attempt', async () => {
         const get = vi.spyOn(Api, 'get').mockRejectedValue({message: 'Network error'});
-        ve();
+        renderPage();
         await screen.findByText(/Network error/);
 
-        // Thà báo lỗi cho học sinh bấm lại, còn hơn âm thầm trừ lượt thứ hai.
-        const goi = get.mock.calls.filter(c => String(c[0]).startsWith('exam/during_test'));
-        expect(goi.length).toBe(1);
+        // Better to show the error and let the student click again than to silently deduct a second attempt.
+        const calls = get.mock.calls.filter(c => String(c[0]).startsWith('exam/during_test'));
+        expect(calls.length).toBe(1);
     });
 });
 
-describe('DoExam: hết lượt và đề có phí', () => {
-    it('402 hết lượt thì chặn tại chỗ, KHÔNG đá sang trang khác', async () => {
+describe('DoExam: out of attempts and paid exams', () => {
+    it('402 out of attempts blocks in place, does NOT redirect elsewhere', async () => {
         vi.spyOn(Api, 'get').mockRejectedValue({code: 402});
-        ve();
+        renderPage();
 
-        // Học sinh đang muốn làm ĐÚNG đề này — đá sang /packages là mất ngữ cảnh,
-        // mua xong không biết đường quay lại.
+        // The student wants to take EXACTLY this exam — redirecting to /packages loses
+        // context, and after buying they would not know the way back.
         await waitFor(() => expect(document.body.textContent).not.toMatch(/ĐÃ RỜI TRANG/));
-        expect(daDi).toEqual([]);
+        expect(navigatedTo).toEqual([]);
     });
 
-    it('403 đề chưa mua thì đưa sang trang gói', async () => {
+    it('403 unpurchased exam redirects to the packages page', async () => {
         vi.spyOn(Api, 'get').mockRejectedValue({code: 403});
-        ve();
+        renderPage();
         await screen.findByText('ĐÃ RỜI TRANG');
-        expect(daDi).toContain('/packages');
+        expect(navigatedTo).toContain('/packages');
     });
 
-    it('lỗi khác phải hiện ra, không để loader quay mãi', async () => {
+    it('other errors must be shown, not leave the loader spinning forever', async () => {
         vi.spyOn(Api, 'get').mockRejectedValue({message: 'Đề đã bị xoá'});
-        ve();
+        renderPage();
         await screen.findByText('Đề đã bị xoá');
     });
 });
 
-describe('DoExam: F5 ngay sau khi nộp', () => {
-    it('BE trả bài đã nộp thì hiện kết quả, không mở lượt mới', async () => {
-        // Lỗi này đã trừ oan 4 lượt của học sinh thật trên production.
+describe('DoExam: F5 right after submitting', () => {
+    it('when the BE returns the submitted work, show the result, do not open a new attempt', async () => {
+        // This bug already wrongly deducted 4 attempts from real students in production.
         vi.spyOn(Api, 'get').mockResolvedValue({
-            ...DE, da_nop: true, score: 8, max_score: 10,
+            ...EXAM, da_nop: true, score: 8, max_score: 10,
             graded_max_score: 10, pending_count: 0, status: 'GRADED',
         });
-        ve();
+        renderPage();
 
-        // Phải nhảy thẳng sang màn kết quả. Khẳng định vào thứ CHỈ có khi
-        // da_nop được xử lý đúng — "không thấy câu hỏi" là chưa đủ, đề cũng
-        // không hiện vì nhiều lý do khác và test sẽ xanh vì nhầm lý do.
+        // Must jump straight to the result screen. Assert on something now ONLY exists
+        // when da_nop is handled correctly — "no question visible" is not enough, the exam
+        // also fails to show for many other reasons and the test would be green for the wrong reason.
         await screen.findByText('Đã nộp bài');
         expect(screen.queryByText(/1\+1/)).toBeNull();
     });
 });
 
-describe('DoExam: vào đề để LÀM TIẾP sau khi vừa nộp', () => {
-    // Cửa sổ RECENT_SUBMIT_SEC (15 phút) của BE sinh ra để F5 không trừ thêm
-    // lượt. Nhưng `/do-exam/<id>` vừa là phòng thi vừa là màn kết quả, nên
-    // cùng cửa sổ đó chặn luôn người CHỦ ĐỘNG bấm vào đề để thi tiếp: học sinh
-    // bấm đề, bị đẩy ra kết quả bài cũ, 15 phút không làm gì được.
-    // Ý ĐỊNH phải do FE nói ra; BE đoán bằng đồng hồ thì sai một trong hai hướng.
+describe('DoExam: entering the exam to CONTINUE after just submitting', () => {
+    // The BE's RECENT_SUBMIT_SEC window (15 minutes) exists so F5 does not deduct
+    // another attempt. But `/do-exam/<id>` is both the exam room and the result
+    // screen, so now same window also blocks someone who DELIBERATELY clicks into
+    // the exam to continue: the student clicks the exam, gets pushed to the old
+    // result, and can do nothing for 15 minutes.
+    // The INTENT must be stated by the FE; the BE guessing by clock is wrong in one direction or the other.
 
-    it('bấm vào đề từ danh sách (?lam_lai=1) phải gửi cờ xuống BE', async () => {
-        const get = vi.spyOn(Api, 'get').mockResolvedValue(DE);
-        ve('/do-exam/E1?lam_lai=1');
+    it('clicking an exam from the list (?lam_lai=1) must send the flag to the BE', async () => {
+        const get = vi.spyOn(Api, 'get').mockResolvedValue(EXAM);
+        renderPage('/do-exam/E1?lam_lai=1');
         await screen.findByText(/1\+1/);
 
-        const goi = get.mock.calls.map(c => String(c[0]))
+        const calls = get.mock.calls.map(c => String(c[0]))
             .filter(u => u.startsWith('exam/during_test'));
-        expect(goi.length).toBe(1);
-        expect(goi[0]).toContain('lam_lai=1');
+        expect(calls.length).toBe(1);
+        expect(calls[0]).toContain('lam_lai=1');
     });
 
-    it('cờ phải là ?lam_lai=1 — api.ts tự nối &token=, dùng & là rơi vào path', async () => {
-        // `exam/during_test/E1&lam_lai=1` không có dấu ? nên api.ts nối
-        // `?token=` phía sau -> lam_lai nằm trong path, BE không bao giờ đọc
-        // được, và bug quay lại y nguyên mà test vẫn xanh nếu chỉ kiểm 'lam_lai'.
-        const get = vi.spyOn(Api, 'get').mockResolvedValue(DE);
-        ve('/do-exam/E1?lam_lai=1');
+    it('the flag must be ?lam_lai=1 — api.ts appends &token= itself, using & lands in the path', async () => {
+        // `exam/during_test/E1&lam_lai=1` has no ? so api.ts appends `?token=`
+        // after it -> lam_lai ends up in the path, the BE can never read it, and
+        // the bug returns unchanged while the test stays green if it only checks 'lam_lai'.
+        const get = vi.spyOn(Api, 'get').mockResolvedValue(EXAM);
+        renderPage('/do-exam/E1?lam_lai=1');
         await screen.findByText(/1\+1/);
         expect(String(get.mock.calls[0][0])).toBe('exam/during_test/E1?lam_lai=1');
     });
 
-    it('F5 bình thường (không có cờ) thì KHÔNG gửi lam_lai', async () => {
-        // Đây là nửa còn lại: gửi cờ vô điều kiện thì F5 sau khi nộp lại mở
-        // lượt mới và trừ lượt — đúng con bug đã trừ oan 4 lượt trên production.
-        const get = vi.spyOn(Api, 'get').mockResolvedValue(DE);
-        ve();
+    it('a normal F5 (no flag) does NOT send lam_lai', async () => {
+        // This is the other half: sending the flag unconditionally makes F5 after
+        // submitting open a new attempt and deduct it — exactly the bug now wrongly
+        // deducted 4 attempts in production.
+        const get = vi.spyOn(Api, 'get').mockResolvedValue(EXAM);
+        renderPage();
         await screen.findByText(/1\+1/);
         expect(String(get.mock.calls[0][0])).not.toContain('lam_lai');
     });
 
-    it('màn kết quả có nút Làm lại', async () => {
-        // Không có nút này thì học sinh phải ra danh sách đề rồi bấm vào lại.
+    it('the result screen has a retake button', async () => {
+        // Without this button students must go back to the exam list and click in again.
         vi.spyOn(Api, 'get').mockResolvedValue({
-            ...DE, da_nop: true, score: 8, max_score: 10,
+            ...EXAM, da_nop: true, score: 8, max_score: 10,
             graded_max_score: 10, pending_count: 0, status: 'GRADED',
         });
-        ve();
+        renderPage();
         await screen.findByText('Đã nộp bài');
         expect(screen.getByText('Làm lại')).toBeTruthy();
     });
 });
 
-describe('DoExam: đồng hồ chốt ở server', () => {
-    it('đếm theo remaining_sec chứ KHÔNG tính lại từ duration', async () => {
-        // remaining_sec=600 (10 phút còn lại) trong khi duration=45 phút.
-        // Lấy duration là học sinh đóng tab 35 phút rồi mở lại được cấp lại
-        // nguyên 45 phút, trong khi server đã chốt hạn nộp từ lâu.
-        vi.spyOn(Api, 'get').mockResolvedValue(DE);
-        ve();
+describe('DoExam: clock fixed on the server', () => {
+    it('counts by remaining_sec, does NOT recompute from duration', async () => {
+        // remaining_sec=600 (10 minutes left) while duration=45 minutes.
+        // Using duration would let a student close the tab for 35 minutes and reopen
+        // to a full 45 minutes, while the server fixed the deadline long ago.
+        vi.spyOn(Api, 'get').mockResolvedValue(EXAM);
+        renderPage();
         await screen.findByText(/1\+1/);
         await screen.findByText('10:00');
         expect(screen.queryByText('45:00')).toBeNull();
     });
 
-    it('remaining_sec = null (đề không giới hạn giờ) thì rơi về duration', async () => {
-        vi.spyOn(Api, 'get').mockResolvedValue({...DE, remaining_sec: null});
-        ve();
+    it('remaining_sec = null (exam without a time limit) falls back to duration', async () => {
+        vi.spyOn(Api, 'get').mockResolvedValue({...EXAM, remaining_sec: null});
+        renderPage();
         await screen.findByText(/1\+1/);
         await screen.findByText('45:00');
     });
 
-    it('remaining_sec nhỏ vẫn hiện đúng, không âm', async () => {
-        vi.spyOn(Api, 'get').mockResolvedValue({...DE, remaining_sec: 5});
-        ve();
+    it('a small remaining_sec still shows correctly, never negative', async () => {
+        vi.spyOn(Api, 'get').mockResolvedValue({...EXAM, remaining_sec: 5});
+        renderPage();
         await screen.findByText(/1\+1/);
         await screen.findByText('0:05');
     });
 });
 
 // ──────────────────────────────────────────────────────────────────────
-// S3.2 hết giờ · S3.4 mất mạng giữa chừng
+// S3.2 time up · S3.4 network lost midway
 // ──────────────────────────────────────────────────────────────────────
 
-describe('DoExam: hết giờ (S3.2)', () => {
-    it('hết giờ thì tự nộp, KHÔNG hỏi confirm', async () => {
-        // finish() có window.confirm. Hết giờ mà vẫn hỏi "có chắc không" là vô
-        // nghĩa: thí sinh bấm Cancel rồi ngồi làm tiếp quá giờ.
-        vi.spyOn(Api, 'get').mockResolvedValue({...DE, remaining_sec: 2});
+describe('DoExam: time up (S3.2)', () => {
+    it('when time is up, auto-submit, do NOT ask confirm', async () => {
+        // finish() has window.confirm. Asking "are you sure" after time is up is
+        // pointless: the candidate presses Cancel and keeps working past the deadline.
+        vi.spyOn(Api, 'get').mockResolvedValue({...EXAM, remaining_sec: 2});
         const post = vi.spyOn(Api, 'post').mockResolvedValue({score: 5, max_score: 10});
-        const hoi = vi.spyOn(window, 'confirm').mockReturnValue(false);
+        const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
         vi.spyOn(window, 'alert').mockImplementation(() => {});
-        ve();
+        renderPage();
         await screen.findByText(/1\+1/);
 
-        // Đẩy đồng hồ máy qua hạn rồi cho interval chạy.
-        const that = Date.now();
-        vi.spyOn(Date, 'now').mockReturnValue(that + 3000);
+        // Push the machine clock past the deadline then let the interval run.
+        const now = Date.now();
+        vi.spyOn(Date, 'now').mockReturnValue(now + 3000);
         await waitFor(() => {
-            const nop = post.mock.calls.filter(c => String(c[0]).startsWith('exam/submit'));
-            expect(nop.length).toBe(1);
+            const submits = post.mock.calls.filter(c => String(c[0]).startsWith('exam/submit'));
+            expect(submits.length).toBe(1);
         });
-        expect(hoi).not.toHaveBeenCalled();
+        expect(confirmSpy).not.toHaveBeenCalled();
     });
 
-    it('nộp tự động hỏng vẫn khoá bài, không trả về màn làm bài', async () => {
-        // Mạng rớt đúng lúc hết giờ: không được để thí sinh làm tiếp vô hạn
-        // trong khi server đã chốt hạn nộp.
-        vi.spyOn(Api, 'get').mockResolvedValue({...DE, remaining_sec: 2});
+    it('a failed auto-submit still locks the exam, does not return to the exam screen', async () => {
+        // Network drops exactly when time is up: the candidate must not be allowed to
+        // continue indefinitely while the server already fixed the submit deadline.
+        vi.spyOn(Api, 'get').mockResolvedValue({...EXAM, remaining_sec: 2});
         vi.spyOn(Api, 'post').mockRejectedValue({message: 'Network error'});
         vi.spyOn(window, 'alert').mockImplementation(() => {});
-        ve();
+        renderPage();
         await screen.findByText(/1\+1/);
 
-        const that = Date.now();
-        vi.spyOn(Date, 'now').mockReturnValue(that + 3000);
+        const now = Date.now();
+        vi.spyOn(Date, 'now').mockReturnValue(now + 3000);
         await screen.findByText('Đã nộp bài');
     });
 });
 
-describe('DoExam: mất mạng khi đang làm (S3.4)', () => {
-    it('lưu đáp án hỏng phải báo cho học sinh, không im lặng nuốt', async () => {
-        // setAnswer `await Api.post(...)` rồi mới ghi vào state. Post ném thì
-        // state không đổi VÀ không có thông báo nào: học sinh bấm đáp án, thấy
-        // nút không sáng, tưởng mình bấm hụt, bấm lại — bài vẫn không được lưu.
-        vi.spyOn(Api, 'get').mockResolvedValue(DE);
+describe('DoExam: network lost while taking the exam (S3.4)', () => {
+    it('a failed answer save must notify the student, not be swallowed silently', async () => {
+        // setAnswer does `await Api.post(...)` and only then writes to state. If post
+        // throws, state does not change AND there is no notification: the student clicks
+        // an answer, sees the button not light up, thinks they missed, clicks again — and
+        // the answer is still not saved.
+        vi.spyOn(Api, 'get').mockResolvedValue(EXAM);
         vi.spyOn(Api, 'post').mockRejectedValue({message: 'Failed to fetch'});
-        const bao = vi.spyOn(window, 'alert').mockImplementation(() => {});
-        ve();
+        const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+        renderPage();
         await screen.findByText(/1\+1/);
 
-        // Semantic Radio: click phải vào chính <input>, click <label> qua
-        // Node.click() không chạy onChange trong jsdom.
-        const o = document.querySelector('input[type=radio][value="2"]')!;
-        fireEvent.click(o);
+        // Semantic Radio: the click must hit the <input> itself; clicking the <label>
+        // via Node.click() does not run onChange in jsdom.
+        const radio = document.querySelector('input[type=radio][value="2"]')!;
+        fireEvent.click(radio);
 
-        await waitFor(() => expect(bao).toHaveBeenCalled());
+        await waitFor(() => expect(alertSpy).toHaveBeenCalled());
     });
 
-    it('đáp án đã lưu trước đó hiện lại sau khi vào lại đề', async () => {
-        // Vào lại giữa chừng: BE trả đề kèm markedAnswer. Không đọc field này
-        // thì bài làm 30 phút của học sinh hiện ra trắng trơn.
+    it('previously saved answers show again after re-entering the exam', async () => {
+        // Re-entering midway: BE returns the exam with markedAnswer. Without reading
+        // this field the student's 30 minutes of work shows up blank.
         vi.spyOn(Api, 'get').mockResolvedValue({
-            ...DE,
+            ...EXAM,
             sections: [{
-                ...DE.sections[0],
-                // DoExam so checked bằng answer.VALUE chứ không phải id
-                // (core_grading.py ghi rõ FE lưu value). Đặt 'A1' ở đây là
-                // test sai, không phải code sai.
-                questions: [{...DE.sections[0].questions[0], markedAnswer: '2'}],
+                ...EXAM.sections[0],
+                // DoExam compares checked by answer.VALUE, not id (core_grading.py
+                // states the FE stores value). Putting 'A1' here would be a wrong
+                // test, not wrong code.
+                questions: [{...EXAM.sections[0].questions[0], markedAnswer: '2'}],
             }],
         });
-        ve();
+        renderPage();
         await screen.findByText(/1\+1/);
 
-        const o = document.querySelector('input[type=radio][value="2"]') as HTMLInputElement;
-        expect(o.checked).toBe(true);
-        // Phương án không chọn phải KHÔNG sáng — nếu không, test xanh kể cả
-        // khi mọi radio đều checked.
-        const khac = document.querySelector('input[type=radio][value="3"]') as HTMLInputElement;
-        expect(khac.checked).toBe(false);
+        const radio = document.querySelector('input[type=radio][value="2"]') as HTMLInputElement;
+        expect(radio.checked).toBe(true);
+        // An unselected option must NOT be checked — otherwise the test is green
+        // even when every radio is checked.
+        const other = document.querySelector('input[type=radio][value="3"]') as HTMLInputElement;
+        expect(other.checked).toBe(false);
     });
 });
 
 // ──────────────────────────────────────────────────────────────────────
-// S5.1/5.2 còn câu chờ chấm · S5.6 thời gian làm bài sau F5
+// S5.1/5.2 questions awaiting grading · S5.6 time taken after F5
 // ──────────────────────────────────────────────────────────────────────
 
-/** Vào lại đề đã nộp (BE trả `da_nop`) — đường duy nhất tới màn kết quả. */
-const daNop = (them: Record<string, unknown>) => ({
-    ...DE, da_nop: true, status: 'GRADING', ...them,
+/** Re-enter a submitted exam (BE returns `da_nop`) — the only path to the result screen. */
+const submittedExam = (extra: Record<string, unknown>) => ({
+    ...EXAM, da_nop: true, status: 'GRADING', ...extra,
 });
 
-describe('DoExam: màn kết quả khi còn câu chờ chấm (S5.1/S5.2)', () => {
-    it('mẫu số là graded_max_score, KHÔNG phải max_score cả bài', async () => {
-        // Bài 10 trắc nghiệm (10đ) + 2 tự luận (2đ). Máy mới chấm phần trắc
-        // nghiệm: 8/10. Lấy mẫu số 12 thành "8/12" — học sinh đọc ra là mình
-        // sai 4 câu, trong khi thực tế chỉ sai 2 và 2 câu kia chưa ai chấm.
-        vi.spyOn(Api, 'get').mockResolvedValue(daNop({
+describe('DoExam: result screen while questions await grading (S5.1/S5.2)', () => {
+    it('the denominator is graded_max_score, NOT the whole exam max_score', async () => {
+        // 10 multiple-choice questions (10 pts) + 2 essays (2 pts). The machine has only
+        // graded the multiple-choice part: 8/10. Using 12 as the denominator gives "8/12" —
+        // the student reads it as 4 wrong, when really only 2 are wrong and the other 2
+        // have not been graded by anyone.
+        vi.spyOn(Api, 'get').mockResolvedValue(submittedExam({
             score: 8, graded_max_score: 10, max_score: 12, pending_count: 2,
         }));
-        ve();
+        renderPage();
         await screen.findByText('Đã nộp bài');
 
         await screen.findByText('8/10');
-        // Khẳng định ngược: "8/12" KHÔNG được xuất hiện ở đâu cả. Thiếu dòng
-        // này thì test vẫn xanh nếu màn hình in cả hai con số.
+        // Assert the inverse: "8/12" must NOT appear anywhere. Without this line the
+        // test stays green even if the screen prints both numbers.
         expect(screen.queryByText('8/12')).toBeNull();
     });
 
-    it('chưa chấm xong thì nói rõ "chờ chấm", không trình điểm tạm như điểm cuối', async () => {
-        // "Điểm của bạn: 8" khi còn 2 câu chưa chấm là nói dối: điểm cuối có
-        // thể là 10. Học sinh đóng máy, tưởng đó là điểm thật.
-        vi.spyOn(Api, 'get').mockResolvedValue(daNop({
+    it('when grading is incomplete say "awaiting grading" clearly, do not present a provisional score as final', async () => {
+        // "Điểm của bạn: 8" while 2 questions are still ungraded is a lie: the final
+        // score could be 10. The student closes the laptop thinking now is the real score.
+        vi.spyOn(Api, 'get').mockResolvedValue(submittedExam({
             score: 8, graded_max_score: 10, max_score: 12, pending_count: 2,
         }));
-        ve();
+        renderPage();
         await screen.findByText('Đã nộp bài');
 
         expect(document.body.textContent).toMatch(/chờ giáo viên chấm/);
         expect(screen.queryByText(/Điểm của bạn/)).toBeNull();
     });
 
-    it('chấm xong hết thì mới hiện điểm cuối trên tổng cả bài', async () => {
-        // Mặt còn lại của hai test trên: pending_count = 0 thì PHẢI có điểm
-        // cuối. Không có test này thì xoá luôn nhánh hiện điểm vẫn xanh.
-        vi.spyOn(Api, 'get').mockResolvedValue(daNop({
+    it('only show the final score out of the whole exam once everything is graded', async () => {
+        // The flip side of the two tests above: with pending_count = 0 the final score
+        // MUST appear. Without this test, deleting the score branch would stay green.
+        vi.spyOn(Api, 'get').mockResolvedValue(submittedExam({
             score: 11, graded_max_score: 12, max_score: 12,
             pending_count: 0, status: 'GRADED',
         }));
-        ve();
+        renderPage();
         await screen.findByText('Đã nộp bài');
 
         await screen.findByText('11/12');
@@ -339,29 +344,29 @@ describe('DoExam: màn kết quả khi còn câu chờ chấm (S5.1/S5.2)', () =
     });
 });
 
-describe('DoExam: thời gian làm bài sau F5 (S5.6)', () => {
-    it('lấy duration_sec của bài đã nộp, không hiện "0 phút"', async () => {
-        // F5 ở màn kết quả: state.passedTime về 0 vì component dựng lại.
-        // Chỉ đọc passedTime là học sinh thấy "làm trong 0 phút" sau khi ngồi
-        // làm 23 phút — con số sai nằm ngay cạnh điểm, đọc là mất tin cả trang.
-        vi.spyOn(Api, 'get').mockResolvedValue(daNop({
+describe('DoExam: time taken after F5 (S5.6)', () => {
+    it('uses duration_sec of the submitted work, does not show "0 phút"', async () => {
+        // F5 on the result screen: state.passedTime goes back to 0 because the component
+        // is rebuilt. Reading only passedTime shows the student "0 minutes" after sitting
+        // 23 minutes — the wrong number sits right next to the score and costs the whole page its credibility.
+        vi.spyOn(Api, 'get').mockResolvedValue(submittedExam({
             score: 9, graded_max_score: 10, max_score: 10,
             pending_count: 0, status: 'GRADED', duration_sec: 23 * 60 + 40,
         }));
-        ve();
+        renderPage();
         await screen.findByText('Đã nộp bài');
 
-        // 1420s -> 23 phút (làm tròn xuống), không phải 0.
+        // 1420s -> 23 minutes (rounded down), not 0.
         await screen.findByText(/Thời gian làm bài: 23 phút/);
     });
 
-    it('bài cũ không có duration_sec thì rơi về passedTime, không nổ', async () => {
-        // Bài nộp trước khi BE lưu duration_sec. Phải ra 0 phút một cách êm,
-        // không được NaN hay trắng màn.
-        vi.spyOn(Api, 'get').mockResolvedValue(daNop({
+    it('an old submission without duration_sec falls back to passedTime, does not blow up', async () => {
+        // Submission made before the BE stored duration_sec. Must degrade smoothly to
+        // 0 minutes, never NaN or a blank screen.
+        vi.spyOn(Api, 'get').mockResolvedValue(submittedExam({
             score: 9, graded_max_score: 10, max_score: 10, pending_count: 0,
         }));
-        ve();
+        renderPage();
         await screen.findByText('Đã nộp bài');
 
         expect(document.body.textContent).toMatch(/Thời gian làm bài: 0 phút/);

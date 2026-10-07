@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import {useLocation} from 'react-router-dom';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {Toaster} from 'react-hot-toast';
 
@@ -8,24 +9,26 @@ import {useAuthStore} from '../stores/authStore';
 import AuthenticateView from './AuthenticateView';
 import AnonymousView from './AnonymousView';
 import VisitorView from './VisitorView';
+import DesignSystem from './DesignSystem';
 
 import 'semantic-ui-css/semantic.min.css';
+import '../styles/tokens.css';
 import './fonts.css';
 import './App.css';
 import './questions.css';
 import './student.css';
 
 /**
- * Tạo MỘT lần ở ngoài component. Đặt trong thân hàm thì mỗi lần App vẽ lại
- * là một client mới — toàn bộ cache mất sạch.
+ * Create ONCE outside the component. Inside the function body every App re-render
+ * would create a new client — the whole cache would be lost.
  */
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
-            // Đề và bài nộp đổi theo phút chứ không theo giây; mặc định của
-            // react-query (staleTime 0) bắn lại request mỗi lần đổi màn.
+            // Exams and attempts change by the minute, not by the second; react-query's
+            // default (staleTime 0) refires the request on every screen change.
             staleTime: 30_000,
-            // Token chết thì retry 3 lần cũng vẫn 400 — chỉ tổ chậm.
+            // With a dead token, retrying 3 times still gives 400 — only slower.
             retry: 1,
             refetchOnWindowFocus: false,
         },
@@ -36,9 +39,12 @@ export default function App() {
     const ready = useAuthStore(s => s.ready);
     const user = useAuthStore(s => s.user);
     const init = useAuthStore(s => s.init);
+    const {pathname} = useLocation();
 
     useEffect(() => { init(); }, [init]);
 
+    // Component catalogue: no data, so no login needed (designers, probe).
+    if (pathname === '/design-system') return <DesignSystem/>;
     if (!ready) return <Loading/>;
 
     return <QueryClientProvider client={queryClient}>

@@ -14,7 +14,7 @@ const STATUS: Record<string, StatusStyle> = {
     FAILED: {cls: 'err', text: 'Thất bại', icon: 'times circle'},
 };
 
-/** Lịch sử thanh toán, mỗi đơn chỉ thẳng sang bài đã làm bằng đơn đó. */
+/** Payment history; each order points straight to the attempt made with it. */
 type State = {orders: Payment[] | null; error: string | null};
 
 export default class Billing extends Component<{}, State> {
@@ -43,7 +43,7 @@ export default class Billing extends Component<{}, State> {
             <Loading/>
         </div></div>;
 
-        // Chỉ cộng đơn ĐÃ trả — đơn treo chưa mất tiền, cộng vào là báo sai.
+        // Only sum orders that are PAID — a pending order has not cost money yet, counting it would overstate.
         let paid = orders.filter(o => o.status === 'PAID');
         let total = paid.reduce((n, o) => n + (o.amount || 0), 0);
 
@@ -64,9 +64,9 @@ export default class Billing extends Component<{}, State> {
                         let st = STATUS[o.status] || {cls: 'paid', text: o.status, icon: 'question circle'};
                         let name = (o.items || []).map(i => i.name).join(', ') || 'Lượt thi';
 
-                        // ponytail: KHÔNG còn link sang bài làm. Một đơn giờ là
-                        // N lượt dùng cho nhiều đề khác nhau, không trỏ được vào
-                        // một bài nào — lịch sử bài làm nằm ở /my-exams.
+                        // ponytail: NO link to the attempt any more. An order is now
+                        // N turns usable on many different exams, so it cannot point at
+                        // a single attempt — attempt history lives at /my-exams.
                         let body = <React.Fragment>
                             <span className='tk-exam-icon'>
                                 <Icon name='file alternate outline' size='large'/>

@@ -2,16 +2,17 @@ import {Label} from 'semantic-ui-react';
 import type {Submission} from '../../types/submission';
 
 /**
- * Định dạng dùng chung cho các màn bài làm / chấm bài / hoá đơn.
+ * Shared formatting for the attempt / grading / invoice screens.
  *
- * ponytail: gom một chỗ vì luật "chưa chấm xong thì KHÔNG hiện điểm như điểm
- * cuối" phải giống nhau ở cả ba màn. Chép ba bản là ba chỗ lệch nhau về sau.
+ * ponytail: gathered in one place because the rule "if grading is not finished, do NOT show
+ * the score as the final score" must be the same on all three screens. Three copies would
+ * drift apart later.
  */
 
 export function fmtDate(iso?: string | null): string {
     if (!iso) return '—';
-    // BE trả UTC không kèm 'Z' (datetime.utcnow().isoformat()) -> trình duyệt
-    // hiểu nhầm là giờ máy. Thêm 'Z' để đổi sang giờ Việt Nam cho đúng.
+    // The BE returns UTC without 'Z' (datetime.utcnow().isoformat()) -> the browser
+    // misreads it as local time. Add 'Z' so it converts to Vietnam time correctly.
     let d = new Date(/[Z+]/.test(iso) ? iso : iso + 'Z');
     return isNaN(d.getTime()) ? '—' : d.toLocaleString('vi-VN');
 }
@@ -27,11 +28,12 @@ export function fmtMoney(amount?: number | null): string {
 }
 
 /**
- * Điểm của một bài.
+ * Score of one attempt.
  *
- * ponytail: còn câu tự luận chưa chấm thì hiện "chờ chấm", KHÔNG hiện điểm
- * tạm. Học sinh làm đúng hết trắc nghiệm mà tự luận chưa chấm sẽ thấy "5/10"
- * và tưởng mình bị 5 điểm — khiếu nại ngay, dù giáo viên chưa chấm gì.
+ * ponytail: while essay questions are ungraded, show "awaiting grading", NOT a
+ * provisional score. A student who got all multiple choice right but whose essay is
+ * ungraded would see "5/10" and think they got 5 points — complaining right away,
+ * even though the teacher has not graded anything.
  */
 export function ScoreLabel({sub}: {sub: Submission}) {
     if (sub.pending_count > 0) {
@@ -48,8 +50,8 @@ export function ScoreLabel({sub}: {sub: Submission}) {
     </Label>;
 }
 
-// 1.5 giữ nguyên, 2.0 hiện là 2 — không ai viết điểm là "2.0".
-// Export: DoExam in điểm thẳng từ API cũng cần, đừng viết lại hàm thứ hai.
+// 1.5 stays as is, 2.0 shows as 2 — nobody writes a score as "2.0".
+// Exported: DoExam prints scores straight from the API and needs it too, don't write a second function.
 export function round(n?: number | null): number {
     return Math.round((n || 0) * 100) / 100;
 }

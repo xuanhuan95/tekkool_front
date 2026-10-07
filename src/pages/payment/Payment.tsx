@@ -6,30 +6,30 @@ import {Button, Segment, Icon, Message} from 'semantic-ui-react';
 import Api from "../../services/api";
 import type {Package, CheckoutForm} from "../../types/payment";
 
-const tien = (n?: number) => (n || 0).toLocaleString('vi-VN') + ' đ';
+const formatVnd = (n?: number) => (n || 0).toLocaleString('vi-VN') + ' đ';
 
 /**
- * Trang xác nhận mua một GÓI lượt thi.
+ * Confirmation page for buying a PACKAGE of exam turns.
  *
- * ponytail: trước đây là trang mua từng ĐỀ. Giờ giá nằm ở gói chứ không ở đề,
- * nên cùng một trang chỉ đổi thứ đem bán — không dựng trang mới.
+ * ponytail: this used to be a per-EXAM purchase page. Price now lives on the
+ * package, not the exam, so the same page just changes what is sold — no new page.
  */
 export default function Payment() {
     const {packageId} = useParams();
     const navigate = useNavigate();
 
-    const [goi, setGoi] = useState<Package | null>(null);
+    const [pkg, setPkg] = useState<Package | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [redirecting, setRedirecting] = useState(false);
 
     useEffect(() => {
-        // Không có endpoint đọc một gói — danh sách gói ngắn, lọc ở FE rẻ hơn
-        // một route mới.
+        // There is no endpoint to read a single package — the package list is short,
+        // so filtering on the FE is cheaper than a new route.
         Api.get('package/list')
-            .then((ds: Package[]) => {
-                const g = (ds || []).find(p => p.id === packageId);
-                if (!g) { setError('Không tìm thấy gói này'); return; }
-                setGoi(g);
+            .then((packages: Package[]) => {
+                const found = (packages || []).find(p => p.id === packageId);
+                if (!found) { setError('Không tìm thấy gói này'); return; }
+                setPkg(found);
             })
             .catch((e: any) => setError(e.error || e.message || 'Không tải được thông tin gói'));
     }, [packageId]);
@@ -47,14 +47,14 @@ export default function Payment() {
             return;
         }
 
-        // ponytail: SePay yeu cau POST form, khong phai redirect GET -> dung
-        // form an roi submit(). Khong co cach nao ngan hon ma van dung chuan.
+        // ponytail: SePay requires a POST form, not a GET redirect -> use a hidden
+        // form and submit() it. No shorter way that still follows the standard.
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = res.action_url;
 
-        // ponytail: fields la mang [[key, value]] — thu tu field quyet dinh chu ky,
-        // object bi Flask sap xep lai theo alphabet.
+        // ponytail: fields is an array of [[key, value]] — field order determines the
+        // signature; an object would be re-sorted alphabetically by Flask.
         res.fields.forEach(([key, value]) => {
             const input = document.createElement('input');
             input.type = 'hidden';
@@ -67,15 +67,15 @@ export default function Payment() {
         form.submit();
     };
 
-    // <Loading/> tu co kich thuoc, khong can khoi neo nhu Loader cu cua
-    // Semantic (position:absolute -> tra tran giua trang rong la trang tron).
-    if (!goi && !error) return <div className='tk-pay-result'>
+    // <Loading/> has its own size, no anchor needed like the old Semantic
+    // Loader (position:absolute -> returning it centred on an empty page gives a blank page).
+    if (!pkg && !error) return <div className='tk-pay-result'>
         <Loading/>
     </div>;
 
     return <div className='tk-pay-result'>
         <Segment padded='very'>
-            <h2 className='text-center tk-het-title'>Xác nhận mua gói</h2>
+            <h2 className='text-center tk-out-title'>Xác nhận mua gói</h2>
 
             {error && <Message negative>
                 {error}
@@ -86,28 +86,28 @@ export default function Payment() {
                 </div>
             </Message>}
 
-            {goi && <div>
+            {pkg && <div>
                 <div className='tk-pay-sum'>
                     <span className='k'>Gói</span>
-                    <span className='v'>{goi.name}</span>
+                    <span className='v'>{pkg.name}</span>
                 </div>
                 <div className='tk-pay-sum'>
                     <span className='k'>Số lượt thi</span>
-                    <span className='v'>{goi.turns} lượt</span>
+                    <span className='v'>{pkg.turns} lượt</span>
                 </div>
                 <div className='tk-pay-sum total'>
                     <span className='k'>Thành tiền</span>
-                    <span className='v'>{tien(goi.price)}</span>
+                    <span className='v'>{formatVnd(pkg.price)}</span>
                 </div>
 
-                {goi.description && <p className='tk-goi-mota'>{goi.description}</p>}
+                {pkg.description && <p className='tk-pkg-desc'>{pkg.description}</p>}
 
                 <Button primary fluid size='large' className='margin-top'
                         loading={redirecting} disabled={redirecting} onClick={pay}>
                     <Icon name='credit card'/> Thanh toán
                 </Button>
-                {/* Loi ra: vao nham goi thi phai quay lai duoc, khong chi co
-                    mot nut tra tien. */}
+                {/* Way out: if the wrong package was opened, the user must be able to go back,
+                    not just face a pay button. */}
                 <Button basic fluid className='margin-top'
                         disabled={redirecting} onClick={() => navigate('/packages')}>
                     Chọn gói khác

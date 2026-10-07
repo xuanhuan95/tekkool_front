@@ -8,10 +8,10 @@ import Api from '../../services/api';
 import {useAuthStore} from '../../stores/authStore';
 import type {Package, Wallet} from '../../types/payment';
 
-/** Số tiền kiểu 100000 -> "100.000 đ". */
+/** Amount like 100000 -> "100.000 đ". */
 const money = (n?: number) => (n || 0).toLocaleString('vi-VN') + ' đ';
 
-/** Gói đang soạn trong modal. Chưa lưu thì chưa có `id`. */
+/** Package being edited in the modal. Not saved yet means no `id`. */
 type PackageForm = Omit<Package, 'id'> & {id?: string};
 
 const BLANK: PackageForm = {
@@ -19,16 +19,16 @@ const BLANK: PackageForm = {
 };
 
 /**
- * Quản lý gói thi thử.
+ * Practice-exam package management.
  *
- * Thay cho việc bán từng đề: học sinh mua một gói, được N lượt vào thi, dùng
- * cho đề nào cũng được. Lượt trừ lúc BẮT ĐẦU vào thi, không phải lúc nộp.
+ * Replaces selling each exam: a student buys a package, gets N exam turns, usable
+ * on any exam. A turn is deducted when the exam STARTS, not on submit.
  */
 export default function PackageList() {
     const navigate = useNavigate();
     const location = useLocation();
     const qc = useQueryClient();
-    // group là string id ('teacher' | 'student' | 'visitor').
+    // group is a string id ('teacher' | 'student' | 'visitor').
     const isTeacher = useAuthStore(s => s.user?.group) === 'teacher';
 
     const [form, setForm] = useState<PackageForm | null>(null);
@@ -36,19 +36,19 @@ export default function PackageList() {
     const [error, setError] = useState<string | null>(null);
     const [msg, setMsg] = useState<string | null>(null);
 
-    // ?all=1: giáo viên thấy cả gói đã ẩn để sửa lại hoặc bật lên. Học sinh
-    // chỉ thấy gói đang bán — BE tự lọc, tham số này chỉ mở thêm.
+    // ?all=1: teachers also see hidden packages to edit or re-enable them. Students
+    // only see packages on sale — the BE filters by itself, this param only widens it.
     //
-    // Bản cũ đọc vai TRONG componentDidMount, lúc đó `auth` chưa chắc sẵn
-    // sàng nên giáo viên có thể nhận nhầm danh sách của học sinh. Store có
-    // giá trị ngay từ lần vẽ đầu, và `isTeacher` nằm trong queryKey nên đổi
-    // vai là tải lại đúng danh sách.
+    // The old version read the role INSIDE componentDidMount, when `auth` might not
+    // be ready yet, so a teacher could get the student's list by mistake. The store
+    // has a value from the first render, and `isTeacher` is in the queryKey so
+    // changing role reloads the right list.
     const {data: packages} = useQuery({
         queryKey: ['package', 'list', isTeacher],
         queryFn: () => Api.get<Package[]>('package/list' + (isTeacher ? '?all=1' : '')),
     });
 
-    // Số lượt còn lại: chỉ học sinh cần. Giáo viên không tốn lượt nào.
+    // Remaining turns: only students need this. Teachers never spend turns.
     const {data: wallet} = useQuery({
         queryKey: ['payment', 'wallet'],
         queryFn: () => Api.get<Wallet>('payment/wallet'),
@@ -76,28 +76,28 @@ export default function PackageList() {
     const remove = async (p: Package) => {
         if (!window.confirm('Xoá gói “' + p.name + '”?')) return;
         const r = await Api.post<{message?: string}>('package/remove/' + p.id, {});
-        // Gói đã bán được thì BE chỉ ẩn đi — nói rõ cho giáo viên biết.
+        // A package that has been sold is only hidden by the BE — tell the teacher clearly.
         setMsg(r && r.message ? r.message : null);
         reload();
     };
 
     if (!packages) return <Loading/>;
 
-    /* ---------- Màn học sinh: chọn gói để mua ---------- */
+    /* ---------- Student view: pick a package to buy ---------- */
     if (!isTeacher) {
-        // ?het-luot=1: DoExam đẩy sang đây khi vào thi mà ví rỗng — nói thẳng
-        // lý do, không để học sinh tự đoán vì sao bị đá ra khỏi đề.
+        // ?het-luot=1: DoExam redirects here when entering an exam with an empty wallet —
+        // state the reason plainly, don't make the student guess why they were kicked out.
         const outOfTurns = (location.search || '').indexOf('het-luot=1') >= 0;
 
         return <div className='tk-dash'>
             <div className='tk-dash-bar'>
                 <Header as='h2' className='tk-dash-title'>Gói thi thử</Header>
-                {/* Không dùng <Statistic> của Semantic: component đó ép font
-                    serif cho số và in hoa cho nhãn, lạc hẳn khỏi phần còn lại
-                    của trang. Một thẻ nhỏ cùng hệ chữ là đủ. */}
-                {wallet && <div className={'tk-vi' + (wallet.remaining > 0 ? '' : ' het')}>
-                    <span className='tk-vi-so'>{wallet.remaining}</span>
-                    <span className='tk-vi-nhan'>lượt còn lại</span>
+                {/* Don't use Semantic's <Statistic>: it forces a serif font on the number
+                    and uppercases the label, clashing with the rest of the page.
+                    A small tag in the same typeface is enough. */}
+                {wallet && <div className={'tk-turns' + (wallet.remaining > 0 ? '' : ' empty')}>
+                    <span className='tk-turns-num'>{wallet.remaining}</span>
+                    <span className='tk-turns-label'>lượt còn lại</span>
                 </div>}
             </div>
 
@@ -119,23 +119,23 @@ export default function PackageList() {
                         </Header.Subheader>
                     </Header>
                 </Segment>
-                : <div className='tk-goi-list'>
+                : <div className='tk-pkg-list'>
                     {packages.map(p =>
-                        <button key={p.id} type='button' className='tk-goi'
+                        <button key={p.id} type='button' className='tk-pkg'
                                 onClick={() => navigate('/payment/' + p.id)}>
-                            <div className='tk-goi-ten'>{p.name}</div>
-                            <div className='tk-goi-luot'>{p.turns} lượt thi thử</div>
-                            <div className='tk-goi-gia'>{money(p.price)}</div>
+                            <div className='tk-pkg-name'>{p.name}</div>
+                            <div className='tk-pkg-turns'>{p.turns} lượt thi thử</div>
+                            <div className='tk-pkg-price'>{money(p.price)}</div>
                             {p.description &&
-                                <div className='tk-goi-mota'>{p.description}</div>}
+                                <div className='tk-pkg-desc'>{p.description}</div>}
                         </button>)}
                 </div>}
         </div>;
     }
 
-    /* ---------- Màn giáo viên: bảng quản lý ---------- */
-    const set = <K extends keyof PackageForm>(k: K, v: PackageForm[K]) =>
-        setForm(f => f && ({...f, [k]: v}));
+    /* ---------- Teacher view: management table ---------- */
+    const set = <K extends keyof PackageForm>(key: K, value: PackageForm[K]) =>
+        setForm(f => f && ({...f, [key]: value}));
 
     return <div className='tk-dash'>
         <div className='tk-dash-bar'>

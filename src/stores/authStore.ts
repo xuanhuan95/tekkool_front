@@ -4,10 +4,10 @@ import Api, {setToken} from '../services/api';
 import type {Auth, User} from '../types/user';
 
 type AuthState = {
-    /** Token phiên. Rỗng khi chưa khởi tạo xong. */
+    /** Session token. Empty until initialization finishes. */
     token: string;
     user: User | null;
-    /** false cho tới khi `session/init` trả về — App chờ cờ này mới vẽ. */
+    /** false until `session/init` returns — App waits for this flag before rendering. */
     ready: boolean;
 
     init: () => Promise<void>;
@@ -17,10 +17,10 @@ type AuthState = {
 };
 
 /**
- * Phiên đăng nhập. 
+ * Login session.
  *
- * Chỉ có phiên nằm ở đây. Dữ liệu máy chủ (danh sách đề, bài nộp…) đi qua
- * react-query — nhét vào store nữa là có hai nguồn sự thật phải tự đồng bộ.
+ * Only the session lives here. Server data (exam list, submissions…) goes through
+ * react-query — putting it in the store too would create two sources of truth to sync by hand.
  */
 export const useAuthStore = create<AuthState>((set) => ({
     token: '',
@@ -28,8 +28,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     ready: false,
 
     /**
-     * Xin phiên lúc mở trang. Không có token thì BE cấp phiên `visitor` mới,
-     * nên lần nào cũng gọi được — kể cả khi `localStorage` trống.
+     * Request a session when the page opens. With no token BE issues a new `visitor`
+     * session, so this can be called every time — even when `localStorage` is empty.
      */
     init: async () => {
         const saved = window.localStorage.getItem('sessionToken') || '';
@@ -38,31 +38,31 @@ export const useAuthStore = create<AuthState>((set) => ({
             setToken(auth.id);
             set({token: auth.id, user: auth.user, ready: true});
         } catch (e) {
-            // Mất mạng hoặc BE chết: vẫn phải cho app vẽ, nếu không màn hình
-            // treo ở <Loading/> vĩnh viễn và người dùng không biết chuyện gì.
+            // Offline or BE down: the app must still render, otherwise the screen
+            // hangs on <Loading/> forever and the user has no idea what is going on.
             setToken(null);
             set({token: '', user: null, ready: true});
         }
     },
 
-    /** BE xoay token mỗi lần đăng nhập (chống session fixation). */
+    /** BE rotates the token on every login (anti session fixation). */
     signIn: (token, user) => {
         setToken(token);
         set({token, user});
     },
 
-    /** Đổi hồ sơ / trừ lượt thi — token giữ nguyên. */
+    /** Profile change / turn deducted — token stays the same. */
     setUser: (user) => set({user}),
 
     signOut: async () => {
         try {
             await Api.get('session/logout');
         } catch (e) {
-            // Phiên có thể đã hết hạn ở BE; vẫn phải xoá phía FE.
+            // The session may already have expired on BE; FE must still clear its side.
         }
         setToken(null);
-        // Nạp lại trang thay vì `set({user: null})`: component nào cũng đang
-        // giữ dữ liệu của người cũ, dọn từng chỗ dễ sót hơn là bỏ hết.
+        // Reload the page instead of `set({user: null})`: every component is holding
+        // the old user's data, and cleaning each one is easier to miss than dropping everything.
         window.location.href = '/';
     },
 }));

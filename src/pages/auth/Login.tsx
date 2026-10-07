@@ -8,7 +8,7 @@ import type {User} from '../../types/user';
 import AuthArt from './AuthArt';
 import './auth.css';
 
-/** BE trả thẳng user kèm token, không bọc trong `{auth}`. */
+/** The BE returns the user with a token directly, not wrapped in `{auth}`. */
 type LoginResult = User & {token: string; error?: string};
 
 export default function Login() {
@@ -20,8 +20,8 @@ export default function Login() {
     const [err, setErr] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
 
-    // Form thật, không phải div có nút: Enter để gửi, trình duyệt gợi ý mật
-    // khẩu đã lưu, và trình quản lý mật khẩu nhận diện được ô nào là ô nào.
+    // A real form, not a div with a button: Enter submits, the browser suggests saved
+    // passwords, and the password manager can tell which field is which.
     const doLogin = async (e: FormEvent) => {
         e.preventDefault();
         if (busy) return;
@@ -35,13 +35,13 @@ export default function Login() {
             const user = await Api.post<LoginResult>('session/login',
                 {email: email.trim(), password});
 
-            // Sai mật khẩu cũng đi qua đây (BE trả {error}), nên phải mở khoá
-            // nút lại — không thì người dùng kẹt luôn sau một lần gõ nhầm.
+            // A wrong password also comes through here (BE returns {error}), so the button
+            // must be unlocked again — otherwise the user is stuck after a single typo.
             if (user.error) { setErr(user.error); setBusy(false); return; }
 
-            // BE xoay token mỗi lần đăng nhập (chống session fixation) và đã
-            // XOÁ phiên cũ. Không lưu token mới thì request kế tiếp mang token
-            // đã chết -> 400.
+            // The BE rotates the token on every login (anti session fixation) and has
+            // DELETED the old session. Without saving the new token the next request carries
+            // a dead token -> 400.
             signIn(user.token, user);
         } catch (ex: any) {
             setErr((ex && (ex.error || ex.message)) || 'Không đăng nhập được.');
@@ -49,8 +49,8 @@ export default function Login() {
         }
     };
 
-    const set = (fn: (v: string) => void) => (e: ChangeEvent<HTMLInputElement>) => {
-        fn(e.target.value);
+    const set = (setter: (v: string) => void) => (e: ChangeEvent<HTMLInputElement>) => {
+        setter(e.target.value);
         setErr(null);
     };
 

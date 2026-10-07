@@ -2,55 +2,56 @@ import {describe, it, expect} from 'vitest';
 import {render, act} from '@testing-library/react';
 import {Editor} from './Editor';
 
-// Giới hạn từ KHÔNG còn chặn gõ (yêu cầu 10/2025): học sinh viết quá bao nhiêu
-// cũng được, bộ đếm chỉ để biết. Trước đây một extension ProseMirror nuốt phím
-// khi chạm hạn — nếu ai đó dựng lại nó, những ca dưới đây đỏ ngay.
+// The word limit NO LONGER blocks typing (requirement 10/2025): students may
+// write as much as they like, the counter is informational only. Previously a
+// ProseMirror extension swallowed keys at the limit — if someone rebuilds it,
+// the cases below go red immediately.
 //
-// max_words vẫn phải sống: core_question_bank._tu_luan_type phân loại khối
-// TraLoiNgan / VietDoan / VietBai bằng chính con số này.
+// max_words must still live on: core_question_bank._tu_luan_type classifies the
+// TraLoiNgan / VietDoan / VietBai blocks by this very number.
 
-/** Dựng Editor, trả về hàm ghi nội dung và hàm đọc lại text + bộ đếm. */
-function dung(props: {maxWords?: number; maxChars?: number}) {
+/** Build an Editor; returns a content writer and readers for text + counter. */
+function setup(props: {maxWords?: number; maxChars?: number}) {
     const ref: {current: any} = {current: null};
     const r = render(<Editor refMedium={ref} {...props}/>);
     return {
-        ghi: (html: string) => act(() => { ref.current.medium.setContent(html); }),
+        write: (html: string) => act(() => { ref.current.medium.setContent(html); }),
         text: () => ref.current.medium.getContent().replace(/<[^>]*>/g, ''),
-        dem: () => r.container.querySelector('.tt-charcount'),
-        // React in '#db2828' ra 'rgb(219, 40, 40)' — so bằng chuỗi hex là
-        // luôn khớp "không đỏ", test xanh giả.
-        mau: () => (r.container.querySelector('.tt-charcount') as HTMLElement).style.color,
+        counter: () => r.container.querySelector('.tt-charcount'),
+        // React prints '#db2828' as 'rgb(219, 40, 40)' — comparing against the
+        // hex string always matches "not red", giving a falsely green test.
+        color: () => (r.container.querySelector('.tt-charcount') as HTMLElement).style.color,
     };
 }
 
-describe('Editor — giới hạn từ chỉ để đếm, không chặn', () => {
-    it('viết quá số từ vẫn giữ nguyên chữ, không bị cắt', () => {
-        const e = dung({maxWords: 5});
-        e.ghi('<p>một hai ba bốn năm sáu bảy tám</p>');
+describe('Editor — word limit only counts, never blocks', () => {
+    it('writing past the word limit keeps the text intact, no truncation', () => {
+        const e = setup({maxWords: 5});
+        e.write('<p>một hai ba bốn năm sáu bảy tám</p>');
         expect(e.text()).toBe('một hai ba bốn năm sáu bảy tám');
     });
 
-    it('quá hạn ký tự cũng không bị cắt', () => {
-        const e = dung({maxChars: 5});
-        e.ghi('<p>abcdefghij</p>');
+    it('going past the character limit is not truncated either', () => {
+        const e = setup({maxChars: 5});
+        e.write('<p>abcdefghij</p>');
         expect(e.text()).toBe('abcdefghij');
     });
 
-    it('bộ đếm báo đúng số từ THẬT, kể cả khi vượt', () => {
-        const e = dung({maxWords: 5});
-        e.ghi('<p>một hai ba bốn năm sáu bảy tám</p>');
-        expect(e.dem()!.textContent).toBe('8 / 5 từ');
+    it('counter shows the REAL word count, even when over', () => {
+        const e = setup({maxWords: 5});
+        e.write('<p>một hai ba bốn năm sáu bảy tám</p>');
+        expect(e.counter()!.textContent).toBe('8 / 5 từ');
     });
 
-    it('vượt hạn không đổi sang màu đỏ — vượt không còn là lỗi', () => {
-        const e = dung({maxWords: 5});
-        e.ghi('<p>một hai ba bốn năm sáu bảy tám</p>');
-        expect(e.mau()).toBe('rgb(118, 118, 118)');
+    it('going over the limit does not turn red — over is no longer an error', () => {
+        const e = setup({maxWords: 5});
+        e.write('<p>một hai ba bốn năm sáu bảy tám</p>');
+        expect(e.color()).toBe('rgb(118, 118, 118)');
     });
 
-    it('chưa đặt giới hạn thì không hiện bộ đếm', () => {
-        const e = dung({});
-        e.ghi('<p>một hai ba</p>');
-        expect(e.dem()).toBeNull();
+    it('no limit set means no counter shown', () => {
+        const e = setup({});
+        e.write('<p>một hai ba</p>');
+        expect(e.counter()).toBeNull();
     });
 });

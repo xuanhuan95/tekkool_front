@@ -5,140 +5,141 @@ import MultipleChoice from './MultipleChoice';
 import ErrorIdentify from './ErrorIdentify';
 import Default from '../Default';
 
-// Hai loại câu này gần như một: cùng "chọn 1 trong N phương án", cùng UI đáp
-// án, cùng parse "A. ... B. ..." khi dán từ Word. Chúng khác đúng BA điều, và
-// cả ba đều là thứ giáo viên nhìn thấy ngay:
-//   - ErrorIdentify có nút "chuyển vùng chọn thành đáp án" (MC không có)
-//   - ErrorIdentify chèn ô tích, MC chèn gạch chân "______"
-//   - class CSS khác nhau -> ErrorIdentify mới có số A/B/C do CSS counter sinh
-// Test này chốt cả ba, để gộp hai file lại mà không lặng lẽ mất cái nào.
+// These two question types are nearly one: same "pick 1 of N options", same
+// answer UI, same parsing of "A. ... B. ..." pasted from Word. They differ in
+// exactly THREE things, all of which the teacher sees right away:
+//   - ErrorIdentify has a "turn selection into answer" button (MC does not)
+//   - ErrorIdentify inserts a check box, MC inserts a "______" underline
+//   - different CSS class -> only ErrorIdentify gets the A/B/C numbers from the CSS counter
+// This test pins all three, so merging the two files cannot silently lose one.
 
-const de = Default.exam();
-const phan = Default.section(de.id);
+const exam = Default.exam();
+const section = Default.section(exam.id);
 
-function veCau(Comp: any, data: Record<string, unknown> = {}) {
-    const q = Default.question('MultipleChoice', de.id, phan.id);
+function renderQuestion(Comp: any, data: Record<string, unknown> = {}) {
+    const q = Default.question('MultipleChoice', exam.id, section.id);
     Object.assign(q.data, data);
-    phan.questions = [q];
+    section.questions = [q];
     const touch = vi.fn();
-    render(<Comp question={q} section={phan} setSectionState={touch}/>);
+    render(<Comp question={q} section={section} setSectionState={touch}/>);
     return {q, touch};
 }
 
 beforeEach(() => vi.restoreAllMocks());
 
-describe('MultipleChoice vs ErrorIdentify: ba điểm khác nhau phải giữ', () => {
-    it('chỉ ErrorIdentify có nút chuyển vùng chọn thành đáp án', () => {
-        veCau(MultipleChoice);
+describe('MultipleChoice vs ErrorIdentify: three differences that must be kept', () => {
+    it('only ErrorIdentify has the turn-selection-into-answer button', () => {
+        renderQuestion(MultipleChoice);
         expect(screen.queryByTitle('Chuyển vùng chọn thành đáp án')).toBeNull();
     });
 
-    it('ErrorIdentify PHẢI có nút đó — mất nút là giáo viên hết đường tạo ô tích', () => {
-        veCau(ErrorIdentify);
+    it('ErrorIdentify MUST have that button — without it teachers cannot create check boxes', () => {
+        renderQuestion(ErrorIdentify);
         expect(screen.getByTitle('Chuyển vùng chọn thành đáp án')).toBeTruthy();
     });
 
-    it('class CSS khác nhau: .ErrorIdentify mới chạy CSS counter đánh số ô tích', () => {
+    it('different CSS classes: only .ErrorIdentify runs the CSS counter numbering check boxes', () => {
         const {container: a} = render(
-            <MultipleChoice question={Default.question('MultipleChoice', de.id, phan.id)}
-                            section={phan} setSectionState={vi.fn()}/>);
+            <MultipleChoice question={Default.question('MultipleChoice', exam.id, section.id)}
+                            section={section} setSectionState={vi.fn()}/>);
         expect(a.querySelector('form.multiple-choice')).toBeTruthy();
         expect(a.querySelector('form.ErrorIdentify')).toBeNull();
 
         const {container: b} = render(
-            <ErrorIdentify question={Default.question('ErrorIdentify', de.id, phan.id)}
-                           section={phan} setSectionState={vi.fn()}/>);
+            <ErrorIdentify question={Default.question('ErrorIdentify', exam.id, section.id)}
+                           section={section} setSectionState={vi.fn()}/>);
         expect(b.querySelector('form.ErrorIdentify')).toBeTruthy();
         expect(b.querySelector('form.multiple-choice')).toBeNull();
     });
 });
 
-describe('Phần dùng chung: phương án hiện ra giống hệt nhau', () => {
+describe('Shared part: options render identically', () => {
     it.each([['MultipleChoice', MultipleChoice], ['ErrorIdentify', ErrorIdentify]])(
-        '%s hiện đủ phương án đã có và đánh dấu đúng đáp án',
-        (_ten, Comp: any) => {
+        '%s shows all existing options and marks the correct answer',
+        (_name, Comp: any) => {
             const {container} = render(
                 <Comp question={(() => {
-                    const q = Default.question('MultipleChoice', de.id, phan.id);
+                    const q = Default.question('MultipleChoice', exam.id, section.id);
                     q.data.answers = [{id: 'A1', value: 'Hà Nội'}, {id: 'A2', value: 'Huế'}];
                     q.data.correctAnswerId = 'A2';
-                    phan.questions = [q];
+                    section.questions = [q];
                     return q;
-                })()} section={phan} setSectionState={vi.fn()}/>);
+                })()} section={section} setSectionState={vi.fn()}/>);
 
             const radio = container.querySelectorAll('input[type=radio]');
             expect(radio.length).toBe(2);
-            // Đáp án đúng là cái THỨ HAI. Không khẳng định cái thứ nhất KHÔNG
-            // sáng thì test vẫn xanh kể cả khi mọi radio đều checked.
+            // The correct answer is the SECOND one. Without asserting the first is NOT
+            // checked, the test would stay green even if every radio were checked.
             expect((radio[0] as HTMLInputElement).checked).toBe(false);
             expect((radio[1] as HTMLInputElement).checked).toBe(true);
         });
 
     it.each([['MultipleChoice', MultipleChoice], ['ErrorIdentify', ErrorIdentify]])(
-        '%s xoá phương án thì báo cho store vẽ lại',
-        (_ten, Comp: any) => {
-            const q = Default.question('MultipleChoice', de.id, phan.id);
+        '%s notifies the store to re-render when an option is removed',
+        (_name, Comp: any) => {
+            const q = Default.question('MultipleChoice', exam.id, section.id);
             q.data.answers = [{id: 'A1', value: 'Hà Nội'}, {id: 'A2', value: 'Huế'}];
-            phan.questions = [q];
+            section.questions = [q];
             const touch = vi.fn();
             const {container} = render(
-                <Comp question={q} section={phan} setSectionState={touch}/>);
+                <Comp question={q} section={section} setSectionState={touch}/>);
 
             fireEvent.click(container.querySelector('i.remove.icon')!);
 
             expect(q.data.answers.map((a: any) => a.id)).toEqual(['A2']);
-            // Sửa dữ liệu mà không gọi setSectionState là màn hình đứng im:
-            // giáo viên bấm xoá, thấy phương án còn nguyên, bấm tiếp.
+            // Mutating data without calling setSectionState freezes the screen:
+            // the teacher clicks delete, sees the option still there, clicks again.
             expect(touch).toHaveBeenCalled();
         });
 });
 
-describe('Lệch 7px của icon xoá — khác biệt thứ tư, dễ mất khi gộp', () => {
-    const veVoiPhuongAn = (Comp: any) => {
-        const q = Default.question('MultipleChoice', de.id, phan.id);
+describe('7px offset of the remove icon — a fourth difference, easy to lose when merging', () => {
+    const renderWithOption = (Comp: any) => {
+        const q = Default.question('MultipleChoice', exam.id, section.id);
         q.data.answers = [{id: 'A1', value: 'x'}];
-        phan.questions = [q];
-        return render(<Comp question={q} section={phan} setSectionState={vi.fn()}/>).container;
+        section.questions = [q];
+        return render(<Comp question={q} section={section} setSectionState={vi.fn()}/>).container;
     };
 
-    it('MultipleChoice đẩy icon xuống 7px cho thẳng hàng với ô đáp án', () => {
-        const i = veVoiPhuongAn(MultipleChoice).querySelector('i.remove.icon') as HTMLElement;
+    it('MultipleChoice pushes the icon down 7px to line up with the answer box', () => {
+        const i = renderWithOption(MultipleChoice).querySelector('i.remove.icon') as HTMLElement;
         expect(i.style.marginTop).toBe('7px');
     });
 
-    it('ErrorIdentify KHÔNG đẩy — dòng của nó cao hơn, đẩy thêm là lệch', () => {
-        const i = veVoiPhuongAn(ErrorIdentify).querySelector('i.remove.icon') as HTMLElement;
+    it('ErrorIdentify does NOT push — its row is taller, pushing more would misalign', () => {
+        const i = renderWithOption(ErrorIdentify).querySelector('i.remove.icon') as HTMLElement;
         expect(i.style.marginTop).toBe('');
     });
 });
 
-describe('editorType: chèn ô tích hay gạch chân (khác biệt dễ mất nhất)', () => {
-    // Ba test trên bắt được class, nút và lệch 7px — nhưng bỏ `editorType` đi
-    // thì cả lưới vẫn xanh, trong khi đây mới là thứ quyết định ErrorIdentify
-    // chèn Ô TÍCH hay chèn "______" như trắc nghiệm. Giáo viên soạn đề tìm lỗi
-    // sai mà ra gạch chân là sai hẳn loại câu.
+describe('editorType: insert check box or underline (the easiest difference to lose)', () => {
+    // The three tests above catch the class, the button and the 7px offset — but
+    // dropping `editorType` would leave the whole net green, even though it is
+    // what decides whether ErrorIdentify inserts a CHECK BOX or a "______" like
+    // multiple choice. A teacher writing an error-identification question who
+    // gets an underline has the wrong question type entirely.
     //
-    // Bôi đen phải đi qua Tiptap: hàm toAnswer đọc `editor.state.selection`,
-    // không đọc window.getSelection. Ctrl+A trong vùng soạn thảo là đường
-    // người dùng thật đi, và ProseMirror tự xử lý phím đó.
-    const soanRoiChuyenThanhDapAn = (container: HTMLElement) => {
-        const vung = container.querySelector('.ProseMirror') as HTMLElement;
-        fireEvent.focus(vung);
-        fireEvent.keyDown(vung, {key: 'a', code: 'KeyA', ctrlKey: true});
+    // Selecting text must go through Tiptap: toAnswer reads `editor.state.selection`,
+    // not window.getSelection. Ctrl+A in the editor area is the path a real user
+    // takes, and ProseMirror handles that key itself.
+    const editThenTurnIntoAnswer = (container: HTMLElement) => {
+        const area = container.querySelector('.ProseMirror') as HTMLElement;
+        fireEvent.focus(area);
+        fireEvent.keyDown(area, {key: 'a', code: 'KeyA', ctrlKey: true});
         fireEvent.click(screen.getByTitle('Chuyển vùng chọn thành đáp án'));
-        return vung;
+        return area;
     };
 
-    it('ErrorIdentify chèn <span class=check-item>, không phải gạch chân', () => {
-        const q = Default.question('ErrorIdentify', de.id, phan.id);
+    it('ErrorIdentify inserts <span class=check-item>, not an underline', () => {
+        const q = Default.question('ErrorIdentify', exam.id, section.id);
         q.data.question = '<p>Câu có lỗi sai ở đây</p>';
-        phan.questions = [q];
+        section.questions = [q];
         const {container} = render(
-            <ErrorIdentify question={q} section={phan} setSectionState={vi.fn()}/>);
+            <ErrorIdentify question={q} section={section} setSectionState={vi.fn()}/>);
 
-        const vung = soanRoiChuyenThanhDapAn(container);
+        const area = editThenTurnIntoAnswer(container);
 
-        expect(vung.querySelector('span.check-item')).toBeTruthy();
-        expect(vung.textContent).not.toMatch(/_____/);
+        expect(area.querySelector('span.check-item')).toBeTruthy();
+        expect(area.textContent).not.toMatch(/_____/);
     });
 });

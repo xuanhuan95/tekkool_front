@@ -1,27 +1,28 @@
 
 /**
- * Loading dùng chung cho cả app. Chỉ có hình chạy, không chữ.
+ * Shared Loading for the whole app. Animation only, no text.
  *
- *   <Loading/>          — chèn tại chỗ, giữ nguyên khung trang xung quanh.
- *   <Loading overlay/>  — phủ lên nội dung đang có, KHÔNG thay thế nó.
+ *   <Loading/>          — inserted in place, keeping the surrounding page frame.
+ *   <Loading overlay/>  — covers the existing content, does NOT replace it.
  *
- * ponytail: trước đây mỗi trang tự `if (!data) return <Loader/>` — trả về THAY
- * cho cả trang, nên lúc tải thì nav và khung biến mất rồi nhảy vào lại. Overlay
- * giữ khung đứng yên, mắt không phải định vị lại sau mỗi lần tải.
+ * ponytail: previously every page did its own `if (!data) return <Loader/>` —
+ * returned INSTEAD of the whole page, so the nav and frame vanished while
+ * loading and then jumped back in. The overlay keeps the frame still, so the
+ * eye does not have to re-locate after every load.
  *
- * Hình: bốn trụ nâng lên hạ xuống theo sóng chạy từ trái sang phải.
+ * Shape: four pillars rising and falling in a wave running left to right.
  */
 export default function Loading({overlay, size}: {overlay?: boolean; size?: number}) {
-    // aria-busy + role=status + aria-label: không còn chữ trên màn hình thì
-    // trình đọc màn hình phải lấy nhãn từ đây, nếu không nó im lặng hoàn toàn.
+    // aria-busy + role=status + aria-label: with no text on screen, screen
+    // readers must take the label from here, otherwise they stay completely silent.
     return <div className={'tk-load' + (overlay ? ' tk-load-overlay' : '')}
                 role='status' aria-busy='true' aria-label='Đang tải'>
-        {/* viewBox 44x24: sóng chạy ngang nên khung rộng hơn cao. Chiều cao
-            suy ra từ size để gọi <Loading size={72}/> không méo hình. */}
+        {/* viewBox 44x24: the wave runs horizontally so the frame is wider than tall.
+            Height is derived from size so <Loading size={72}/> is not distorted. */}
         <svg className='tk-load-svg' viewBox='0 0 44 24' aria-hidden='true'
              width={size || 64} height={(size || 64) * 24 / 44}>
-            {/* 4 trụ rộng 8, cách đều 11 đơn vị. Lệch pha .1s mỗi trụ ->
-                sóng chạy từ trái sang phải chứ không nhấp đồng loạt. */}
+            {/* 4 pillars 8 wide, spaced 11 units apart. Each is .1s out of phase ->
+                a wave running left to right instead of all pulsing together. */}
             <rect x='2'  y='2' width='8' height='20' rx='3'/>
             <rect x='13' y='2' width='8' height='20' rx='3'/>
             <rect x='24' y='2' width='8' height='20' rx='3'/>

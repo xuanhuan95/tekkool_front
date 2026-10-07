@@ -7,12 +7,12 @@ export type SubjectStyle = {
     match?: string[];
 };
 
-// Icon + màu nhận theo TÊN môn, không theo thứ tự trong danh sách — giáo viên
-// thêm môn mới đứng trước là mọi môn sau đó đổi icon, Toán thành chiếc lá.
+// Icon + colour are chosen by subject NAME, not by position in the list — if a teacher
+// adds a new subject at the front, every later subject changes icon, Math becomes a leaf.
 //
-// Tên icon đã đối chiếu với semantic-ui-css/components/icon.css: gõ sai tên
-// thì Semantic render ô trống chứ không báo lỗi. 'atom', 'microscope',
-// 'landmark' KHÔNG có trong bộ này — đừng thay vào.
+// Icon names were checked against semantic-ui-css/components/icon.css: a mistyped name
+// makes Semantic render an empty box with no error. 'atom', 'microscope',
+// 'landmark' are NOT in this set — don't substitute them.
 export const SUBJECTS: SubjectStyle[] = [
     {key: 'van',     icon: 'pencil alternate', bg: 'linear-gradient(135deg,#f97316,#ea580c)', match: ['van', 'ngu van']},
     {key: 'anh',     icon: 'language',   bg: 'linear-gradient(135deg,#0ea5e9,#0369a1)', match: ['tieng anh', 'anh', 'english', 'ngoai ngu']},
@@ -26,15 +26,15 @@ export const SUBJECTS: SubjectStyle[] = [
     {key: 'tin',     icon: 'laptop',     bg: 'linear-gradient(135deg,#64748b,#334155)', match: ['tin hoc', 'tin']},
 ];
 
-// Môn lạ (giáo viên tự đặt tên) vẫn phải có icon — không để trống.
+// An unknown subject (named by the teacher) must still have an icon — never blank.
 export const FALLBACK: SubjectStyle = {
     key: 'khac', icon: 'folder open', bg: 'linear-gradient(135deg,#94a3b8,#475569)',
 };
 
-// Bỏ dấu để 'Hoá' và 'Hóa', 'Địa lý' và 'Dia ly' cùng khớp một mục.
-// ponytail: normalize('NFD') + xoá dấu thanh là cách stdlib, không cần thư viện
-// bỏ dấu tiếng Việt. Riêng 'đ' không phải ký tự có dấu tổ hợp nên xử riêng.
-export function bodau(s?: string | null): string {
+// Strip accents so 'Hoá' and 'Hóa', 'Địa lý' and 'Dia ly' match the same entry.
+// ponytail: normalize('NFD') + removing tone marks is the stdlib way, no Vietnamese
+// accent-stripping library needed. 'đ' alone is not a combining-accent character so it is handled separately.
+export function stripAccents(s?: string | null): string {
     return (s || '')
         .normalize('NFD')
         .replace(/[̀-ͯ]/g, '')
@@ -43,9 +43,9 @@ export function bodau(s?: string | null): string {
 }
 
 export function subjectStyle(name?: string | null): SubjectStyle {
-    const n = bodau(name);
-    // Khớp cả cụm trước, rồi mới khớp tiền tố — 'Lịch sử' phải ra 'su' chứ
-    // không dính vào 'sinh'. So bằng ranh giới từ, không dùng includes().
+    const n = stripAccents(name);
+    // Match the whole phrase first, then the prefix — 'Lịch sử' must give 'su' and
+    // not get caught by 'sinh'. Compare on word boundaries, not includes().
     for (const s of SUBJECTS) {
         if (s.match!.some(m => n === m)) return s;
     }

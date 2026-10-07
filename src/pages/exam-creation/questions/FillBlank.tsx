@@ -7,7 +7,7 @@ import {Editor} from "../../../components/Editor";
 
 
 export default class FillBlank extends BaseQuestion {
-    // Shim ref cua Editor: {current: {medium: {setContent}}} — xem Editor.tsx.
+    // Shim ref for Editor: {current: {medium: {setContent}}} — see Editor.tsx.
     refAnswer = React.createRef<any>();
 
     onToAnswerButton = (answer: string) => {

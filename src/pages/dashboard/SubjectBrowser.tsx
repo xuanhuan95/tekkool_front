@@ -11,24 +11,24 @@ import type {Folder, ExamSummary} from '../../types/exam';
 
 
 /**
- * Màn hình học sinh: chọn môn -> chọn bộ đề (folder con) -> chọn đề.
+ * Student screen: pick a subject -> pick an exam set (child folder) -> pick an exam.
  *
- * URL là nguồn sự thật, không phải state: `/` là danh sách môn,
- * `/subject/<id>` là một môn. Nhờ vậy F5 không văng về trang chủ, nút Back
- * của trình duyệt chạy đúng, và gửi được link thẳng một môn cho học sinh.
+ * The URL is the source of truth, not state: `/` is the subject list,
+ * `/subject/<id>` is one subject. That way F5 does not bounce to the home page, the
+ * browser Back button works correctly, and a link straight to one subject can be sent to a student.
  */
 export default function SubjectBrowser() {
     const navigate = useNavigate();
-    const {subjectId} = useParams();   // undefined = đang ở trang chủ
+    const {subjectId} = useParams();   // undefined = on the home page
 
     const [subjects, setSubjects] = useState<Folder[] | null>(null);
-    const [folders, setFolders] = useState<Folder[]>([]);   // bộ đề con của môn
-    const [folderId, setFolderId] = useState<string | null>(null); // null = xem đề ngay trong môn
+    const [folders, setFolders] = useState<Folder[]>([]);   // the subject's child exam sets
+    const [folderId, setFolderId] = useState<string | null>(null); // null = view exams directly in the subject
     const [exams, setExams] = useState<ExamSummary[] | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    // Môn đang mở lấy từ danh sách đã tải, không giữ bản sao trong state —
-    // vào thẳng /subject/<id> thì `subjects` còn null, chờ tải xong mới có.
+    // The open subject is taken from the loaded list, no copy kept in state —
+    // landing directly on /subject/<id> leaves `subjects` null until loading finishes.
     const subject = subjects && subjectId
         ? subjects.find((f: Folder) => f.id === subjectId)
         : null;
@@ -39,14 +39,14 @@ export default function SubjectBrowser() {
             .catch((e: any) => setError(e.error || e.message || 'Không tải được danh sách môn học'));
     }, []);
 
-    // Đổi môn (bấm thẻ, F5, Back) thì tải lại bộ đề + đề của môn đó.
+    // When the subject changes (card click, F5, Back), reload that subject's exam sets + exams.
     useEffect(() => {
         if (!subjectId) return;
         setFolderId(null);
         setFolders([]);
         setExams(null);
 
-        // Không có folder con không phải lỗi — cứ hiện đề của môn.
+        // Having no child folders is not an error — just show the subject's exams.
         Api.get('folder/children?parent=' + subjectId)
             .then(setFolders)
             .catch(() => setFolders([]));
@@ -56,9 +56,9 @@ export default function SubjectBrowser() {
             .catch((e: any) => setError(e.error || e.message || 'Không tải được danh sách đề'));
     }, [subjectId]);
 
-    // Chọn bộ đề trong môn: KHÔNG đổi URL. Bộ đề là bộ lọc trong một trang,
-    // không phải trang mới — đẩy vào URL nữa thì Back phải bấm nhiều lần mới
-    // ra khỏi môn.
+    // Picking an exam set within a subject: do NOT change the URL. An exam set is a filter on
+    // one page, not a new page — pushing it into the URL would make Back need many presses
+    // to leave the subject.
     const pickFolder = (id: string | null) => {
         setFolderId(id);
         setExams(null);
@@ -67,13 +67,14 @@ export default function SubjectBrowser() {
             .catch((e: any) => setError(e.error || e.message || 'Không tải được danh sách đề'));
     };
 
-    // Vào thẳng đề. Hết lượt thì BE trả 402 và DoExam bật HetLuotModal chặn
-    // tại chỗ — KHÔNG hỏi trước ở đây, vì số lượt còn lại là chuyện của ví
-    // chứ không phải của từng đề, hỏi mỗi lần bấm là thừa một vòng mạng.
-    // ?lam_lai=1: bam vao de tu danh sach la CHU DONG muon lam bai. Khong co
-    // co nay thi BE coi moi lan vao de trong 15 phut sau khi nop la "F5 xem
-    // lai ket qua" va day ra man ket qua cua bai cu — hoc sinh bam de ma khong
-    // vao duoc, tuong app hong.
+    // Go straight into the exam. When turns run out the BE returns 402 and DoExam shows
+    // OutOfTurnsModal to block on the spot — do NOT ask beforehand here, because remaining
+    // turns belong to the wallet, not to each exam, and asking on every click is a wasted
+    // network round trip.
+    // ?lam_lai=1: clicking an exam from the list means the student DELIBERATELY wants to
+    // take it. Without this flag the BE treats every entry within 15 minutes after submit as
+    // "F5 to review the result" and pushes to the old attempt's result screen — the student
+    // clicks the exam but cannot get in, and thinks the app is broken.
     const openExam = (exam: ExamSummary) => navigate('/do-exam/' + exam.id + '?lam_lai=1');
 
     if (error) return <div className='tk'><div className='tk-wrap'>
@@ -88,8 +89,8 @@ export default function SubjectBrowser() {
         <Loading/>
     </div></div>;
 
-    // Link hỏng hoặc môn đã bị xoá: subjects tải xong rồi mà không khớp id nào.
-    // Không bắt được ca này thì trang treo màn đang tải vĩnh viễn.
+    // Broken link or deleted subject: subjects finished loading but no id matches.
+    // Without catching this case the page hangs on the loading screen forever.
     if (subjectId && !subject) return <div className='tk'><div className='tk-wrap'>
         <div className='tk-empty'>
             <Icon name='question circle outline'/>
@@ -103,7 +104,7 @@ export default function SubjectBrowser() {
         </div>
     </div></div>;
 
-    /* ---------- Trang chủ: danh sách môn ---------- */
+    /* ---------- Home page: subject list ---------- */
     if (!subject) return <div className='tk'><div className='tk-wrap'>
         <h1 className='tk-title'>Thi thử SPT</h1>
 
@@ -130,7 +131,7 @@ export default function SubjectBrowser() {
             </div>}
     </div></div>;
 
-    /* ---------- Màn một môn: bộ đề + danh sách đề ---------- */
+    /* ---------- Single subject screen: exam sets + exam list ---------- */
     return <div className='tk'><div className='tk-wrap'>
         <button type='button' className='tk-back' onClick={() => navigate('/')}>
             <Icon name='arrow left'/> Tất cả môn học
@@ -142,8 +143,8 @@ export default function SubjectBrowser() {
             {folders.length ? ' · ' + folders.length + ' bộ đề' : ''}
         </p>
 
-        {/* Bộ đề chỉ hiện khi môn có folder con — môn phẳng thì khỏi thêm
-            một hàng nút vô nghĩa. */}
+        {/* Exam sets only show when the subject has child folders — a flat subject
+            does not need a pointless extra row of buttons. */}
         {folders.length > 0 &&
         <div className='tk-folder-row'>
             <button type='button'
@@ -160,9 +161,9 @@ export default function SubjectBrowser() {
             )}
         </div>}
 
-        {/* Overlay chứ không thay chỗ: đổi bộ đề thì tên môn và hàng chip đứng
-            yên, chỉ vùng danh sách mờ đi. Trước đây `!exams` trả Loading THAY
-            cho cả khối, khối co lại rồi bung ra -> trang giật mỗi lần bấm. */}
+        {/* Overlay rather than replacing: changing exam set keeps the subject name and chip row
+            still, only the list area dims. Previously `!exams` returned Loading INSTEAD OF
+            the whole block, the block shrank then expanded -> the page jerked on every click. */}
         <div className='tk-load-host'>
         {!exams ? <Loading overlay/>
             : !exams.length
@@ -188,8 +189,8 @@ export default function SubjectBrowser() {
                                     <span><Icon name='play circle outline'/> Bắt đầu làm bài</span>
                                 </span>
                             </span>
-                            {/* Đề không có giá riêng nữa — vào thi nào cũng trừ
-                                đúng 1 lượt trong gói đã mua. */}
+                            {/* Exams no longer have their own price — every exam entry deducts
+                                exactly 1 turn from the purchased package. */}
                             <span className='tk-price paid'>1 lượt</span>
                         </button>
                     )}

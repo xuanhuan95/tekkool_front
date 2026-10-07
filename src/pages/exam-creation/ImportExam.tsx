@@ -5,16 +5,16 @@ import {Link} from 'react-router-dom';
 import withRouter from '../../withRouter';
 import {Editor} from '../../components/Editor';
 import Api from '../../services/api';
-import {tenLoai} from './blockTypes';
+import {blockLabel} from './blockTypes';
 import {convertData, type QuestionData} from './convertData';
 import type {RouterProps} from '../../withRouter';
 import type {BankCapacity, Folder, QuestionBank} from '../../types/exam';
 
 
 /**
- * Đề như `import_docx/preview` trả về — CHƯA lưu, chính là payload sẽ gửi
- * lên `exam/create`. Khác `Exam` của màn soạn đề: có thêm `source` (văn bản
- * gốc trong file Word) để dựng cột phải.
+ * Exam as returned by `import_docx/preview` — NOT saved yet, and exactly the
+ * payload that will be sent to `exam/create`. Unlike the editor's `Exam`, it
+ * also carries `source` (the original text in the Word file) to build the right column.
  */
 type ImportQuestion = {id: string; type: string; data: QuestionData};
 
@@ -30,31 +30,32 @@ type ImportedExam = {
     name: string;
     duration?: number;
     sections: ImportSection[];
-    /** Từng dòng văn bản gốc, backend đã escape sẵn. */
+    /** Each line of the original text, already escaped by the backend. */
     source?: string[];
 };
 
-/** Kết quả đo trùng của MỘT câu — `question_bank/check_trung`. */
-type TrungInfo = {
+/** Duplicate-check result for ONE question — `question_bank/check_trung`. */
+type DuplicateInfo = {
     score: number;
     khop: Array<{id?: string; khoi?: string; score: number; trong_file?: boolean}>;
 };
 
 
-/** Lấy câu lỗi từ exception của Api — ba endpoint ở đây trả ba field khác nhau. */
-const loi = (e: any, mac_dinh: string) =>
-    (e && (e.message || e.description || e.error)) || mac_dinh;
+/** Pull the error message out of an Api exception — the three endpoints here use three different fields. */
+const errorMessage = (e: any, fallback: string) =>
+    (e && (e.message || e.description || e.error)) || fallback;
 
 
-// Cot phai: van ban goc tu file Word, danh so dong + to mau tu khoa de
-// giao vien soi cho parser doc sai. Chuoi da duoc backend escape san.
-// ponytail: to mau bang regex thuan, khong keo them thu vien highlight —
-// chi co 3 loai token can phan biet.
+// Right column: original text from the Word file, with line numbers and
+// highlighted keywords so teachers can spot where the parser misread.
+// The string is already escaped by the backend.
+// ponytail: highlight with plain regex, no extra highlight library —
+// only 3 token kinds to tell apart.
 function highlight(html: string) {
-    // Moc cau truc chi tinh khi o DAU dong: 'Nhung Cau chuyen nay...' giua
-    // dong khong phai moc. To toi het dau cham/hai cham neu co, khong thi het
-    // cum 'VAN BAN 2' / 'DE SO 5'. Cho </b> lot vao giua vi marker in dam cua
-    // Word boc ngay tu khoa.
+    // A structural marker only counts at the START of a line: 'Nhung Cau chuyen nay...'
+    // mid-line is not a marker. Highlight up to the period/colon if any, otherwise
+    // the whole 'VAN BAN 2' / 'DE SO 5' phrase. Allow </b> in between because
+    // Word's bold marker wraps the keyword right away.
     let head = html.match(
         /^(?:<b>)?\s*(?:(?:Câu|Phần)\s*\d*[^.:<]{0,18}(?:<\/b>)?\s*[.:]|(?:VĂN BẢN|ĐỀ SỐ)\s*\d+(?:<\/b>)?|ĐÁP\s*ÁN(?:<\/b>)?)/
     );
@@ -75,10 +76,10 @@ function SourceView({lines}: {lines?: string[]}) {
 }
 
 
-// ponytail: KHONG tai dung MultipleChoiceAnswer — no hardcode name='answer'
-// (MultipleChoiceAnswer.jsx:61), man nay hien 20 de cung luc nen moi radio se
-// chung MOT group: chon dap an cau 2 lam bo chon cau 1. Radio o day lay
-// name theo question.id.
+// ponytail: do NOT reuse MultipleChoiceAnswer — it hardcodes name='answer'
+// (MultipleChoiceAnswer.jsx:61), and this screen shows 20 exams at once so every
+// radio would share ONE group: picking the answer of question 2 unpicks question 1.
+// Radios here take their name from question.id.
 type AnswersProps = {
     question: ImportQuestion;
     onPick: (answerId: string) => void;
@@ -103,8 +104,9 @@ function Answers({question, onPick, onEdit}: AnswersProps) {
 }
 
 
-// Loai cau hoi doi duoc luc import. Parser chi doan duoc Trac nghiem / Tu luan
-// (co A.B.C.D. hay khong), ba loai con lai giao vien tu chon.
+// Question types that can be switched at import time. The parser can only guess
+// multiple choice / free answer (has A.B.C.D. or not); the other three are
+// picked by the teacher.
 const QUESTION_TYPES = [
     {key: 'MultipleChoice', text: 'Trắc nghiệm'},
     {key: 'FreeAnswer', text: 'Tự luận'},
@@ -113,16 +115,17 @@ const QUESTION_TYPES = [
     {key: 'ErrorIdentify', text: 'Tìm lỗi sai'},
 ];
 
-// ponytail: `data.answer` mang nghia KHAC nhau tung loai — TrueFalse.jsx doc no
-// nhu boolean, FillBlank.jsx nhu chuoi HTML. Doi loai ma bung nguyen data cu thi
-// TrueFalse an phai chuoi HTML -> ca hai radio deu khong checked, giao vien tuong
-// chua chon, luu xong cham may sai. Nen giu dung phan dung chung, bo phan rieng.
+// ponytail: `data.answer` means DIFFERENT things per type — TrueFalse.jsx reads it
+// as a boolean, FillBlank.jsx as an HTML string. Switching type while spreading the
+// old data whole makes TrueFalse swallow an HTML string -> neither radio is checked,
+// the teacher thinks nothing is picked, and auto-grading is wrong after saving.
+// So keep only the shared part and drop the type-specific part.
 type State = {
     loading: boolean;
     error: string | null;
     exams: ImportedExam[];
     warnings: string[];
-    /** id đề -> có tick hay không. */
+    /** exam id -> ticked or not. */
     picked: Record<string, boolean>;
     openId: string | null;
     infoId: string | null;
@@ -130,11 +133,11 @@ type State = {
     progress: number;
     folder: Folder | null;
     bankInfo: QuestionBank | null;
-    trung: Record<string, TrungInfo>;
-    dangDoTrung: boolean;
-    /** Số khối vừa thêm, cho dòng hint. Bản cũ thiếu trong state khởi tạo. */
+    duplicates: Record<string, DuplicateInfo>;
+    checkingDuplicates: boolean;
+    /** Number of blocks just added, for the hint line. The old version was missing from the initial state. */
     banked: number;
-    /** Tồn kho ngân hàng đang nhập vào. null = không có ?bank= hoặc tải hỏng. */
+    /** Stock of the bank being imported into. null = no ?bank= or load failed. */
     bank: BankCapacity | null;
 };
 
@@ -145,21 +148,22 @@ class ImportExam extends Component<RouterProps, State> {
         exams: [],
         warnings: [],
         picked: {},
-        openId: null,    // chi mo MOT de mot luc (xem toggleOpen)
-        infoId: null,    // de dang xem modal 'Thong tin de'
+        openId: null,    // only ONE exam open at a time (see toggleOpen)
+        infoId: null,    // exam whose 'Exam info' modal is showing
         saving: false,
         progress: 0,
         folder: null,
         bankInfo: null,
-        trung: {},       // id cau -> {score, khop[]}; chi hien so, khong chan luu
-        dangDoTrung: false,
+        duplicates: {},  // question id -> {score, khop[]}; only shows numbers, doesn't block saving
+        checkingDuplicates: false,
         banked: 0,
         bank: null,
     };
 
-    // Ngan hang lay tu ?bank= — mot thuc the co ten va co mon, giao vien tu tao.
-    // Truoc day mon phai doan tu TEN THU MUC: import ngoai thu muc thi mon rong,
-    // moi khoi do chung mot ro, khong tach duoc ngan hang nao voi ngan hang nao.
+    // The bank comes from ?bank= — an entity with a name and a subject, created by
+    // the teacher. Before, the subject had to be guessed from the FOLDER NAME: importing
+    // outside a folder left the subject empty, every block went into one shared
+    // basket, and no bank could be told apart from another.
     bankId = () => new URLSearchParams(this.props.location.search).get('bank');
 
     componentDidMount = async () => {
@@ -188,26 +192,27 @@ class ImportExam extends Component<RouterProps, State> {
         try {
             const res: {exams: ImportedExam[]; warnings?: string[]} =
                 await Api.upload('import_docx/preview', file);
-            // ponytail: mặc định tick HẾT. File 20 đề mà bỏ tick hết thì giáo
-            // viên phải bấm 20 lần; bỏ bớt vài đề dễ hơn chọn lại từ đầu.
+            // ponytail: tick ALL by default. With a 20-exam file, unticking all
+            // takes 20 clicks for the teacher; dropping a few exams is easier than
+            // re-picking from scratch.
             const picked: Record<string, boolean> = {};
             res.exams.forEach(e => picked[e.id] = true);
-            // Mở sẵn đề đầu để thấy ngay là xem/sửa được, không phải bấm dò.
+            // Open the first exam so it's obvious it can be viewed/edited, no hunting around.
             let openId = res.exams.length ? res.exams[0].id : null;
             this.setState({exams: res.exams, warnings: res.warnings || [], picked, openId});
         } catch (e) {
-            this.setState({error: loi(e, 'Không đọc được file')});
+            this.setState({error: errorMessage(e, 'Không đọc được file')});
         } finally {
-            target.value = '';   // cho phép chọn lại đúng file vừa chọn
+            target.value = '';   // allow re-selecting the very same file
             this.setState({loading: false});
         }
     };
 
     toggle = (id: string) => this.setState(({picked}) => ({picked: {...picked, [id]: !picked[id]}}));
 
-    // ponytail: chi mo MOT de. Moi o soan la mot instance TipTap; 20 de x 12 cau
-    // x (1 than + 4 dap an) ~ 1200 ProseMirror view -> trinh duyet i ra. Mo mot
-    // de la ~60, chay muot.
+    // ponytail: open only ONE exam. Each editing box is a TipTap instance; 20 exams x
+    // 12 questions x (1 body + 4 answers) ~ 1200 ProseMirror views -> the browser
+    // chokes. One exam is ~60, runs smoothly.
     toggleOpen = (id: string) => this.setState(({openId}) => ({openId: openId === id ? null : id}));
 
     toggleAll = () => {
@@ -218,8 +223,8 @@ class ImportExam extends Component<RouterProps, State> {
         this.setState({picked: next});
     };
 
-    // ponytail: sua TAI CHO tren state.exams — payload nay chinh la cai gui len
-    // exam/create, khong can shape trung gian nao khac.
+    // ponytail: edit IN PLACE on state.exams — this payload is exactly what gets
+    // sent to exam/create, no intermediate shape needed.
     patchExam = (examId: string, fn: (exam: ImportedExam) => ImportedExam) => this.setState(({exams}) => ({
         exams: exams.map(e => e.id === examId ? fn({...e}) : e),
     }));
@@ -237,9 +242,10 @@ class ImportExam extends Component<RouterProps, State> {
     setBody = (examId: string, qid: string, html: string) =>
         this.patchQuestion(examId, qid, q => ({...q, data: {...q.data, question: html}}));
 
-    // ponytail: doi loai phai cap nhat CA section.question_type — BE luu field nay
-    // (core_docx lay tu cau dau section) va man soan de doc no de biet phan nay
-    // thuoc dang gi. Sua moi q.type thi phan bi gan nham loai cua cau da doi.
+    // ponytail: changing type must update section.question_type TOO — the BE stores
+    // this field (core_docx takes it from the section's first question) and the
+    // editor reads it to know what kind this section is. Changing only q.type leaves
+    // the section tagged with the wrong type.
     setType = (examId: string, qid: string, type: string) => this.patchExam(examId, exam => {
         exam.sections = exam.sections.map(s => {
             if (!s.questions.some(q => q.id === qid)) return s;
@@ -252,9 +258,10 @@ class ImportExam extends Component<RouterProps, State> {
         return exam;
     });
 
-    // ponytail: ngu lieu la BAN SAO trong tung cau cung nhom, nen sua thi phai
-    // ghi lai cho CA NHOM theo passageId. Sua moi cau dau thi cau 2-5 giu ban cu
-    // -> luu xong hoc sinh doc phai van ban chua sua.
+    // ponytail: the passage is a COPY inside each question of the group, so an edit
+    // must be written back to the WHOLE GROUP by passageId. Editing only the first
+    // question leaves questions 2-5 with the old copy -> after saving, students read
+    // the unedited text.
     setPassage = (examId: string, passageId: string | undefined, html: string) => this.patchExam(examId, exam => {
         exam.sections = exam.sections.map(sec => ({
             ...sec,
@@ -279,17 +286,17 @@ class ImportExam extends Component<RouterProps, State> {
     removeQuestion = (examId: string, qid: string) => this.patchExam(examId, exam => {
         exam.sections = exam.sections
             .map(s => ({...s, questions: s.questions.filter(q => q.id !== qid)}))
-            .filter(s => s.questions.length);   // phần rỗng thì bỏ luôn
+            .filter(s => s.questions.length);   // drop empty sections
         return exam;
     });
 
     countQuestions = (exam: ImportedExam) => exam.sections.reduce((n, s) => n + s.questions.length, 0);
 
-    // Câu trắc nghiệm chưa chọn đáp án đúng -> chấm máy sẽ luôn ra 0 điểm.
+    // Multiple-choice question with no correct answer picked -> auto-grading always gives 0.
     missingKeys = (exam: ImportedExam) => exam.sections.reduce((n, s) =>
         n + s.questions.filter(q => q.type === 'MultipleChoice' && !q.data.correctAnswerId).length, 0);
 
-    // Thống kê cho modal "Thông tin đề": gom câu theo từng tiêu chí.
+    // Stats for the "Exam info" modal: group questions by each criterion.
     examStats = (exam: ImportedExam) => {
         const all: Array<{q: ImportQuestion; s: ImportSection; no: number}> = [];
         exam.sections.forEach(s => s.questions.forEach((q, i) => all.push({q, s, no: i + 1})));
@@ -307,8 +314,8 @@ class ImportExam extends Component<RouterProps, State> {
         return {total: all.length, rows: rows.filter(r => r[1].length)};
     };
 
-    // ponytail: cuon toi cau bang id DOM thay vi ref — 240 cau ma giu ref het
-    // thi phai quan ly map ref, trong khi id da co san tu payload.
+    // ponytail: scroll to a question by DOM id instead of ref — keeping refs for 240
+    // questions means managing a ref map, while the id is already in the payload.
     jumpTo = (examId: string, qid: string) => {
         this.setState({infoId: null, openId: examId}, () => {
             let el = document.getElementById('imp-' + qid);
@@ -320,93 +327,95 @@ class ImportExam extends Component<RouterProps, State> {
         });
     };
 
-    // Đo trùng với câu đã có trong ngân hàng. Chỉ hiện số — người import tự
-    // quyết có lưu hay không, y như Azota. Gọi riêng chứ không gộp vào save:
-    // đo xong mới hiện nút Lưu thì giáo viên còn kịp nhìn trước khi bấm.
-    doTrung = async () => {
+    // Measure duplication against questions already in the bank. Only shows numbers —
+    // the importer decides whether to save, just like Azota. Called separately rather
+    // than merged into save: once measured, the teacher can still look before clicking Save.
+    checkDuplicates = async () => {
         let chosen = this.state.exams.filter(e => this.state.picked[e.id]);
         if (!chosen.length) return;
-        this.setState({dangDoTrung: true});
+        this.setState({checkingDuplicates: true});
         try {
-            let gop = {};
+            let merged = {};
             for (let e of chosen) {
                 let r = await Api.post('question_bank/check_trung',
                     {...e, bank: this.bankId()});
-                Object.assign(gop, r.trung || {});
+                Object.assign(merged, r.trung || {});
             }
-            this.setState({trung: gop, dangDoTrung: false});
+            this.setState({duplicates: merged, checkingDuplicates: false});
         } catch (err) {
-            // Đo trùng hỏng KHÔNG được chặn việc lưu — nó là thông tin thêm.
-            // Nhưng phải NÓI ra: bản cũ nuốt lỗi, giáo viên bấm xong thấy
-            // spinner tắt mà không có chip nào, tưởng ngân hàng sạch trùng.
-            this.setState({dangDoTrung: false, error: loi(err, 'Không đo được trùng lặp')});
+            // A failed duplicate check must NOT block saving — it's extra info.
+            // But it must SAY so: the old version swallowed the error, the teacher
+            // saw the spinner stop with no chips and assumed the bank had no duplicates.
+            this.setState({checkingDuplicates: false, error: errorMessage(err, 'Không đo được trùng lặp')});
         }
     };
 
-    // toBank=true: cắt thành khối rồi bỏ vào ngân hàng câu hỏi, KHÔNG tạo đề.
-    // Đề sinh ra lúc học sinh bấm thi, rút ngẫu nhiên từ ngân hàng.
+    // toBank=true: cut into blocks and put them in the question bank, do NOT create an exam.
+    // The exam is generated when a student starts it, drawn randomly from the bank.
     save = async (toBank: boolean) => {
         let {exams, picked} = this.state;
         let chosen = exams.filter(e => picked[e.id]);
         if (!chosen.length) return;
 
-        // banked phải về 0: lần lưu trước để lại số cũ thì dòng hint vẫn khoe
-        // "Đã thêm N khối" trong khi lần này tạo thẳng đề, chưa động vào ngân hàng.
+        // banked must reset to 0: if the previous save left its number, the hint line
+        // still brags "Đã thêm N khối" while this time we create the exam directly
+        // without touching the bank.
         this.setState({saving: true, error: null, progress: 0, banked: 0});
         try {
-            // ponytail: gọi tuần tự, không Promise.all. 20 đề x 12 câu = 240
-            // lượt ghi Question; bắn song song dễ làm server 2 nhân nghẹn.
+            // ponytail: call sequentially, not Promise.all. 20 exams x 12 questions = 240
+            // Question writes; firing them in parallel easily chokes a 2-core server.
             let folder = new URLSearchParams(this.props.location.search).get('folder');
             let saved = 0;
             for (let i = 0; i < chosen.length; i++) {
                 if (toBank) {
-                    // ponytail: tên môn lấy từ thư mục đang import vào — giáo
-                    // viên đã chọn đúng môn ở đó rồi, hỏi lại là thừa một bước.
+                    // ponytail: the subject name comes from the folder being imported into —
+                    // the teacher already picked the right subject there, asking again is a wasted step.
                     let r = await Api.post('question_bank/save',
                         {...chosen[i], bank: this.bankId()});
                     saved += r.saved;
                 } else {
                     await Api.post('exam/create', chosen[i]);
-                    // exam/create không nhận folder -> dùng move_to_folder sẵn có.
+                    // exam/create doesn't accept a folder -> use the existing move_to_folder.
                     if (folder) await Api.post('exam/move_to_folder', {examId: chosen[i].id, folderId: folder});
                 }
                 this.setState({progress: i + 1});
             }
             if (toBank) {
                 this.setState({saving: false, banked: saved});
-                this.loadBank();   // so lieu ton kho phai doi ngay sau khi them
+                this.loadBank();   // stock numbers must update right after adding
             }
             else this.props.history.push('/');
         } catch (e) {
-            this.setState({error: loi(e, 'Lưu thất bại'), saving: false});
+            this.setState({error: errorMessage(e, 'Lưu thất bại'), saving: false});
         }
     };
 
     folderName = () => this.state.folder && this.state.folder.name;
 
-    // Chip "Tỷ lệ trùng" — chỉ hiện khi câu có trùng. Màu theo mức, nhưng
-    // KHÔNG màu đỏ: đây là cảnh báo để đọc, không phải lỗi phải sửa. Câu cùng
-    // khung ("Cho hàm số y=f(x)... nghịch biến trên khoảng nào") đo ra 80-90%
-    // mà vẫn là hai câu khác nhau — bôi đỏ thì giáo viên tắt tính năng đi.
-    renderChipTrung = (qid: string) => {
-        let t = this.state.trung[qid];
+    // "Duplicate rate" chip — only shown when the question has a duplicate. Colour by
+    // level, but NOT red: this is a warning to read, not an error to fix. Questions with
+    // the same template ("Cho hàm số y=f(x)... nghịch biến trên khoảng nào") measure 80-90%
+    // yet are still two different questions — paint it red and teachers switch the feature off.
+    renderDuplicateChip = (qid: string) => {
+        let t = this.state.duplicates[qid];
         if (!t) return null;
         let pct = (t.score * 100).toFixed(2);
-        const mau: SemanticCOLORS = t.score >= 0.95 ? 'orange' : t.score >= 0.8 ? 'yellow' : 'grey';
-        let ds = t.khop.map(k => (k.trong_file ? 'trong file này' : (k.khoi || k.id))
+        const color: SemanticCOLORS = t.score >= 0.95 ? 'orange' : t.score >= 0.8 ? 'yellow' : 'grey';
+        let matches = t.khop.map(k => (k.trong_file ? 'trong file này' : (k.khoi || k.id))
             + ' — ' + (k.score * 100).toFixed(2) + '%').join('\n');
-        return <Label size='tiny' color={mau} title={'Trùng với:\n' + ds}>
+        return <Label size='tiny' color={color} title={'Trùng với:\n' + matches}>
             Tỷ lệ trùng: {pct}%
         </Label>;
     };
 
     renderQuestion = (exam: ImportedExam, section: ImportSection, q: ImportQuestion, idx: number) => {
-        // ErrorIdentify cung la chon 1 trong 4 phuong an -> dung chung UI dap an.
+        // ErrorIdentify is also pick-1-of-4 -> shares the answer UI.
         let isMC = q.type === 'MultipleChoice' || q.type === 'ErrorIdentify';
         let noKey = isMC && !q.data.correctAnswerId;
 
-        // ponytail: ngu lieu la cua ca nhom -> chi in o cau DAU nhom. So voi cau
-        // lien truoc trong cung section la du, vi cac cau cung nhom luon lien tiep.
+        // ponytail: the passage belongs to the whole group -> print it only at the group's
+        // FIRST question. Comparing with the previous question in the same section is enough,
+        // since questions of one group are always consecutive.
         let prev = section.questions[idx - 1];
         let showPassage = q.data.passage &&
             (!prev || prev.data.passageId !== q.data.passageId);
@@ -425,7 +434,7 @@ class ImportExam extends Component<RouterProps, State> {
                           options={QUESTION_TYPES.map(t => ({key: t.key, value: t.key, text: t.text}))}
                           onChange={(_e, {value}) => this.setType(exam.id, q.id, String(value))}/>
                 {noKey && <Label size='tiny' color='orange'>chưa có đáp án đúng</Label>}
-                {this.renderChipTrung(q.id)}
+                {this.renderDuplicateChip(q.id)}
                 <Icon name='trash alternate outline' link color='grey'
                       title='Xoá câu này'
                       onClick={() => this.removeQuestion(exam.id, q.id)}/>
@@ -441,7 +450,7 @@ class ImportExam extends Component<RouterProps, State> {
                        value={q.data.max_words || 0}
                        onChange={(_e, {value}) => this.patchQuestion(exam.id, q.id, qq => {
                            const data: QuestionData = {...qq.data, max_words: parseInt(value, 10) || 0};
-                           // 0 = khong gioi han -> bo han field, khong ghi rac vao DB.
+                           // 0 = no limit -> drop the field entirely, don't write junk into the DB.
                            if (!data.max_words) delete data.max_words;
                            return {...qq, data};
                        })}/>
@@ -454,11 +463,11 @@ class ImportExam extends Component<RouterProps, State> {
     };
 
     renderExam = (exam: ImportedExam) => {
-        let {picked, openId, trung} = this.state;
+        let {picked, openId, duplicates} = this.state;
         let missing = this.missingKeys(exam);
         let isOpen = openId === exam.id;
-        let soTrung = exam.sections.reduce(
-            (n, s) => n + s.questions.filter(q => trung[q.id]).length, 0);
+        let duplicateCount = exam.sections.reduce(
+            (n, s) => n + s.questions.filter(q => duplicates[q.id]).length, 0);
 
         return <Segment key={exam.id}>
             <div className='import-exam-head'>
@@ -478,10 +487,10 @@ class ImportExam extends Component<RouterProps, State> {
                     {missing > 0 && <Label size='tiny' color='orange' className='margin-left'>
                         {missing} câu thiếu đáp án
                     </Label>}
-                    {/* Chip trùng của từng câu nằm trong phần "Xem & sửa" — đề
-                        thu gọn thì không thấy gì. Đếm lên đây để biết nên mở đề nào. */}
-                    {soTrung > 0 && <Label size='tiny' color='yellow' className='margin-left'>
-                        {soTrung} câu trùng
+                    {/* Each question's duplicate chip lives in the "Xem & sửa" section — a
+                        collapsed exam shows nothing. Count it up here to know which exam to open. */}
+                    {duplicateCount > 0 && <Label size='tiny' color='yellow' className='margin-left'>
+                        {duplicateCount} câu trùng
                     </Label>}
                 </span>
 
@@ -499,8 +508,8 @@ class ImportExam extends Component<RouterProps, State> {
                 <div className='import-parsed'>
                     <div className='import-col-head'>Đã nhận diện — sửa trực tiếp</div>
                     {exam.sections.map(s => <div key={s.id} className='import-section'>
-                        {/* ponytail: dangerouslySetInnerHTML phai o the TRONG. Dat
-                            thang tren <Header> thi semantic van tu chen children
+                        {/* ponytail: dangerouslySetInnerHTML must be on the INNER tag. Put
+                            directly on <Header>, semantic still injects children
                             -> React #60 "Can only set one of children or
                             dangerouslySetInnerHTML". */}
                         <Header as='h5' dividing>
@@ -557,10 +566,10 @@ class ImportExam extends Component<RouterProps, State> {
         </Modal>;
     };
 
-    // Ngan hang o NGAY DAY chu khong phai mot muc menu rieng: day la man duy
-    // nhat do khoi vao ngan hang, nen cung la cho giao vien muon xem con bao
-    // nhieu. Truoc do no nam o nut menu trai, canh 'Tao de' — trong nhu mot
-    // cach tao de, nhung bam vao lai nhay sang man LAM BAI.
+    // The bank lives RIGHT HERE rather than as a separate menu item: this is the only
+    // screen that pours blocks into the bank, so it's also where teachers want to see how
+    // many are left. Before, it was a left-menu button next to 'Tao de' — it looked like
+    // a way to create an exam, but clicking it jumped to the TAKE-TEST screen.
     loadBank = async () => {
         let bankId = this.bankId();
         if (!bankId) return this.setState({bank: null});
@@ -568,7 +577,7 @@ class ImportExam extends Component<RouterProps, State> {
             let cap = await Api.post('question_bank/capacity', {bank: bankId});
             this.setState({bank: cap});
         } catch (e) {
-            // Ngan hang loi thi van phai import duoc — chi an bang thong ke.
+            // A broken bank must not stop importing — just hide the stats panel.
             this.setState({bank: null});
         }
     };
@@ -579,28 +588,28 @@ class ImportExam extends Component<RouterProps, State> {
 
         let per = bank.per_type || {};
         let slots = bank.slots || {};
-        let lan = bank.capacity || 0;
-        let tong = Object.keys(per).reduce((a, t) => a + per[t], 0);
-        if (!tong) return null;   // ngan hang rong thi khong bay bang trong
+        let drawable = bank.capacity || 0;
+        let total = Object.keys(per).reduce((a, t) => a + per[t], 0);
+        if (!total) return null;   // empty bank -> don't show an empty panel
 
         let {bankInfo} = this.state;
-        let nghen = bank.bottleneck;
+        let bottleneck = bank.bottleneck;
 
         return <Segment className='import-bank margin-top'>
             <div className='import-bank-head'>
-                <Icon name='database' size='large' color={lan > 0 ? 'green' : 'grey'}/>
+                <Icon name='database' size='large' color={drawable > 0 ? 'green' : 'grey'}/>
                 <div className='import-bank-text'>
-                    <b>{bankInfo ? bankInfo.name : 'Ngân hàng câu hỏi'}: {tong} khối</b>
+                    <b>{bankInfo ? bankInfo.name : 'Ngân hàng câu hỏi'}: {total} khối</b>
                     <div className='text-muted'>
-                        {lan > 0
-                            ? <span>Đủ rút {lan} đề không trùng khối
-                                {nghen && <span> · nghẽn ở <b>{tenLoai(nghen[0])}</b></span>}
+                        {drawable > 0
+                            ? <span>Đủ rút {drawable} đề không trùng khối
+                                {bottleneck && <span> · nghẽn ở <b>{blockLabel(bottleneck[0])}</b></span>}
                               </span>
                             : 'Chưa đủ khối để rút một đề hoàn chỉnh — nhập thêm đề bên dưới.'}
                     </div>
                 </div>
                 <Link to={'/draw-exam/bank/' + this.bankId()}>
-                    <Button basic primary disabled={lan < 1}>
+                    <Button basic primary disabled={drawable < 1}>
                         <Icon name='random'/> Rút thử một đề
                     </Button>
                 </Link>
@@ -608,11 +617,11 @@ class ImportExam extends Component<RouterProps, State> {
 
             <div className='import-bank-types'>
                 {Object.keys(slots).map(t => {
-                    let co = per[t] || 0, duoc = Math.floor(co / slots[t]);
+                    let have = per[t] || 0, drawn = Math.floor(have / slots[t]);
                     return <Label key={t} basic
-                                  color={duoc < 1 ? 'red' : duoc < 4 ? 'yellow' : 'green'}>
-                        {tenLoai(t)}
-                        <Label.Detail>{co} khối · rút được {duoc}</Label.Detail>
+                                  color={drawn < 1 ? 'red' : drawn < 4 ? 'yellow' : 'green'}>
+                        {blockLabel(t)}
+                        <Label.Detail>{have} khối · rút được {drawn}</Label.Detail>
                     </Label>;
                 })}
             </div>
@@ -621,7 +630,7 @@ class ImportExam extends Component<RouterProps, State> {
 
     render() {
         const {loading, error, exams, warnings, picked, saving, progress, banked,
-               dangDoTrung, trung} = this.state;
+               checkingDuplicates, duplicates} = this.state;
         let chosen = exams.filter(e => picked[e.id]).length;
 
         return <div className='margin import-exam'>
@@ -666,9 +675,9 @@ class ImportExam extends Component<RouterProps, State> {
                 {exams.map(this.renderExam)}
 
                 <Segment>
-                    {/* Khong co ?bank= thi KHONG cho luu vao ngan hang: truoc day
-                        van luu duoc, khoi roi vao ro chung khong ten khong mon,
-                        khong man nao rut ra duoc. Chan tai day, chi ro loi vao. */}
+                    {/* Without ?bank= do NOT allow saving to a bank: before, it still
+                        saved, and blocks fell into a shared nameless, subject-less basket
+                        that no screen could draw from. Block it here, close the way in. */}
                     <Button positive loading={saving}
                             disabled={!chosen || saving || !this.bankId()}
                             onClick={() => this.save(true)}>
@@ -678,11 +687,11 @@ class ImportExam extends Component<RouterProps, State> {
                             onClick={() => this.save(false)}>
                         <Icon name='save'/> Tạo thẳng {chosen} đề
                     </Button>
-                    {/* Đo trùng là tuỳ chọn, không phải bước bắt buộc trước khi
-                        lưu: ngân hàng rỗng thì đo xong vẫn ra 0, bắt bấm là thừa. */}
-                    <Button basic loading={dangDoTrung}
+                    {/* The duplicate check is optional, not a required step before
+                        saving: an empty bank measures 0 anyway, forcing a click is pointless. */}
+                    <Button basic loading={checkingDuplicates}
                             disabled={!chosen || saving || !this.bankId()}
-                            onClick={this.doTrung}>
+                            onClick={this.checkDuplicates}>
                         <Icon name='copy outline'/> Kiểm tra trùng lặp
                     </Button>
                     <span className='import-save-hint'>
@@ -691,8 +700,8 @@ class ImportExam extends Component<RouterProps, State> {
                             : !this.bankId()
                                 ? <span>Muốn lưu vào ngân hàng thì vào <Link to='/question-bank'>
                                     Ngân hàng câu hỏi</Link> chọn một ngân hàng rồi bấm “Nhập đề”.</span>
-                                : Object.keys(trung).length
-                                    ? `Có ${Object.keys(trung).length} câu trùng với ngân hàng — xem chip trên từng câu rồi tự quyết.`
+                                : Object.keys(duplicates).length
+                                    ? `Có ${Object.keys(duplicates).length} câu trùng với ngân hàng — xem chip trên từng câu rồi tự quyết.`
                                     : 'Vào ngân hàng: cắt thành khối để sau này rút đề ngẫu nhiên.'}
                     </span>
                 </Segment>

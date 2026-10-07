@@ -6,7 +6,7 @@ import Api from '../../services/api';
 import type {Submission} from '../../types/submission';
 import {fmtDate, fmtDuration, ScoreLabel} from './fmt';
 
-/** Danh sách bài học sinh đã nộp. */
+/** List of attempts the student has submitted. */
 type State = {subs: Submission[] | null; error: string | null};
 
 export default class MySubmissions extends Component<{}, State> {
@@ -60,13 +60,13 @@ export default class MySubmissions extends Component<{}, State> {
                                 <span className='tk-exam-meta'>
                                     <span><Icon name='calendar outline'/> {fmtDate(s.submitted_at)}</span>
                                     <span><Icon name='clock outline'/> {fmtDuration(s.duration_sec)}</span>
-                                    {/* Hết giờ máy nộp thay -> phải biết vì sao bài dừng giữa chừng. */}
+                                    {/* Time ran out and the machine submitted -> the student must know why the attempt stopped midway. */}
                                     {s.auto_submitted &&
                                     <span><Icon name='hourglass end'/> hết giờ, máy nộp</span>}
-                                    {/* ponytail: bỏ khối hiện invoice_number. BE không trả field
-                                        này ở exam/my_submissions — invoice_number chỉ nằm trên
-                                        Payment. Từ khi bán theo GÓI, một đơn dùng cho nhiều đề nên
-                                        không trỏ ngược từ bài làm về đơn được; hoá đơn ở /billing. */}
+                                    {/* ponytail: dropped the invoice_number block. The BE does not return this field
+                                        on exam/my_submissions — invoice_number only lives on
+                                        Payment. Since selling by PACKAGE, one order is used for many exams so
+                                        an attempt cannot point back to an order; invoices are at /billing. */}
                                 </span>
                             </span>
                             <span onClick={e => e.preventDefault()}>

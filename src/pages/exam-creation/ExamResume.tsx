@@ -2,8 +2,8 @@ import {Menu} from 'semantic-ui-react';
 import striptags from 'striptags';
 
 /**
- * Mục lục bên trái màn soạn đề. Chỉ cần tên + id để dựng link neo, nên nhận
- * hình dạng tối thiểu thay vì type Section đầy đủ của màn soạn đề.
+ * Table of contents on the left of the exam editor. It only needs name + id to
+ * build anchor links, so it takes a minimal shape instead of the editor's full Section type.
  */
 type ResumeQuestion = {
     id: string;

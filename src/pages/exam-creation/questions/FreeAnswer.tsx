@@ -6,9 +6,10 @@ import type {BaseQuestionProps} from './BaseQuestion';
 import {Editor} from "../../../components/Editor";
 
 
-// Mặc định đếm TỪ: Tiếng Anh "I am a student" = 4 từ, Ngữ văn "Trường Trung
-// học phổ thông" = 5 chữ — tiếng Việt viết rời từng tiếng nên cùng một phép tách
-// dấu cách. Đếm ký tự vẫn giữ cho đề nào cần.
+// Counts WORDS by default: English "I am a student" = 4 words, Literature
+// "Trường Trung học phổ thông" = 5 words — Vietnamese writes each syllable
+// separately, so the same space-split works. Character counting is kept for
+// exams that need it.
 const UNITS = [{key: 'w', value: 'word', text: 'từ'}, {key: 'c', value: 'char', text: 'ký tự'}];
 
 type State = {showLimit: boolean};
@@ -16,12 +17,13 @@ type State = {showLimit: boolean};
 export default class FreeAnswer extends BaseQuestion<BaseQuestionProps, State> {
     state: State = {showLimit: false};
 
-    // Shim ref cua Editor: {current: {medium: {setContent}}} — xem Editor.tsx.
+    // Shim ref for Editor: {current: {medium: {setContent}}} — see Editor.tsx.
     refAnswer = React.createRef<any>();
 
-    // Con số này KHÔNG chặn học sinh viết dài — chỉ hiện ở bộ đếm và dùng để
-    // xếp khối trong ngân hàng đề (TraLoiNgan / VietDoan / VietBai).
-    // Chỉ giữ 1 đơn vị trong data — để cả hai thì Editor phải đoán, đề cũng khó hiểu.
+    // This number does NOT stop students from writing more — it only shows in
+    // the counter and is used to sort blocks in the question bank
+    // (TraLoiNgan / VietDoan / VietBai). Keep only 1 unit in data — with both,
+    // the Editor would have to guess and the exam would be confusing.
     setLimit = (n: number, unit: string) => this.setQuestionData(
         unit === 'word' ? {max_words: n, max_chars: 0} : {max_chars: n, max_words: 0});
 
@@ -31,10 +33,10 @@ export default class FreeAnswer extends BaseQuestion<BaseQuestionProps, State> {
 
     render() {
         let {data} = this.props.question;
-        // Đề cũ chỉ có max_chars -> vẫn hiện đúng 'ký tự'; đề mới mặc định 'từ'.
+        // Old exams only have max_chars -> still shown as 'ký tự'; new exams default to 'từ'.
         const unit = data.max_chars > 0 ? 'char' : 'word';
         const limit = unit === 'char' ? data.max_chars : data.max_words;
-        // Đa số câu tự luận không giới hạn -> ẩn, đề nào đã đặt rồi thì hiện sẵn.
+        // Most essay questions have no limit -> hidden; exams that already set one show it.
         const showLimit = this.state.showLimit || limit > 0;
 
         return <Form className='question free-answer'>

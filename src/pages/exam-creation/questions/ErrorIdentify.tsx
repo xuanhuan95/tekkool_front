@@ -1,18 +1,19 @@
 import MultipleChoice from './MultipleChoice';
 import type {BaseQuestionProps} from './BaseQuestion';
 
-// ponytail: tung la ban chep 177 dong cua MultipleChoice, khac dung 4 cho —
-// nen sua bug o mot file thi file kia van hong. Gio chi con phan KHAC that:
+// ponytail: used to be a 177-line copy of MultipleChoice differing in exactly 4
+// places — so a bug fixed in one file stayed broken in the other. Now only the
+// REAL differences remain:
 //
-//   - o tich thay cho gach chan "______"  (editorType)
-//   - nut "chuyen vung chon thanh dap an" (toAnswerButton; Editor an nut nay
-//     khi khong co onToAnswerButton, nen MultipleChoice mac dinh khong co)
-//   - class .ErrorIdentify -> CSS counter trong Editor.css danh so A/B/C cho
-//     tung o tich. Doi class la mat het so thu tu.
-//   - icon xoa khong day xuong 7px (iconOffset) vi dong cua no cao hon.
+//   - check box instead of the "______" underline (editorType)
+//   - "turn selection into answer" button (toAnswerButton; Editor hides this
+//     button when there is no onToAnswerButton, so MultipleChoice has none)
+//   - class .ErrorIdentify -> the CSS counter in Editor.css numbers each check
+//     box A/B/C. Changing the class loses all the numbering.
+//   - the remove icon is not pushed down 7px (iconOffset) because its row is taller.
 //
-// Phan chung — parse "A. ... B. ..." khi dan tu Word, them/xoa/sua phuong an,
-// chon dap an dung — nam ca o MultipleChoice.
+// The shared part — parsing "A. ... B. ..." pasted from Word, add/remove/edit
+// options, choose the correct answer — all lives in MultipleChoice.
 export default function ErrorIdentify(props: BaseQuestionProps) {
     return <MultipleChoice
         {...props}

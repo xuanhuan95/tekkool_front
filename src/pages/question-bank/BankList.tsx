@@ -5,23 +5,9 @@ import withRouter from '../../withRouter';
 import type {RouterProps} from '../../withRouter';
 import {Button, Card, Form, Header, Icon, Label, Message, Modal, Segment} from 'semantic-ui-react';
 import Api from '../../services/api';
-import {TEN_LOAI} from '../exam-creation/blockTypes';
-import type {BlockType} from '../exam-creation/blockTypes';
-import type {Folder} from '../../types/exam';
 
-/** Một ngân hàng câu hỏi. `blocks` = số khối ngữ liệu đang có bên trong. */
+/** A question bank. `blocks` = number of passage blocks it currently holds. */
 type Bank = {id: string; name: string; subject: string; blocks: number};
-
-/** Form "tạo đề từ ngân hàng". matran/per_type khoá theo mã loại khối. */
-type DeForm = {
-    name?: string;
-    duration?: number;
-    folder?: string;
-    /** Số khối mỗi loại mà đề sẽ rút. */
-    matran?: Record<string, number>;
-    /** Số khối mỗi loại ngân hàng ĐANG có — để báo thiếu. */
-    per_type?: Record<string, number>;
-};
 
 type State = {
     banks: Bank[] | null;
@@ -31,72 +17,26 @@ type State = {
     name: string;
     subject: string;
     error: string | null;
-    de: Bank | null;
-    deForm: DeForm;
-    deSaving: boolean;
-    deError: string | null;
-    folders: Folder[];
-    daTao: {name: string; folder?: string} | null;
 };
 
 /**
- * Danh sách ngân hàng câu hỏi.
+ * List of question banks.
  *
- * Trước đây ngân hàng không phải một thứ giáo viên tạo ra: khối cứ trôi vào
- * một rổ chung, gắn tên môn đoán từ tên thư mục. Giờ ngân hàng có tên, có môn,
- * tạo bằng tay — môn là bắt buộc vì ma trận rút đề tra cứu theo tên môn.
+ * Previously a bank was not something teachers created: blocks drifted into
+ * one shared basket, tagged with a subject guessed from the folder name. Now a
+ * bank has a name and a subject and is created by hand — subject is required
+ * because the exam-draw matrix looks up by subject name.
  */
 class BankList extends Component<RouterProps, State> {
     state: State = {banks: null, subjects: [], open: false, saving: false,
-             name: '', subject: '', error: null,
-             // Form "Tao de tu ngan hang": de = ten + thoi gian + gia + ma tran.
-             de: null, deForm: {}, deSaving: false, deError: null,
-             folders: [], daTao: null};
+             name: '', subject: '', error: null};
 
     componentDidMount = async () => {
-        let [banks, subjects, folders] = await Promise.all([
+        let [banks, subjects] = await Promise.all([
             Api.get('question_bank/list'),
             Api.get('question_bank/subjects'),
-            Api.get('folder/list'),
         ]);
-        this.setState({banks, subjects, folders});
-    };
-
-    /** Mở form tạo đề. Ma trận lấy từ BE (chuẩn của môn) chứ không chép bảng
-     *  sang FE — hai bảng lệch nhau thì giáo viên đặt một đằng, rút một nẻo. */
-    moTaoDe = async (b: Bank) => {
-        this.setState({de: b, deError: null, deForm: {}, deSaving: false});
-        let cap = await Api.post('question_bank/capacity', {bank: b.id});
-        this.setState({deForm: {
-            name: b.name, duration: 90,
-            folder: '', matran: cap.slots || {}, per_type: cap.per_type || {},
-        }});
-    };
-
-    taoDe = async () => {
-        let {de, deForm} = this.state;
-        // Chỉ bấm được từ trong modal nên `de` luôn có. Chặn cho chắc: thiếu
-        // `de` mà vẫn gọi thì BE nhận bank=undefined và tạo đề rỗng.
-        if (!de) return;
-        if (!(deForm.name || '').trim()) {
-            this.setState({deError: 'Chưa đặt tên đề'});
-            return;
-        }
-
-        this.setState({deSaving: true, deError: null});
-        let r = await Api.post('exam/create_from_bank', {
-            bank: de.id, name: deForm.name, duration: deForm.duration,
-            folder: deForm.folder || null,
-            matran: deForm.matran,
-        });
-        if (r && r.error) {
-            this.setState({deSaving: false, deError: r.error});
-            return;
-        }
-        // Khong vao /edit-exam: de ngan hang khong co cau co dinh de sua.
-        // Ve dung thu muc vua xep de vao, giao vien thay de nam o dau.
-        this.setState({de: null, deSaving: false,
-                       daTao: {name: r.name, folder: deForm.folder}});
+        this.setState({banks, subjects});
     };
 
     save = async () => {
@@ -122,67 +62,6 @@ class BankList extends Component<RouterProps, State> {
         this.setState({banks: await Api.get('question_bank/list')});
     };
 
-    /** Modal tạo đề. Bốn thứ giáo viên đặt: tên, thời gian, giá, ma trận. */
-    renderTaoDe() {
-        let {de, deForm, deSaving, deError, folders} = this.state;
-        if (!de) return null;
-
-        let f = deForm, mt = f.matran || {}, co = f.per_type || {};
-        let dat = (k: keyof DeForm, v: unknown) => this.setState({deForm: {...f, [k]: v}});
-        let datMT = (t: string, v: unknown) => dat('matran', {...mt, [t]: Math.max(0, parseInt(String(v)) || 0)});
-        // Không cho lưu đề mà ngân hàng chưa đủ khối — học sinh sẽ vào và gặp 409.
-        let thieu = Object.keys(mt).filter(t => mt[t] > 0 && (co[t] || 0) < mt[t]);
-        const tenLoai = (t: string) => TEN_LOAI[t as BlockType] || t;
-
-        return <Modal open size='small' onClose={() => this.setState({de: null})}>
-            <Modal.Header>Tạo đề từ “{de.name}”</Modal.Header>
-            <Modal.Content>
-                <Form error={!!deError}>
-                    <Form.Input label='Tên đề' value={f.name || ''} autoFocus
-                                placeholder='Ví dụ: Kiểm tra giữa kỳ I'
-                                onChange={(_e, {value}) => dat('name', value)}/>
-                    <Form.Group widths='equal'>
-                        <Form.Input label='Thời gian (phút)' type='number' min='0'
-                                    value={f.duration}
-                                    onChange={(_e, {value}) => dat('duration', parseInt(value) || 0)}/>
-                        <Form.Select label='Thư mục' placeholder='Không xếp thư mục'
-                                     value={f.folder || ''}
-                                     options={[{key: '', text: '— Không xếp —', value: ''}]
-                                         .concat(folders.map(x => ({key: x.id, text: x.name, value: x.id})))}
-                                     onChange={(_e, {value}) => dat('folder', value)}/>
-                    </Form.Group>
-
-                    <Header as='h5'>
-                        Format đề
-                        <Header.Subheader>
-                            Mỗi lượt làm rút đúng số khối này, mỗi học sinh một bộ khác nhau.
-                        </Header.Subheader>
-                    </Header>
-                    <Form.Group widths='equal'>
-                        {Object.keys(mt).map(t =>
-                            <Form.Input key={t} type='number' min='0' value={mt[t]}
-                                        label={tenLoai(t) + ' (có ' + (co[t] || 0) + ')'}
-                                        error={mt[t] > 0 && (co[t] || 0) < mt[t]}
-                                        onChange={(_e, {value}) => datMT(t, value)}/>)}
-                    </Form.Group>
-
-                    {!!thieu.length && <Message warning
-                        header='Ngân hàng chưa đủ khối'
-                        content={'Thiếu: ' + thieu.map(tenLoai).join(', ')
-                                 + '. Nhập thêm đề hoặc giảm số khối lại.'}/>}
-                    <Message error content={deError}/>
-                </Form>
-            </Modal.Content>
-            <Modal.Actions>
-                <Button basic onClick={() => this.setState({de: null})}>Huỷ</Button>
-                <Button primary loading={deSaving} disabled={!!thieu.length || deSaving}
-                        onClick={this.taoDe}>
-                    <Icon name='check'/> Tạo đề
-                </Button>
-            </Modal.Actions>
-        </Modal>;
-    }
-
     render() {
         let {banks, subjects, open, saving, name, subject, error} = this.state;
         if (!banks) return <Loading/>;
@@ -202,13 +81,6 @@ class BankList extends Component<RouterProps, State> {
                     <Icon name='plus'/> Tạo ngân hàng mới
                 </Button>
             </div>
-
-            {this.state.daTao && <Message positive
-                onDismiss={() => this.setState({daTao: null})}
-                header={'Đã tạo đề “' + this.state.daTao.name + '”'}
-                content={this.state.daTao.folder
-                    ? 'Đề nằm trong thư mục đã chọn, học sinh vào môn đó là thấy.'
-                    : 'Đề chưa xếp thư mục — học sinh chưa thấy. Xếp vào một thư mục môn ở trang chủ.'}/>}
 
             {!banks.length
                 ? <Segment placeholder>
@@ -246,13 +118,14 @@ class BankList extends Component<RouterProps, State> {
                                         <Icon name='file word outline'/> Nhập đề
                                     </Button>
                                 </Link>
-                                {/* Duong ra chinh cua ngan hang: ra mot DE co
-                                    ten, hoc sinh vao lam duoc. "Rut de" ben
-                                    duoi chi de giao vien lam thu mot ban. */}
-                                <Button size='mini' primary disabled={!b.blocks}
-                                        onClick={() => this.moTaoDe(b)}>
-                                    <Icon name='clipboard list'/> Tạo đề
-                                </Button>
+                                {/* The bank's main output: a named EXAM that
+                                    students can take. "Draw exam" below is only
+                                    for teachers to try one out. */}
+                                <Link to={'/create-from-bank?bank=' + b.id}>
+                                    <Button size='mini' primary disabled={!b.blocks}>
+                                        <Icon name='clipboard list'/> Tạo đề
+                                    </Button>
+                                </Link>
                                 <Link to={'/draw-exam/bank/' + b.id}>
                                     <Button size='mini' basic disabled={!b.blocks}>
                                         <Icon name='random'/> Làm thử
@@ -274,8 +147,9 @@ class BankList extends Component<RouterProps, State> {
                         <Form.Input label='Tên ngân hàng' placeholder='Ví dụ: Ngữ văn 12 — HK1'
                                     value={name} autoFocus
                                     onChange={(_e, {value}) => this.setState({name: value})}/>
-                        {/* Môn BẮT BUỘC: ma trận rút đề tra theo tên môn, thiếu
-                            môn thì không biết mỗi đề cần mấy khối loại nào. */}
+                        {/* Subject is REQUIRED: the draw matrix looks up by subject
+                            name; without it we can't tell how many blocks of each
+                            type an exam needs. */}
                         <Form.Select label='Môn học' required
                                      placeholder='Chọn môn' options={subjectOptions}
                                      value={subject}
@@ -293,7 +167,6 @@ class BankList extends Component<RouterProps, State> {
                 </Modal.Actions>
             </Modal>
 
-            {this.renderTaoDe()}
         </div>;
     }
 }

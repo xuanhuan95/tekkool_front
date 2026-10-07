@@ -14,25 +14,26 @@ import type {Unit} from './textLimit';
 
 import './Editor.css';
 
-// Lấy text thuần của doc ProseMirror. Mỗi block là 1 ranh giới ('\n').
-// NFC bắt buộc — 'ệ' gõ trên macOS là e + 2 dấu rời (NFD) nên .length ra 3 thay
-// vì 1, cùng một câu lệch tới 35%.
+// Plain text of a ProseMirror doc. Each block is a boundary ('\n').
+// NFC is mandatory — 'ệ' typed on macOS is e + 2 combining marks (NFD), so
+// .length gives 3 instead of 1, and the same sentence can be off by up to 35%.
 const docText = (doc: PMNode): string => doc.textBetween(0, doc.content.size, '\n', '\n').normalize('NFC');
 
 const docSize = (doc: PMNode, unit: Unit): number => measure(docText(doc), unit);
 
-// ponytail: giới hạn từ KHÔNG còn chặn gõ — chỉ còn là con số để đếm và để
-// phân loại khối trong ngân hàng (core_question_bank._tu_luan_type). Bản cũ
-// chặn ở filterTransaction của ProseMirror vì bộ gõ Telex/VNI đi qua IME nên
-// handleKeyDown không thấy gì; nay bỏ hẳn tầng đó, học sinh viết quá thoải mái.
+// ponytail: the word limit NO LONGER blocks typing — it is only a number for
+// counting and for classifying blocks in the bank (core_question_bank._tu_luan_type).
+// The old version blocked in ProseMirror's filterTransaction because Telex/VNI
+// input goes through the IME and handleKeyDown sees nothing; that layer is gone
+// now, so students can write past the limit freely.
 type Limit = {max: number; unit: Unit};
 
-// Nút toolbar. active = đang bật định dạng đó cho vùng đang chọn.
+// Toolbar button. active = that format is on for the current selection.
 type BtnProps = {
     onClick: () => void;
     title: string;
     children: ReactNode;
-    /** Khong truyen = nut hanh dong (khong co trang thai bat/tat). */
+    /** Omitted = action button (no on/off state). */
     active?: boolean;
 };
 
@@ -51,13 +52,14 @@ type ToolbarProps = {
 
 function Toolbar({editor, type, onToAnswerButton}: ToolbarProps) {
     if (!editor) return null;
-    // ponytail: setTextAlign luôn GÁN, không gỡ -> bấm căn trái để sửa đoạn lỡ
-    // căn phải sẽ lưu text-align:left, rác vẫn nằm trong HTML. Toggle như Bold:
-    // đang active thì bấm lại là unset, trả đoạn về không style.
+    // ponytail: setTextAlign always SETS, never clears -> clicking align-left to
+    // fix a paragraph accidentally right-aligned would store text-align:left, and
+    // the junk stays in the HTML. Toggle like Bold: when active, clicking again
+    // unsets it and returns the paragraph to no style.
     const align = (a: string) => editor.chain().focus()[
         editor.isActive({textAlign: a}) ? 'unsetTextAlign' : 'setTextAlign'](a).run();
 
-    // Bôi đen một đoạn -> thay bằng chỗ trống, đoạn đó thành đáp án.
+    // Select a passage -> replace it with a blank, the passage becomes the answer.
     const toAnswer = () => {
         const {from, to} = editor.state.selection;
         const selected = editor.state.doc.textBetween(from, to, ' ');
@@ -91,7 +93,7 @@ function Toolbar({editor, type, onToAnswerButton}: ToolbarProps) {
 export type EditorProps = {
     text?: string;
     placeholder?: string;
-    /** 'ErrorIdentify' chen o tich thay vi gach chan. */
+    /** 'ErrorIdentify' inserts a checkbox instead of an underline. */
     type?: string;
     onChange?: (html: string) => void;
     onToAnswerButton?: (selected: string) => void;
@@ -100,7 +102,7 @@ export type EditorProps = {
     onBlur?: () => void;
     disableReturn?: boolean;
     disableStyle?: boolean;
-    /** Shim cho code cu: KHONG phai ref cua React, xem useEffect ben duoi. */
+    /** Shim for legacy code: NOT a React ref, see the useEffect below. */
     refMedium?: {current: any};
     maxChars?: number;
     maxWords?: number;
@@ -114,11 +116,11 @@ export function Editor(props: EditorProps) {
 
     const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [size, setSize] = useState(0);
-    // maxWords thắng nếu truyền cả hai — đề chỉ đặt 1 đơn vị.
+    // maxWords wins if both are passed — an exam sets only one unit.
     const unit: Unit = maxWords && maxWords > 0 ? WORD : 'char';
     const max = (maxWords && maxWords > 0 ? maxWords : maxChars) || 0;
-    // ponytail: useEditor bắt closure 1 lần -> đọc hạn mức qua ref, không thì
-    // đổi giới hạn giữa chừng handler vẫn dùng số cũ.
+    // ponytail: useEditor captures the closure once -> read the limit through a
+    // ref, otherwise handlers keep the old number after the limit changes.
     const limit = useRef<Limit>({max, unit});
     limit.current = {max, unit};
 
@@ -126,28 +128,28 @@ export function Editor(props: EditorProps) {
         extensions: [
             StarterKit.configure({heading: false, codeBlock: false, blockquote: false}),
             Underline,
-            // ponytail: ô trả lời ẩn toolbar nhưng TextAlign vẫn giữ phím tắt
-            // Mod-Shift-r/l/e/j -> học sinh quen bấm Ctrl+Shift+R (reload cứng)
-            // là bài nhảy sang căn phải, không có nút nào sửa lại. Ẩn toolbar
-            // thì bỏ luôn extension.
+            // ponytail: the answer box hides the toolbar but TextAlign keeps its
+            // shortcuts Mod-Shift-r/l/e/j -> a student used to pressing Ctrl+Shift+R
+            // (hard reload) gets the text right-aligned with no button to undo it.
+            // Hidden toolbar means no extension at all.
             ...(disableStyle ? [] : [TextAlign.configure({types: ['paragraph']})]),
             Placeholder.configure({placeholder: placeholder || ''}),
             CheckItem,
         ],
         content: text || '',
         editorProps: {
-            // disableReturn: chặn xuống dòng cho ô 1 dòng (đáp án).
+            // disableReturn: block line breaks for single-line boxes (answers).
             handleKeyDown: (_view: EditorView, event: KeyboardEvent) =>
                 disableReturn && event.key === 'Enter' ? (event.preventDefault(), true) : false,
             handlePaste: () => {
-                // Dán quá giới hạn vẫn vào đủ — bản cũ cắt phần thừa ở đây.
+                // Pasting past the limit goes in whole — the old version cut the excess here.
                 if (!onPaste) return false;
-                // Code cũ đọc event.target.innerText -> đợi paste xong mới gọi.
+                // Old code reads event.target.innerText -> wait until the paste finishes.
                 setTimeout(() => onPaste({target: {innerText: editor ? editor.getText() : ''}}), 0);
                 return false;
             },
         },
-        // Gộp nhiều lần gõ liên tiếp thành 1 lần onChange (giữ hành vi cũ).
+        // Merge consecutive keystrokes into one onChange call (keeps old behavior).
         onUpdate: ({editor}) => {
             setSize(docSize(editor.state.doc, limit.current.unit));
             if (!onChange) return;
@@ -157,14 +159,14 @@ export function Editor(props: EditorProps) {
         onBlur: () => onBlur && onBlur(),
     });
 
-    // Shim: code cũ truyền ref qua PROP refMedium (không phải ref của React)
-    // rồi gọi refMedium.current.medium.setContent/getContent/elements[0].focus().
+    // Shim: old code passes a ref through the PROP refMedium (not a React ref)
+    // then calls refMedium.current.medium.setContent/getContent/elements[0].focus().
     useEffect(() => {
         if (!refMedium || !editor) return;
         refMedium.current = {
             medium: {
-                // ponytail: emitUpdate=true — medium-editor cũ bắn editableInput khi
-                // setContent, FillBlank/ErrorIdentify dựa vào đó để lưu data.answer.
+                // ponytail: emitUpdate=true — the old medium-editor fired editableInput on
+                // setContent, and FillBlank/ErrorIdentify rely on it to save data.answer.
                 setContent: (html?: string) => editor.commands.setContent(html || '', true),
                 getContent: () => editor.getHTML(),
                 get elements() { return [editor.view.dom] },
@@ -173,11 +175,11 @@ export function Editor(props: EditorProps) {
         };
     }, [editor, refMedium]);
 
-    // Nội dung đổi từ ngoài (không phải do gõ) -> đồng bộ vào editor.
-    // ponytail: bỏ qua khi editor đang focus. onChange (debounce 500ms) đẩy HTML
-    // lên globalState, prop text quay lại khác chuỗi -> setContent -> con trỏ
-    // nhảy về cuối giữa lúc gõ. Đang gõ thì nội dung trong editor mới là bản mới
-    // nhất, không có gì để đồng bộ vào.
+    // Content changed from outside (not by typing) -> sync into the editor.
+    // ponytail: skipped while the editor is focused. onChange (debounced 500ms) pushes
+    // HTML up to globalState, the text prop comes back as a different string ->
+    // setContent -> the caret jumps to the end mid-typing. While typing, the
+    // editor's content is the newest version, so there is nothing to sync into it.
     useEffect(() => {
         if (editor && !editor.isFocused && text !== undefined && text !== editor.getHTML()) {
             editor.commands.setContent(text || '', false);
@@ -192,7 +194,7 @@ export function Editor(props: EditorProps) {
     return <div className='tt-editor' onKeyUp={onKeyUp}>
         {!disableStyle && <Toolbar editor={editor} type={type} onToAnswerButton={onToAnswerButton}/>}
         <EditorContent editor={editor}/>
-        {/* Luôn xám: vượt số từ không còn là lỗi nên không báo động. */}
+        {/* Always gray: going over the word count is no longer an error, so no alarm. */}
         {max > 0 &&
             <div className='tt-charcount' style={{color: '#767676'}}>
                 {size} / {max} {unit === WORD ? 'từ' : 'ký tự'}

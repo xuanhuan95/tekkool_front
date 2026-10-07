@@ -5,18 +5,18 @@ import striptags from "striptags";
 import {numToChar} from "../../../services/tools";
 
 
-// ponytail: KHONG ke thua BaseQuestion. No tung ke thua nhung khong he dung
-// setQuestionData/setQuestionState — moi thay doi deu di nguoc len cha qua
-// callback. Ke thua thua lam no doi them 3 prop ma cha chua bao gio truyen.
+// ponytail: does NOT extend BaseQuestion. It used to, but never used
+// setQuestionData/setQuestionState — every change goes up to the parent via
+// callbacks. The needless inheritance made it require 3 extra props the parent never passed.
 type Props = {
     answerId: string;
     value: string;
     order: number;
     isCorrect: boolean;
     /**
-     * Tên nhóm radio, do câu hỏi cha truyền xuống kèm id của nó.
-     * ponytail: bug gốc — mọi đáp án chung name='answer', nên chọn đáp án đúng
-     * ở câu 2 là câu 1 mất lựa chọn. Cùng bug đã sửa ở DoExam và TrueFalse.
+     * Radio group name, passed down by the parent question together with its id.
+     * ponytail: original bug — all answers shared name='answer', so choosing the
+     * correct answer in question 2 cleared question 1's choice. Same bug fixed in DoExam and TrueFalse.
      */
     groupName: string;
     selectCorrectAnswer: (answerId: string) => void;
@@ -26,7 +26,7 @@ type Props = {
 };
 
 export default class MultipleChoiceAnswer extends React.Component<Props> {
-    // Shim ref cua Editor: {current: {medium: {getContent, setContent}}}.
+    // Shim ref for Editor: {current: {medium: {getContent, setContent}}}.
     me = React.createRef<any>();
 
     getAnswerContent = () => {

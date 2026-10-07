@@ -12,17 +12,17 @@ export default function TopToolbar() {
     const logout = useAuthStore(s => s.signOut);
     const isTeacher = user?.group === 'teacher';
 
-    // Đếm bài chờ chấm cho cái chuông. Dùng lại GET exam/pending có sẵn (màn
-    // /to-grade vẫn dùng chính nó) thay vì thêm endpoint chỉ để trả một số —
-    // danh sách của một giáo viên không đủ lớn để đáng một API riêng.
+    // Count attempts awaiting grading for the bell. Reuse the existing GET exam/pending (the
+    // /to-grade screen uses the very same one) rather than adding an endpoint just to return a number —
+    // one teacher's list is not big enough to deserve its own API.
     const {data: pending = 0} = useQuery({
         queryKey: ['exam', 'pending'],
-        // 60s/lần: học sinh nộp bài lúc nào cũng được, không refresh thì giáo
-        // viên phải F5 mới thấy. Nhanh hơn nữa là gọi phí, chậm hơn thì chuông
-        // vô nghĩa.
+        // Every 60s: students can submit at any time, without refresh the teacher
+        // would have to F5 to see it. Faster is wasteful, slower makes the bell
+        // pointless.
         refetchInterval: 60_000,
         enabled: isTeacher,
-        // Mất mạng / hết phiên: giữ số cũ, không làm vỡ thanh điều hướng.
+        // Network lost / session expired: keep the old number, do not break the navigation bar.
         placeholderData: prev => prev,
         queryFn: async () => {
             const subs = await Api.get<Submission[]>('exam/pending');
@@ -30,8 +30,8 @@ export default function TopToolbar() {
         },
     });
 
-    // Học sinh / khách dùng thanh điều hướng riêng. Màn giáo viên giữ
-    // nguyên menu cũ — đổi cả hai một lúc là hai thứ phải kiểm tra.
+    // Students / visitors use a separate navigation bar. The teacher screen keeps the
+    // old menu as is — changing both at once means two things to verify.
     if (!isTeacher) return <StudentNav user={user}/>;
 
     return <Menu id='topMenu' color='blue' inverted>
@@ -42,15 +42,15 @@ export default function TopToolbar() {
         </Menu.Item>
 
         <Menu color='blue' inverted floated='right'>
-            {/* Chuông = lối vào màn chấm bài, kiêm báo "có bài mới". Trước
-                đây là mục chữ "Cần chấm" — chữ thì không nói được CÓ MẤY
-                BÀI, giáo viên vẫn phải bấm vào mới biết có việc hay không. */}
+            {/* Bell = entry to the grading screen, doubling as a "new attempts" alert. It used to
+                be a text item "Needs grading" — text cannot say HOW MANY ATTEMPTS, the
+                teacher still had to click in to know whether there was work. */}
             <Menu.Item as={Link} to='/to-grade' className='tk-bell'
                        title={pending ? pending + ' bài chờ chấm' : 'Không có bài chờ chấm'}>
                 <Icon name='bell outline' size='large' style={{margin: 0}}/>
-                {/* KHÔNG dùng `floating` của semantic: nó đẩy label lên trên
-                    mép mục, mà mục này sát đỉnh thanh -> số bị cắt mất nửa
-                    trên. Định vị tay trong .tk-bell. */}
+                {/* Do NOT use semantic's `floating`: it pushes the label above the
+                    item edge, but this item is flush with the top of the bar -> the number gets its top
+                    half clipped. Positioned by hand in .tk-bell. */}
                 {pending > 0 &&
                 <Label color='red' circular size='mini'>{pending}</Label>}
             </Menu.Item>

@@ -4,31 +4,32 @@ import Default from '../pages/exam-creation/Default';
 import type {Exam, Question, Section} from '../pages/exam-creation/Default';
 
 /**
- * Bản nháp đề đang soạn ở CreateExam.
+ * Draft of the exam being authored in CreateExam.
  *
- * ponytail: để trong store thay vì state của CreateExam vì `Section` và hai
- * modal Preview nằm sâu trong cây (CreateExam -> Section -> Question) và đều
- * cần đọc/ghi cùng một `exam`. Prop-drill qua 3 tầng rồi lại phải truyền
- * ngược callback lên — store ngắn hơn và đúng với cái bản cũ đang làm.
+ * ponytail: kept in a store instead of CreateExam's state because `Section` and
+ * the two Preview modals sit deep in the tree (CreateExam -> Section -> Question)
+ * and all need to read/write the same `exam`. Prop-drilling through 3 levels and
+ * then passing callbacks back up — the store is shorter and matches what the old
+ * version did.
  *
- * `exam` vẫn bị SỬA TẠI CHỖ (setNestedValue) giống bản cũ; để báo cho React
- * biết có thay đổi, mỗi lần ghi ta tăng `version`. Đổi sang immutable ở đây
- * phải viết lại cả 5 file question component (chúng cũng gọi setNestedValue
- * trên `question.data`) — không nằm trong lát này.
+ * `exam` is still MUTATED IN PLACE (setNestedValue) like the old version; to tell
+ * React something changed, we bump `version` on every write. Going immutable here
+ * would mean rewriting all 5 question component files (they also call
+ * setNestedValue on `question.data`) — not part of this slice.
  */
 type ExamDraftState = {
     exam: Exam | null;
-    /** Tăng mỗi lần `exam` bị sửa tại chỗ. Component đọc để biết phải vẽ lại. */
+    /** Bumped each time `exam` is mutated in place. Components read it to know to re-render. */
     version: number;
 
     setExam: (exam: Exam) => void;
-    /** Gộp vài field vào thẳng `exam` (name, left_header, duration...). */
+    /** Merge a few fields straight into `exam` (name, left_header, duration...). */
     patchExam: (data: Partial<Exam>) => void;
     addSection: () => void;
     removeSection: (sectionId: string) => void;
-    /** Ghi name / questions / question_type cho một section. */
+    /** Write name / questions / question_type for a section. */
     setSectionState: (sectionId: string, patch: SectionPatch) => void;
-    /** Buộc vẽ lại sau khi question component tự sửa `question.data`. */
+    /** Force a re-render after a question component mutates `question.data` itself. */
     touch: () => void;
 };
 

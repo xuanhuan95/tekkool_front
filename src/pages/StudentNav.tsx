@@ -7,23 +7,23 @@ import {useAuthStore} from '../stores/authStore';
 import type {Wallet} from '../types/payment';
 
 /**
- * Thanh điều hướng của học sinh.
+ * Student navigation bar.
  *
- * ponytail: dựng bằng thẻ thường + CSS chứ không dùng Dropdown của
- * semantic-ui — Dropdown ở đây phải nhồi link router, nút, và dải phân cách
- * vào `options`, cuối cùng dài hơn 30 dòng JSX tự viết mà vẫn phải đè CSS.
+ * ponytail: built with plain tags + CSS rather than semantic-ui's Dropdown —
+ * here the Dropdown would need router links, buttons and separators stuffed
+ * into `options`, ending up longer than 30 lines of hand-written JSX and still needing CSS overrides.
  */
 export default function StudentNav({user}: {user?: {name?: string; email?: string} | null}) {
     const [open, setOpen] = useState(false);
-    const [vi, setVi] = useState<Wallet | null>(null);
+    const [wallet, setWallet] = useState<Wallet | null>(null);
     const box = useRef<HTMLDivElement>(null);
     const {pathname} = useLocation();
     const navigate = useNavigate();
-    // BE xoá hẳn phiên rồi nạp lại trang — dùng chung với TopToolbar/UserBlock.
+    // The BE deletes the session outright then the page reloads — shared with TopToolbar/UserBlock.
     const logout = useAuthStore(s => s.signOut);
 
-    // Bấm ra ngoài / bấm Esc thì đóng menu. Không có thì menu dính lại
-    // trên màn, người dùng phải bấm đúng nút mới tắt được.
+    // Clicking outside / pressing Esc closes the menu. Without it the menu sticks
+    // on screen and the user must hit the exact button to dismiss it.
     useEffect(() => {
         if (!open) return;
         const away = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
@@ -36,15 +36,15 @@ export default function StudentNav({user}: {user?: {name?: string; email?: strin
         };
     }, [open]);
 
-    // Đổi trang thì đóng menu, khỏi che nội dung trang mới.
+    // Close the menu on page change so it does not cover the new page's content.
     useEffect(() => setOpen(false), [pathname]);
 
-    // Số lượt còn lại, tải lại mỗi lần đổi trang: vào thi xong quay ra là con
-    // số đã trừ. ponytail: không polling — lượt chỉ đổi khi chính học sinh này
-    // vào thi hoặc mua gói, cả hai đều kết thúc bằng một lần đổi trang.
+    // Remaining turns, reloaded on every page change: after entering an exam and coming back the
+    // number is already deducted. ponytail: no polling — turns only change when this very student
+    // enters an exam or buys a package, both of which end with a page change.
     useEffect(() => {
         if (!user) return;
-        Api.get('payment/wallet').then(setVi).catch(() => {});
+        Api.get('payment/wallet').then(setWallet).catch(() => {});
     }, [pathname, user]);
 
 
@@ -61,12 +61,12 @@ export default function StudentNav({user}: {user?: {name?: string; email?: strin
 
 
             <div className='tk-nav-right'>
-                {/* Ví lượt kiêm lối vào trang mua gói — hết lượt thì đây là chỗ
-                    duy nhất học sinh tự mua thêm được. */}
-                {vi && <Link to='/packages' className='tk-wallet'
+                {/* Turn wallet doubling as the entry to the package page — when turns run out this is the only
+                    place the student can buy more on their own. */}
+                {wallet && <Link to='/packages' className='tk-wallet'
                              title='Mua thêm lượt thi'>
                     <Icon name='ticket'/>
-                    <b>{vi.remaining}</b> lượt
+                    <b>{wallet.remaining}</b> lượt
                 </Link>}
 
                 <div className='tk-user' ref={box}>
@@ -113,8 +113,8 @@ export default function StudentNav({user}: {user?: {name?: string; email?: strin
                     </div>}
                 </div>
 
-                {/* Nút đăng xuất rời, cạnh khối user — yêu cầu (4).
-                    Vẫn giữ mục trong menu cho ai quen tìm ở đó. */}
+                {/* Standalone logout button, next to the user block — requirement (4).
+                    The menu entry is kept for anyone used to looking there. */}
                 <button type='button' className='tk-icon-btn'
                         onClick={logout} title='Đăng xuất' aria-label='Đăng xuất'>
                     <Icon name='sign out'/>

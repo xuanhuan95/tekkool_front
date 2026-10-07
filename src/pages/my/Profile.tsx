@@ -5,20 +5,20 @@ import {Icon} from 'semantic-ui-react';
 import Api from '../../services/api';
 import {useAuthStore} from '../../stores/authStore';
 
-/** Thông báo một ô form: hoặc báo xong, hoặc báo lỗi. */
+/** Message for one form section: either success or an error. */
 type Msg = {ok?: string; err?: string} | null;
 
 /**
- * Hồ sơ cá nhân: đổi tên hiển thị, đổi mật khẩu.
+ * Personal profile: change display name, change password.
  *
- * Email không sửa được — nó là khoá đăng nhập, đổi ở đây là mất tài khoản.
+ * Email cannot be edited — it is the login key, changing it here would lose the account.
  */
 export default function Profile() {
     const user = useAuthStore(s => s.user);
     const setUser = useAuthStore(s => s.setUser);
 
-    // Giá trị khởi tạo lấy thẳng từ store: store có dữ liệu ngay lần vẽ đầu
-    // (App chờ `ready` mới vẽ), nên không cần useEffect nạp sau như bản cũ.
+    // Initial value comes straight from the store: the store has data on the first render
+    // (App waits for `ready` before rendering), so no later useEffect load like the old version.
     const [name, setName] = useState(user?.name || '');
     const [nameMsg, setNameMsg] = useState<Msg>(null);
     const [savingName, setSavingName] = useState(false);
@@ -38,8 +38,8 @@ export default function Profile() {
         setNameMsg(null);
         try {
             const r = await Api.post<{name: string}>('me/update', {name: value});
-            // Cập nhật store -> tên trên thanh điều hướng đổi ngay, không
-            // phải tải lại trang mới thấy.
+            // Update the store -> the name in the navbar changes immediately, no
+            // page reload needed to see it.
             if (user) setUser({...user, name: r.name});
             setNameMsg({ok: 'Đã lưu tên mới.'});
         } catch (err: any) {
@@ -51,8 +51,8 @@ export default function Profile() {
     const savePw = async (e: FormEvent) => {
         e.preventDefault();
 
-        // Kiểm khớp ở FE cho phản hồi nhanh; BE vẫn kiểm mật khẩu cũ và độ dài
-        // — đây chỉ để đỡ một vòng gọi mạng, không phải chốt chặn.
+        // Match check on the FE for quick feedback; the BE still checks the old password and length
+        // — this only saves a network round trip, it is not the gatekeeper.
         if (newPassword !== confirm) {
             return setPwMsg({err: 'Hai ô mật khẩu mới không giống nhau'});
         }
@@ -72,8 +72,8 @@ export default function Profile() {
         setSavingPw(false);
     };
 
-    const set = (fn: (v: string) => void) =>
-        (e: ChangeEvent<HTMLInputElement>) => fn(e.target.value);
+    const set = (setter: (v: string) => void) =>
+        (e: ChangeEvent<HTMLInputElement>) => setter(e.target.value);
 
     return <div className='tk'><div className='tk-wrap tk-narrow'>
         <h1 className='tk-title'>Thông tin cá nhân</h1>

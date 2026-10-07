@@ -15,16 +15,16 @@ type Props = {
     action?: 'print';
     closeModal?: () => void;
     /**
-     * ponytail: bug gốc 2018 — đáp án in thẳng vào bản đề cho học sinh (cả bản
-     * in giấy). Component này dùng chung cho Preview exam và Print, cả hai đều
-     * là bản học sinh -> mặc định ẩn. PreviewAnswer lo phần đáp án.
+     * ponytail: original 2018 bug — answers were printed straight into the student's exam
+     * (including the paper printout). This component is shared by Preview exam and Print, both
+     * of which are the student copy -> hidden by default. PreviewAnswer handles the answers.
      */
     showAnswer?: boolean;
 };
 
 export default function PreviewExam({action, closeModal, showAnswer = false}: Props) {
     const exam = useExamDraftStore(s => s.exam);
-    useExamDraftStore(s => s.version);   // vẽ lại khi exam bị sửa tại chỗ
+    useExamDraftStore(s => s.version);   // re-render when the exam is mutated in place
 
     useEffect(() => {
         if (action !== 'print') return;
@@ -34,8 +34,8 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
 
         const w = window.open();
 
-        // ponytail: window.open() trả null khi trình duyệt chặn popup ->
-        // code gốc 2018 nổ TypeError im lặng. Báo cho user thay vì crash.
+        // ponytail: window.open() returns null when the browser blocks popups ->
+        // the original 2018 code threw a silent TypeError. Tell the user instead of crashing.
         if (!w) {
             alert('Trình duyệt đang chặn popup. Hãy cho phép popup cho trang này để in.');
             return;
@@ -114,9 +114,9 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
                         </div>
                         }
 
-                        {/* ponytail: bug gốc 2018 — so với 'SingleChoice', một type app
-                            không hề tạo ra (Section chỉ sinh 'MultipleChoice'), nên mọi
-                            câu trắc nghiệm biến mất khỏi Preview và bản in. */}
+                        {/* ponytail: original 2018 bug — compared against 'SingleChoice', a type the app
+                            never creates (Section only produces 'MultipleChoice'), so every
+                            multiple-choice question vanished from Preview and the printout. */}
                         {(q.type === 'MultipleChoice' || q.type === 'ErrorIdentify') &&
                         <div className={'question ' + q.type} style={pageNonBreak}>
                             <span style={boldText}>Question {qIdx}:</span>

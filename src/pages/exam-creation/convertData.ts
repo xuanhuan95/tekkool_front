@@ -1,4 +1,4 @@
-/** Dữ liệu câu hỏi: mỗi loại dùng một tập field khác nhau. */
+/** Question data: each type uses a different set of fields. */
 export type QuestionData = {
     question?: string;
     passage?: string;
@@ -6,32 +6,32 @@ export type QuestionData = {
     max_words?: number;
     answers?: Array<{id: string; value: string}>;
     correctAnswerId?: string;
-    /** CẢNH BÁO: nghĩa khác nhau tuỳ loại — TrueFalse đọc boolean, FillBlank đọc chuỗi HTML. */
+    /** WARNING: the meaning differs per type — TrueFalse reads a boolean, FillBlank reads an HTML string. */
     answer?: unknown;
 };
 
 /**
- * Đổi loại câu hỏi: giữ dữ liệu dùng chung, BỎ dữ liệu riêng của loại cũ.
+ * Change the question type: keep the shared data, DROP the old type's own data.
  *
- * Nguy hiểm nhất là `data.answer` — TrueFalse đọc nó như boolean, FillBlank
- * đọc như chuỗi HTML. Mang nguyên sang là chấm máy ra điểm sai, nên hàm này
- * dựng object MỚI thay vì sửa object cũ.
+ * The most dangerous is `data.answer` — TrueFalse reads it as a boolean, FillBlank
+ * as an HTML string. Carrying it over makes auto-grading give wrong scores, so this
+ * function builds a NEW object instead of mutating the old one.
  */
 export function convertData(data: QuestionData, to: string): QuestionData {
-    // question / passage / passageId / max_words dung chung moi loai.
+    // question / passage / passageId / max_words are shared by every type.
     const {question, passage, passageId, max_words} = data;
     const next: QuestionData = {question};
     if (passage) { next.passage = passage; next.passageId = passageId; }
 
     if (to === 'MultipleChoice' || to === 'ErrorIdentify') {
-        // Giu lai phuong an neu von la trac nghiem, khong thi giao vien tu them.
+        // Keep the options if it was already multiple choice; otherwise the teacher adds them.
         next.answers = data.answers || [];
         if (data.correctAnswerId) next.correctAnswerId = data.correctAnswerId;
     } else if (to === 'FreeAnswer') {
         if (max_words) next.max_words = max_words;
     }
-    // TrueFalse: khong set data.answer — TrueFalse.jsx coi undefined la CHUA CHON
-    // va bo checked ca hai radio. Dat san true/false la gan bua dap an dung.
-    // FillBlank: khong set data.answer — de trong cho giao vien go.
+    // TrueFalse: don't set data.answer — TrueFalse.jsx treats undefined as NOT CHOSEN
+    // and unchecks both radios. Presetting true/false would assign a correct answer arbitrarily.
+    // FillBlank: don't set data.answer — leave it empty for the teacher to type.
     return next;
 }

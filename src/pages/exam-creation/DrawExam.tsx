@@ -5,109 +5,109 @@ import {Button, Header, Icon, Label, Message, Segment, Table} from 'semantic-ui-
 import Loading from '../../components/Loading';
 import Api from '../../services/api';
 import type {BankCapacity, BankStats} from '../../types/exam';
-import {tenLoai} from './blockTypes';
+import {blockLabel} from './blockTypes';
 
-const loi = (e: any, mac_dinh: string) => (e && (e.error || e.message)) || mac_dinh;
+const errorMessage = (e: any, fallback: string) => (e && (e.error || e.message)) || fallback;
 
 /**
- * Rút đề từ ngân hàng câu hỏi.
+ * Draw an exam from the question bank.
  *
- * Ngân hàng lâu nay là cửa một chiều: import vào được, không ra được. Màn này
- * là cửa ra — xem còn bao nhiêu khối mỗi loại, rút được mấy lần không trùng,
- * rồi bấm rút một đề.
+ * The bank used to be a one-way door: you could import into it but not take
+ * anything out. This screen is the way out — see how many blocks of each type
+ * remain, how many non-overlapping draws are possible, then draw an exam.
  *
- * ponytail: chưa cho sửa ma trận ở đây — BE tự lấy MA_TRAN của môn (bảng Excel).
- * Thêm ô nhập khi giáo viên cần đề lệch chuẩn.
+ * ponytail: the matrix can't be edited here yet — the BE takes the subject's
+ * MA_TRAN (Excel table). Add an input when teachers need a non-standard exam.
  */
 export default function DrawExam() {
     const [stats, setStats] = useState<BankStats | null>(null);
-    const [cap, setCap] = useState<BankCapacity | null>(null);
+    const [capacity, setCapacity] = useState<BankCapacity | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [drawing, setDrawing] = useState(false);
     const [warn, setWarn] = useState<string | null>(null);
     const navigate = useNavigate();
 
-    // Rút theo NGÂN HÀNG là đường chính. Đường cũ (/draw-exam/:subject) giữ lại
-    // cho 80 khối import trước khi có model QuestionBank — chúng chỉ có subject.
+    // Drawing by BANK is the main path. The old route (/draw-exam/:subject) is kept
+    // for the 80 blocks imported before the QuestionBank model existed — they only have a subject.
     const {bankId = '', subject = ''} = useParams();
 
-    // Ma trận vẫn phải theo môn: không lọc môn thì mặc định lấy ma trận Ngữ văn.
-    const maTran = subject || 'Ngữ văn';
+    // The matrix still depends on the subject: with no subject filter, default to the Ngữ văn matrix.
+    const matrixSubject = subject || 'Ngữ văn';
 
-    // Có bank thì BE tự suy môn từ bank, FE khỏi đoán.
-    const than = bankId ? {bank: bankId} : {subject, matran: maTran};
+    // With a bank, the BE infers the subject from it, so the FE doesn't have to guess.
+    const requestBody = bankId ? {bank: bankId} : {subject, matran: matrixSubject};
 
     useEffect(() => {
-        let huy = false;
+        let cancelled = false;
         (async () => {
             try {
                 const q = bankId ? 'bank=' + bankId
                                  : 'subject=' + encodeURIComponent(subject);
                 const [s, c] = await Promise.all([
                     Api.get('question_bank/stats?' + q) as Promise<BankStats>,
-                    Api.post('question_bank/capacity', than) as Promise<BankCapacity>,
+                    Api.post('question_bank/capacity', requestBody) as Promise<BankCapacity>,
                 ]);
-                if (huy) return;
+                if (cancelled) return;
                 setStats(s);
-                setCap(c);
+                setCapacity(c);
             } catch (e) {
-                if (!huy) setError(loi(e, 'Không tải được ngân hàng'));
+                if (!cancelled) setError(errorMessage(e, 'Không tải được ngân hàng'));
             }
         })();
-        // Đổi bank/môn giữa chừng thì bỏ kết quả cũ, khỏi ghi đè lên cái mới.
-        return () => { huy = true; };
+        // If the bank/subject changes midway, drop the stale result so it doesn't overwrite the new one.
+        return () => { cancelled = true; };
     }, [bankId, subject]);
 
     const draw = async () => {
         setDrawing(true);
         setWarn(null);
         try {
-            const r: any = await Api.post('question_bank/draw', than);
-            // 409 (thiếu khối) về qua resolve chứ không throw: JsonResponse chỉ
-            // gắn 'code' cho abort(), còn `return {...}, 409` giữ nguyên body.
+            const r: any = await Api.post('question_bank/draw', requestBody);
+            // 409 (not enough blocks) arrives via resolve, not throw: JsonResponse only
+            // attaches 'code' for abort(), while `return {...}, 409` keeps the body as is.
             if (r.error) {
                 setDrawing(false);
                 return setWarn(r.error);
             }
-            // ponytail: bug gốc — gọi `this.props.navigate`, nhưng withRouter chỉ
-            // truyền match/location/history. Nút rút đề ném TypeError thay vì
-            // chuyển trang. Function component dùng thẳng useNavigate.
+            // ponytail: original bug — it called `this.props.navigate`, but withRouter only
+            // passes match/location/history. The draw button threw a TypeError instead of
+            // navigating. A function component uses useNavigate directly.
             navigate('/do-exam/' + r.id);
         } catch (e) {
             setDrawing(false);
-            setWarn(loi(e, 'Rút đề thất bại'));
+            setWarn(errorMessage(e, 'Rút đề thất bại'));
         }
     };
 
     if (error) return <Message negative className='margin'>{error}</Message>;
-    if (!stats || !cap) return <Loading/>;
+    if (!stats || !capacity) return <Loading/>;
 
     const per = stats.per_type || {};
-    const slots = cap.slots || {};
-    const lan = cap.capacity || 0;
-    const nghen = cap.bottleneck;
+    const slots = capacity.slots || {};
+    const runs = capacity.capacity || 0;
+    const bottleneck = capacity.bottleneck;
 
-    // Loại có trong ngân hàng nhưng không nằm trong ma trận -> không bao giờ
-    // được rút. Hiện ra để giáo viên biết mình đang có hàng tồn.
-    const ngoai = Object.keys(per).filter(t => !slots[t]);
+    // Types present in the bank but absent from the matrix -> never drawn.
+    // Shown so the teacher knows there is unused stock.
+    const unusedTypes = Object.keys(per).filter(t => !slots[t]);
 
     return <div className='margin'>
         <Header as='h2'>
             Rút đề từ ngân hàng
-            <Header.Subheader>{cap.subject || subject || 'Tất cả môn'}</Header.Subheader>
+            <Header.Subheader>{capacity.subject || subject || 'Tất cả môn'}</Header.Subheader>
         </Header>
 
-        {/* Con số duy nhất đáng quan tâm: MỘT học sinh làm lại được mấy
-            lần mà không gặp lại khối cũ. BE loại khối đã gặp ở lượt trước
-            khi rút, nên đây là lời hứa giữ được, không phải ước lượng.
-            Trùng đề giữa hai học sinh thì không sao — mỗi em một lượt riêng. */}
-        {lan > 0
+        {/* The only number that matters: how many times ONE student can retake
+            without seeing an old block again. The BE excludes blocks seen in
+            earlier attempts when drawing, so this is a promise it can keep, not an estimate.
+            Two students getting the same exam is fine — each has their own attempt. */}
+        {runs > 0
             ? <Message positive icon>
                 <Icon name='check circle'/>
                 <Message.Content>
-                    <Message.Header>Mỗi học sinh làm lại được {lan} lần</Message.Header>
+                    <Message.Header>Mỗi học sinh làm lại được {runs} lần</Message.Header>
                     Lượt sau không gặp lại khối nào của lượt trước.
-                    {nghen && <span> Nghẽn ở <b>{tenLoai(nghen[0])}</b> — soạn
+                    {bottleneck && <span> Nghẽn ở <b>{blockLabel(bottleneck[0])}</b> — soạn
                         thêm loại này thì làm lại được nhiều lần hơn.</span>}
                 </Message.Content>
             </Message>
@@ -130,21 +130,21 @@ export default function DrawExam() {
             </Table.Header>
             <Table.Body>
                 {Object.keys(slots).map(t => {
-                    const co = per[t] || 0, can = slots[t];
-                    const duoc = Math.floor(co / can);
-                    return <Table.Row key={t} negative={duoc < 1}>
-                        <Table.Cell>{tenLoai(t)}</Table.Cell>
-                        <Table.Cell textAlign='center'>{can}</Table.Cell>
-                        <Table.Cell textAlign='center'>{co}</Table.Cell>
+                    const have = per[t] || 0, need = slots[t];
+                    const retakes = Math.floor(have / need);
+                    return <Table.Row key={t} negative={retakes < 1}>
+                        <Table.Cell>{blockLabel(t)}</Table.Cell>
+                        <Table.Cell textAlign='center'>{need}</Table.Cell>
+                        <Table.Cell textAlign='center'>{have}</Table.Cell>
                         <Table.Cell textAlign='center'>
-                            <Label circular color={duoc < 1 ? 'red' : duoc < 4 ? 'yellow' : 'green'}>
-                                {duoc}
+                            <Label circular color={retakes < 1 ? 'red' : retakes < 4 ? 'yellow' : 'green'}>
+                                {retakes}
                             </Label>
                         </Table.Cell>
                     </Table.Row>;
                 })}
-                {ngoai.map(t => <Table.Row key={t} warning>
-                    <Table.Cell>{tenLoai(t)}</Table.Cell>
+                {unusedTypes.map(t => <Table.Row key={t} warning>
+                    <Table.Cell>{blockLabel(t)}</Table.Cell>
                     <Table.Cell colSpan='3' textAlign='center'>
                         <Icon name='info circle'/>
                         {per[t]} khối, không nằm trong ma trận môn này nên không được rút
@@ -157,7 +157,7 @@ export default function DrawExam() {
 
         <Segment basic textAlign='center'>
             <Button primary size='large' icon labelPosition='left'
-                    disabled={lan < 1 || drawing} loading={drawing}
+                    disabled={runs < 1 || drawing} loading={drawing}
                     onClick={draw}>
                 <Icon name='random'/>
                 Rút một đề và làm thử

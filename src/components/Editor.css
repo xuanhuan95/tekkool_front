@@ -17,14 +17,15 @@
 .tt-editor .ProseMirror p { margin: 0 0 .3em; }
 .tt-editor .ProseMirror p:last-child { margin-bottom: 0; }
 
-/* Placeholder: Tiptap gắn data-placeholder vào node rỗng đầu tiên */
+/* Placeholder: Tiptap puts data-placeholder on the first empty node */
 .tt-editor .ProseMirror p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);
     float: left; height: 0; pointer-events: none; color: #bbb;
 }
 
-/* ponytail: CSS counter tự đánh A, B, C — thay đoạn jQuery sửa DOM ở
-   ErrorIdentify.js:133. Thêm/xoá vị trí là số tự nhảy, không cần chạy lại hàm. */
+/* ponytail: a CSS counter numbers A, B, C automatically, replacing the jQuery DOM
+   patch at ErrorIdentify.js:133. Adding/removing a position renumbers by itself,
+   no need to re-run a function. */
 .tt-editor .ProseMirror,
 .question.ErrorIdentify { counter-reset: check-item; }
 .check-item {

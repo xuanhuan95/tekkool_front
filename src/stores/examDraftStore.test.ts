@@ -9,7 +9,7 @@ const s = () => useExamDraftStore.getState();
 beforeEach(reset);
 
 describe('examDraftStore', () => {
-    it('setExam đặt lại version về 0 — mở đề khác không mang version đề cũ', () => {
+    it('setExam resets version to 0 — opening another exam does not carry the old exam\'s version', () => {
         s().setExam(Default.exam());
         s().patchExam({name: 'x'});
         expect(s().version).toBe(1);
@@ -18,19 +18,19 @@ describe('examDraftStore', () => {
         expect(s().version).toBe(0);
     });
 
-    it('patchExam sửa tại chỗ và tăng version — đây là thứ ép component vẽ lại', () => {
+    it('patchExam mutates in place and bumps version — this is what forces components to re-render', () => {
         const exam = Default.exam();
         s().setExam(exam);
         s().patchExam({name: 'Đề thử', duration: 90});
 
-        // Cùng một object: Section/Preview giữ tham chiếu này.
+        // Same object: Section/Preview hold this reference.
         expect(s().exam).toBe(exam);
         expect(exam.name).toBe('Đề thử');
         expect(exam.duration).toBe(90);
         expect(s().version).toBe(1);
     });
 
-    it('addSection dùng Default.section nên có question_type — thiếu field này BE trả 500', () => {
+    it('addSection uses Default.section so it has question_type — without this field BE returns 500', () => {
         const exam = Default.exam();
         s().setExam(exam);
         s().addSection();
@@ -40,7 +40,7 @@ describe('examDraftStore', () => {
         expect(exam.sections[0].exam).toBe(exam.id);
     });
 
-    it('removeSection chỉ xoá đúng section được chỉ định', () => {
+    it('removeSection deletes only the specified section', () => {
         const exam = Default.exam();
         s().setExam(exam);
         s().addSection();
@@ -52,7 +52,7 @@ describe('examDraftStore', () => {
         expect(exam.sections[0].id).toBe(second.id);
     });
 
-    it('setSectionState ghi được cả ba field, và chỉ vào đúng section', () => {
+    it('setSectionState writes all three fields, and only into the right section', () => {
         const exam = Default.exam();
         s().setExam(exam);
         s().addSection();
@@ -65,12 +65,12 @@ describe('examDraftStore', () => {
         expect(a.name).toBe('Phần I');
         expect(a.questions).toEqual([q]);
         expect(a.question_type).toBe('MultipleChoice');
-        // Section kia không được đụng tới.
+        // The other section must not be touched.
         expect(b.name).toBe('');
         expect(b.questions).toHaveLength(0);
     });
 
-    it('touch chỉ tăng version, không đổi exam — dùng khi câu hỏi tự sửa data tại chỗ', () => {
+    it('touch only bumps version, does not change exam — used when a question mutates its data in place', () => {
         const exam = Default.exam();
         s().setExam(exam);
         const before = s().version;
@@ -80,7 +80,7 @@ describe('examDraftStore', () => {
         expect(s().version).toBe(before + 1);
     });
 
-    it('chưa có exam thì mọi lệnh ghi im lặng bỏ qua, không nổ', () => {
+    it('with no exam, every write is silently ignored, does not blow up', () => {
         expect(() => {
             s().patchExam({name: 'x'});
             s().addSection();

@@ -1,6 +1,6 @@
 import {API_URL} from "../settings";
 
-/** Lỗi API luôn mang `code` — FE bắt theo code (402 = hết lượt, 403 = không có quyền). */
+/** API errors always carry `code` — FE catches by code (402 = out of turns, 403 = no permission). */
 export type ApiError = {
     code: number;
     error?: string;
@@ -35,10 +35,11 @@ class BaseApi {
                 method: method,
                 body: JSON.stringify(data)
             })
-                // BE lỗi nặng (500) trả trang HTML, không phải JSON. res.json() ném
-                // SyntaxError không có .code -> mọi chỗ bắt `e.code === 402` trượt,
-                // học sinh hết lượt thấy "Unexpected token '<'" thay vì popup mua gói.
-                // Đọc text trước rồi mới parse: hỏng thì dựng lỗi MANG code = HTTP status.
+                // On a severe failure (500) BE returns an HTML page, not JSON. res.json()
+                // throws a SyntaxError with no .code -> every `e.code === 402` catch
+                // misses, and an out-of-turns student sees "Unexpected token '<'"
+                // instead of the buy-a-package popup.
+                // Read text first, then parse: if that fails, build an error CARRYING code = HTTP status.
                 .then(res => res.text().then(body => {
                     let json: any;
                     try {
@@ -47,10 +48,10 @@ class BaseApi {
                         return reject({code: res.status,
                                        error: 'Máy chủ lỗi (' + res.status + ')'} as ApiError);
                     }
-                    // Thiếu `return` ở đây là reject xong vẫn chạy tiếp resolve.
+                    // Without `return` here, reject is followed by resolve running anyway.
                     if (json.code && json.code !== 200) return reject(json as ApiError);
-                    // BE có chỗ abort() -> body JSON nhưng không kèm `code`; status mới
-                    // là nguồn sự thật.
+                    // BE has abort() paths -> JSON body without `code`; the status is
+                    // the source of truth.
                     if (!res.ok) return reject({code: res.status, ...json} as ApiError);
                     return resolve(json as T);
                 }))
@@ -58,9 +59,9 @@ class BaseApi {
         });
     }
 
-    // ponytail: _call luôn JSON.stringify + set Content-Type: application/json,
-    // không gửi file được. Upload phải để browser tự đặt Content-Type kèm
-    // boundary của multipart -> KHÔNG set headers thủ công ở đây.
+    // ponytail: _call always does JSON.stringify + sets Content-Type: application/json,
+    // so it cannot send files. Upload must let the browser set Content-Type with
+    // the multipart boundary -> do NOT set headers manually here.
     upload = <T = any>(url: string, file: File | Blob): Promise<T> => {
         let apiUrl = API_URL + url;
         if (window.token) apiUrl += (apiUrl.includes('?') ? '&' : '?') + 'token=' + window.token;
@@ -84,10 +85,10 @@ class BaseApi {
 
 const Api = new BaseApi();
 
-// Token phien nam o DUY NHAT mot cho: window.token (api.ts doc) + localStorage
-// (giu qua lan mo trang). BE xoay token moi lan dang nhap va xoa phien khi
-// dang xuat, nen moi cho nhan token moi deu phai goi ham nay — quen mot cho
-// la request tiep theo mang token da bi xoa, BE tra 400.
+// The session token lives in ONE place only: window.token (read by api.ts) + localStorage
+// (kept across page loads). BE rotates the token on every login and deletes the session on
+// logout, so everywhere that receives a new token must call this function — forget one
+// place and the next request carries a deleted token, BE returns 400.
 export function setToken(token?: string | null): void {
     window.token = token || '';
     if (token) window.localStorage.setItem('sessionToken', token);

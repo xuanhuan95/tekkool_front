@@ -8,7 +8,7 @@ import type {User} from '../../types/user';
 import AuthArt from './AuthArt';
 import './auth.css';
 
-const MIN_PASSWORD = 6;   // khớp ràng buộc BE trong apis/me.py
+const MIN_PASSWORD = 6;   // matches the BE constraint in apis/me.py
 
 type LoginResult = User & {token: string; error?: string};
 
@@ -36,21 +36,21 @@ export default function Register() {
         setBusy(true);
         setErr(null);
         try {
-            // KHÔNG truyền ?type — BE mặc định 'student'. Bản cũ gửi
-            // type=teacher khi vào thẳng /register, nghĩa là ai mở link đó
-            // cũng tự cấp cho mình quyền giáo viên. Tài khoản giáo viên tạo
-            // bằng tay theo quy trình trong CLAUDE.md.
+            // Do NOT pass ?type — the BE defaults to 'student'. The old version sent
+            // type=teacher when landing directly on /register, meaning anyone opening that link
+            // granted themselves teacher rights. Teacher accounts are created
+            // by hand following the procedure in CLAUDE.md.
             const user = await Api.post<{error?: string}>('user/register?token=' + token,
                 {email: email.trim(), password, name: name.trim()});
 
             if (user.error) { setErr(user.error); setBusy(false); return; }
 
-            // Đăng ký xong đăng nhập luôn: bắt gõ lại đúng thứ vừa gõ là vô ích.
+            // Log in right after registering: making them retype what they just typed is pointless.
             const logged = await Api.post<LoginResult>('session/login',
                 {email: email.trim(), password});
             if (logged.error) {
-                // Tài khoản đã tạo được, chỉ bước đăng nhập hỏng — đẩy về màn
-                // đăng nhập chứ đừng báo "đăng ký thất bại", sai sự thật.
+                // The account was created, only the login step failed — send them to the login
+                // screen rather than report "registration failed", which would be untrue.
                 navigate('/');
                 return;
             }
@@ -61,8 +61,8 @@ export default function Register() {
         }
     };
 
-    const set = (fn: (v: string) => void) => (e: ChangeEvent<HTMLInputElement>) => {
-        fn(e.target.value);
+    const set = (setter: (v: string) => void) => (e: ChangeEvent<HTMLInputElement>) => {
+        setter(e.target.value);
         setErr(null);
     };
 
