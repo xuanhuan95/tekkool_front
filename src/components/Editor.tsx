@@ -9,6 +9,7 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
 import CheckItem from './CheckItem';
+import {Superscript, Subscript, Image, MathInline} from './RichExtras';
 import {measure, WORD} from './textLimit';
 import type {Unit} from './textLimit';
 
@@ -135,6 +136,7 @@ export function Editor(props: EditorProps) {
             ...(disableStyle ? [] : [TextAlign.configure({types: ['paragraph']})]),
             Placeholder.configure({placeholder: placeholder || ''}),
             CheckItem,
+            Superscript, Subscript, Image, MathInline,
         ],
         content: text || '',
         editorProps: {

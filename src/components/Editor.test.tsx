@@ -55,3 +55,46 @@ describe('Editor — word limit only counts, never blocks', () => {
         expect(e.counter()).toBeNull();
     });
 });
+
+// Word import emits formulas and pictures (core_docx.paragraphs). Tiptap drops
+// unknown tags, so without RichExtras the teacher opens the question and loses them.
+describe('Editor — keeps formulas and pictures from Word import', () => {
+    it('sup, sub and data-URI img survive a round trip', () => {
+        const ref: {current: any} = {current: null};
+        render(<Editor refMedium={ref}/>);
+        const html = '<p>x<sup>2</sup> H<sub>2</sub>O <img src="data:image/png;base64,UE5H"></p>';
+        act(() => { ref.current.medium.setContent(html); });
+        const out = ref.current.medium.getContent();
+        expect(out).toContain('<sup>2</sup>');
+        expect(out).toContain('<sub>2</sub>');
+        expect(out).toContain('src="data:image/png;base64,UE5H"');
+    });
+
+    it('span[data-latex]: keeps the LaTeX source and draws it with KaTeX', () => {
+        const ref: {current: any} = {current: null};
+        const r = render(<Editor refMedium={ref}/>);
+        act(() => { ref.current.medium.setContent('<p>V = <span data-latex="\\frac{a^3}{6}"></span></p>'); });
+        expect(ref.current.medium.getContent()).toContain('data-latex="\\frac{a^3}{6}"');
+        expect(r.container.querySelector('.katex')).not.toBeNull();
+    });
+});
+
+// Import saves the BE string as-is (no <p>, <br> for line breaks, <b> for bold);
+// typing in the Editor saves editor.getHTML(). Opening an imported box must keep the
+// content — only the wrapper (<p>) may change — so an edit never loses a formula.
+describe('Editor — imported string vs editor-saved HTML', () => {
+    const imported = 'Gọi <span data-latex="S"></span> là <b>tập</b> hợp<br>x<sup>2</sup> và <span data-latex="y = \\frac{x ^{2}}{x - 2}"></span>';
+
+    it('open + save keeps every formula, sup and bold; only wraps in <p>', () => {
+        const ref: {current: any} = {current: null};
+        render(<Editor refMedium={ref}/>);
+        act(() => { ref.current.medium.setContent(imported); });
+        const out: string = ref.current.medium.getContent();
+        expect(out.startsWith('<p>')).toBe(true);
+        expect(out.match(/data-latex=/g)).toHaveLength(2);
+        expect(out).toContain('data-latex="y = \\frac{x ^{2}}{x - 2}"');
+        expect(out).toContain('<strong>tập</strong>');
+        expect(out).toContain('<sup>2</sup>');
+        expect(out).toContain('<br');
+    });
+});
