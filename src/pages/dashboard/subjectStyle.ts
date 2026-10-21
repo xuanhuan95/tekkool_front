@@ -4,6 +4,10 @@ export type SubjectStyle = {
     key: string;
     icon: SemanticICONS;
     bg: string;
+    /** Design palette (HomeDesktop.dc.html subjectColors): card tint, glyph disc colour, glyph text. */
+    tint: string;
+    fg: string;
+    glyph: string;
     match?: string[];
 };
 
@@ -14,21 +18,21 @@ export type SubjectStyle = {
 // makes Semantic render an empty box with no error. 'atom', 'microscope',
 // 'landmark' are NOT in this set — don't substitute them.
 export const SUBJECTS: SubjectStyle[] = [
-    {key: 'van',     icon: 'pencil alternate', bg: 'linear-gradient(135deg,#f97316,#ea580c)', match: ['van', 'ngu van']},
-    {key: 'anh',     icon: 'language',   bg: 'linear-gradient(135deg,#0ea5e9,#0369a1)', match: ['tieng anh', 'anh', 'english', 'ngoai ngu']},
-    {key: 'toan',    icon: 'calculator', bg: 'linear-gradient(135deg,#6366f1,#4338ca)', match: ['toan']},
-    {key: 'ly',      icon: 'magnet',     bg: 'linear-gradient(135deg,#f59e0b,#b45309)', match: ['ly', 'vat ly']},
-    {key: 'hoa',     icon: 'flask',      bg: 'linear-gradient(135deg,#14b8a6,#0f766e)', match: ['hoa', 'hoa hoc']},
-    {key: 'sinh',    icon: 'dna',        bg: 'linear-gradient(135deg,#16a34a,#15803d)', match: ['sinh', 'sinh hoc']},
-    {key: 'su',      icon: 'hourglass half', bg: 'linear-gradient(135deg,#b45309,#78350f)', match: ['lich su', 'su']},
-    {key: 'dia',     icon: 'map outline', bg: 'linear-gradient(135deg,#0891b2,#155e75)', match: ['dia ly', 'dia li', 'dia']},
-    {key: 'gdcd',    icon: 'balance scale', bg: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', match: ['gdcd', 'giao duc cong dan', 'cong dan']},
-    {key: 'tin',     icon: 'laptop',     bg: 'linear-gradient(135deg,#64748b,#334155)', match: ['tin hoc', 'tin']},
+    {key: 'van',     icon: 'pencil alternate', bg: 'linear-gradient(135deg,#f97316,#ea580c)', tint: '#E6EEFF', fg: '#2D5FE0', glyph: 'Văn', match: ['van', 'ngu van']},
+    {key: 'anh',     icon: 'language',   bg: 'linear-gradient(135deg,#0ea5e9,#0369a1)', tint: '#FFE9EC', fg: '#C93A4E', glyph: 'Aa', match: ['tieng anh', 'anh', 'english', 'ngoai ngu']},
+    {key: 'toan',    icon: 'calculator', bg: 'linear-gradient(135deg,#6366f1,#4338ca)', tint: '#EEE9FF', fg: '#6B4BD6', glyph: '∑', match: ['toan']},
+    {key: 'ly',      icon: 'magnet',     bg: 'linear-gradient(135deg,#f59e0b,#b45309)', tint: '#E4F6EA', fg: '#25834A', glyph: 'Lý', match: ['ly', 'vat ly']},
+    {key: 'hoa',     icon: 'flask',      bg: 'linear-gradient(135deg,#14b8a6,#0f766e)', tint: '#FFF0DE', fg: '#B85F00', glyph: 'Hóa', match: ['hoa', 'hoa hoc']},
+    {key: 'sinh',    icon: 'dna',        bg: 'linear-gradient(135deg,#16a34a,#15803d)', tint: '#E0F5F3', fg: '#16766F', glyph: 'Sinh', match: ['sinh', 'sinh hoc']},
+    {key: 'su',      icon: 'hourglass half', bg: 'linear-gradient(135deg,#b45309,#78350f)', tint: '#FFF6D6', fg: '#8F6400', glyph: 'Sử', match: ['lich su', 'su']},
+    {key: 'dia',     icon: 'map outline', bg: 'linear-gradient(135deg,#0891b2,#155e75)', tint: '#E8ECFF', fg: '#4352C9', glyph: 'Địa', match: ['dia ly', 'dia li', 'dia']},
+    {key: 'gdcd',    icon: 'balance scale', bg: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', tint: '#EEE9FF', fg: '#6B4BD6', glyph: 'CD', match: ['gdcd', 'giao duc cong dan', 'cong dan']},
+    {key: 'tin',     icon: 'laptop',     bg: 'linear-gradient(135deg,#64748b,#334155)', tint: '#E8ECFF', fg: '#4352C9', glyph: 'Tin', match: ['tin hoc', 'tin']},
 ];
 
 // An unknown subject (named by the teacher) must still have an icon — never blank.
 export const FALLBACK: SubjectStyle = {
-    key: 'khac', icon: 'folder open', bg: 'linear-gradient(135deg,#94a3b8,#475569)',
+    key: 'khac', icon: 'folder open', bg: 'linear-gradient(135deg,#94a3b8,#475569)', tint: '#E6EEFF', fg: '#2D5FE0', glyph: '•',
 };
 
 // Strip accents so 'Hoá' and 'Hóa', 'Địa lý' and 'Dia ly' match the same entry.

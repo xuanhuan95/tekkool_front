@@ -13,6 +13,11 @@ export type ExamSummary = {
     description?: string;
     question_count?: number;
     price?: number;
+    /** `exam/browse` only: the viewer's own attempts on this exam. */
+    attempts?: number;
+    last_score?: number | null;
+    last_max?: number | null;
+    last_status?: string | null;
 };
 
 /** Question bank inventory — `question_bank/stats`. */

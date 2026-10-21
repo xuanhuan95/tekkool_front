@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 
 import Dashboard from './dashboard/Dashboard';
 import CreateExam from './exam-creation/CreateExam';
@@ -14,16 +14,20 @@ import ToGrade from './my/ToGrade';
 import Billing from './my/Billing';
 import Profile from './my/Profile';
 import Payment from './payment/Payment';
+import StudentPackages from './student/StudentPackages';
 import PaymentResult from './payment/PaymentResult';
 import TopToolbar from './TopToolbar'
+import StudentShell from './student/StudentShell';
+import {useAuthStore} from '../stores/authStore';
 
 
 export default function AuthenticateView() {
-    return (
-        <div id="AuthenticateView">
-            <TopToolbar />
+    const isTeacher = useAuthStore(s => s.user?.group) === 'teacher';
+    const {pathname} = useLocation();
+    // Taking an exam / paying stay full-screen; every other student page sits in the app shell.
+    const shell = !isTeacher && !/^\/(do-exam|payment)\//.test(pathname);
 
-            {/*<TopMenu />*/}
+    const routes = (
             <Routes>
               <Route path='/' element={<Dashboard/>}/>
               <Route path='/do-exam/:examId' element={<DoExam/>}/>
@@ -35,7 +39,7 @@ export default function AuthenticateView() {
               <Route path='/draw-exam/:subject' element={<DrawExam/>}/>
               <Route path='/draw-exam/bank/:bankId' element={<DrawExam/>}/>
               <Route path='/question-bank' element={<BankList/>}/>
-              <Route path='/packages' element={<PackageList/>}/>
+              <Route path='/packages' element={isTeacher ? <PackageList/> : <StudentPackages/>}/>
               <Route path='/my-exams' element={<MySubmissions/>}/>
               <Route path='/my-exams/:id' element={<SubmissionDetail/>}/>
               <Route path='/to-grade' element={<ToGrade/>}/>
@@ -49,6 +53,13 @@ export default function AuthenticateView() {
 
                 {/*<Route path='/schedule' element={<Schedule/>}/>*/}
             </Routes>
+    );
+
+    if (shell) return <StudentShell>{routes}</StudentShell>;
+    return (
+        <div id="AuthenticateView">
+            <TopToolbar />
+            {routes}
         </div>
     );
 }

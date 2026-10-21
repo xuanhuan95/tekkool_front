@@ -11,7 +11,7 @@ import {useExams, useFolders, useRefreshExams} from '../../queries/exams';
 import type {ExamSummary} from '../../types/exam';
 import ExamFile from './ExamFile';
 import type {FolderOption} from './ExamFile';
-import SubjectBrowser from './SubjectBrowser';
+import StudentHome from '../student/StudentHome';
 
 // Strip accents so typing "toan" still matches "Toán" — teachers searching for exams need not type full accents.
 const stripAccents = (s?: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -74,7 +74,7 @@ export default function Dashboard() {
     const openFolder = (folderId: string) =>
         setActiveFolder(activeFolder === folderId ? null : folderId);
 
-    if (!isTeacher) return <SubjectBrowser/>;
+    if (!isTeacher) return <StudentHome/>;
     if (!folders) return <Loading/>;
 
     const folderOptions: FolderOption[] = [

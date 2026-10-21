@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 250" aria-hidden="true">
+<defs>
+<linearGradient id="hsHill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B7D3A8"/><stop offset="1" stop-color="#8DB884"/></linearGradient>
+<linearGradient id="hsRock" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#C9B49A"/><stop offset="1" stop-color="#9C8468"/></linearGradient>
+</defs>
+<circle cx="470" cy="56" r="26" fill="#FFF3C8"/>
+<path d="M120 58a14 14 0 0 1 26-6 11 11 0 0 1 19 9H120z" fill="rgba(255,255,255,0.9)"/>
+<path d="M380 92a12 12 0 0 1 22-5 9 9 0 0 1 16 8h-38z" fill="rgba(255,255,255,0.9)"/>
+<path d="M0 210c80-40 170-50 260-30s190 10 300-30v100H0z" fill="#CFE2C4"/>
+<g transform="translate(390 108)">
+<rect x="0" y="40" width="120" height="70" fill="#F4EEE4"/>
+<path d="M-8 42l68-30 68 30z" fill="#E6DCCB"/>
+<path d="M40 18a20 20 0 0 1 40 0z" fill="#9EB8E8"/>
+<rect x="58" y="-6" width="4" height="10" fill="#9EB8E8"/>
+<rect x="12" y="52" width="8" height="52" fill="#E1D6C4"/>
+<rect x="34" y="52" width="8" height="52" fill="#E1D6C4"/>
+<rect x="78" y="52" width="8" height="52" fill="#E1D6C4"/>
+<rect x="100" y="52" width="8" height="52" fill="#E1D6C4"/>
+<rect x="52" y="70" width="16" height="40" rx="8" fill="#8FA9D9"/>
+</g>
+<circle cx="372" cy="196" r="16" fill="#86B57E"/>
+<rect x="370" y="204" width="4" height="16" fill="#7A6450"/>
+<circle cx="532" cy="194" r="18" fill="#86B57E"/>
+<rect x="530" y="204" width="4" height="16" fill="#7A6450"/>
+<path d="M0 250c40-30 120-40 200-34s150 6 230-6 100-10 130 4v36z" fill="url(#hsHill)"/>
+<path d="M150 250c6-26 30-42 70-44s68 14 78 44z" fill="url(#hsRock)"/>
+</svg>
