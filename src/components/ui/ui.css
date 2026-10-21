@@ -22,10 +22,11 @@
     font-size: 15px;
     line-height: 1.5;
 }
-/* Semantic UI gives h1–h5 Lato + margins; inside D pages headings are ours. */
-.vt-paper :is(h1, h2, h3, h4, h5),
-.vt-plain :is(h1, h2, h3, h4, h5) { font-family: inherit; margin: 0; line-height: 1.1; }
-.vt-paper p, .vt-plain p { margin: 0; }
+/* Semantic UI gives h1–h5 Lato + margins; inside D pages headings are ours.
+   :where() keeps this at the specificity of a bare `h3` (beats Semantic by source order,
+   loses to any component class such as .vt-q-title). */
+:where(.vt-paper, .vt-plain, .vt-modal) :is(h1, h2, h3, h4, h5) { font-family: inherit; margin: 0; line-height: 1.1; }
+:where(.vt-paper, .vt-plain, .vt-modal) p { margin: 0; }
 
 .vt-hand {                        /* Patrick Hand: always 700, never < 18px */
     font-family: var(--vt-font-hand);
@@ -183,7 +184,8 @@ a.vt-btn { color: var(--vt-ink); }
     white-space: nowrap;
     box-sizing: border-box;
 }
-a.vt-stat { color: var(--vt-ink); min-height: 44px; }
+a.vt-stat { color: var(--vt-ink); position: relative; }
+a.vt-stat::after { content: ''; position: absolute; inset: -6px -2px; }   /* 44px touch target, same drawn size */
 a.vt-stat:hover { background: var(--vt-paper); }
 .vt-stat--grading { background: var(--vt-sun-soft); }
 a.vt-stat--grading:hover { background: var(--vt-sun-soft); text-decoration: underline; }
