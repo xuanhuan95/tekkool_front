@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {Suspense, lazy, useEffect} from 'react';
 import {useLocation} from 'react-router-dom';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {Toaster} from 'react-hot-toast';
@@ -17,6 +17,10 @@ import './fonts.css';
 import './App.css';
 import './questions.css';
 import './student.css';
+
+// Design-D component catalogue for review (SPT-54). DEV ONLY: in `vite build` import.meta.env.DEV is
+// the literal `false`, so this branch and the lazy chunk are dropped from the production bundle.
+const DevUi = import.meta.env.DEV ? lazy(() => import('./dev/DevUi')) : null;
 
 /**
  * Create ONCE outside the component. Inside the function body every App re-render
@@ -45,6 +49,7 @@ export default function App() {
 
     // Component catalogue: no data, so no login needed (designers, probe).
     if (pathname === '/design-system') return <DesignSystem/>;
+    if (DevUi && pathname.startsWith('/dev/ui')) return <Suspense fallback={<Loading/>}><DevUi/></Suspense>;
     if (!ready) return <Loading/>;
 
     return <QueryClientProvider client={queryClient}>
