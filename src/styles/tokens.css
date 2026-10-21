@@ -4,7 +4,10 @@
    Imported first in App.tsx, after semantic.min.css.
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap');
+/* Inter + Patrick Hand are self-hosted (./fonts-d.css). Newsreader is only used by the
+   OLD teacher screens (--tk-font-title) and still comes from Google until they are reskinned. */
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap');
+@import url('./fonts-d.css');
 
 :root {
     /* Fonts */
@@ -55,6 +58,78 @@
 
     /* Scrollbar color source */
     --foreground: var(--tk-ink);
+}
+
+/* ============================================================
+   Design D "Sổ tay" (chốt 21/10/2026) — source: design/design-system.md.
+   Prefix --vt- (viettestpro). The --tk-* block above stays as is: the teacher
+   screens keep their current look this sprint (CLAUDE.md, Sprint 1 item 4), and
+   repointing --tk-* would silently reskin them. New screens use ONLY --vt-*.
+   ============================================================ */
+:root {
+    /* Colour */
+    --vt-ink: #1c1917;          /* borders, main text, icons */
+    --vt-muted: #57534e;        /* secondary text, 4.5:1 on paper and white */
+    --vt-paper: #f5f6ee;        /* page background (with dots) */
+    --vt-dot: #d9dbcf;
+    --vt-card: #ffffff;
+    --vt-line-soft: #e7e5dc;    /* rules inside tables/cards */
+    --vt-line-option: #d6d3c4;  /* unselected answer, chip, flag button border */
+    --vt-letter-ring: #a8a29e;  /* A/B/C/D circle, "scroll on" dashed note */
+    --vt-tab-track: #ecebe4;    /* pill tab track */
+    --vt-action: #d0e9fd;       /* primary button, selected item/answer, "you" row */
+    --vt-action-hover: #bfe0fb;
+    --vt-action-ink: #1c1917;
+    --vt-title-bg: #e5dcfb;     /* titles, role badge, avatar */
+    --vt-title-ink: #4a347f;
+    --vt-title-icon: #6b4fc8;
+    --vt-sun: #faad05;          /* stars, progress, "review later" */
+    --vt-sun-soft: #fffbdb;
+    --vt-sun-ink: #7a4b00;
+    --vt-track: #efefec;        /* progress track, disabled, skeleton */
+    --vt-ok-bg: #e7f6ec;
+    --vt-ok-ink: #166534;
+    --vt-ok-icon: #15803d;      /* "saved" tick */
+    --vt-err: #b42318;
+    --vt-err-bg: #fdecea;
+    --vt-draft-bg: #efefec;
+    --vt-draft-ink: #57534e;
+    --vt-turn-icon: #2f6fb3;    /* ticket icon on the turns pill */
+    --vt-medal-1-bg: #fbf5bb; --vt-medal-1-line: #e8c45c;
+    --vt-medal-2-bg: #ffffff; --vt-medal-2-line: #b9b9bd;
+    --vt-medal-3-bg: #fde9d0; --vt-medal-3-line: #c98d6c;
+    --vt-overlay: rgba(28, 25, 23, .45);
+
+    /* Paper with dots — the ONLY background pattern. Exam screen uses plain white. */
+    --vt-paper-dots: radial-gradient(var(--vt-dot) 1px, transparent 1px);
+    --vt-paper-dots-size: 20px 20px;
+
+    /* Type. Patrick Hand: always weight 700, never under 18px, never for question/answer/table text. */
+    --vt-font: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    --vt-font-hand: 'Patrick Hand', 'Comic Sans MS', cursive;
+
+    /* "Hand-drawn" uneven radii (never an even radius, except circles / 999px pills) */
+    --vt-r-card-lg: 22px 16px 24px 14px / 14px 24px 16px 22px;
+    --vt-r-card-md: 16px 11px 18px 10px / 10px 18px 11px 16px;
+    --vt-r-btn: 13px 9px 14px 8px / 8px 14px 9px 13px;      /* buttons, inputs */
+    --vt-r-chip: 8px 5px 9px 4px / 4px 9px 5px 8px;          /* badges, small chips, strip cells */
+    --vt-r-nav: 9px 6px 10px 5px / 5px 10px 6px 9px;         /* web menu item */
+    --vt-r-stat: 6px 4px 7px 3px / 3px 7px 4px 6px;          /* header stat pill */
+    --vt-r-tiny: 4px 3px 5px 2px / 2px 5px 3px 4px;          /* legend swatch */
+    --vt-r-pill: 999px;
+
+    /* Line + the one shadow (primary button and stat pill only — no blurred shadows) */
+    --vt-border: 2px solid var(--vt-ink);
+    --vt-shadow-ink: 1px 2px 0 var(--vt-ink);
+
+    /* Spacing: multiples of 4 */
+    --vt-s1: 4px; --vt-s2: 8px; --vt-s3: 12px; --vt-s4: 16px;
+    --vt-s5: 20px; --vt-s6: 24px; --vt-s8: 32px;
+    --vt-hit: 44px;             /* minimum touch target */
+
+    /* Layout */
+    --vt-content-max: 1280px;
+    --vt-focus: 0 0 0 3px var(--vt-card), 0 0 0 5px var(--vt-ink);
 }
 
 /* ===== Auto-hiding scrollbar (evon:ui-ux I18) =====
