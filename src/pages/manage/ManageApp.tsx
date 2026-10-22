@@ -2,6 +2,8 @@ import {Navigate, Route, Routes} from 'react-router-dom';
 
 import {AdminLayout, ErrorState, WebLayout, buttonClass} from '../../components/ui';
 import {useAuthStore} from '../../stores/authStore';
+import AdminPackages from './AdminPackages';
+import Revenue from './Revenue';
 import Teachers from './Teachers';
 import './manage.css';
 
@@ -23,6 +25,8 @@ export default function ManageApp() {
     return <AdminLayout name={user.name || 'Quản trị viên'}>
         <Routes>
             <Route path='/manage/teachers' element={<Teachers/>}/>
+            <Route path='/manage/packages' element={<AdminPackages/>}/>
+            <Route path='/manage/revenue' element={<Revenue/>}/>
             <Route path='*' element={<Navigate to='/manage/teachers' replace/>}/>
         </Routes>
     </AdminLayout>;
