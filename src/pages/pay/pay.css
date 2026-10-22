@@ -1,0 +1,76 @@
+/* Student payment screens (SPT-24): HS-Goi, HS-ThanhToan, HS-ThanhToanCho, HS-ThanhToanXong,
+   HS-LichSuMua, HS-HetLuot. Tokens only (--vt-*), no Semantic UI. */
+
+/* Content-only pages sit inside the student layout, which already paints the paper. */
+.vt-paper.vt-pay { background: transparent; display: flex; flex-direction: column; gap: 14px; }
+.vt-pay-ink { color: var(--vt-ink); }
+.vt-pay-small { font-size: 13px; }
+.vt-pay-center { align-self: center; text-align: center; }
+.vt-pay-wide { width: 100%; }
+
+.vt-pay-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.vt-pay-head-text { display: flex; flex-direction: column; gap: 2px; }
+.vt-pay-head-text > .vt-muted { font-size: 14px; }
+.vt-pay-back { align-self: flex-start; }
+.vt-pay-warn { display: flex; gap: 10px; align-items: center; background: var(--vt-sun-soft); border-color: var(--vt-sun); color: var(--vt-sun-ink); font-weight: 600; font-size: 14px; }
+
+/* Package cards: one column on phones, three on the web. */
+.vt-pay-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 1024px) { .vt-pay-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; } }
+.vt-pay-pkg { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; }
+.vt-pay-pkg-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.vt-pay-pkg-turns { font-family: var(--vt-font-hand); font-weight: 700; font-size: 40px; line-height: 1; }
+.vt-pay-pkg-price { font-family: var(--vt-font-hand); font-weight: 700; font-size: 26px; line-height: 1; }
+.vt-pay-pkg-sub { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--vt-muted); }
+.vt-pay-pkg-desc { font-size: 14px; line-height: 1.5; white-space: pre-line; }
+.vt-pay-pkg .vt-btn { margin-top: auto; }
+
+/* Full-screen payment pages (no bottom nav): own header, centred column. */
+.vt-pay-full { min-height: 100vh; min-height: 100dvh; }
+.vt-pay-bar { position: sticky; top: 0; z-index: 2; background: var(--vt-paper); padding: 12px 20px 0; display: flex; flex-direction: column; gap: 8px; }
+.vt-pay-bar-row { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+.vt-pay-bar-title { font-family: var(--vt-font-hand); font-weight: 700; font-size: 22px; }
+.vt-pay-bar, .vt-pay-main, .vt-pay-foot { width: 100%; max-width: 560px; margin: 0 auto; box-sizing: border-box; }
+.vt-pay-main { flex-grow: 1; padding: 12px 20px 20px; display: flex; flex-direction: column; gap: 14px; }
+.vt-pay-main--center { justify-content: center; }
+.vt-pay-foot { position: sticky; bottom: 0; background: var(--vt-card); border-top: var(--vt-border); padding: 12px 20px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 10px; }
+.vt-pay-stack { display: flex; flex-direction: column; gap: 12px; }
+
+/* Order summary (HS-ThanhToan) */
+.vt-pay-sum { display: flex; flex-direction: column; padding: 16px 18px; }
+.vt-pay-sum-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-bottom: 12px; }
+.vt-pay-sum-name { font-family: var(--vt-font-hand); font-weight: 700; font-size: 26px; line-height: 1; }
+.vt-pay-row { display: flex; justify-content: space-between; gap: 8px; padding: 12px 0; border-top: 1.5px solid var(--vt-line-soft); font-size: 15px; }
+.vt-pay-row > span { color: var(--vt-muted); }
+.vt-pay-row > b { font-weight: 600; }
+.vt-pay-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 12px; border-top: var(--vt-border); }
+.vt-pay-total > span { font-weight: 600; }
+.vt-pay-total > b { font-family: var(--vt-font-hand); font-weight: 700; font-size: 32px; line-height: 1; }
+.vt-pay-method { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; }
+.vt-pay-method p { font-size: 14px; line-height: 1.5; margin-top: 4px; }
+.vt-pay-method-ic { width: 40px; height: 40px; flex-shrink: 0; box-sizing: border-box; border: var(--vt-border); border-radius: var(--vt-r-btn); background: var(--vt-action); display: flex; align-items: center; justify-content: center; }
+.vt-pay-note { font-size: 14px; line-height: 1.5; padding: 0 4px; }
+
+/* Waiting / done / failed (HS-ThanhToanCho, HS-ThanhToanXong) */
+.vt-pay-state { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 28px 22px 24px; }
+.vt-pay-state p { font-size: 15px; line-height: 1.6; }
+.vt-pay-state-title { font-family: var(--vt-font-hand); font-weight: 700; font-size: 30px; line-height: 1.1; }
+.vt-pay-ring { width: 64px; height: 64px; box-sizing: border-box; border: var(--vt-border); border-radius: 999px; display: flex; align-items: center; justify-content: center; font-family: var(--vt-font-hand); font-weight: 700; font-size: 32px; }
+.vt-pay-ring--sun { width: 72px; height: 72px; background: var(--vt-sun-soft); }
+.vt-pay-ring--ok { border-color: var(--vt-ok-ink); background: var(--vt-ok-bg); color: var(--vt-ok-ink); }
+.vt-pay-ring--err { border-color: var(--vt-err); background: var(--vt-err-bg); color: var(--vt-err); }
+.vt-pay-have { font-family: var(--vt-font-hand); font-weight: 700; font-size: 24px; color: var(--vt-ok-ink); }
+.vt-pay-orderbox { width: 100%; box-sizing: border-box; background: var(--vt-paper); border: 1.5px solid var(--vt-line-soft); border-radius: var(--vt-r-btn); padding: 10px 14px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.vt-pay-orderbox > div { display: flex; justify-content: space-between; gap: 8px; text-align: right; }
+.vt-pay-2btn { width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 4px; }
+
+/* Purchase history (HS-LichSuMua) */
+.vt-pay-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.vt-pay-order { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; }
+.vt-pay-order-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 16px; }
+.vt-pay-order-mid { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; }
+.vt-pay-order-mid > b { font-size: 16px; font-weight: 600; }
+
+/* Out of turns (HS-HetLuot) */
+.vt-out-body { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.vt-out-icon { width: 56px; height: 56px; box-sizing: border-box; border: var(--vt-border); border-radius: 999px; background: var(--vt-action); display: flex; align-items: center; justify-content: center; }

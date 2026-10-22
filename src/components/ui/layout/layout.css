@@ -1,0 +1,84 @@
+/* ============================================================
+   Design D layouts: sticky headers, mobile bottom nav, web top nav, admin.
+   Breakpoint: web layout from 1024px (HS-Web-*), phone layout below (390 artboards).
+   ============================================================ */
+
+.vt-shell { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; }
+
+/* ---------- Header (sticky on every page) ---------- */
+.vt-header {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--vt-paper);
+}
+.vt-header--mobile { padding: 14px 18px 0; display: flex; flex-direction: column; gap: 10px; }
+.vt-header--web { padding: 14px 24px 0; }
+.vt-header-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.vt-header-inner {
+    max-width: var(--vt-content-max); margin: 0 auto;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px;
+}
+.vt-header .vt-wave--web { margin-top: 12px; }
+.vt-logo {
+    font-family: var(--vt-font-hand); font-weight: 700; line-height: 1;
+    font-size: 26px; color: var(--vt-ink); text-decoration: none;
+    display: inline-flex; align-items: center; min-height: 44px;
+}
+a.vt-logo, a.vt-logo:hover { color: var(--vt-ink); }
+.vt-header--web .vt-logo { font-size: 30px; }
+.vt-header-right { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.vt-header--mobile .vt-header-right { gap: 6px; flex-wrap: nowrap; }
+.vt-header-right .vt-avatar { margin-left: 4px; }
+.vt-header-name { font-size: 14px; font-weight: 600; }
+
+/* Web menu */
+.vt-topnav { display: flex; flex-wrap: wrap; gap: 6px; flex-grow: 1; }
+.vt-topnav a {
+    font-family: var(--vt-font-hand); font-weight: 700; font-size: 20px; line-height: 1.1;
+    color: var(--vt-ink); text-decoration: none;
+    padding: 6px 14px; min-height: 44px; box-sizing: border-box;
+    display: inline-flex; align-items: center;
+    border-radius: var(--vt-r-nav);
+}
+.vt-topnav a:hover { color: var(--vt-ink); text-decoration: underline; text-underline-offset: 4px; }
+.vt-topnav a[aria-current='page'] { background: var(--vt-action); text-decoration: none; }
+
+/* ---------- Mobile bottom nav ---------- */
+.vt-bottomnav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: var(--vt-card);
+    border-top: var(--vt-border);
+    display: grid; grid-template-columns: repeat(var(--vt-tabs, 4), minmax(0, 1fr));
+    gap: 4px;
+    padding: 8px 6px calc(14px + env(safe-area-inset-bottom));
+}
+.vt-bottomnav a {
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--vt-font-hand); font-weight: 700; font-size: 18px; line-height: 1.1;
+    color: var(--vt-muted); text-decoration: none; text-align: center;
+    min-height: 44px;
+    border-radius: var(--vt-r-chip);
+}
+.vt-bottomnav a:hover { color: var(--vt-ink); }
+.vt-bottomnav a[aria-current='page'] { color: var(--vt-ink); background: var(--vt-action); }
+
+/* ---------- Page body ---------- */
+.vt-main { flex-grow: 1; min-width: 0; box-sizing: border-box; }
+.vt-main--web { width: 100%; max-width: var(--vt-content-max); margin: 0 auto; padding: 32px 24px; }
+.vt-main--student { padding: 14px 20px calc(96px + env(safe-area-inset-bottom)); }
+@media (min-width: 1024px) {
+    .vt-main--student { width: 100%; max-width: var(--vt-content-max); margin: 0 auto; padding: 32px 24px; }
+}
+.vt-stack { display: flex; flex-direction: column; gap: 16px; }
+
+/* Two columns: main flex 999 1 560px, side 1 1 300px (max 380), wraps under on narrow screens. */
+.vt-cols { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.vt-cols-main { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.vt-cols-side { flex: 1 1 300px; max-width: 380px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+@media (max-width: 1023.98px) { .vt-cols-side { max-width: none; } }
+
+/* ---------- Responsive switch for the student shell ---------- */
+.vt-only-web { display: none !important; }
+@media (min-width: 1024px) {
+    .vt-only-web { display: revert !important; }
+    .vt-only-mobile { display: none !important; }
+}

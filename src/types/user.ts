@@ -9,7 +9,7 @@ export type User = {
 };
 
 /** `visitor` is an anonymous session BE issues itself — not logged in but still has a token. */
-export type UserGroup = 'visitor' | 'student' | 'teacher';
+export type UserGroup = 'visitor' | 'student' | 'teacher' | 'admin';
 
 /**
  * Login session. `id` is the TOKEN, not the user id —

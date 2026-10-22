@@ -92,7 +92,7 @@ export default function StudentNav({user}: {user?: {name?: string; email?: strin
                             <Icon name='user outline'/> Thông tin cá nhân
                         </button>
                         <button type='button' role='menuitem' className='tk-menu-item'
-                                onClick={() => go('/my-exams')}>
+                                onClick={() => go('/history')}>
                             <Icon name='clipboard list'/> Lịch sử làm bài
                         </button>
                         <button type='button' role='menuitem' className='tk-menu-item'

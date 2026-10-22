@@ -120,12 +120,6 @@ export default function Dashboard() {
                     <Icon name='database'/> Ngân hàng câu hỏi
                 </Button>
             </Link>
-            {/* Practice packages: students buy turns here, no longer per exam. */}
-            <Link to='/packages'>
-                <Button basic icon labelPosition='left'>
-                    <Icon name='cube'/> Gói thi thử
-                </Button>
-            </Link>
             <Button primary icon labelPosition='left' onClick={createFolder}>
                 <Icon name='plus'/> Thư mục mới
             </Button>

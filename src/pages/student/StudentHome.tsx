@@ -1,290 +1,160 @@
-import {useState} from 'react';
-import {useNavigate, useParams, useSearchParams} from 'react-router-dom';
-import {useQueries, useQuery} from '@tanstack/react-query';
-import striptags from 'striptags';
+import {Link} from 'react-router-dom';
 
-import Api from '../../services/api';
-import Loading from '../../components/Loading';
+import {Badge, Card, EmptyState, Medal, PageColumns, Skeleton, SkeletonCard, Table, buttonClass} from '../../components/ui';
+import type {Column} from '../../components/ui';
 import {useAuthStore} from '../../stores/authStore';
-import {useInProgress, remainingLabel} from '../../queries/inProgress';
-import {useRanking} from '../../queries/ranking';
-import {formatMetricValue} from '../ranking/rankingQuery';
+import {useInProgress} from '../../queries/inProgress';
+import {useWallet} from '../../queries/wallet';
+import {useBoard, useMySubmissions, useSubjects} from '../../queries/student';
+import type {SubjectSummary} from '../../types/student';
+import type {Submission} from '../../types/submission';
 import {useMediaQuery, DESKTOP} from '../useMediaQuery';
-import {subjectStyle, stripAccents} from '../dashboard/subjectStyle';
-import type {SubjectStyle} from '../dashboard/subjectStyle';
-import type {ExamSummary, Folder} from '../../types/exam';
-import {initial, TurnsChip} from './StudentShell';
-import {IconArrow, IconBack, IconPlay} from './icons';
+import {ContinueCard, LoadError, PageHead, TitleCard, greetName, hsPath} from '../hs/common';
+import {formatDayMonth, formatPoints, formatScore, minutesLeft, plainText, score10} from '../../lib/format';
+import {studentTitle} from '../hs/title';
 
-type Subject = Folder & {style: SubjectStyle; exams: ExamSummary[] | undefined};
-type Filter = 'all' | 'todo' | 'done';
+/** Subjects shown on the phone home before "Xem cả N môn" (design: 6). */
+const MOBILE_SUBJECTS = 6;
 
-const MEDALS = [['#FFD66B', '#6B4200'], ['#E3E8F2', '#4A5778'], ['#F5C9A0', '#7A3E0A']];
-
-function greeting(d = new Date()) {
-    const h = d.getHours();
-    return h < 11 ? 'Chào buổi sáng' : h < 14 ? 'Chào buổi trưa' : h < 18 ? 'Chào buổi chiều' : 'Chào buổi tối';
+function subjectMeta(s: SubjectSummary): string {
+    return s.exams + ' đề · ' + (s.done > 0 ? 'đã làm ' + s.done : 'chưa làm');
 }
 
-const givenName = (name?: string | null) => (name || '').trim().split(/\s+/).pop() || '';
-const isDone = (e: ExamSummary) => (e.attempts || 0) > 0;
-const doneCount = (s: Subject) => (s.exams || []).filter(isDone).length;
-const examCode = (i: number) => 'Đề số ' + String(i + 1).padStart(2, '0');
-const examMeta = (e: ExamSummary) =>
-    [e.question_count ? e.question_count + ' câu' : '', e.duration ? e.duration + ' phút' : ''].filter(Boolean).join(' · ');
-
-/** Score on the 10-point scale, Vietnamese decimal comma: 8.6 -> "8,6". */
-function score10(e: ExamSummary): string | null {
-    if (e.last_status === 'GRADING') return null;
-    if (e.last_score == null || !e.last_max) return null;
-    return String(Math.round(e.last_score / e.last_max * 100) / 10).replace('.', ',');
-}
-
-function Scene({className}: {className: string}) {
-    return <div className={className}>
-        <div className='scene'>
-            <img src='/mascot/hero-scene.svg' alt=''/>
-            <img src='/mascot/wave.svg' alt=''/>
-        </div>
+function SubjectGrid({subjects}: {subjects: SubjectSummary[]}) {
+    return <div className='hs-subjects'>
+        {subjects.map(s => <Link key={s.id} to={hsPath.exams(s.id)} className='hs-subject'>
+            <b>{s.name}</b><span className='hs-meta'>{subjectMeta(s)}</span>
+        </Link>)}
     </div>;
 }
 
-function Bar({pct, color, className}: {pct: number; color?: string; className?: string}) {
-    return <span className={'spt-bar ' + (className || '')}>
-        <span style={{width: pct + '%', background: color}}/>
-    </span>;
+function SubjectsSection({web}: {web: boolean}) {
+    const q = useSubjects();
+    const head = (count?: number) => web
+        ? <div className='hs-col2'><h2 className='hs-h2'>Chọn môn</h2>
+            <span className='hs-meta'>{count != null ? count + ' môn thi SPT · ' : ''}mỗi lần làm đề trừ 1 lượt</span></div>
+        : <div className='hs-row'><h2 className='hs-h2'>Chọn môn</h2>
+            {count != null && count > MOBILE_SUBJECTS && <Link to={hsPath.exams()} className='vt-link'>Xem cả {count} môn</Link>}</div>;
+
+    if (q.isPending) return <section className='hs-sec' aria-busy='true'>{head()}
+        <div className='hs-subjects'>{Array.from({length: 6}, (_, i) => <Skeleton key={i} height={62} shape='card'/>)}</div>
+    </section>;
+    if (q.isError) return <section className='hs-sec'>{head()}<LoadError error={q.error} onRetry={() => q.refetch()} what='danh sách môn'/></section>;
+    const list = q.data;
+    return <section className='hs-sec'>
+        {head(list.length)}
+        {list.length === 0
+            ? <EmptyState title='Chưa có môn thi nào' description='Giáo viên đang soạn đề, bạn quay lại sau nhé.'/>
+            : <SubjectGrid subjects={web ? list : list.slice(0, MOBILE_SUBJECTS)}/>}
+    </section>;
 }
 
-function ExamAction({exam, onOpen}: {exam: ExamSummary; onOpen: (e: ExamSummary) => void}) {
-    const s = score10(exam);
-    if (isDone(exam)) return <button type='button' className='spt-score' title='Làm lại đề này' onClick={() => onOpen(exam)}>
-        {s ? <><b>{s}</b>điểm</> : <span>Chờ chấm</span>}
-    </button>;
-    return <button type='button' className='spt-btn sm' onClick={() => onOpen(exam)}>Làm bài</button>;
+function TurnsCard({web}: {web: boolean}) {
+    const w = useWallet();
+    if (w.isPending) return <SkeletonCard label='Đang tải lượt thi'/>;
+    // Wallet down: the header pill is gone too; a small error card beats a wrong "0 lượt".
+    if (w.isError) return <LoadError error={w.error} onRetry={() => w.refetch()} what='số lượt thi'/>;
+    const n = w.data.remaining;
+    const buy = <Link to={hsPath.packages} className={buttonClass({variant: 'primary', block: web})}>
+        {web ? 'Mua thêm lượt' : 'Mua thêm'}</Link>;
+    return <Card as='section' className={'hs-turns' + (web ? ' hs-turns--web' : '')} aria-label='Lượt thi'>
+        <div className='hs-col2'>
+            <span className='hs-meta'>{web ? 'Lượt thi của bạn' : 'Lượt thi còn lại'}</span>
+            <span className='hs-big vt-num'>{n} lượt</span>
+            <span className='hs-meta'>Không hết hạn{web && w.data.bought ? ` · đã mua ${w.data.bought}, đã dùng ${w.data.used}` : ''}</span>
+        </div>
+        {buy}
+    </Card>;
 }
 
+function TitleBlock({web}: {web: boolean}) {
+    const subs = useMySubmissions();
+    const info = studentTitle(subs.data);
+    // No data or no title under the temporary rule → nothing (see hs/title.ts).
+    return info ? <TitleCard info={info} web={web}/> : null;
+}
+
+function WeekTop() {
+    const q = useBoard('week', null, 3);
+    if (q.isPending) return <SkeletonCard label='Đang tải xếp hạng'/>;
+    if (q.isError) return null;   // side widget: the full board has its own error state
+    const b = q.data;
+    const me = b.me;
+    return <Card as='section' className='hs-mini' aria-label='Top tuần này'>
+        <div className='hs-row'><h2 className='hs-h2'>Top tuần này</h2><Link to={hsPath.ranking} className='vt-link'>Xem tất cả</Link></div>
+        {b.entries.length === 0
+            ? <p className='hs-meta'>Tuần này chưa có ai hoàn thành đề. Làm đề đầu tiên để lên bảng!</p>
+            : b.entries.map(e => <div key={(e.rank ?? 0) + e.name} className='hs-mini-row'>
+                {e.rank != null && <Medal rank={e.rank}/>}
+                <span>{e.is_me ? 'Bạn' : e.name}</span>
+                <b>{formatPoints(e.points)}</b>
+            </div>)}
+        {me && !b.entries.some(e => e.is_me) && <div className='hs-mini-row hs-mini-me'>
+            <span/>
+            <span>{me.rank != null ? 'Bạn: hạng ' + me.rank : 'Bạn: chưa có điểm tuần này'}</span>
+            <b>{formatPoints(me.points)}</b>
+        </div>}
+        <span className='hs-meta'>10 điểm mỗi đề hoàn thành + điểm bài (lần tốt nhất).</span>
+    </Card>;
+}
+
+const RECENT = 4;
+
+function RecentTable() {
+    const q = useMySubmissions();
+    const head = <div className='hs-row'><h2 className='hs-h2'>Bài làm gần đây</h2><Link to={hsPath.history} className='vt-link'>Xem lịch sử</Link></div>;
+    if (q.isPending) return <section className='hs-sec'>{head}<SkeletonCard/></section>;
+    if (q.isError) return <section className='hs-sec'>{head}<LoadError error={q.error} onRetry={() => q.refetch()} what='bài làm gần đây'/></section>;
+    const rows = q.data.slice(0, RECENT);
+    const pending = (s: Submission) => s.status === 'GRADING' || s.pending_count > 0;
+    const cols: Column<Submission>[] = [
+        {key: 'name', header: 'Đề', emphasis: 'strong',
+         render: s => <Link to={hsPath.result(s.id)} className='vt-link'>{plainText(s.exam_name) || 'Đề không tên'}</Link>},
+        {key: 'date', header: 'Ngày', emphasis: 'muted', render: s => formatDayMonth(s.submitted_at)},
+        {key: 'score', header: 'Điểm /10', align: 'right', emphasis: 'bold',
+         render: s => formatScore(score10(s.score, s.max_score)) + (pending(s) ? '*' : '')},
+        {key: 'status', header: 'Trạng thái',
+         render: s => pending(s) ? <Badge tone='sun'>Chờ chấm tự luận</Badge> : <Badge tone='ok'>Đã chấm</Badge>},
+    ];
+    return <section className='hs-sec'>
+        {head}
+        {rows.length === 0
+            ? <EmptyState title='Chưa có bài nào' description='Chọn một môn ở trên và làm đề đầu tiên nhé.'/>
+            : <Table caption='Bài làm gần đây' columns={cols} rows={rows} rowKey={s => s.id} minWidth={480}/>}
+        {rows.some(pending) && <p className='hs-meta'>* Tạm tính, chưa gồm điểm tự luận.</p>}
+    </section>;
+}
+
+/** HS-TrangChu (phone) / HS-Web-TrangChu (≥1024px). */
 export default function StudentHome() {
-    const navigate = useNavigate();
-    const desktop = useMediaQuery(DESKTOP);
-    const {subjectId} = useParams();
-    const [params] = useSearchParams();
-    const q = stripAccents(params.get('q'));
-    const user = useAuthStore(s => s.user);
-    const [filter, setFilter] = useState<Filter>('all');
-
-    const subjectsQ = useQuery({queryKey: ['folder', 'subjects'], queryFn: () => Api.get<Folder[]>('folder/subjects')});
-    // ponytail: one browse call per subject (8 today) to count done/total; a counts endpoint if subjects grow past ~20.
-    const examsQ = useQueries({
-        queries: (subjectsQ.data || []).map(f => ({
-            queryKey: ['exam', 'browse', f.id],
-            queryFn: () => Api.get<ExamSummary[]>('exam/browse?folder=' + f.id),
-        })),
-    });
+    const web = useMediaQuery(DESKTOP);
+    const name = useAuthStore(s => s.user?.name);
     const {data: cont} = useInProgress();
-    const board = useRanking(desktop ? {queryString: 'preset=top_score'} : null);
+    const hello = 'Chào ' + (greetName(name) || 'bạn') + '!';
 
-    // ?lam_lai=1: a click in the list means "take it again", see SubjectBrowser.openExam.
-    const openExam = (e: ExamSummary) => navigate('/do-exam/' + e.id + '?lam_lai=1');
-    const resume = () => cont && navigate('/do-exam/' + cont.exam_id);
-
-    if (subjectsQ.error) return <div className='spt-empty'>Không tải được danh sách môn học.</div>;
-    if (!subjectsQ.data) return <Loading/>;
-
-    const subjects: Subject[] = subjectsQ.data.map((f, i) => ({...f, style: subjectStyle(f.name), exams: examsQ[i]?.data}));
-    const totalExams = subjects.reduce((n, s) => n + (s.exams?.length || 0), 0);
-    const matches = (s: string) => !q || stripAccents(striptags(s)).includes(q);
-    const shown = q ? subjects.filter(s => matches(s.name) || (s.exams || []).some(e => matches(e.name))) : subjects;
-
-    const sel = subjects.find(s => s.id === subjectId) || (desktop ? shown[0] : undefined);
-    if (subjectId && !subjects.some(s => s.id === subjectId))
-        return <div className='spt-empty'>Không tìm thấy môn này. Môn có thể đã bị xoá hoặc đổi tên.</div>;
-
-    const selExams = (sel?.exams || []).filter(e => !q || matches(e.name) || matches(sel!.name));
-    const firstTodo = () => {
-        for (const s of sel ? [sel, ...subjects] : subjects) {
-            const e = (s.exams || []).find(x => !isDone(x));
-            if (e) return e;
-        }
-    };
-    const heroGo = () => {
-        if (cont) return resume();
-        const e = firstTodo();
-        if (e) openExam(e);
-    };
-    const contStyle = subjectStyle(cont?.subject);
-    const contPct = cont && cont.total ? Math.round(cont.answered / cont.total * 100) : 0;
-    const contTitle = cont ? (cont.subject ? cont.subject + ' – ' : '') + striptags(cont.exam_name) : '';
-    const firstName = givenName(user?.name);
-
-    /* ---------- mobile: one subject (Main.dc.html isExams) ---------- */
-    if (!desktop && sel) {
-        const all = sel.exams || [];
-        const list = all.filter(e => filter === 'all' || (filter === 'done') === isDone(e));
-        const done = doneCount(sel);
-        return <div className='spt-mx'>
-            <div className='spt-mx-head'>
-                <button type='button' className='spt-icon-btn' aria-label='Quay lại' onClick={() => navigate('/')}><IconBack/></button>
-                <h1>Đề {sel.name}</h1>
-            </div>
-            <div className='spt-mx-sum' style={{background: sel.style.tint}}>
-                <span className='spt-disc' style={{background: sel.style.fg}}>{sel.style.glyph}</span>
-                <span className='spt-mx-sum-main'>
-                    <span><span>Tiến độ</span><span>{done}/{all.length} đề</span></span>
-                    <Bar pct={all.length ? done / all.length * 100 : 0} color={sel.style.fg}/>
-                    <small>{all.length} đề · cấu trúc đề 2027</small>
-                </span>
-            </div>
-            <div className='spt-filters' role='group' aria-label='Lọc đề'>
-                {([['all', 'Tất cả'], ['todo', 'Chưa làm'], ['done', 'Đã làm']] as const).map(([k, label]) =>
-                    <button key={k} type='button' className={'spt-filter' + (filter === k ? ' on' : '')}
-                            aria-pressed={filter === k} onClick={() => setFilter(k)}>{label}</button>)}
-            </div>
-            <div className='spt-mx-list'>
-                {!sel.exams ? <Loading/> : !list.length ? <div className='spt-empty'>Chưa có đề nào.</div> :
-                    list.map(e => <div key={e.id} className='spt-card spt-mx-exam'>
-                        <span className='spt-exam-main'>
-                            <small>{examCode(all.indexOf(e))}</small>
-                            <b>{striptags(e.name) || 'Đề không tên'}</b>
-                            <small>{examMeta(e)}</small>
-                        </span>
-                        <ExamAction exam={e} onOpen={openExam}/>
-                    </div>)}
-            </div>
-        </div>;
-    }
-
-    const subjectGrid = (cls: string) => <div className={cls}>
-        {shown.map(s => {
-            const on = desktop && s.id === sel?.id;
-            return <button key={s.id} type='button' className='spt-subj' aria-pressed={desktop ? on : undefined}
-                           style={{background: s.style.tint, borderColor: on ? s.style.fg : undefined}}
-                           onClick={() => navigate('/subject/' + s.id + (q ? '?q=' + encodeURIComponent(params.get('q')!) : ''))}>
-                <span className='spt-disc' style={{background: s.style.fg}}>{s.style.glyph}</span>
-                <span className='spt-subj-name'>
-                    <b>{s.name}</b>
-                    <small>{s.exams ? doneCount(s) + '/' + s.exams.length + ' đề' : '…'}</small>
-                </span>
-            </button>;
-        })}
+    if (!web) return <div className='hs-page'>
+        <PageHead title={hello} sub='Hôm nay mình luyện tiếp nhé.'/>
+        <TurnsCard web={false}/>
+        {cont && <ContinueCard cont={cont}/>}
+        <SubjectsSection web={false}/>
+        <TitleBlock web={false}/>
     </div>;
 
-    /* ---------- mobile: home (Main.dc.html isSubjects) ---------- */
-    if (!desktop) return <div className='spt-m'>
-        {/* ponytail: streak chip hidden until streak data exists */}
-        <header className='spt-m-head'>
-            <span className='spt-av'>{initial(user?.name)}</span>
-            <span className='spt-me-name'><small>{user?.email}</small><b>{user?.name}</b></span>
-            <TurnsChip compact/>
-        </header>
-        <section className='spt-m-hero'>
-            <Scene className='scene-wrap'/>
-            <div className='spt-m-hero-text'>
-                <h1>{greeting()}, <span>{firstName}!</span></h1>
-                <p>Thêm một đề nữa là gần hơn với giảng đường.</p>
-                <button type='button' className='spt-btn' onClick={heroGo}>Làm đề tiếp <IconArrow size={16}/></button>
-            </div>
-        </section>
-        {cont && <section className='spt-card spt-m-cont'>
-            <span className='spt-cont-glyph' style={{background: contStyle.tint, color: contStyle.fg}}>{contStyle.glyph}</span>
-            <span className='spt-m-cont-main'>
-                <small>Đang làm dở · Câu {cont.answered}/{cont.total}</small>
-                <b>{contTitle}</b>
-                <Bar pct={contPct}/>
-            </span>
-            <button type='button' className='spt-play' aria-label={'Tiếp tục làm ' + contTitle} onClick={resume}><IconPlay size={16}/></button>
-        </section>}
-        <section className='spt-m-sec'>
-            <div className='spt-sec-head'>
-                <h2 className='spt-h2'>Luyện theo môn</h2>
-                <small>{subjects.length} môn · {totalExams} đề</small>
-            </div>
-            {shown.length ? subjectGrid('spt-m-subjects') : <div className='spt-empty'>Không tìm thấy môn hay đề nào.</div>}
-        </section>
-    </div>;
-
-    /* ---------- desktop (HomeDesktop.dc.html) ---------- */
-    const selDone = sel ? doneCount(sel) : 0;
-    const selCount = sel?.exams?.length || 0;
-    const top = board.data ? board.data.entries.slice(0, 5) : [];
-    const me = board.data?.me;
-    const rows = me && !top.some(r => r.is_me) ? [...top.slice(0, 4), me] : top;
-    const crit = board.data?.criteria[0];
-
-    return <div className='spt-home'>
-        <div className='spt-main'>
-            <section className='spt-hero'>
-                <Scene className='spt-hero-scene'/>
-                <div className='spt-hero-text'>
-                    <span className='spt-eyebrow'>KỲ THI THPT 2027</span>
-                    <h1>{greeting()},<br/><span>{firstName}!</span></h1>
-                    <p>Thêm một đề nữa là gần hơn một bước với giảng đường đại học.</p>
-                    <button type='button' className='spt-btn' onClick={heroGo}>Làm đề tiếp <IconArrow/></button>
-                </div>
-            </section>
-
-            {cont && <section className='spt-sec'>
-                <h2 className='spt-h2'>Tiếp tục làm bài</h2>
-                <div className='spt-card spt-cont'>
-                    <span className='spt-cont-glyph' style={{background: contStyle.tint, color: contStyle.fg}}>{contStyle.glyph}</span>
-                    <span className='spt-cont-main'>
-                        <b>{contTitle}</b>
-                        <small>Câu {cont.answered}/{cont.total} · {remainingLabel(cont.remaining_sec)}</small>
-                        <span className='spt-cont-prog'><Bar pct={contPct}/>{contPct}%</span>
-                    </span>
-                    <button type='button' className='spt-btn' onClick={resume}><IconPlay/> Tiếp tục</button>
-                </div>
-            </section>}
-
-            <section className='spt-sec'>
-                <div className='spt-sec-head'>
-                    <h2 className='spt-h2'>Luyện theo môn</h2>
-                    <small>{subjects.length} môn · {totalExams} đề</small>
-                </div>
-                {shown.length ? subjectGrid('spt-subjects') : <div className='spt-empty'>Không tìm thấy môn hay đề nào.</div>}
-            </section>
-
-            {sel && <section className='spt-card spt-exams'>
-                <div className='spt-exams-head'>
-                    <span>
-                        <span className='spt-disc' style={{background: sel.style.fg}}>{sel.style.glyph}</span>
-                        <h2 className='spt-h2'>Đề {sel.name}</h2>
-                    </span>
-                    <span className='spt-exams-meta' style={{display: 'flex', alignItems: 'center', gap: 10}}>
-                        <Bar pct={selCount ? selDone / selCount * 100 : 0} color={sel.style.fg}/>{selDone}/{selCount}
-                    </span>
-                </div>
-                {!sel.exams ? <Loading/> : !selExams.length ? <div className='spt-empty'>Môn này chưa có đề thi thử.</div> :
-                    selExams.map(e => <div key={e.id} className='spt-exam'>
-                        <span className='spt-exam-code'>{examCode(sel.exams!.indexOf(e))}</span>
-                        <span className='spt-exam-main'>
-                            <b>{striptags(e.name) || 'Đề không tên'}</b>
-                            <small>{examMeta(e)}</small>
-                        </span>
-                        <ExamAction exam={e} onOpen={openExam}/>
-                    </div>)}
-            </section>}
-        </div>
-
-        {/* 403 = student has no graded attempt yet: the board simply stays hidden. */}
-        {rows.length > 0 && <aside className='spt-rail'>
-            <section className='spt-card spt-rail-card'>
-                <div className='spt-sec-head'>
-                    <h2>Bảng xếp hạng</h2>
-                    <a href='/ranking' onClick={ev => { ev.preventDefault(); navigate('/ranking'); }}>Xem tất cả</a>
-                </div>
-                {rows.map(r => {
-                    const medal = MEDALS[r.rank - 1];
-                    const st = subjects[(r.rank - 1) % Math.max(subjects.length, 1)]?.style;
-                    return <div key={r.rank + r.name} className={'spt-board-row' + (r.is_me ? ' me' : '')}>
-                        <span className='spt-medal' style={medal ? {background: medal[0], color: medal[1]} : undefined}>{r.rank}</span>
-                        <span className='spt-av' style={r.is_me ? {background: 'var(--primary)', color: 'var(--on-primary)'} : st ? {background: st.tint, color: st.fg} : undefined}>
-                            {initial(r.name)}
-                        </span>
-                        <b>{r.is_me ? 'Bạn' : r.name}</b>
-                        <span>{crit ? formatMetricValue(r.values[crit.name], crit.format) : ''}</span>
-                    </div>;
-                })}
-            </section>
-        </aside>}
+    const sub = cont
+        ? `Bài ${cont.subject || plainText(cont.exam_name)} đang làm dở ${minutesLeft(cont.remaining_sec)}. Làm tiếp hay chọn đề môn khác?`
+        : 'Hôm nay mình luyện tiếp nhé. Chọn môn để bắt đầu.';
+    return <div className='hs-page'>
+        <PageHead title={hello} sub={sub}/>
+        <PageColumns
+            main={<>
+                {cont && <ContinueCard cont={cont} web/>}
+                <SubjectsSection web/>
+                <RecentTable/>
+            </>}
+            side={<>
+                <TurnsCard web/>
+                <TitleBlock web/>
+                <WeekTop/>
+            </>}/>
     </div>;
 }
