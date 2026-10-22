@@ -60,9 +60,6 @@ export function toBool(v: string | null | undefined): boolean | null {
     return null;
 }
 
-const isBlank = (v: string | null | undefined) =>
-    !String(v ?? '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
-
 /** Full marks on an auto-graded item. */
 const isFull = (a: SubmissionAnswer) =>
     a.score !== null && a.score !== undefined && a.max_score > 0 && a.score >= a.max_score - 1e-6;

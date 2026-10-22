@@ -27,6 +27,9 @@ export function useSubmission(id: string | undefined) {
         enabled: !!id,
         staleTime: 15_000,
         // 403/404 are answers, not flakes.
-        retry: (count, e) => count < 1 && !((e as {code?: number})?.code && (e as {code: number}).code < 500),
+        retry: (count, e) => {
+            const code = (e as unknown as {code?: number})?.code;
+            return count < 1 && !(typeof code === 'number' && code > 0 && code < 500);
+        },
     });
 }
