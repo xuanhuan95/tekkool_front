@@ -52,3 +52,47 @@ export type QuestionBank = {
 
 /** A slot in a bank exam's structure — each slot draws one block, order preserved. */
 export type StructureSlot = {loai: string; tieu_de: string};
+
+/** An option of a multiple-choice question, as `exam/during_test` returns it (correct flags stripped). */
+export type TestAnswerOption = {id: string; value?: string | null};
+
+/**
+ * A question inside `exam/during_test/<id>`. `data` already went through BE `public_data`
+ * (no correct answer). `markedAnswer` is what the server holds for this student — the source
+ * of truth after F5.
+ */
+export type TestQuestion = {
+    id: string;
+    type: string;
+    data: {
+        question?: string | null;
+        answers?: TestAnswerOption[];
+        /** Shared stem: a reading text, or the stem of a 4-statement Đúng/Sai question. */
+        passage?: string | null;
+        passageId?: string | null;
+        max_score?: number | string | null;
+        max_chars?: number;
+        max_words?: number;
+        [key: string]: unknown;
+    };
+    markedAnswer?: string | null;
+};
+
+export type TestSection = {
+    id: string;
+    name?: string | null;
+    questions: TestQuestion[];
+    /** Only on exams drawn from the bank: block type code (TracNghiem, DungSai...). */
+    loai?: string | null;
+};
+
+/** `GET exam/during_test/<id>` — the paper of an open attempt. */
+export type TestExam = {
+    id: string;
+    name?: string | null;
+    /** Minutes. Only a fallback when `remaining_sec` is null (exam owner trying it). */
+    duration?: number | null;
+    sections: TestSection[];
+    /** Seconds left, computed by the SERVER from the attempt's expires_at. null = no attempt clock. */
+    remaining_sec?: number | null;
+};
