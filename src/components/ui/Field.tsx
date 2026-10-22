@@ -110,3 +110,63 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
         </span>
     </FieldShell>;
 });
+
+/** "15/10/2026" → "2026-10-15"; null when not a real calendar day. */
+export function parseDmy(text: string): string | null {
+    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(text.trim());
+    if (!m) return null;
+    const d = +m[1], mo = +m[2], y = +m[3];
+    const dt = new Date(Date.UTC(y, mo - 1, d));
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return null;
+    return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+/** "2026-10-15" → "15/10/2026" ('' when empty/unreadable). */
+export function isoToDmy(iso?: string | null): string {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
+}
+
+/** Typing "15102026" → "15/10/2026": slashes are inserted after the day and the month. */
+export function maskDmy(text: string): string {
+    const d = text.replace(/\D/g, '').slice(0, 8);
+    return d.length > 4 ? `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}` : d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
+}
+
+export interface DateFieldProps extends Omit<TextFieldProps, 'value' | 'onChange' | 'type' | 'min' | 'max'> {
+    /** ISO day "YYYY-MM-DD" or ''. */
+    value: string;
+    /** Called with an ISO day once the text is a valid dd/mm/yyyy, or '' when cleared. */
+    onChange: (iso: string) => void;
+    min?: string;
+    max?: string;
+}
+
+/**
+ * Date as Vietnamese dd/mm/yyyy, whatever the browser locale (Chrome's native date input shows
+ * mm/dd/yyyy on en-US and ignores lang="vi" — Athena audit). Plain text box with a mask; the value
+ * in and out stays ISO so callers and the API do not change.
+ */
+export function DateField({value, onChange, min, max, error, hint, onBlur, ...rest}: DateFieldProps) {
+    const [text, setText] = useState(() => isoToDmy(value));
+    const [seen, setSeen] = useState(value);
+    if (value !== seen) {            // value changed from outside (URL, reset): show it
+        setSeen(value);
+        if (parseDmy(text) !== value) setText(isoToDmy(value));
+    }
+    const iso = parseDmy(text);
+    const outOfRange = iso && ((min && iso < min) || (max && iso > max));
+    const bad = text && (!iso || outOfRange)
+        ? (!iso ? 'Ngày chưa đúng dạng dd/mm/yyyy' : 'Ngày nằm ngoài khoảng cho phép') : null;
+    const [touched, setTouched] = useState(false);
+    return <TextField {...rest} type='text' inputMode='numeric' placeholder='dd/mm/yyyy' autoComplete='off'
+                      value={text} hint={hint} error={error ?? (touched ? bad : null)}
+                      onBlur={e => { setTouched(true); onBlur?.(e); }}
+                      onChange={e => {
+                          const next = maskDmy(e.target.value);
+                          setText(next);
+                          if (!next) { onChange(''); return; }
+                          const v = parseDmy(next);
+                          if (v && !((min && v < min) || (max && v > max))) onChange(v);
+                      }}/>;
+}

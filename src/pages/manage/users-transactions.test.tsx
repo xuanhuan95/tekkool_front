@@ -108,7 +108,8 @@ describe('Transactions (AD-GiaoDich)', () => {
         renderAt(<Transactions/>, '/manage/transactions');
         await screen.findByText('44 đơn');
         fireEvent.change(screen.getByLabelText('Trạng thái'), {target: {value: 'mismatch'}});
-        fireEvent.change(screen.getByLabelText('Từ ngày'), {target: {value: '2026-10-15'}});
+        // Date typed Vietnamese style (DateField): dd/mm/yyyy → ISO to the API.
+        fireEvent.change(screen.getByLabelText('Từ ngày'), {target: {value: '15/10/2026'}});
         await waitFor(() => expect(api.get).toHaveBeenLastCalledWith(
             'admin_revenue/transactions?status=mismatch&from=2026-10-15&page=1&limit=20'));
     });

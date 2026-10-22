@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {Link, useSearchParams} from 'react-router-dom';
 
-import {Button, Card, CardTitle, ErrorState, FilterChip, PageColumns, PageTitle, Select, SkeletonCard, Table, Tabs,
+import {Button, Card, CardTitle, DateField, ErrorState, FilterChip, PageColumns, PageTitle, Select, SkeletonCard, Table, Tabs,
     TextField, buttonClass, icons} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useReconcile, useTransaction, useTransactions} from '../../queries/manage';
@@ -146,14 +146,6 @@ export default function Transactions() {
     const stat = (s: TxStatus) => st?.[s] || {count: 0, amount: 0};
 
     const listTab = <div className='vt-mg-stack'>
-        <div className='vt-mg-filters'>
-            <TextField label='Từ ngày' type='date' value={from} max={to || undefined} onChange={e => set({from: e.target.value, page: null})}/>
-            <TextField label='Đến ngày' type='date' value={to} min={from || undefined} onChange={e => set({to: e.target.value, page: null})}/>
-            <Select label='Trạng thái' value={status} placeholder='Tất cả' onChange={e => set({status: e.target.value, page: null})}
-                    options={(Object.keys(TX_STATUS) as TxStatus[]).map(s => ({value: s, label: TX_STATUS[s].label}))}/>
-            <TextField label='Tìm' type='search' placeholder='Mã đơn, email hoặc tên' value={q}
-                       onChange={e => { setQ(e.target.value); set({q: e.target.value || null, page: null}); }}/>
-        </div>
         {st && <div className='vt-mg-stats'>
             <Card size='md' className='vt-mg-stat'><span className='vt-mg-stat-label'>Thành công</span>
                 <span className='vt-mg-stat-value vt-num'>{groupDigits(stat('paid').count)} đơn</span>
@@ -165,13 +157,25 @@ export default function Transactions() {
                 <span className='vt-mg-stat-value vt-num'>{stat('mismatch').count} / {stat('failed').count}</span>
                 <span className='vt-mg-stat-sub'>{stat('mismatch').count} đơn lệch tiền cần xử lý tay</span></Card>
         </div>}
+        <Card flush className='vt-table-card'>
+        <div className='vt-table-toolbar'>
+        <div className='vt-mg-filters'>
+            <DateField label='Từ ngày' value={from} max={to || undefined} onChange={v => set({from: v || null, page: null})}/>
+            <DateField label='Đến ngày' value={to} min={from || undefined} onChange={v => set({to: v || null, page: null})}/>
+            <Select label='Trạng thái' value={status} placeholder='Tất cả' onChange={e => set({status: e.target.value, page: null})}
+                    options={(Object.keys(TX_STATUS) as TxStatus[]).map(s => ({value: s, label: TX_STATUS[s].label}))}/>
+            <TextField label='Tìm' type='search' placeholder='Mã đơn, email hoặc tên' value={q}
+                       onChange={e => { setQ(e.target.value); set({q: e.target.value || null, page: null}); }}/>
+        </div>
+        </div>
         {error && !data
-            ? <ErrorState title='Không tải được giao dịch' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
-                          onRetry={() => refetch()} retrying={isFetching}/>
-            : !data ? <SkeletonCard label='Đang tải giao dịch'/>
-                : <>
-                    <Table caption='Danh sách giao dịch' columns={columns} rows={data.items} rowKey={t => t.invoice_number}
-                           minWidth={980} isHighlighted={t => t.invoice_number === inv} empty='Không có giao dịch khớp bộ lọc'/>
+            ? <div className='vt-table-state'><ErrorState title='Không tải được giao dịch' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
+                          onRetry={() => refetch()} retrying={isFetching}/></div>
+            : !data ? <div className='vt-table-state'><SkeletonCard label='Đang tải giao dịch'/></div>
+                : <Table bare caption='Danh sách giao dịch' columns={columns} rows={data.items} rowKey={t => t.invoice_number}
+                         minWidth={980} isHighlighted={t => t.invoice_number === inv} empty='Không có giao dịch khớp bộ lọc'/>}
+        </Card>
+        {data && <>
                     <Pager page={data.page} limit={data.limit} total={data.total} unit='đơn' onPage={p => set({page: String(p)})}/>
                 </>}
     </div>;

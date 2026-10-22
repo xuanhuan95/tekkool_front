@@ -31,10 +31,10 @@
 /* Links (Athena audit BB1): Semantic UI paints every <a> blue (#4183c4, hover #1e70bf). Design D:
    ink, underlined, offset 3px, 600. Plain links and .vt-link get the full look; links that are
    cards/buttons/rows keep their own look but never turn blue on hover/focus. */
-:is(.vt-paper, .vt-plain, .vt-modal) a:not([class]), a.vt-link {
+:is(.vt-paper, .vt-plain, .vt-modal) a:not([class]):not(nav a), a.vt-link {
     color: var(--vt-ink); text-decoration: underline; text-underline-offset: 3px; font-weight: 600;
 }
-:is(.vt-paper, .vt-plain, .vt-modal) a:not([class]):hover, a.vt-link:hover { color: #000; text-decoration-thickness: 2px; }
+:is(.vt-paper, .vt-plain, .vt-modal) a:not([class]):not(nav a):hover, a.vt-link:hover { color: #000; text-decoration-thickness: 2px; }
 :is(.vt-paper, .vt-plain, .vt-modal) a:not(.vt-btn--danger):is(:hover, :focus, :focus-visible) { color: var(--vt-ink); }
 a.vt-card, a.vt-card:hover, a.vt-card:focus { color: var(--vt-ink); }
 
@@ -318,6 +318,12 @@ textarea.vt-input:focus { padding: 9.5px 11.5px; }
 
 /* ---------- Table ---------- */
 .vt-table-scroll { overflow-x: auto; position: relative; }
+/* Filters / title inside the table card (AD-* design): rule under them. */
+.vt-table-toolbar { padding: 14px 18px; border-bottom: 1.5px solid var(--vt-line-soft); }
+.vt-table-card { padding: 0; overflow: hidden; }
+.vt-table-card > .vt-table-state { padding: 16px 18px; }
+/* Text-button "Khoá" (design: underlined 14px 600 red, not an outlined button). */
+.vt-btn--ghost.vt-btn-danger-text, .vt-btn--ghost.vt-btn-danger-text:hover { color: var(--vt-err); }
 /* Edge hint: a soft ink fade on the side that still hides columns (QC B4). */
 .vt-table-scroll--left { box-shadow: inset 12px 0 10px -10px rgba(28, 25, 23, .35); }
 .vt-table-scroll--right { box-shadow: inset -12px 0 10px -10px rgba(28, 25, 23, .35); }

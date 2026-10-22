@@ -135,16 +135,16 @@ export default function Revenue() {
             </Card>
 
             <section className='vt-mg-stack' aria-label='Đơn hàng gần đây'>
-                <div className='vt-mg-row'>
-                    <CardTitle as='h2'>Đơn hàng gần đây</CardTitle>
-                    <span className='vt-muted vt-mg-small'>Thanh toán qua SePay</span>
-                </div>
                 {recent.error && !recent.data
                     ? <ErrorState title='Không tải được đơn hàng' onRetry={() => recent.refetch()} retrying={recent.isFetching}/>
                     : !recent.data
                         ? <SkeletonCard label='Đang tải đơn hàng'/>
                         : <Table caption='Đơn hàng gần đây' columns={txColumns} rows={recent.data.items} rowKey={t => t.invoice_number}
-                                 minWidth={680} empty='Chưa có đơn nào trong kỳ'/>}
+                                 minWidth={680} empty='Chưa có đơn nào trong kỳ'
+                                 toolbar={<div className='vt-mg-row'>
+                                     <CardTitle as='h2'>Đơn hàng gần đây</CardTitle>
+                                     <span className='vt-muted vt-mg-small'>Thanh toán qua SePay</span>
+                                 </div>}/>}
                 {recent.data && <div className='vt-mg-row'>
                     <span className='vt-muted vt-num'>{recent.data.items.length} / {groupDigits(recent.data.total)} đơn trong kỳ</span>
                     <Link to='/manage/transactions' className={buttonClass({variant: 'ghost'})}>Xem tất cả trong Giao dịch</Link>

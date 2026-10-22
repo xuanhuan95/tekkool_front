@@ -64,15 +64,21 @@ export interface TableProps<T> {
     isHighlighted?: (row: T) => boolean;
     empty?: ReactNode;
     className?: string;
+    /** Title / filters drawn INSIDE the card above the table, with a soft rule under them (design D). */
+    toolbar?: ReactNode;
+    /** No card of its own: the caller already put the table inside a card. */
+    bare?: boolean;
 }
 
 /** Compact table inside a card: 13px muted header, 1.5px soft rules, tabular numbers, overflow-x on phones. */
-export default function Table<T>({columns, rows, rowKey, caption, showCaption, minWidth = 520, isHighlighted, empty, className}: TableProps<T>) {
+export default function Table<T>({columns, rows, rowKey, caption, showCaption, minWidth = 520, isHighlighted, empty, className,
+                                  toolbar, bare}: TableProps<T>) {
     const cell = (c: Column<T>) => cx(c.align === 'right' && 'vt-td--right', c.align === 'center' && 'vt-td--center',
         c.emphasis && 'vt-td--' + c.emphasis, c.sticky && 'vt-td--sticky') || undefined;
     const {ref, edges} = useScrollEdges();
 
-    return <div className={cx('vt-card', 'vt-card--flush', className)}>
+    return <div className={cx(!bare && 'vt-card', !bare && 'vt-card--flush', className)}>
+        {toolbar && <div className='vt-table-toolbar'>{toolbar}</div>}
         {/* tabIndex: lets keyboard users scroll a table wider than the phone. */}
         <div ref={ref} role='region' aria-label={caption} tabIndex={0}
              className={cx('vt-table-scroll', edges.left && 'vt-table-scroll--left', edges.right && 'vt-table-scroll--right',

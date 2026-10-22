@@ -146,27 +146,29 @@ export default function Users() {
         {key: 'actions', header: 'Thao tác', sticky: true, render: u => <span className='vt-mg-actions'>
             {u.id === selected ? <span className='vt-muted'>Đang xem</span>
                 : <Button size='sm' variant='ghost' aria-label={'Xem ' + u.name} onClick={() => set({id: u.id})}>Xem</Button>}
-            {u.manageable && <Button size='sm' variant={u.locked ? 'secondary' : 'danger'} onClick={() => askLock(u)}
+            {u.manageable && <Button size='sm' variant='ghost' className={u.locked ? undefined : 'vt-btn-danger-text'} onClick={() => askLock(u)}
                                      aria-label={(u.locked ? 'Mở khoá ' : 'Khoá ') + u.name}>{u.locked ? 'Mở khoá' : 'Khoá'}</Button>}
         </span>},
     ];
 
     const c = data?.counts;
     const main = <>
-        <div className='vt-mg-filters'>
+        <Card flush className='vt-table-card'>
+        <div className='vt-table-toolbar'><div className='vt-mg-filters'>
             <TextField label='Tìm kiếm' type='search' placeholder='Họ tên hoặc email' value={q} onChange={e => qChange(e.target.value)}/>
             <Select label='Trạng thái' value={status} placeholder='Tất cả' onChange={e => set({status: e.target.value, page: null})}
                     options={[{value: 'active', label: 'Hoạt động'}, {value: 'locked', label: 'Đã khoá'},
                         {value: 'never_logged_in', label: 'Chưa đăng nhập'}]}/>
-        </div>
+        </div></div>
         {error && !data
-            ? <ErrorState title='Không tải được người dùng' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
-                          onRetry={() => refetch()} retrying={isFetching}/>
+            ? <div className='vt-table-state'><ErrorState title='Không tải được người dùng' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
+                          onRetry={() => refetch()} retrying={isFetching}/></div>
             : !data
-                ? <SkeletonCard label='Đang tải người dùng'/>
-                : <>
-                    <Table caption='Danh sách người dùng' columns={columns} rows={data.items} rowKey={u => u.id} minWidth={860}
-                           isHighlighted={u => u.id === selected} empty='Không có người dùng khớp bộ lọc'/>
+                ? <div className='vt-table-state'><SkeletonCard label='Đang tải người dùng'/></div>
+                : <Table bare caption='Danh sách người dùng' columns={columns} rows={data.items} rowKey={u => u.id} minWidth={860}
+                         isHighlighted={u => u.id === selected} empty='Không có người dùng khớp bộ lọc'/>}
+        </Card>
+        {data && <>
                     <Pager page={data.page} limit={data.limit} total={data.total} unit={UNIT[group]} onPage={p => set({page: String(p)})}/>
                 </>}
     </>;

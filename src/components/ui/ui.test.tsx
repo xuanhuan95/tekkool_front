@@ -256,3 +256,34 @@ describe('isNavActive: result/review/history highlight "Đề thi", packages "T�
         expect(current('/resultx')).toEqual([]);
     });
 });
+
+describe('DateField: dd/mm/yyyy whatever the browser locale (Athena audit)', () => {
+    it('parse / format / mask helpers', async () => {
+        const {parseDmy, isoToDmy, maskDmy} = await import('./Field');
+        expect(parseDmy('15/10/2026')).toBe('2026-10-15');
+        expect(parseDmy('5/1/2026')).toBe('2026-01-05');
+        expect(parseDmy('31/02/2026')).toBeNull();
+        expect(parseDmy('2026-10-15')).toBeNull();
+        expect(isoToDmy('2026-10-15')).toBe('15/10/2026');
+        expect(isoToDmy('')).toBe('');
+        expect(maskDmy('15102026')).toBe('15/10/2026');
+        expect(maskDmy('151')).toBe('15/1');
+    });
+
+    it('shows ISO value as dd/mm/yyyy, emits ISO only when valid and in range', async () => {
+        const {DateField} = await import('./Field');
+        const onChange = vi.fn();
+        render(<DateField label='Từ ngày' value='2026-10-15' max='2026-10-20' onChange={onChange}/>);
+        const box = screen.getByLabelText('Từ ngày') as HTMLInputElement;
+        expect(box.value).toBe('15/10/2026');
+        fireEvent.change(box, {target: {value: '16102026'}});
+        expect(box.value).toBe('16/10/2026');
+        expect(onChange).toHaveBeenLastCalledWith('2026-10-16');
+        fireEvent.change(box, {target: {value: '25/10/2026'}});
+        fireEvent.blur(box);
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(screen.getByText('Ngày nằm ngoài khoảng cho phép')).toBeTruthy();
+        fireEvent.change(box, {target: {value: ''}});
+        expect(onChange).toHaveBeenLastCalledWith('');
+    });
+});

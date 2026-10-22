@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import type {FormEvent} from 'react';
 
-import {Avatar, Badge, Button, ConfirmDialog, EmptyState, ErrorState, FilterChip, Modal, PageTitle, Select, SkeletonCard,
+import {Avatar, Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, FilterChip, Modal, PageTitle, Select, SkeletonCard,
     Table, TextField, notify} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useCreateTeacher, useLockTeacher, useResetPassword, useTeachers} from '../../queries/manage';
@@ -134,7 +134,7 @@ export default function Teachers() {
         {key: 'created_at', header: 'Ngày tạo', emphasis: 'muted', render: t => <span className='vt-num'>{formatDate(t.created_at)}</span>},
         {key: 'status', header: 'Trạng thái', render: t => <AccountBadge status={t.status}/>},
         {key: 'actions', header: 'Thao tác', sticky: true, render: t => <span className='vt-mg-actions'>
-            <Button size='sm' variant={t.locked ? 'secondary' : 'danger'} onClick={() => setConfirmLock(t)}
+            <Button size='sm' variant='ghost' className={t.locked ? undefined : 'vt-btn-danger-text'} onClick={() => setConfirmLock(t)}
                     aria-label={(t.locked ? 'Mở khoá ' : 'Khoá ') + t.name}>{t.locked ? 'Mở khoá' : 'Khoá'}</Button>
             <Button size='sm' variant='ghost' onClick={() => setConfirmReset(t)}
                     aria-label={'Đặt lại mật khẩu cho ' + t.name}>Đặt lại mật khẩu</Button>
@@ -152,6 +152,8 @@ export default function Teachers() {
             <Button variant='primary' onClick={() => setCreating(true)}>+ Tạo giáo viên</Button>
         </div>
 
+        <Card flush className='vt-table-card'>
+        <div className='vt-table-toolbar'>
         <div className='vt-mg-filters'>
             <TextField label='Tìm kiếm' type='search' placeholder='Họ tên hoặc email' value={q}
                        onChange={e => { setQ(e.target.value); setPage(1); }}/>
@@ -161,18 +163,19 @@ export default function Teachers() {
                     options={[{value: 'active', label: 'Hoạt động'}, {value: 'locked', label: 'Đã khoá'},
                         {value: 'never_logged_in', label: 'Chưa đăng nhập'}]}/>
         </div>
-
+        </div>
         {error && !data
-            ? <ErrorState title='Không tải được danh sách giáo viên' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
-                          onRetry={() => refetch()} retrying={isFetching}/>
+            ? <div className='vt-table-state'><ErrorState title='Không tải được danh sách giáo viên' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
+                          onRetry={() => refetch()} retrying={isFetching}/></div>
             : !data
-                ? <SkeletonCard label='Đang tải giáo viên'/>
+                ? <div className='vt-table-state'><SkeletonCard label='Đang tải giáo viên'/></div>
                 : !data.items.length && !filtered
-                    ? <EmptyState title='Chưa có giáo viên nào' description='Tạo tài khoản đầu tiên để giáo viên bắt đầu soạn đề.'
+                    ? <EmptyState bare title='Chưa có giáo viên nào' description='Tạo tài khoản đầu tiên để giáo viên bắt đầu soạn đề.'
                                   action={<Button variant='primary' onClick={() => setCreating(true)}>+ Tạo giáo viên</Button>}/>
-                    : <>
-                        <Table caption='Danh sách giáo viên' columns={columns} rows={data.items} rowKey={t => t.id}
-                               minWidth={920} empty='Không có giáo viên khớp bộ lọc'/>
+                    : <Table bare caption='Danh sách giáo viên' columns={columns} rows={data.items} rowKey={t => t.id}
+                             minWidth={920} empty='Không có giáo viên khớp bộ lọc'/>}
+        </Card>
+        {data && (data.items.length > 0 || filtered) && <>
                         <Pager page={data.page} limit={data.limit} total={data.total} unit='giáo viên' onPage={setPage}/>
                         <p className='vt-muted vt-mg-small'>Khoá tài khoản không xoá đề giáo viên đã tạo; giáo viên bị đăng xuất ngay.</p>
                     </>}

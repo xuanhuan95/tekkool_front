@@ -30,7 +30,8 @@ function HistoryRow({s}: {s: Submission}) {
         <Link to={'/result/' + s.id} className='vt-card vt-card--md vt-hist-row'>
             <span className='vt-hist-info'>
                 <span className='vt-hist-name'>{title}</span>
-                <span className='vt-hist-meta'>{formatTimeDate(s.submitted_at)} · làm {formatMinutes(s.duration_sec)}</span>
+                <span className='vt-hist-meta'>{formatTimeDate(s.submitted_at)}
+                    {s.duration_sec ? ' · làm ' + formatMinutes(s.duration_sec) : ''}</span>
                 <span>{sum.isProvisional
                     ? <Badge tone='sun-strong'>Chờ chấm tự luận</Badge>
                     : <Badge tone='ok'>Đã chấm</Badge>}</span>
