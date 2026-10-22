@@ -27,7 +27,7 @@ export interface StudentLayoutProps {
  * so there is no flash of the wrong layout before JS measures the screen. Page content is rendered once.
  */
 export function StudentLayout({children, name, stars, turns, title, navMobile = STUDENT_NAV_MOBILE,
-                               navWeb = STUDENT_NAV_WEB, accountTo = '/profile'}: StudentLayoutProps) {
+                               navWeb = STUDENT_NAV_WEB, accountTo = '/me'}: StudentLayoutProps) {
     return <div className='vt-paper vt-shell'>
         <HeaderSticky variant='mobile' className='vt-only-mobile'
                       right={<><StudentStats size='sm' stars={stars} turns={turns}/>

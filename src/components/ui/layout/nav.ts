@@ -7,14 +7,13 @@ export interface NavItem {
 
 /*
  * Menus from design-system.md §6. Paths: existing routes where they exist ('/', '/packages',
- * '/profile'); '/exams' and '/ranking' are placeholders until the student screens (Sprint 1, item 3)
- * add those routes — the layouts take `nav` as a prop, so screens can override.
+ * '/me' (account, PM 22/10); the layouts take `nav` as a prop, so screens can override.
  */
 export const STUDENT_NAV_MOBILE: NavItem[] = [
     {to: '/', label: 'Trang chủ', end: true},
     {to: '/exams', label: 'Đề thi'},
     {to: '/ranking', label: 'Xếp hạng'},
-    {to: '/profile', label: 'Tôi'},
+    {to: '/me', label: 'Tôi'},
 ];
 
 export const STUDENT_NAV_WEB: NavItem[] = [

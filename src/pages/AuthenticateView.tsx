@@ -19,6 +19,8 @@ import PaymentResult from './payment/PaymentResult';
 import TopToolbar from './TopToolbar'
 import StudentShell from './student/StudentShell';
 import {useAuthStore} from '../stores/authStore';
+import ExamsPage from './hs/ExamsPage';
+import ExamDetailPage from './hs/ExamDetailPage';
 
 
 export default function AuthenticateView() {
@@ -31,6 +33,9 @@ export default function AuthenticateView() {
             <Routes>
               <Route path='/' element={<Dashboard/>}/>
               <Route path='/do-exam/:examId' element={<DoExam/>}/>
+              {/* SPT-55/42/25: student home lives at '/', these are the other HS screens. */}
+              <Route path='/exams' element={<ExamsPage/>}/>
+              <Route path='/exams/:examId' element={<ExamDetailPage/>}/>
               <Route path='/edit-exam/:examId' element={<CreateExam/>}/>
               <Route path='/create-exam' element={<CreateExam/>}/>
               <Route path='/import-exam' element={<ImportExam/>}/>
