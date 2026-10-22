@@ -1,7 +1,7 @@
-import {forwardRef, useId} from 'react';
+import {forwardRef, useId, useState} from 'react';
 import type {InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes} from 'react';
 
-import {IconChevronDown} from './icons';
+import {IconChevronDown, IconEye, IconEyeOff} from './icons';
 import {cx} from './cx';
 
 interface FieldBits {
@@ -51,6 +51,30 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
     return <FieldShell {...f} label={label} hint={hint} error={error} disabled={disabled} className={className}>
         <input ref={ref} id={f.fieldId} disabled={disabled} {...rest} {...f.aria}
                className={cx('vt-input', size === 'lg' && 'vt-input--lg')}/>
+    </FieldShell>;
+});
+
+export type PasswordFieldProps = Omit<TextFieldProps, 'type' | 'size'>;
+
+/**
+ * Password input with the eye button (HS-DangNhap / HS-DangKy): 44×44 button inside the right edge,
+ * aria-pressed + label switch "Hiện mật khẩu" / "Ẩn mật khẩu". The button is type=button so it never
+ * submits the form.
+ */
+export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(function PasswordField(
+    {label, hint, error, className, id, disabled, 'aria-describedby': db, ...rest}, ref) {
+    const f = useFieldIds(id, hint, error, db);
+    const [shown, setShown] = useState(false);
+    return <FieldShell {...f} label={label} hint={hint} error={error} disabled={disabled} className={className}>
+        <span className='vt-password-wrap'>
+            <input ref={ref} id={f.fieldId} disabled={disabled} {...rest} {...f.aria}
+                   type={shown ? 'text' : 'password'} className='vt-input'/>
+            <button type='button' className='vt-password-eye' disabled={disabled}
+                    aria-label={shown ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'} aria-pressed={shown}
+                    onClick={() => setShown(v => !v)}>
+                {shown ? <IconEyeOff/> : <IconEye/>}
+            </button>
+        </span>
     </FieldShell>;
 });
 

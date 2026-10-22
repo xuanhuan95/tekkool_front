@@ -14,7 +14,7 @@ export {default as Card, CardTitle, PageTitle} from './Card';
 export {default as Badge, StatusBadge, FilterChip, STATUS_BADGE} from './Badge';
 export type {BadgeTone, Status} from './Badge';
 export {default as StatPill} from './StatPill';
-export {TextField, TextArea, Select} from './Field';
+export {TextField, TextArea, Select, PasswordField} from './Field';
 export {default as Switch} from './Switch';
 export {Tabs, SegmentedControl} from './Tabs';
 export {default as Table} from './Table';

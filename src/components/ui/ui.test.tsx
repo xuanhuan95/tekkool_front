@@ -4,7 +4,7 @@ import {useState} from 'react';
 
 import Button from './Button';
 import {ConfirmDialog} from './Modal';
-import {TextField} from './Field';
+import {PasswordField, TextField} from './Field';
 import {SegmentedControl, Tabs} from './Tabs';
 import ProgressBar from './ProgressBar';
 import {initialsOf} from './Avatar';
@@ -179,5 +179,25 @@ describe('small helpers', () => {
         render(<FilterChip selected={false} onChange={on}>Toán</FilterChip>);
         fireEvent.click(screen.getByRole('button', {name: 'Toán'}));
         expect(on).toHaveBeenCalledWith(true);
+    });
+});
+
+describe('PasswordField', () => {
+    it('eye button toggles visibility without submitting the form', () => {
+        const submit = vi.fn((e: {preventDefault: () => void}) => e.preventDefault());
+        render(<form onSubmit={submit}><PasswordField label='Mật khẩu' defaultValue='abc123'/></form>);
+        const input = screen.getByLabelText('Mật khẩu');
+        expect(input).toHaveAttribute('type', 'password');
+        fireEvent.click(screen.getByRole('button', {name: 'Hiện mật khẩu'}));
+        expect(input).toHaveAttribute('type', 'text');
+        expect(screen.getByRole('button', {name: 'Ẩn mật khẩu'})).toHaveAttribute('aria-pressed', 'true');
+        expect(submit).not.toHaveBeenCalled();
+    });
+
+    it('error wires aria-invalid + describedby', () => {
+        render(<PasswordField label='Nhập lại mật khẩu' error='Mật khẩu nhập lại chưa khớp'/>);
+        const input = screen.getByLabelText('Nhập lại mật khẩu');
+        expect(input).toHaveAttribute('aria-invalid', 'true');
+        expect(input).toHaveAccessibleDescription('Mật khẩu nhập lại chưa khớp');
     });
 });

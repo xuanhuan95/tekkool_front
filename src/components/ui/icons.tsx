@@ -49,6 +49,11 @@ export const IconDoc = ({size = 40}: P) =>
 export const IconSaved = ({size = 14}: P) =>
     <Line size={size} w={2.6} color='var(--vt-ok-icon)'><path d='M5 12l4 4 10-10'/></Line>;
 
+export const IconEye = ({size = 20}: P) =>
+    <Line size={size}><path d='M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z'/><circle cx='12' cy='12' r='3'/></Line>;
+export const IconEyeOff = ({size = 20}: P) =>
+    <Line size={size}><path d='M2 12s3.5-7 10-7c2 0 3.8.7 5.2 1.6M22 12s-3.5 7-10 7c-2 0-3.8-.7-5.2-1.6'/><path d='M9.9 9.9a3 3 0 0 0 4.2 4.2'/><path d='M3 3l18 18'/></Line>;
+
 export const Spinner = ({size = 16}: P) =>
     <svg className='vt-spin' width={size} height={size} viewBox='0 0 24 24' fill='none' stroke='currentColor'
          strokeWidth={2.6} strokeLinecap='round' aria-hidden='true' focusable='false'>

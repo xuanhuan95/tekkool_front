@@ -237,6 +237,15 @@ textarea.vt-input:focus { padding: 9.5px 11.5px; }
 .vt-select-wrap .vt-input { appearance: none; -webkit-appearance: none; padding-right: 36px; }
 .vt-select-wrap .vt-input:focus { padding-right: 35.5px; }
 .vt-select-wrap svg { position: absolute; right: 12px; top: 50%; margin-top: -8px; pointer-events: none; }
+.vt-password-wrap { position: relative; display: block; }
+.vt-password-wrap .vt-input { width: 100%; box-sizing: border-box; padding-right: 52px; }
+.vt-password-wrap .vt-input:focus { padding-right: 51.5px; }
+.vt-password-eye {
+    position: absolute; top: 1px; right: 2px; width: 44px; height: 44px;
+    background: transparent; border: none; color: var(--vt-ink);
+    display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0;
+}
+.vt-password-eye:disabled { color: var(--vt-muted); cursor: not-allowed; }
 .vt-field-hint { font-size: 13px; color: var(--vt-muted); }
 .vt-field-error { font-size: 13px; color: var(--vt-err); }
 

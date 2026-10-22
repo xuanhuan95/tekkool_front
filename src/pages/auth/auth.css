@@ -1,197 +1,35 @@
-/* ============================================================
-   Login / register screen.
-   A rounded, heavy-bordered panel floating on a blue blotchy background;
-   fully separate from .tk (student screens) because this page is pre-login,
-   has no nav bar, and shares no tokens.
-   ============================================================ */
-
-.tka {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    background: #f4f6fb;
-    position: relative;
-    overflow: hidden;
-    font-family: var(--tk-font);
-    color: #1f2a44;
+/* HS-DangNhap / HS-DangKy (design D). Phone artboard 390; on web the same column, centred. */
+.vt-auth { min-height: 100vh; min-height: 100dvh; display: flex; justify-content: center; padding: 56px 20px 24px; box-sizing: border-box; }
+.vt-auth-col { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 28px; }
+.vt-auth-brand { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.vt-auth-logo { font-family: var(--vt-font-hand); font-weight: 700; font-size: 48px; line-height: 1; }
+.vt-auth-tagline { font-size: 14px; color: var(--vt-muted); }
+.vt-auth-card.vt-card { padding: 24px 20px; display: flex; flex-direction: column; gap: 18px; }
+.vt-auth-head { display: flex; flex-direction: column; gap: 4px; }
+.vt-auth-head p { font-size: 14px; }
+.vt-auth-title { font-family: var(--vt-font-hand); font-weight: 700; font-size: 32px; line-height: 1.05; }
+.vt-auth-form { display: flex; flex-direction: column; gap: 16px; margin: 0; }
+.vt-auth-pw { display: flex; flex-direction: column; gap: 6px; }
+.vt-auth-forgot { display: flex; justify-content: flex-end; }
+.vt-auth-note { font-size: 13px; color: var(--vt-muted); margin: 0; }
+.vt-auth-footer { display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 14px; }
+.vt-auth-alert {
+    display: flex; gap: 8px; align-items: flex-start;
+    font-size: 14px; line-height: 1.45; color: var(--vt-err);
+    background: var(--vt-err-bg); border: 2px solid var(--vt-err); border-radius: var(--vt-r-btn);
+    padding: 10px 12px;
 }
+.vt-auth-alert svg { flex-shrink: 0; margin-top: 1px; }
+.vt-auth-alert--locked { color: var(--vt-ink); }
+.vt-auth-check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45; cursor: pointer; }
+.vt-auth-check input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--vt-ink); flex-shrink: 0; }
+.vt-auth-check-err { font-size: 13px; color: var(--vt-err); margin-top: -10px; }
 
-/* Two background blotches. Pseudo-elements avoid adding empty divs to the
-   JSX; they are purely decorative, screen readers don't need them. */
-.tka::before,
-.tka::after {
-    content: '';
-    position: absolute;
-    border-radius: 50%;
-    background: #c7d6f5;
-    opacity: .55;
-    filter: blur(2px);
-    pointer-events: none;
+/* Text-button link (design: 14px 600 underlined). Shared by HS screens. */
+.vt-link {
+    font: inherit; font-size: 14px; font-weight: 600; color: var(--vt-ink);
+    text-decoration: underline; text-underline-offset: 3px;
+    background: none; border: none; padding: 0; cursor: pointer;
+    min-height: 44px; display: inline-flex; align-items: center;
 }
-.tka::before { width: 620px; height: 620px; top: -260px; right: -160px; }
-.tka::after  { width: 520px; height: 520px; bottom: -300px; left: -180px; }
-
-.tka-panel {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 1080px;
-    display: grid;
-    grid-template-columns: minmax(0, 420px) minmax(0, 1fr);
-    background: #fbfcfe;
-    border: 2px solid #1b4fb5;
-    border-radius: 22px;
-    overflow: hidden;
-    box-shadow: 0 24px 60px rgba(27, 79, 181, .13);
-}
-
-.tka-form {
-    padding: 44px 44px 48px;
-    display: flex;
-    flex-direction: column;
-}
-
-.tka-brand {
-    font-family: var(--tk-font);
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: .14em;
-    text-transform: uppercase;
-    color: #1b4fb5;
-    margin-bottom: 52px;
-}
-
-.tka-title {
-    font-family: var(--tk-font-title);
-    font-size: 44px;
-    line-height: 1.05;
-    font-weight: 600;
-    margin: 0 0 10px;
-    color: #16203a;
-}
-
-.tka-sub {
-    font-size: 13.5px;
-    line-height: 1.55;
-    color: #636e8a;
-    margin: 0 0 34px;
-    max-width: 30ch;
-}
-
-/* Underline-style input: no box border, just a bottom line. */
-.tka-field { margin-bottom: 24px; position: relative; }
-
-.tka-field label {
-    display: block;
-    font-size: 12.5px;
-    font-weight: 600;
-    color: #31405f;
-    margin-bottom: 7px;
-}
-
-.tka-field input {
-    width: 100%;
-    border: none;
-    border-bottom: 1px solid #d3dbea;
-    background: transparent;
-    padding: 7px 28px 9px 0;
-    font-size: 14.5px;
-    font-family: var(--tk-font);
-    color: #16203a;
-    outline: none;
-    transition: border-color .15s;
-}
-.tka-field input::placeholder { color: #aab3c6; }
-.tka-field input:focus { border-bottom-color: #1b4fb5; }
-
-/* Eye button to show/hide the password. 32px is still under the recommended
-   44px, but this is a secondary button next to an input that is already wide
-   enough to tap; enlarging it would collide with the underline. */
-.tka-eye {
-    position: absolute;
-    right: 0;
-    bottom: 6px;
-    width: 32px;
-    height: 32px;
-    border: none;
-    background: none;
-    color: #98a2b8;
-    cursor: pointer;
-    font-size: 15px;
-    line-height: 1;
-    padding: 0;
-}
-.tka-eye:hover { color: #1b4fb5; }
-
-.tka-btn {
-    margin-top: 10px;
-    padding: 13px 20px;
-    width: 160px;
-    border: none;
-    /* 6px: same shape as the app's primary button (App.css .ui.primary.button).
-       The button keeps its look after login. */
-    border-radius: 6px;
-    background: var(--tk-primary);
-    color: #fff;
-    font-family: var(--tk-font);
-    font-size: 12.5px;
-    font-weight: 700;
-    letter-spacing: .1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background .15s, transform .12s;
-}
-.tka-btn:hover:not(:disabled) { background: var(--tk-primary-dark); }
-.tka-btn:active:not(:disabled) { transform: translateY(1px); }
-.tka-btn:disabled { background: #a9bfe8; cursor: default; }
-
-.tka-alt {
-    margin-top: 26px;
-    font-size: 13px;
-    color: #636e8a;
-}
-.tka-alt a { color: #2f6fe4; font-weight: 600; text-decoration: none; }
-.tka-alt a:hover { text-decoration: underline; }
-
-/* Errors show inline above the button, not via alert(); alert blocks the whole
-   page and the message is gone as soon as OK is clicked. */
-.tka-err {
-    margin-bottom: 16px;
-    padding: 10px 13px;
-    border-radius: 6px;
-    background: #fdeceb;
-    border: 1px solid #f5c6c2;
-    color: #b02a20;
-    font-size: 13px;
-    line-height: 1.5;
-}
-
-.tka-art {
-    background: linear-gradient(140deg, #eef3fc 0%, #dfe9fa 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 30px;
-}
-.tka-art svg { width: 100%; height: auto; max-width: 540px; }
-
-/* Narrow screens: drop the illustration entirely instead of stacking it below;
-   on phones users need to see the inputs immediately, not scroll past art. */
-@media (max-width: 860px) {
-    .tka { padding: 0; align-items: stretch; }
-    .tka-panel {
-        grid-template-columns: 1fr;
-        max-width: 520px;
-        border-radius: 0;
-        border: none;
-        box-shadow: none;
-        background: transparent;
-    }
-    .tka-art { display: none; }
-    .tka-form { padding: 40px 26px; justify-content: center; min-height: 100vh; }
-    .tka-brand { margin-bottom: 36px; }
-    .tka-title { font-size: 36px; }
-    .tka-btn { width: 100%; }
-}
+a.vt-link:hover, .vt-link:hover { color: #000; }
