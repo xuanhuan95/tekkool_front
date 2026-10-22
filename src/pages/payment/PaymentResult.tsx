@@ -1,165 +1,122 @@
-import {useEffect, useRef, useState} from 'react';
-import Loading from '../../components/Loading';
-import {useNavigate, useSearchParams} from 'react-router-dom';
-import {Button, Header, Icon, Message, Progress, Segment} from 'semantic-ui-react';
+import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 
-import Api from "../../services/api";
-import type {Payment} from "../../types/payment";
+import {Button, ProgressBar, WaveLine, buttonClass} from '../../components/ui';
+import {POLL_TOTAL_SECONDS, usePaymentStatus} from '../../queries/payment';
+import {useWallet} from '../../queries/wallet';
+import type {Payment} from '../../types/payment';
+import {errorText, formatMoney, orderName, orderTurns} from '../pay/format';
+import '../pay/pay.css';
 
-// The bank reports back via IPN, usually 10–60 seconds after the scan. Poll for 90
-// seconds before giving up — the old version stopped at 31, just when most
-// transactions had not arrived yet.
-const TOTAL_SECONDS = 90;
+const RefreshIcon = () => <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.2'
+                               strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
+    <path d='M20 12a8 8 0 1 1-2.3-5.7'/><path d='M20 4v5h-5'/></svg>;
 
+/** Order code + package box shown on the waiting/timed-out states. */
+function OrderBox({inv, payment}: {inv: string | null; payment: Payment | null}) {
+    return <div className='vt-pay-orderbox'>
+        <div><span className='vt-muted'>Mã đơn</span><b className='vt-num'>{inv || '—'}</b></div>
+        {payment && <div><span className='vt-muted'>Gói</span>
+            <span>{orderName(payment)}{payment.amount ? ' · ' + formatMoney(payment.amount) : ''}</span></div>}
+    </div>;
+}
+
+/**
+ * SePay return page: waiting (HS-ThanhToanCho) → success / failure (HS-ThanhToanXong).
+ * Route /payment/result?inv=… is what the BE gives SePay as success/error/cancel URL — DO NOT move it.
+ * Polling is the old behaviour (every 2 s, up to 90 s); see usePaymentStatus.
+ */
 export default function PaymentResult() {
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-    const inv = searchParams.get('inv');
+    const [params] = useSearchParams();
+    const inv = params.get('inv');
+    const {payment, error, seconds, timedOut, restart} = usePaymentStatus(inv);
+    const paid = payment?.status === 'PAID';
+    const {data: wallet} = useWallet(paid);
 
-    const [payment, setPayment] = useState<Payment | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [seconds, setSeconds] = useState(0);      // how long we have waited
-    const [timedOut, setTimedOut] = useState(false);
-    const startedAt = useRef(Date.now());
-
-    useEffect(() => {
-        if (!inv) { setError('Thiếu mã đơn hàng'); return; }
-
-        // ponytail: cancelled blocks setState after leaving the page — this await loop
-        // does not stop on unmount like setInterval does, so we must guard it ourselves.
-        let cancelled = false;
-
-        // The clock runs separately from the polling loop: the customer must see the number
-        // tick every second, otherwise the screen looks frozen and they close the tab.
-        let clock = setInterval(() => {
-            if (!cancelled) setSeconds(Math.round((Date.now() - startedAt.current) / 1000));
-        }, 1000);
-
-        (async () => {
-            // Poll every 2 seconds instead of doubling each time: a growing interval makes
-            // the last wait up to 16 seconds and the customer thinks it is broken.
-            while (!cancelled && (Date.now() - startedAt.current) / 1000 < TOTAL_SECONDS) {
-                let res;
-                try {
-                    res = await Api.get('payment/status/' + inv);
-                } catch (e: any) {
-                    if (!cancelled) setError(e.error || e.message || 'Không tra cứu được đơn hàng');
-                    return;
-                }
-
-                if (cancelled) return;
-                setPayment(res);
-                if (res.status !== 'PENDING') return;
-
-                await new Promise(r => setTimeout(r, 2000));
-            }
-            if (!cancelled) setTimedOut(true);
-        })();
-
-        return () => { cancelled = true; clearInterval(clock); };
-    }, [inv]);
-
-    const isPaid = payment && payment.status === 'PAID';
-    // No response yet also counts as waiting — never leave a blank page.
     const waiting = !error && (!payment || payment.status === 'PENDING');
+    const failed = !error && payment && payment.status !== 'PENDING' && !paid;
+    const turns = payment ? orderTurns(payment) : null;
+    const packageId = payment?.items?.[0]?.target_id;
 
-    return <div className='tk-pay-result'>
-        <Segment padded='very' textAlign='center'>
-            {/* A lookup error with no way out strands the customer here — money already
-                sent and nowhere to go. Always include the order code + a link
-                to the payment history. */}
-            {error && <div>
-                <Icon name='exclamation triangle' color='red' size='huge'/>
-                <Header as='h2'>
-                    Không tra cứu được đơn
-                    <Header.Subheader>
-                        Đơn vẫn được ghi nhận. Nếu đã trừ tiền thì lượt sẽ về,
-                        xem lại ở Thanh toán của tôi.
-                    </Header.Subheader>
-                </Header>
-                <Message negative className='tk-pay-warn'>{error}</Message>
-                <Button primary onClick={() => window.location.reload()}>
-                    <Icon name='refresh'/> Thử lại
-                </Button>
-                <Button basic onClick={() => navigate('/billing')}>
-                    Thanh toán của tôi
-                </Button>
-                <div className='text-muted tk-pay-inv'>Mã đơn: {inv}</div>
-            </div>}
+    let card;
+    if (error) {
+        // Money may already be gone: never strand the student. Always show the order code + history.
+        card = <section role='alert' className='vt-card vt-card--error vt-pay-state'>
+            <span className='vt-pay-ring vt-pay-ring--err' aria-hidden='true'>!</span>
+            <h1 className='vt-pay-state-title'>Không tra cứu được đơn</h1>
+            <p className='vt-muted'>{errorText(error, 'Mất kết nối tới máy chủ.')} Đơn vẫn được ghi nhận — nếu đã trừ tiền,
+                lượt sẽ được cộng; xem lại ở Lịch sử mua gói.</p>
+            <OrderBox inv={inv} payment={payment}/>
+            <div className='vt-pay-2btn'>
+                <Button variant='primary' onClick={restart} icon={<RefreshIcon/>}>Thử lại</Button>
+                <Link to='/billing' className={buttonClass()}>Lịch sử mua gói</Link>
+            </div>
+        </section>;
+    } else if (paid) {
+        card = <section role='status' className='vt-card vt-pay-state'>
+            <span className='vt-pay-ring vt-pay-ring--ok' aria-hidden='true'>
+                <svg width='32' height='32' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.6'
+                     strokeLinecap='round' strokeLinejoin='round'><path d='M5 12.5l4.5 4.5L19 7'/></svg>
+            </span>
+            <h1 className='vt-pay-state-title'>{turns !== null ? `Đã cộng ${turns} lượt` : 'Đã cộng lượt'}</h1>
+            <span className='vt-muted'>Thanh toán thành công · {orderName(payment!)} · {formatMoney(payment!.amount)}</span>
+            {wallet && typeof wallet.remaining === 'number' &&
+                <span className='vt-pay-have'>Bạn có {wallet.remaining} lượt</span>}
+            <Link to='/exams' className={buttonClass({variant: 'primary', block: true})}>Làm đề ngay</Link>
+        </section>;
+    } else if (failed) {
+        card = <section role='alert' className='vt-card vt-card--error vt-pay-state'>
+            <span className='vt-pay-ring vt-pay-ring--err' aria-hidden='true'>
+                <svg width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.6'
+                     strokeLinecap='round'><path d='M7 7l10 10M17 7L7 17'/></svg>
+            </span>
+            <h1 className='vt-pay-state-title'>Thanh toán chưa thành công</h1>
+            <p className='vt-muted'>Giao dịch chưa hoàn tất trên SePay. Nếu tài khoản đã bị trừ tiền, hãy liên hệ hỗ trợ
+                kèm mã đơn <b className='vt-pay-ink vt-num'>{inv}</b>.</p>
+            <div className='vt-pay-2btn'>
+                <Button variant='primary' onClick={() => navigate(packageId ? '/payment/' + packageId : '/packages')}>Thử lại</Button>
+                <Link to='/packages' className={buttonClass()}>Chọn gói khác</Link>
+            </div>
+        </section>;
+    } else if (waiting && timedOut) {
+        // 90 s and nothing back: NOT a failure — the money may be charged, the IPN is just slow.
+        card = <section role='status' className='vt-card vt-pay-state'>
+            <span className='vt-pay-ring vt-pay-ring--sun' aria-hidden='true'>…</span>
+            <h1 className='vt-pay-state-title'>Ngân hàng chưa báo về</h1>
+            <p className='vt-muted'>Nếu đã trừ tiền thì đơn vẫn đang xử lý, thường xong trong vài phút — lượt sẽ tự cộng.
+                Chưa trừ tiền thì bạn có thể thanh toán lại.</p>
+            <OrderBox inv={inv} payment={payment}/>
+        </section>;
+    } else {
+        card = <section role='status' aria-live='polite' className='vt-card vt-pay-state'>
+            <span className='vt-pay-ring vt-pay-ring--sun' aria-hidden='true'>
+                <svg width='36' height='36' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8'
+                     strokeLinecap='round' strokeLinejoin='round'>
+                    <path d='M6 3h12M6 21h12'/>
+                    <path d='M7.5 3v2.5c0 2.5 4.5 4.5 4.5 6.5s-4.5 4-4.5 6.5V21M16.5 3v2.5c0 2.5-4.5 4.5-4.5 6.5s4.5 4 4.5 6.5V21'/>
+                    <path d='M9.5 19h5' stroke='var(--vt-sun)' strokeWidth='2.4'/>
+                </svg>
+            </span>
+            <h1 className='vt-pay-state-title'>Đang xác nhận thanh toán…</h1>
+            <p className='vt-muted'>Hệ thống đang kiểm tra với SePay. Thường mất dưới 1 phút. Đừng đóng trang này.</p>
+            <ProgressBar value={Math.min(seconds, POLL_TOTAL_SECONDS)} max={POLL_TOTAL_SECONDS}
+                         label={`Đã chờ ${seconds} giây`} className='vt-pay-wide'/>
+            <span className='vt-muted vt-pay-small'>Đã chờ {seconds} giây</span>
+            <OrderBox inv={inv} payment={payment}/>
+        </section>;
+    }
 
-            {waiting && !timedOut && <div>
-                {/* <Loading/> has its own size. The old `.tk-pay-spin` anchor block
-                    (height:60px) was for the position:absolute Semantic Loader —
-                    keeping it would CLIP the bottom of the 72px image + the text. */}
-                <Loading size={72}/>
-
-                <Header as='h2'>
-                    Đang chờ ngân hàng xác nhận
-                    <Header.Subheader>
-                        Đã chuyển khoản rồi thì cứ để yên trang này — tiền về là
-                        vào bài được ngay.
-                    </Header.Subheader>
-                </Header>
-
-                {/* Progress bar so the customer knows the system is working, not frozen.
-                    Without it 60 seconds of silence is enough to make people close the tab. */}
-                <Progress percent={Math.min(100, Math.round(seconds / TOTAL_SECONDS * 100))}
-                          size='small' color='blue' className='tk-pay-bar'/>
-                <div className='text-muted'>Đã chờ {seconds} giây</div>
-
-                <Message warning className='tk-pay-warn'>
-                    <Icon name='warning sign'/>
-                    Đừng đóng trang này. Đóng rồi thì vào lại{' '}
-                    <b>Thanh toán của tôi</b> để xem đơn.
-                </Message>
-            </div>}
-
-            {isPaid && <div>
-                <Icon name='check circle' color='green' size='huge'/>
-                <Header as='h2'>
-                    Thanh toán thành công
-                    <Header.Subheader>
-                        Lượt thi đã được cộng vào tài khoản, chọn đề là làm được ngay.
-                    </Header.Subheader>
-                </Header>
-                {/* After buying a package there is no EXAM to jump straight into — a package
-                    works for every exam. Go to the exam picker instead of guessing one. */}
-                <Button primary size='large' onClick={() => navigate('/')}>
-                    <Icon name='play'/> Chọn đề để làm
-                </Button>
-            </div>}
-
-            {/* 90 seconds up and nothing back: do NOT conclude failure — the money may
-                already be charged, IPN is just slow. State the real situation and offer a way to re-check. */}
-            {waiting && timedOut && <div>
-                <Icon name='clock outline' color='yellow' size='huge'/>
-                <Header as='h2'>
-                    Ngân hàng chưa báo về
-                    <Header.Subheader>
-                        Nếu đã trừ tiền thì đơn vẫn đang chạy, thường về trong vài
-                        phút. Chưa trừ tiền thì quét lại mã là được.
-                    </Header.Subheader>
-                </Header>
-                <Button primary onClick={() => window.location.reload()}>
-                    <Icon name='refresh'/> Kiểm tra lại
-                </Button>
-                <Button basic onClick={() => navigate('/billing')}>
-                    Xem đơn của tôi
-                </Button>
-                <div className='text-muted tk-pay-inv'>Mã đơn: {inv}</div>
-            </div>}
-
-            {payment && !isPaid && payment.status !== 'PENDING' && <div>
-                <Icon name='times circle' color='red' size='huge'/>
-                <Header as='h2'>
-                    Thanh toán không thành công
-                    <Header.Subheader>Chưa trừ tiền. Thử lại được.</Header.Subheader>
-                </Header>
-                <Button primary onClick={() => navigate('/packages')}>
-                    <Icon name='redo'/> Chọn gói và thử lại
-                </Button>
-                <div className='text-muted tk-pay-inv'>Mã đơn: {inv}</div>
-            </div>}
-        </Segment>
-    </div>
+    return <div className='vt-paper vt-shell vt-pay-full'>
+        <header className='vt-pay-bar'>
+            <div className='vt-pay-bar-row'><span className='vt-logo'>viettestpro</span></div>
+            <WaveLine variant='mobile'/>
+        </header>
+        <main className='vt-pay-main vt-pay-main--center'>
+            {card}
+            {waiting && !error && <>
+                <Button variant='secondary' block onClick={restart} icon={<RefreshIcon/>}>Kiểm tra lại</Button>
+                <Link to='/billing' className={buttonClass({variant: 'ghost'}) + ' vt-pay-center'}>Xem lịch sử mua gói</Link>
+            </>}
+        </main>
+    </div>;
 }

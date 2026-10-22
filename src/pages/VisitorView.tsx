@@ -9,7 +9,7 @@ import PaymentResult from './payment/PaymentResult';
 import Dashboard from './dashboard/Dashboard';
 import Profile from './my/Profile';
 import MySubmissions from './my/MySubmissions';
-import Billing from './my/Billing';
+import PurchaseHistory from './pay/PurchaseHistory';
 
 export default function VisitorView() {
     return (
@@ -24,7 +24,7 @@ export default function VisitorView() {
               <Route path='/payment/:packageId' element={<Payment/>}/>
               <Route path='/profile' element={<Profile/>}/>
               <Route path='/my-exams' element={<MySubmissions/>}/>
-              <Route path='/billing' element={<Billing/>}/>
+              <Route path='/billing' element={<PurchaseHistory/>}/>
               <Route path='/subject/:subjectId' element={<Dashboard/>}/>
             </Routes>
         </div>
