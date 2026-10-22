@@ -28,7 +28,18 @@ export type Submission = {
      * return it, since a student viewing their own submission does not need their own name.
      */
     student?: string | null;
+    /** SPT-60 (my_submissions, submission): subject of the original exam. */
+    subject?: SubjectRef | null;
+    /** SPT-60: original exam when this attempt was drawn from a bank (exam_id is then the copy). */
+    origin_exam_id?: string | null;
+    /** SPT-60: exam duration in minutes (0 = no limit). */
+    duration_min?: number | null;
+    /** SPT-60 (submit, submission): points this attempt really adds to the weekly board. */
+    ranking_contribution?: number | null;
 };
+
+/** Subject (root folder) of the ORIGINAL exam — SPT-60. id is null for a bank exam outside folders. */
+export type SubjectRef = {id: string | null; name: string | null};
 
 export type SubmissionStatus = 'GRADING' | 'GRADED';
 
@@ -48,6 +59,11 @@ export type ScoreSection = {
  */
 export type SubmissionAnswer = {
     question_id: string;
+    /** Question type at submit time (MultipleChoice, TrueFalse, ShortAnswer, FillBlank, FreeAnswer...). */
+    type?: string;
+    /** Part title snapshotted at submit ("Phần I", teacher's title...). */
+    section_name?: string | null;
+    block_type?: string | null;
     question_text?: string;
     /** The student's work: option id (multiple choice) or HTML (essay). */
     answer?: string | null;
@@ -57,6 +73,8 @@ export type SubmissionAnswer = {
     /** Machine-gradable (multiple choice, fill-in-the-blank) -> teachers do not edit by hand. */
     auto_graded?: boolean;
     comment?: string | null;
+    /** SPT-60: lời giải (HTML), only after submitting. */
+    explanation?: string | null;
     /** Correct answer as text, only present on machine-graded questions. */
     correct?: string | null;
     correct_id?: string | null;

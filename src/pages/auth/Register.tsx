@@ -1,120 +1,85 @@
 import {useState} from 'react';
-import type {ChangeEvent, FormEvent} from 'react';
+import type {FormEvent} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 
 import Api from '../../services/api';
 import {useAuthStore} from '../../stores/authStore';
-import type {User} from '../../types/user';
-import AuthArt from './AuthArt';
-import './auth.css';
+import {Button, PasswordField, TextField} from '../../components/ui';
+import {IconAlert} from '../../components/ui/icons';
+import {homeFor, loginWithRetry, MIN_PASSWORD, registerErrorMessage, validateRegister} from './authLogic';
+import type {LoginResult, RegisterErrors, RegisterForm} from './authLogic';
+import AuthFrame from './AuthFrame';
 
-const MIN_PASSWORD = 6;   // matches the BE constraint in apis/me.py
+const EMPTY: RegisterForm = {name: '', email: '', password: '', password2: '', agree: false};
 
-type LoginResult = User & {token: string; error?: string};
-
+/** HS-DangKy (design D). Public sign-up is always a student (BE ignores ?type). */
 export default function Register() {
     const navigate = useNavigate();
-    const token = useAuthStore(s => s.token);
     const signIn = useAuthStore(s => s.signIn);
+    const init = useAuthStore(s => s.init);
 
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [show, setShow] = useState(false);
+    const [form, setForm] = useState<RegisterForm>(EMPTY);
+    const [errors, setErrors] = useState<RegisterErrors>({});
     const [err, setErr] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
 
-    const doRegister = async (e: FormEvent) => {
+    const set = <K extends keyof RegisterForm>(k: K, v: RegisterForm[K]) => {
+        setForm(f => ({...f, [k]: v}));
+        setErrors(e => ({...e, [k]: undefined}));
+        setErr(null);
+    };
+
+    const submit = async (e: FormEvent) => {
         e.preventDefault();
         if (busy) return;
-
-        if (!name.trim() || !email.trim() || !password)
-            return setErr('Nhập đủ họ tên, email và mật khẩu.');
-        if (password.length < MIN_PASSWORD)
-            return setErr('Mật khẩu cần ít nhất ' + MIN_PASSWORD + ' ký tự.');
+        const v = validateRegister(form);
+        setErrors(v);
+        if (Object.values(v).some(Boolean)) return;
 
         setBusy(true);
         setErr(null);
+        const email = form.email.trim();
         try {
-            // Do NOT pass ?type — the BE defaults to 'student'. The old version sent
-            // type=teacher when landing directly on /register, meaning anyone opening that link
-            // granted themselves teacher rights. Teacher accounts are created
-            // by hand following the procedure in CLAUDE.md.
-            const user = await Api.post<{error?: string}>('user/register?token=' + token,
-                {email: email.trim(), password, name: name.trim()});
-
-            if (user.error) { setErr(user.error); setBusy(false); return; }
-
-            // Log in right after registering: making them retype what they just typed is pointless.
-            const logged = await Api.post<LoginResult>('session/login',
-                {email: email.trim(), password});
-            if (logged.error) {
-                // The account was created, only the login step failed — send them to the login
-                // screen rather than report "registration failed", which would be untrue.
-                navigate('/');
-                return;
-            }
-            signIn(logged.token, logged);
-        } catch (ex: any) {
-            setErr((ex && (ex.error || ex.message)) || 'Không đăng ký được.');
+            await Api.post('user/register', {email, password: form.password, name: form.name.trim()});
+        } catch (ex) {
+            setErr(registerErrorMessage(ex));
             setBusy(false);
+            return;
+        }
+        // Signed up: log in right away instead of making them type it again.
+        try {
+            const user = await loginWithRetry(
+                () => Api.post<LoginResult>('session/login', {email, password: form.password}), init);
+            signIn(user.token, user);
+            navigate(homeFor(user.group), {replace: true});
+        } catch {
+            // The account exists; only the auto-login failed — send them to the login screen, not "sign-up failed".
+            navigate('/', {replace: true});
         }
     };
 
-    const set = (setter: (v: string) => void) => (e: ChangeEvent<HTMLInputElement>) => {
-        setter(e.target.value);
-        setErr(null);
-    };
-
-    return <div className='tka'>
-        <div className='tka-panel'>
-            <form className='tka-form' onSubmit={doRegister}>
-                <div className='tka-brand'>Thi thử SPT</div>
-
-                <h1 className='tka-title'>Đăng ký</h1>
-                <p className='tka-sub'>
-                    Tạo tài khoản để bắt đầu luyện đề thi thử.
-                </p>
-
-                {err && <div className='tka-err' role='alert'>{err}</div>}
-
-                <div className='tka-field'>
-                    <label htmlFor='name'>Họ và tên</label>
-                    <input id='name' name='name' type='text' autoComplete='name'
-                           placeholder='Nguyễn Văn A' value={name}
-                           onChange={set(setName)} autoFocus/>
-                </div>
-
-                <div className='tka-field'>
-                    <label htmlFor='email'>Email</label>
-                    <input id='email' name='email' type='email' autoComplete='username'
-                           placeholder='ban@email.com' value={email}
-                           onChange={set(setEmail)}/>
-                </div>
-
-                <div className='tka-field'>
-                    <label htmlFor='password'>Mật khẩu</label>
-                    <input id='password' name='password' autoComplete='new-password'
-                           type={show ? 'text' : 'password'}
-                           placeholder={'Ít nhất ' + MIN_PASSWORD + ' ký tự'} value={password}
-                           onChange={set(setPassword)}/>
-                    <button type='button' className='tka-eye'
-                            aria-label={show ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                            onClick={() => setShow(!show)}>
-                        <i className={'icon ' + (show ? 'eye slash' : 'eye')}/>
-                    </button>
-                </div>
-
-                <button className='tka-btn' type='submit' disabled={busy}>
-                    {busy ? 'Đang tạo…' : 'Đăng ký'}
-                </button>
-
-                <div className='tka-alt'>
-                    Đã có tài khoản? <Link to='/'>Đăng nhập</Link>
-                </div>
-            </form>
-
-            <div className='tka-art'><AuthArt/></div>
-        </div>
-    </div>;
+    return <AuthFrame title='Tạo tài khoản' subtitle='Chỉ mất một phút để bắt đầu luyện đề.'
+                      footer={<><span className='vt-muted'>Đã có tài khoản?</span>
+                          <Link to='/' className='vt-link'>Đăng nhập</Link></>}>
+        <form className='vt-auth-form' onSubmit={submit} noValidate>
+            {err && <div role='alert' className='vt-auth-alert'><IconAlert size={18}/><span>{err}</span></div>}
+            <TextField label='Họ và tên' name='name' autoComplete='name' value={form.name} autoFocus
+                       placeholder='Nguyễn Minh Anh' error={errors.name} onChange={e => set('name', e.target.value)}/>
+            <TextField label='Email' type='email' name='email' autoComplete='email' value={form.email}
+                       placeholder='ban@email.com' error={errors.email} onChange={e => set('email', e.target.value)}/>
+            <PasswordField label='Mật khẩu' name='password' autoComplete='new-password' value={form.password}
+                           hint={'Ít nhất ' + MIN_PASSWORD + ' ký tự.'} error={errors.password}
+                           onChange={e => set('password', e.target.value)}/>
+            <PasswordField label='Nhập lại mật khẩu' name='password2' autoComplete='new-password' value={form.password2}
+                           error={errors.password2} onChange={e => set('password2', e.target.value)}/>
+            <label className='vt-auth-check'>
+                <input type='checkbox' name='agree' checked={form.agree} aria-invalid={errors.agree ? true : undefined}
+                       onChange={e => set('agree', e.target.checked)}/>
+                {/* ponytail: no terms/privacy pages exist yet — plain text until they do (see report). */}
+                <span>Tôi đồng ý với điều khoản sử dụng và chính sách bảo mật.</span>
+            </label>
+            {errors.agree && <span className='vt-auth-check-err' role='alert'>{errors.agree}</span>}
+            <Button type='submit' variant='primary' block loading={busy} loadingText='Đang tạo…'>Tạo tài khoản</Button>
+        </form>
+    </AuthFrame>;
 }

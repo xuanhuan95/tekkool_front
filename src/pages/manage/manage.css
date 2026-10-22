@@ -1,0 +1,95 @@
+/* Admin screens /manage/* (SPT-27, SPT-23, SPT-47): AD-GiaoVien, AD-TaoGiaoVien, AD-Goi, AD-DoanhThu,
+   AD-NguoiDung, AD-GiaoDich. Tokens only (--vt-*). */
+
+.vt-mg-page { display: flex; flex-direction: column; gap: 16px; }
+.vt-mg-stack { display: flex; flex-direction: column; gap: 14px; }
+.vt-mg-small { font-size: 13px; }
+.vt-mg-err { color: var(--vt-err); font-size: 14px; font-weight: 600; }
+.vt-mg-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px 16px; flex-wrap: wrap; }
+.vt-mg-head p { margin-top: 4px; font-size: 14px; }
+.vt-mg-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.vt-mg-filters > .vt-field { flex: 1 1 180px; max-width: 320px; }
+.vt-mg-filters > .vt-field:first-child { flex-basis: 260px; }
+
+.vt-mg-person { display: inline-flex; align-items: center; gap: 10px; }
+.vt-mg-tags { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.vt-mg-actions { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+.vt-mg-link { font: inherit; font-weight: 600; color: var(--vt-ink); background: none; border: 0; padding: 0; text-decoration: underline;
+    text-underline-offset: 3px; cursor: pointer; min-height: 32px; text-align: left; }
+
+.vt-mg-pager { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+.vt-mg-pager-btns { display: inline-flex; gap: 8px; }
+
+.vt-mg-fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.vt-mg-pwrow { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+.vt-mg-pwrow > .vt-field { flex: 1 1 220px; }
+.vt-mg-pwrow > .vt-btn { margin-top: 24px; }
+.vt-mg-pw { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 14px; background: var(--vt-paper);
+    border: 1.5px solid var(--vt-line-soft); border-radius: var(--vt-r-btn); }
+.vt-mg-pw code { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 20px; font-weight: 700; letter-spacing: .04em; flex-grow: 1; word-break: break-all; }
+
+/* Sub navigation: Quản lý gói · Doanh thu */
+.vt-mg-subnav { display: inline-flex; background: var(--vt-tab-track); border-radius: 999px; padding: 4px; gap: 4px; align-self: flex-start; }
+.vt-mg-subnav a { font-family: var(--vt-font-hand); font-weight: 700; font-size: 18px; color: var(--vt-muted); text-decoration: none;
+    border: 2px solid transparent; border-radius: 999px; padding: 3px 14px; min-height: 36px; box-sizing: border-box; display: inline-flex; align-items: center; }
+.vt-mg-subnav a[aria-current='page'] { background: var(--vt-card); border-color: var(--vt-ink); color: var(--vt-ink); }
+
+/* Stat cards (Doanh thu, Giao dịch) */
+.vt-mg-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.vt-mg-stat { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; }
+.vt-mg-stat-label { font-size: 13px; font-weight: 600; color: var(--vt-muted); }
+.vt-mg-stat-value { font-family: var(--vt-font-hand); font-weight: 700; font-size: 32px; line-height: 1.05; }
+.vt-mg-stat-sub { font-size: 13px; color: var(--vt-muted); }
+.vt-mg-up { color: var(--vt-ok-ink); font-weight: 600; }
+.vt-mg-down { color: var(--vt-err); font-weight: 600; }
+
+/* Side panel (detail, edit form) */
+.vt-mg-side { display: flex; flex-direction: column; gap: 14px; }
+.vt-mg-dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 14px; }
+.vt-mg-dl dt { color: var(--vt-muted); }
+.vt-mg-dl dd { margin: 0; font-weight: 600; word-break: break-word; }
+.vt-mg-sep { border: 0; border-top: 1.5px solid var(--vt-line-soft); margin: 2px 0; width: 100%; }
+.vt-mg-section-title { font-family: var(--vt-font-hand); font-weight: 700; font-size: 20px; line-height: 1.1; }
+.vt-mg-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; }
+.vt-mg-row small { display: block; font-size: 12px; color: var(--vt-muted); }
+
+/* Chart (AD-DoanhThu): CSS bars, no chart library */
+.vt-mg-chart { display: flex; gap: 10px; }
+.vt-mg-chart-axis { display: flex; flex-direction: column; justify-content: space-between; height: 240px; font-size: 12px; color: var(--vt-muted);
+    text-align: right; min-width: 40px; transform: translateY(-7px); }
+.vt-mg-chart-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.vt-mg-chart-plot { position: relative; height: 240px; }
+.vt-mg-chart-grid { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--vt-line-soft); }
+.vt-mg-chart-base { position: absolute; left: 0; right: 0; bottom: 0; border-top: var(--vt-border); }
+.vt-mg-chart-bars { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: var(--gap, 4%); padding: 0 1%; }
+.vt-mg-bar { flex: 1 1 0; min-width: 0; position: relative; background: var(--vt-action); border: var(--vt-border); border-bottom: 0;
+    border-radius: 8px 5px 0 0 / 5px 8px 0 0; box-sizing: border-box; }
+.vt-mg-bar--zero { border: 0; }
+.vt-mg-bar--max { background: var(--vt-sun); }
+.vt-mg-bar--now { border-style: dashed; }
+.vt-mg-bar > span { position: absolute; bottom: 100%; left: -10px; right: -10px; text-align: center; font-size: 12px; font-weight: 600; padding-bottom: 4px; }
+.vt-mg-chart-labels { display: flex; gap: var(--gap, 4%); padding: 0 1%; font-size: 12px; color: var(--vt-muted); text-align: center; }
+.vt-mg-chart-labels > span { flex: 1 1 0; min-width: 0; overflow: hidden; white-space: nowrap; }
+.vt-mg-chart-labels > .now { color: var(--vt-ink); font-weight: 600; }
+.vt-mg-hbar { height: 8px; border-radius: 999px; background: var(--vt-track); overflow: hidden; }
+.vt-mg-hbar > span { display: block; height: 100%; background: var(--vt-sun); border-radius: 999px; }
+
+/* Package edit (AD-Goi) */
+.vt-mg-order { display: inline-flex; align-items: center; gap: 4px; }
+.vt-mg-order .vt-btn { width: 36px; min-height: 36px; height: 36px; padding: 0; }
+.vt-mg-form-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+.vt-mg-preview-label { font-size: 13px; font-weight: 600; color: var(--vt-muted); }
+
+/* Transaction detail */
+.vt-mg-timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.vt-mg-timeline li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
+.vt-mg-dot { width: 14px; height: 14px; flex-shrink: 0; margin-top: 3px; border: var(--vt-border); border-radius: 999px; background: var(--vt-action); box-sizing: border-box; }
+.vt-mg-dot--ok { background: var(--vt-ok-bg); border-color: var(--vt-ok-ink); }
+.vt-mg-timeline small { display: block; color: var(--vt-muted); font-size: 13px; }
+.vt-mg-alert { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; font-size: 14px; color: var(--vt-err); background: var(--vt-err-bg);
+    border: 1.5px solid var(--vt-err); border-radius: var(--vt-r-btn); }
+.vt-mg-raw summary { cursor: pointer; font-weight: 600; font-size: 14px; min-height: 32px; display: flex; align-items: center; }
+.vt-mg-raw pre { margin: 6px 0 0; max-height: 280px; overflow: auto; font-size: 12px; line-height: 1.5; background: var(--vt-paper);
+    border: 1.5px solid var(--vt-line-soft); border-radius: var(--vt-r-btn); padding: 10px 12px; white-space: pre-wrap; word-break: break-all; }
+.vt-mg-soon { font-size: 12px; color: var(--vt-muted); }
+.vt-mg-msg { font-size: 13px; color: var(--vt-muted); max-width: 360px; }

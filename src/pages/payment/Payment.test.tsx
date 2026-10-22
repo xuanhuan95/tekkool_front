@@ -1,6 +1,7 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import Api from '../../services/api';
 import Payment from './Payment';
@@ -43,9 +44,13 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 const renderPage = () => render(
-    <MemoryRouter initialEntries={['/payment/P1']}>
-        <Routes><Route path='/payment/:packageId' element={<Payment/>}/></Routes>
-    </MemoryRouter>);
+    <QueryClientProvider client={new QueryClient({defaultOptions: {queries: {retry: false}}})}>
+        <MemoryRouter initialEntries={['/payment/P1']}>
+            <Routes><Route path='/payment/:packageId' element={<Payment/>}/></Routes>
+        </MemoryRouter>
+    </QueryClientProvider>);
+
+const payButton = () => screen.getByRole('button', {name: /Thanh toán 200\.000đ/});
 
 /** Fields in the submitted form, in exact DOM order. */
 const submittedFields = (): Array<[string, string]> =>
@@ -55,7 +60,7 @@ const submittedFields = (): Array<[string, string]> =>
 const clickPay = async () => {
     renderPage();
     await screen.findByText('Nâng cao');
-    fireEvent.click(screen.getByText('Thanh toán').closest('button')!);
+    fireEvent.click(payButton());
     await waitFor(() => expect(submitCount).toBe(1));
 };
 
@@ -63,9 +68,8 @@ describe('Payment — pushing the order to SePay', () => {
     it('shows the right package before paying', async () => {
         renderPage();
         await screen.findByText('Nâng cao');
-        expect(screen.getByText('10 lượt')).toBeTruthy();
-        // toLocaleString('vi-VN') gives '200.000 đ'
-        expect(screen.getByText(/200[.,]000\s*đ/)).toBeTruthy();
+        expect(screen.getByText('+10 lượt')).toBeTruthy();
+        expect(screen.getAllByText('200.000đ').length).toBeGreaterThan(0);
     });
 
     it('keeps field order EXACTLY — reordering breaks the signature', async () => {
@@ -97,7 +101,7 @@ describe('Payment — pushing the order to SePay', () => {
     it('rapid clicks create only ONE order', async () => {
         renderPage();
         await screen.findByText('Nâng cao');
-        const button = screen.getByText('Thanh toán').closest('button')!;
+        const button = payButton();
         fireEvent.click(button);
         fireEvent.click(button);
         fireEvent.click(button);
@@ -109,18 +113,17 @@ describe('Payment — pushing the order to SePay', () => {
         (Api.post as any).mockRejectedValue({error: 'Gói này đã ngừng bán'});
         renderPage();
         await screen.findByText('Nâng cao');
-        fireEvent.click(screen.getByText('Thanh toán').closest('button')!);
+        fireEvent.click(payButton());
         await screen.findByText('Gói này đã ngừng bán');
         expect(submitCount).toBe(0);
         // After the error is shown the button must be clickable again, not stuck loading.
-        expect(screen.getByText('Thanh toán').closest('button')!
-            .hasAttribute('disabled')).toBe(false);
+        expect(payButton().getAttribute('aria-busy')).toBeNull();
     });
 
     it('unknown package shows an error, no pay button', async () => {
         (Api.get as any).mockResolvedValue([]);
         renderPage();
         await screen.findByText('Không tìm thấy gói này');
-        expect(screen.queryByText('Thanh toán')).toBeNull();
+        expect(screen.queryByRole('button', {name: /Thanh toán/})).toBeNull();
     });
 });
