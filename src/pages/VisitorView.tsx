@@ -1,7 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import TopToolbar from './TopToolbar'
 
-import DoExam from './exam-creation/DoExam';
+import TakeExam from './exam/TakeExam';
 import Payment from './payment/Payment';
 import PaymentResult from './payment/PaymentResult';
 import Dashboard from './dashboard/Dashboard';
@@ -15,7 +15,7 @@ export default function VisitorView() {
             <TopToolbar />
             <Routes>
               <Route path='/' element={<Dashboard/>}/>
-              <Route path='/do-exam/:examId' element={<DoExam/>}/>
+              <Route path='/do-exam/:examId' element={<TakeExam/>}/>
               <Route path='/payment/result' element={<PaymentResult/>}/>
               <Route path='/payment/:packageId' element={<Payment/>}/>
               <Route path='/profile' element={<Profile/>}/>
