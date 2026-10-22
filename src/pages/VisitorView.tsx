@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import TopToolbar from './TopToolbar'
 
 import TakeExam from './exam/TakeExam';
@@ -8,7 +8,7 @@ import Payment from './payment/Payment';
 import PaymentResult from './payment/PaymentResult';
 import Dashboard from './dashboard/Dashboard';
 import Profile from './my/Profile';
-import MySubmissions from './my/MySubmissions';
+import HistoryPage from './exam/HistoryPage';
 import PurchaseHistory from './pay/PurchaseHistory';
 
 export default function VisitorView() {
@@ -25,7 +25,8 @@ export default function VisitorView() {
               <Route path='/payment/result' element={<PaymentResult/>}/>
               <Route path='/payment/:packageId' element={<Payment/>}/>
               <Route path='/profile' element={<Profile/>}/>
-              <Route path='/my-exams' element={<MySubmissions/>}/>
+              <Route path='/my-exams' element={<Navigate to='/history' replace/>}/>
+              <Route path='/history' element={<HistoryPage/>}/>
               <Route path='/billing' element={<PurchaseHistory/>}/>
               <Route path='/subject/:subjectId' element={<Dashboard/>}/>
             </Routes>

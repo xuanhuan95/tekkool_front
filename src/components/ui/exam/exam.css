@@ -377,7 +377,4 @@
 
 /* Exam page while loading / on error */
 .vt-exam-status { display: flex; flex-direction: column; gap: 14px; padding-top: 24px; max-width: 560px; }
-.vt-out-icon {
-    width: 56px; height: 56px; box-sizing: border-box; border: var(--vt-border); border-radius: 999px;
-    background: var(--vt-action); display: flex; align-items: center; justify-content: center; margin-bottom: 12px;
-}
+

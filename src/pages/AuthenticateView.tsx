@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 
 import Dashboard from './dashboard/Dashboard';
 import CreateExam from './exam-creation/CreateExam';
@@ -31,6 +31,12 @@ import Loading from '../components/Loading';
 // Admin area /manage/* (SPT-27/23/47): own layout, own chunk.
 const ManageApp = lazy(() => import('./manage/ManageApp'));
 
+
+/** Old student links /my-exams/:id → the design-D result screen. */
+function ToResult() {
+    const {id} = useParams();
+    return <Navigate to={'/result/' + id} replace/>;
+}
 
 export default function AuthenticateView() {
     const group = useAuthStore(s => s.user?.group);
@@ -68,8 +74,9 @@ export default function AuthenticateView() {
               <Route path='/draw-exam/bank/:bankId' element={<DrawExam/>}/>
               <Route path='/question-bank' element={<BankList/>}/>
               <Route path='/packages' element={<Packages/>}/>
-              <Route path='/my-exams' element={<MySubmissions/>}/>
-              <Route path='/my-exams/:id' element={<SubmissionDetail/>}/>
+              {/* Students: the old list moved to /history (HS-LichSu); teachers keep the old screen. */}
+              <Route path='/my-exams' element={isTeacher ? <MySubmissions/> : <Navigate to='/history' replace/>}/>
+              <Route path='/my-exams/:id' element={isTeacher ? <SubmissionDetail/> : <ToResult/>}/>
               <Route path='/to-grade' element={<ToGrade/>}/>
               <Route path='/to-grade/:examId' element={<ToGrade/>}/>
               <Route path='/billing' element={<PurchaseHistory/>}/>

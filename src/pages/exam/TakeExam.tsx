@@ -1,8 +1,8 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useLocation, useNavigate, useParams} from 'react-router-dom';
 
-import {Button, ErrorState, Modal, SkeletonCard} from '../../components/ui';
-import {IconTicket} from '../../components/ui/icons';
+import {Button, ErrorState, SkeletonCard} from '../../components/ui';
+import OutOfTurnsModal from '../../components/OutOfTurnsModal';
 import {fetchDuringTest, isRecentSubmission} from '../../queries/examSession';
 import type {ApiError} from '../../services/api';
 import type {TestExam} from '../../types/exam';
@@ -50,14 +50,7 @@ function loadErrorMessage(e: unknown): string {
 function OutOfTurns({examId}: {examId: string}) {
     const navigate = useNavigate();
     return <div className='vt-plain vt-exam'>
-        <Modal open title='Bạn đã hết lượt thi' onClose={() => navigate('/exams/' + examId)}
-               footer={<>
-                   <Button variant='secondary' onClick={() => navigate('/exams/' + examId)}>Để sau</Button>
-                   <Button variant='primary' onClick={() => navigate('/packages')}>Xem gói thi</Button>
-               </>}>
-            <span className='vt-out-icon' aria-hidden='true'><IconTicket size={30}/></span>
-            <p>Mua thêm gói để tiếp tục. Lượt không hết hạn.</p>
-        </Modal>
+        <OutOfTurnsModal open onClose={() => navigate('/exams/' + examId)}/>
     </div>;
 }
 
