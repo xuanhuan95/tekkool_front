@@ -7,14 +7,13 @@ import ImportExam from './exam-creation/ImportExam';
 import DrawExam from './exam-creation/DrawExam';
 import CreateFromBank from './exam-creation/CreateFromBank';
 import BankList from './question-bank/BankList';
-import PackageList from './package/PackageList';
 import MySubmissions from './my/MySubmissions';
 import SubmissionDetail from './my/SubmissionDetail';
 import ToGrade from './my/ToGrade';
-import Billing from './my/Billing';
+import PurchaseHistory from './pay/PurchaseHistory';
 import Profile from './my/Profile';
 import Payment from './payment/Payment';
-import StudentPackages from './student/StudentPackages';
+import Packages from './pay/Packages';
 import PaymentResult from './payment/PaymentResult';
 import TopToolbar from './TopToolbar'
 import StudentShell from './student/StudentShell';
@@ -39,12 +38,12 @@ export default function AuthenticateView() {
               <Route path='/draw-exam/:subject' element={<DrawExam/>}/>
               <Route path='/draw-exam/bank/:bankId' element={<DrawExam/>}/>
               <Route path='/question-bank' element={<BankList/>}/>
-              <Route path='/packages' element={isTeacher ? <PackageList/> : <StudentPackages/>}/>
+              <Route path='/packages' element={<Packages/>}/>
               <Route path='/my-exams' element={<MySubmissions/>}/>
               <Route path='/my-exams/:id' element={<SubmissionDetail/>}/>
               <Route path='/to-grade' element={<ToGrade/>}/>
               <Route path='/to-grade/:examId' element={<ToGrade/>}/>
-              <Route path='/billing' element={<Billing/>}/>
+              <Route path='/billing' element={<PurchaseHistory/>}/>
               <Route path='/profile' element={<Profile/>}/>
               <Route path='/payment/result' element={<PaymentResult/>}/>
               <Route path='/payment/:packageId' element={<Payment/>}/>
