@@ -1,6 +1,7 @@
 import type {Submission, SubmissionAnswer, SubmissionDetail} from '../../types/submission';
 import {formatDecimal, kindOf} from './paper';
 import type {QuestionKind} from './paper';
+import {stripQuestionLabel, stripStatementLabel} from './stripLabel';
 
 /*
  * Pure helpers for the result (HS-KetQua), review (HS-XemLai) and history (HS-LichSu) screens.
@@ -117,16 +118,17 @@ export function buildReview(answers: SubmissionAnswer[]): ReviewItem[] {
                     group.push(n);
                 }
             }
-            const statements = group.map((g, k) => ({
-                key: String.fromCharCode(97 + k), html: g.question_text || '',
-                answer: toBool(g.answer), correct: toBool(g.correct), ok: statementOk(g),
-            }));
+            const statements = group.map((g, k) => {
+                const key = String.fromCharCode(97 + k);
+                return {key, html: stripStatementLabel(g.question_text, key),
+                        answer: toBool(g.answer), correct: toBool(g.correct), ok: statementOk(g)};
+            });
             const score = group.reduce((t, g) => t + (g.score || 0), 0);
             const maxScore = group.reduce((t, g) => t + (g.max_score || 0), 0);
             const okCount = statements.filter(s => s.ok).length;
             out.push({
                 number, kind, sectionName,
-                prompt: group.length > 1 || a.passage ? (a.passage || '') : '',
+                prompt: group.length > 1 || a.passage ? stripQuestionLabel(a.passage) : '',
                 passage: null, score: Math.round(score * 10000) / 10000, maxScore,
                 status: okCount === statements.length ? 'correct' : okCount === 0 ? 'wrong' : 'partial',
                 options: [], statements, answer: '', correctText: null, comment: a.comment || null,
@@ -140,7 +142,7 @@ export function buildReview(answers: SubmissionAnswer[]): ReviewItem[] {
         const pending = a.score === null || a.score === undefined;
         out.push({
             number, kind, sectionName,
-            prompt: a.question_text || '',
+            prompt: stripQuestionLabel(a.question_text),
             passage,
             score: pending ? null : a.score,
             maxScore: a.max_score,

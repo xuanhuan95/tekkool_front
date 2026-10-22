@@ -118,3 +118,14 @@ it('dates from BE are UTC without Z; minutes round up', () => {
     expect(formatMinutes(4920)).toBe('82 phút');
     expect(formatMinutes(0)).toBe('—');
 });
+
+it('review strips imported labels like the exam page', () => {
+    const items = buildReview([
+        {question_id: 'X', type: 'TrueFalse', section_name: 'II', question_text: 'a) f(1) = 0', passage: 'Câu 1. Cho f',
+         passage_id: 'P', answer: 'true', correct: 'true', score: 0.25, max_score: 0.25},
+        {question_id: 'Y', type: 'TrueFalse', section_name: 'II', question_text: 'b) f(2) = 0', passage: 'Câu 1. Cho f',
+         passage_id: 'P', answer: 'true', correct: 'true', score: 0.25, max_score: 0.25},
+    ]);
+    expect(items[0].prompt).toBe('Cho f');
+    expect(items[0].statements.map(s => s.html)).toEqual(['f(1) = 0', 'f(2) = 0']);
+});

@@ -116,3 +116,14 @@ it('formatDecimal uses the Vietnamese comma', () => {
     expect(formatDecimal(7.256)).toBe('7,26');
     expect(formatDecimal(2)).toBe('2');
 });
+
+it('imported labels ("Câu 1.", "a)") are not shown twice (QC B3)', () => {
+    const p = buildPaper({id: 'E', sections: [{id: 'S', questions: [
+        ...['a', 'b', 'c', 'd'].map(k => ({id: 'T' + k, type: 'TrueFalse',
+            data: {question: `<p>${k}) ý ${k}</p>`, passage: '<p>Câu 1. Cho hàm số f</p>', passageId: 'P'}})),
+        {id: 'M', type: 'MultipleChoice', data: {question: '<p><b>Câu 2:</b> Tính</p>', answers: []}},
+    ]}]});
+    expect(p.questions[0].prompt).toBe('<p>Cho hàm số f</p>');
+    expect(p.questions[0].statements.map(s => s.html)).toEqual(['<p>ý a</p>', '<p>ý b</p>', '<p>ý c</p>', '<p>ý d</p>']);
+    expect(p.questions[1].prompt).toBe('<p><b></b>Tính</p>');
+});

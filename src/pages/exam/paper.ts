@@ -1,5 +1,6 @@
 import type {TestExam, TestQuestion, TestSection} from '../../types/exam';
 import type {TrueFalseValue} from '../../components/ui';
+import {stripQuestionLabel, stripStatementLabel} from './stripLabel';
 
 /*
  * Turns `exam/during_test` into the SPT paper the student sees, and maps answers both ways.
@@ -146,11 +147,12 @@ export function buildPaper(exam: TestExam): Paper {
                 questions.push({
                     ...base,
                     questionIds: group.map(x => x.id),
-                    prompt: grouped ? String(q.data.passage || '') : '',
+                    prompt: grouped ? stripQuestionLabel(q.data.passage) : '',
                     options: [],
-                    statements: group.map((x, k) => ({
-                        key: String.fromCharCode(97 + k), questionId: x.id, html: String(x.data.question || ''),
-                    })),
+                    statements: group.map((x, k) => {
+                        const key = String.fromCharCode(97 + k);
+                        return {key, questionId: x.id, html: stripStatementLabel(x.data.question, key)};
+                    }),
                     maxScore: scores.every(s => s !== null) ? scores.reduce((t, s) => t + (s as number), 0) : null,
                 });
                 i += group.length;
@@ -159,7 +161,7 @@ export function buildPaper(exam: TestExam): Paper {
             questions.push({
                 ...base,
                 questionIds: [q.id],
-                prompt: String(q.data.question || ''),
+                prompt: stripQuestionLabel(q.data.question),
                 options: kind === 'choice'
                     ? (q.data.answers || []).map((a, k) => ({
                         key: String.fromCharCode(65 + k), id: String(a.id), value: String(a.value ?? ''),
