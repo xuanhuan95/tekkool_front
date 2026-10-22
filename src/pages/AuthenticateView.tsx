@@ -22,6 +22,7 @@ import {useAuthStore} from '../stores/authStore';
 import ExamsPage from './hs/ExamsPage';
 import ExamDetailPage from './hs/ExamDetailPage';
 import RankingPage from './hs/RankingPage';
+import AccountPage from './hs/AccountPage';
 
 
 export default function AuthenticateView() {
@@ -38,6 +39,7 @@ export default function AuthenticateView() {
               <Route path='/exams' element={<ExamsPage/>}/>
               <Route path='/exams/:examId' element={<ExamDetailPage/>}/>
               <Route path='/ranking' element={<RankingPage/>}/>
+              <Route path='/me' element={<AccountPage/>}/>
               <Route path='/edit-exam/:examId' element={<CreateExam/>}/>
               <Route path='/create-exam' element={<CreateExam/>}/>
               <Route path='/import-exam' element={<ImportExam/>}/>
