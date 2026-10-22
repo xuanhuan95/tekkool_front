@@ -224,3 +224,21 @@ describe('Table: sideways scroll hint + sticky action column (QC B4)', () => {
         }
     });
 });
+
+describe('Table: a pinned column too wide for the phone is not pinned (QC B4b)', () => {
+    it('adds vt-table-scroll--nosticky when the sticky header is wider than 45% of the visible width', async () => {
+        const {default: Table} = await import('./Table');
+        const proto = HTMLElement.prototype;
+        const keep = ['scrollWidth', 'clientWidth', 'offsetWidth'].map(k => [k, Object.getOwnPropertyDescriptor(proto, k)] as const);
+        Object.defineProperty(proto, 'scrollWidth', {configurable: true, get: () => 900});
+        Object.defineProperty(proto, 'clientWidth', {configurable: true, get: () => 340});
+        Object.defineProperty(proto, 'offsetWidth', {configurable: true, get: () => 220});
+        try {
+            render(<Table caption='GV' rowKey={r => r.id} rows={[{id: '1'}]}
+                          columns={[{key: 'a', header: 'Tên'}, {key: 'act', header: 'Thao tác', sticky: true, render: () => 'Khoá'}]}/>);
+            expect(screen.getByRole('region', {name: 'GV'})).toHaveClass('vt-table-scroll--nosticky');
+        } finally {
+            keep.forEach(([k, d]) => { if (d) Object.defineProperty(proto, k, d); });
+        }
+    });
+});

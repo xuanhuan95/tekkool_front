@@ -314,9 +314,21 @@ textarea.vt-input:focus { padding: 9.5px 11.5px; }
 .vt-table-scroll--left.vt-table-scroll--right {
     box-shadow: inset 12px 0 10px -10px rgba(28, 25, 23, .35), inset -12px 0 10px -10px rgba(28, 25, 23, .35);
 }
-/* Sticky action column: stays visible at the right edge, its own left rule + fade shows content passes under it. */
-.vt-table .vt-td--sticky { position: sticky; right: 0; z-index: 1; background: var(--vt-card); }
-.vt-table-scroll--right .vt-td--sticky { box-shadow: -8px 0 8px -8px rgba(28, 25, 23, .35); border-left: 1.5px solid var(--vt-line-soft); }
+/* Sticky action column: stays at the right edge; columns scrolling under it are covered by an opaque
+   cell, and a rule + fade on its left edge separates them (QC B4b). box-shadow/border on cells are not
+   painted reliably with border-collapse, so the separator is a pseudo-element of the sticky cell. */
+.vt-table .vt-td--sticky { position: sticky; right: 0; z-index: 2; background: var(--vt-card); background-clip: padding-box; }
+.vt-table th.vt-td--sticky { z-index: 3; }
+.vt-table .vt-td--sticky::before {
+    content: ''; position: absolute; top: 0; bottom: 0; left: -14px; width: 14px; pointer-events: none;
+    background: linear-gradient(to left, rgba(28, 25, 23, .16), rgba(28, 25, 23, 0));
+    opacity: 0; transition: opacity .15s;
+}
+.vt-table .vt-td--sticky::after {
+    content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 1.5px; pointer-events: none;
+    background: var(--vt-line-soft); opacity: 0;
+}
+.vt-table-scroll--right .vt-td--sticky::before, .vt-table-scroll--right .vt-td--sticky::after { opacity: 1; }
 .vt-table tr.vt-tr--me .vt-td--sticky { background: var(--vt-action); }
 .vt-table { width: 100%; border-collapse: collapse; font-size: 14px; color: var(--vt-ink); }
 .vt-table caption { text-align: left; padding: 14px 18px 0; font-weight: 600; }
@@ -445,3 +457,11 @@ a.vt-avatar { position: relative; }
 
 /* ---------- Wave line ---------- */
 .vt-wave { display: block; color: var(--vt-ink); max-width: 100%; }
+/* Phones: actions inside a sticky column stack vertically so the pinned column stays narrow. */
+@media (max-width: 640px) {
+    .vt-table .vt-td--sticky > .vt-mg-actions { flex-direction: column; align-items: flex-end; }
+}
+/* Sticky turned off when the pinned column would eat too much of the visible width (Table measures it). */
+.vt-table-scroll--nosticky .vt-table .vt-td--sticky { position: static; }
+.vt-table-scroll--nosticky .vt-table .vt-td--sticky::before,
+.vt-table-scroll--nosticky .vt-table .vt-td--sticky::after { content: none; }

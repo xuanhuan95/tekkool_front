@@ -19,16 +19,22 @@ export interface Column<T> {
  * Which sides still have hidden columns. Drives the edge shadows that tell a phone user the
  * table scrolls sideways (QC B4) — the page itself never scrolls horizontally.
  */
+const MAX_STICKY_SHARE = 0.45;
+
 function useScrollEdges() {
     const ref = useRef<HTMLDivElement>(null);
-    const [edges, setEdges] = useState({left: false, right: false});
+    const [edges, setEdges] = useState({left: false, right: false, noSticky: false});
     useEffect(() => {
         const box = ref.current;
         if (!box) return;
         const update = () => {
             const left = box.scrollLeft > 1;
             const right = box.scrollLeft + box.clientWidth < box.scrollWidth - 1;
-            setEdges(e => e.left === left && e.right === right ? e : {left, right});
+            // A pinned column wider than 45% of what is visible hides the row it belongs to (QC B4b):
+            // then it simply scrolls with the rest.
+            const pinned = box.querySelector<HTMLElement>('th.vt-td--sticky');
+            const noSticky = !!pinned && pinned.offsetWidth > box.clientWidth * MAX_STICKY_SHARE;
+            setEdges(e => e.left === left && e.right === right && e.noSticky === noSticky ? e : {left, right, noSticky});
         };
         update();
         box.addEventListener('scroll', update, {passive: true});
@@ -69,7 +75,8 @@ export default function Table<T>({columns, rows, rowKey, caption, showCaption, m
     return <div className={cx('vt-card', 'vt-card--flush', className)}>
         {/* tabIndex: lets keyboard users scroll a table wider than the phone. */}
         <div ref={ref} role='region' aria-label={caption} tabIndex={0}
-             className={cx('vt-table-scroll', edges.left && 'vt-table-scroll--left', edges.right && 'vt-table-scroll--right')}>
+             className={cx('vt-table-scroll', edges.left && 'vt-table-scroll--left', edges.right && 'vt-table-scroll--right',
+                                edges.noSticky && 'vt-table-scroll--nosticky')}>
             <table className='vt-table' style={{minWidth}}>
                 <caption className={showCaption ? undefined : 'vt-sr-only'}>{caption}</caption>
                 <thead>
