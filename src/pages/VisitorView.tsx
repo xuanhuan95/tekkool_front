@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import TopToolbar from './TopToolbar'
 
 import TakeExam from './exam/TakeExam';
@@ -12,9 +12,11 @@ import MySubmissions from './my/MySubmissions';
 import PurchaseHistory from './pay/PurchaseHistory';
 
 export default function VisitorView() {
+    // Exam room / payment bring their own header (QC B2).
+    const fullScreen = /^\/(do-exam|payment)\//.test(useLocation().pathname);
     return (
         <div id="VisitorView">
-            <TopToolbar />
+            {!fullScreen && <TopToolbar />}
             <Routes>
               <Route path='/' element={<Dashboard/>}/>
               <Route path='/do-exam/:examId' element={<TakeExam/>}/>

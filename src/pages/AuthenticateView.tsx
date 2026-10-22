@@ -41,8 +41,10 @@ export default function AuthenticateView() {
     if (group === 'admin' || pathname.startsWith('/manage')) {
         return <Suspense fallback={<Loading/>}><ManageApp/></Suspense>;
     }
-    // Taking an exam / paying stay full-screen; every other student page sits in the app shell.
-    const shell = !isTeacher && !/^\/(do-exam|payment)\//.test(pathname);
+    // Taking an exam / paying are full-screen with their OWN design-D header (ExamHeader, pay bar):
+    // no student shell and NOT the old TopToolbar either (QC B2).
+    const fullScreen = /^\/(do-exam|payment)\//.test(pathname);
+    const shell = !isTeacher && !fullScreen;
 
     const routes = (
             <Routes>
@@ -82,6 +84,7 @@ export default function AuthenticateView() {
     );
 
     if (shell) return <StudentShell>{routes}</StudentShell>;
+    if (fullScreen) return routes;
     return (
         <div id="AuthenticateView">
             <TopToolbar />
