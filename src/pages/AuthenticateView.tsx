@@ -3,6 +3,9 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import Dashboard from './dashboard/Dashboard';
 import CreateExam from './exam-creation/CreateExam';
 import TakeExam from './exam/TakeExam';
+import ResultPage from './exam/ResultPage';
+import ReviewPage from './exam/ReviewPage';
+import HistoryPage from './exam/HistoryPage';
 import ImportExam from './exam-creation/ImportExam';
 import DrawExam from './exam-creation/DrawExam';
 import CreateFromBank from './exam-creation/CreateFromBank';
@@ -31,6 +34,10 @@ export default function AuthenticateView() {
             <Routes>
               <Route path='/' element={<Dashboard/>}/>
               <Route path='/do-exam/:examId' element={<TakeExam/>}/>
+              {/* SPT-16/17: exam room, result, review, history */}
+              <Route path='/result/:id' element={<ResultPage/>}/>
+              <Route path='/review/:id' element={<ReviewPage/>}/>
+              <Route path='/history' element={<HistoryPage/>}/>
               <Route path='/edit-exam/:examId' element={<CreateExam/>}/>
               <Route path='/create-exam' element={<CreateExam/>}/>
               <Route path='/import-exam' element={<ImportExam/>}/>
