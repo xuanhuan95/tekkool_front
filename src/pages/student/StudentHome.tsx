@@ -109,7 +109,7 @@ function RecentTable() {
     const pending = (s: Submission) => s.status === 'GRADING' || s.pending_count > 0;
     const cols: Column<Submission>[] = [
         {key: 'name', header: 'Đề', emphasis: 'strong',
-         render: s => <Link to={hsPath.result(s.id)}>{plainText(s.exam_name) || 'Đề không tên'}</Link>},
+         render: s => <Link to={hsPath.result(s.id)} className='vt-link'>{plainText(s.exam_name) || 'Đề không tên'}</Link>},
         {key: 'date', header: 'Ngày', emphasis: 'muted', render: s => formatDayMonth(s.submitted_at)},
         {key: 'score', header: 'Điểm /10', align: 'right', emphasis: 'bold',
          render: s => formatScore(score10(s.score, s.max_score)) + (pending(s) ? '*' : '')},

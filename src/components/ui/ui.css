@@ -28,6 +28,16 @@
 :where(.vt-paper, .vt-plain, .vt-modal) :is(h1, h2, h3, h4, h5) { font-family: inherit; margin: 0; line-height: 1.1; }
 :where(.vt-paper, .vt-plain, .vt-modal) p { margin: 0; }
 
+/* Links (Athena audit BB1): Semantic UI paints every <a> blue (#4183c4, hover #1e70bf). Design D:
+   ink, underlined, offset 3px, 600. Plain links and .vt-link get the full look; links that are
+   cards/buttons/rows keep their own look but never turn blue on hover/focus. */
+:is(.vt-paper, .vt-plain, .vt-modal) a:not([class]), a.vt-link {
+    color: var(--vt-ink); text-decoration: underline; text-underline-offset: 3px; font-weight: 600;
+}
+:is(.vt-paper, .vt-plain, .vt-modal) a:not([class]):hover, a.vt-link:hover { color: #000; text-decoration-thickness: 2px; }
+:is(.vt-paper, .vt-plain, .vt-modal) a:not(.vt-btn--danger):is(:hover, :focus, :focus-visible) { color: var(--vt-ink); }
+a.vt-card, a.vt-card:hover, a.vt-card:focus { color: var(--vt-ink); }
+
 .vt-hand {                        /* Patrick Hand: always 700, never < 18px */
     font-family: var(--vt-font-hand);
     font-weight: 700;

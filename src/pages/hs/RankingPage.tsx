@@ -49,7 +49,7 @@ function PrivacyNote() {
     const hidden = p.data.hide_ranking_name;
     return <div className='vt-card vt-card--md hs-row' style={{padding: '10px 14px', justifyContent: 'flex-start', flexWrap: 'nowrap', fontSize: 13}}>
         {hidden ? <IconEyeOff size={18}/> : <IconEye size={18}/>}
-        <span>{hidden ? 'Bạn đang ẩn tên với người khác' : 'Bạn đang hiện trên bảng'} · đổi trong <Link to={hsPath.me}>Tài khoản</Link></span>
+        <span>{hidden ? 'Bạn đang ẩn tên với người khác' : 'Bạn đang hiện trên bảng'} · đổi trong <Link to={hsPath.me} className='vt-link'>Tài khoản</Link></span>
     </div>;
 }
 

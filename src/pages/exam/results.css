@@ -83,7 +83,7 @@
     display: flex; justify-content: space-between; align-items: center; gap: 12px;
     text-decoration: none; color: inherit; width: 100%; box-sizing: border-box; text-align: left;
 }
-.vt-hist-row:hover { background: var(--vt-paper); }
+.vt-hist-row:hover, .vt-hist-row:focus-visible { background: var(--vt-paper); color: var(--vt-ink); }
 .vt-hist-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .vt-hist-name { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
 .vt-hist-meta { font-size: 13px; color: var(--vt-muted); }

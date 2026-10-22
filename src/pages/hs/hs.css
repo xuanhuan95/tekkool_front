@@ -100,12 +100,12 @@ a.hs-subject:hover { color: var(--vt-ink); background: var(--vt-paper); }
 .hs-board-name { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .hs-board-name b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hs-board-name i { font-style: normal; color: var(--vt-muted); }
-.hs-board-pts { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; text-align: right; }
+.hs-board-pts { font-weight: 700; font-size: 22px; font-variant-numeric: tabular-nums; text-align: right; }
 .hs-board-pts small { display: block; font-size: 12px; font-weight: 500; color: var(--vt-muted); }
 .hs-board-me.vt-card { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom)); }
 @media (min-width: 1024px) { .hs-board-me.vt-card { position: static; } }
 .hs-rank-none { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
-    font-family: var(--vt-font-hand); font-weight: 700; font-size: 18px; flex-shrink: 0; }
+    font-family: var(--vt-font-hand); font-weight: 700; font-size: 20px; flex-shrink: 0; }
 
 /* Account */
 .hs-me-card.vt-card { padding: 18px 20px; display: flex; align-items: center; gap: 14px; }
