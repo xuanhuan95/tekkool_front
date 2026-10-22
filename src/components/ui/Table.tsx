@@ -1,3 +1,4 @@
+import {useEffect, useRef, useState} from 'react';
 import type {ReactNode} from 'react';
 
 import {cx} from './cx';
@@ -10,6 +11,37 @@ export interface Column<T> {
     align?: 'left' | 'right' | 'center';
     /** strong = 600 (names), bold = 700 (scores), muted = secondary text (dates). */
     emphasis?: 'strong' | 'bold' | 'muted';
+    /** Stick to the right edge while the table scrolls sideways (the "Thao tác" column on phones). */
+    sticky?: boolean;
+}
+
+/**
+ * Which sides still have hidden columns. Drives the edge shadows that tell a phone user the
+ * table scrolls sideways (QC B4) — the page itself never scrolls horizontally.
+ */
+function useScrollEdges() {
+    const ref = useRef<HTMLDivElement>(null);
+    const [edges, setEdges] = useState({left: false, right: false});
+    useEffect(() => {
+        const box = ref.current;
+        if (!box) return;
+        const update = () => {
+            const left = box.scrollLeft > 1;
+            const right = box.scrollLeft + box.clientWidth < box.scrollWidth - 1;
+            setEdges(e => e.left === left && e.right === right ? e : {left, right});
+        };
+        update();
+        box.addEventListener('scroll', update, {passive: true});
+        const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(update) : null;
+        ro?.observe(box);
+        window.addEventListener('resize', update);
+        return () => {
+            box.removeEventListener('scroll', update);
+            ro?.disconnect();
+            window.removeEventListener('resize', update);
+        };
+    }, []);
+    return {ref, edges};
 }
 
 export interface TableProps<T> {
@@ -31,11 +63,13 @@ export interface TableProps<T> {
 /** Compact table inside a card: 13px muted header, 1.5px soft rules, tabular numbers, overflow-x on phones. */
 export default function Table<T>({columns, rows, rowKey, caption, showCaption, minWidth = 520, isHighlighted, empty, className}: TableProps<T>) {
     const cell = (c: Column<T>) => cx(c.align === 'right' && 'vt-td--right', c.align === 'center' && 'vt-td--center',
-        c.emphasis && 'vt-td--' + c.emphasis) || undefined;
+        c.emphasis && 'vt-td--' + c.emphasis, c.sticky && 'vt-td--sticky') || undefined;
+    const {ref, edges} = useScrollEdges();
 
     return <div className={cx('vt-card', 'vt-card--flush', className)}>
         {/* tabIndex: lets keyboard users scroll a table wider than the phone. */}
-        <div className='vt-table-scroll' role='region' aria-label={caption} tabIndex={0}>
+        <div ref={ref} role='region' aria-label={caption} tabIndex={0}
+             className={cx('vt-table-scroll', edges.left && 'vt-table-scroll--left', edges.right && 'vt-table-scroll--right')}>
             <table className='vt-table' style={{minWidth}}>
                 <caption className={showCaption ? undefined : 'vt-sr-only'}>{caption}</caption>
                 <thead>

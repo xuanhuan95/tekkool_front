@@ -201,3 +201,26 @@ describe('PasswordField', () => {
         expect(input).toHaveAccessibleDescription('Mật khẩu nhập lại chưa khớp');
     });
 });
+
+describe('Table: sideways scroll hint + sticky action column (QC B4)', () => {
+    it('sticky column gets the sticky class on header and cells; overflowing table shows the right-edge hint', async () => {
+        const {default: Table} = await import('./Table');
+        const proto = HTMLElement.prototype;
+        const sw = Object.getOwnPropertyDescriptor(proto, 'scrollWidth');
+        const cw = Object.getOwnPropertyDescriptor(proto, 'clientWidth');
+        Object.defineProperty(proto, 'scrollWidth', {configurable: true, get: () => 900});
+        Object.defineProperty(proto, 'clientWidth', {configurable: true, get: () => 390});
+        try {
+            render(<Table caption='Gói' rowKey={r => r.id} rows={[{id: '1', name: 'Gói 5 lượt'}]}
+                          columns={[{key: 'name', header: 'Tên'}, {key: 'act', header: 'Thao tác', sticky: true, render: () => 'Sửa'}]}/>);
+            expect(screen.getByText('Thao tác')).toHaveClass('vt-td--sticky');
+            expect(screen.getByText('Sửa')).toHaveClass('vt-td--sticky');
+            const region = screen.getByRole('region', {name: 'Gói'});
+            expect(region).toHaveClass('vt-table-scroll--right');
+            expect(region).not.toHaveClass('vt-table-scroll--left');
+        } finally {
+            if (sw) Object.defineProperty(proto, 'scrollWidth', sw);
+            if (cw) Object.defineProperty(proto, 'clientWidth', cw);
+        }
+    });
+});

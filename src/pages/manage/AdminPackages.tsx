@@ -171,7 +171,7 @@ export default function AdminPackages() {
         {key: 'active', header: 'Trạng thái', render: p => p.active
             ? <Badge tone='ok'>Đang bán</Badge> : <Badge tone='draft'>Ngừng bán</Badge>},
         {key: 'sold', header: 'Đã bán', align: 'right', render: p => <span className='vt-num'>{groupDigits(p.sold || 0)}</span>},
-        {key: 'actions', header: 'Thao tác', render: p => editing !== 'new' && editing?.id === p.id
+        {key: 'actions', header: 'Thao tác', sticky: true, render: p => editing !== 'new' && editing?.id === p.id
             ? <span className='vt-muted'>Đang sửa</span>
             : <Button size='sm' variant='ghost' icon={<icons.IconEdit/>} aria-label={'Sửa ' + p.name}
                       onClick={() => setEditing(p)}>Sửa</Button>},

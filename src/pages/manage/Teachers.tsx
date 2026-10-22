@@ -133,7 +133,7 @@ export default function Teachers() {
         {key: 'exam_count', header: 'Số đề', align: 'right', render: t => <span className='vt-num'>{t.exam_count}</span>},
         {key: 'created_at', header: 'Ngày tạo', emphasis: 'muted', render: t => <span className='vt-num'>{formatDate(t.created_at)}</span>},
         {key: 'status', header: 'Trạng thái', render: t => <AccountBadge status={t.status}/>},
-        {key: 'actions', header: 'Thao tác', render: t => <span className='vt-mg-actions'>
+        {key: 'actions', header: 'Thao tác', sticky: true, render: t => <span className='vt-mg-actions'>
             <Button size='sm' variant={t.locked ? 'secondary' : 'danger'} onClick={() => setConfirmLock(t)}
                     aria-label={(t.locked ? 'Mở khoá ' : 'Khoá ') + t.name}>{t.locked ? 'Mở khoá' : 'Khoá'}</Button>
             <Button size='sm' variant='ghost' onClick={() => setConfirmReset(t)}

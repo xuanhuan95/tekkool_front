@@ -19,6 +19,7 @@
 /* Parts table */
 .vt-parts { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
 .vt-parts th, .vt-parts td { padding: 12px 0; text-align: right; }
+.vt-parts td { white-space: nowrap; padding-left: 10px; }   /* "10 / 16 ý", "/ 1,5" never break (QC B4) */
 .vt-parts thead th { font-size: 13px; color: var(--vt-muted); font-weight: 500; padding: 10px 0; }
 .vt-parts thead th:first-child, .vt-parts tbody th { text-align: left; }
 .vt-parts tbody th { font-weight: 600; padding-right: 8px; }

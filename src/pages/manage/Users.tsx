@@ -142,7 +142,7 @@ export default function Users() {
         {key: 'turns', header: 'Lượt còn', align: 'right', render: u => <span className='vt-num'>{u.turns_remaining ?? '—'}</span>},
         {key: 'created', header: 'Ngày tham gia', emphasis: 'muted', render: u => <span className='vt-num'>{formatDate(u.created_at)}</span>},
         {key: 'status', header: 'Trạng thái', render: u => <AccountBadge status={u.status}/>},
-        {key: 'actions', header: 'Thao tác', render: u => <span className='vt-mg-actions'>
+        {key: 'actions', header: 'Thao tác', sticky: true, render: u => <span className='vt-mg-actions'>
             {u.id === selected ? <span className='vt-muted'>Đang xem</span>
                 : <Button size='sm' variant='ghost' aria-label={'Xem ' + u.name} onClick={() => set({id: u.id})}>Xem</Button>}
             {u.manageable && <Button size='sm' variant={u.locked ? 'secondary' : 'danger'} onClick={() => askLock(u)}
