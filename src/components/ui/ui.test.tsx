@@ -242,3 +242,17 @@ describe('Table: a pinned column too wide for the phone is not pinned (QC B4b)',
         }
     });
 });
+
+describe('isNavActive: result/review/history highlight "Đề thi", packages "Tôi" on phones', () => {
+    it('matches own path, `end`, and `also` prefixes', async () => {
+        const {isNavActive, STUDENT_NAV_MOBILE} = await import('./layout/nav');
+        const current = (path: string) => STUDENT_NAV_MOBILE.filter(i => isNavActive(i, path)).map(i => i.label);
+        expect(current('/')).toEqual(['Trang chủ']);
+        expect(current('/exams/X')).toEqual(['Đề thi']);
+        expect(current('/result/S1')).toEqual(['Đề thi']);
+        expect(current('/review/S1')).toEqual(['Đề thi']);
+        expect(current('/history')).toEqual(['Đề thi']);
+        expect(current('/packages')).toEqual(['Tôi']);
+        expect(current('/resultx')).toEqual([]);
+    });
+});

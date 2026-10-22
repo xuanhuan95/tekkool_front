@@ -3,6 +3,16 @@ export interface NavItem {
     label: string;
     /** Match the path exactly (for "/"). */
     end?: boolean;
+    /** Other path prefixes that belong to this tab (result/review/history → "Đề thi"). */
+    also?: string[];
+}
+
+const under = (pathname: string, base: string) => pathname === base || pathname.startsWith(base.replace(/\/$/, '') + '/');
+
+/** Is `item` the current tab for `pathname`? Same rule as NavLink, plus `also` prefixes. */
+export function isNavActive(item: NavItem, pathname: string): boolean {
+    const own = item.end ? pathname === item.to : under(pathname, item.to);
+    return own || (item.also || []).some(p => under(pathname, p));
 }
 
 /*
@@ -11,16 +21,16 @@ export interface NavItem {
  */
 export const STUDENT_NAV_MOBILE: NavItem[] = [
     {to: '/', label: 'Trang chủ', end: true},
-    {to: '/exams', label: 'Đề thi'},
+    {to: '/exams', label: 'Đề thi', also: ['/result', '/review', '/history']},
     {to: '/ranking', label: 'Xếp hạng'},
-    {to: '/me', label: 'Tôi'},
+    {to: '/me', label: 'Tôi', also: ['/packages', '/billing', '/profile']},
 ];
 
 export const STUDENT_NAV_WEB: NavItem[] = [
     {to: '/', label: 'Trang chủ', end: true},
-    {to: '/exams', label: 'Đề thi'},
+    {to: '/exams', label: 'Đề thi', also: ['/result', '/review', '/history']},
     {to: '/ranking', label: 'Xếp hạng'},
-    {to: '/packages', label: 'Gói thi'},
+    {to: '/packages', label: 'Gói thi', also: ['/billing']},
 ];
 
 /**

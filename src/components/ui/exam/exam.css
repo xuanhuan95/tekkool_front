@@ -139,12 +139,20 @@
     .vt-exam-paper { flex: 1 1 560px; max-width: 820px; }
     .vt-exam-aside {
         display: flex; flex-direction: column; gap: 14px;
-        flex: 0 0 300px; width: 300px;
+        flex: 0 0 340px; width: 340px;
         position: sticky; top: 112px;
-        max-height: calc(100vh - 128px); overflow-y: auto;
+        max-height: calc(100vh - 128px);
         box-sizing: border-box;
     }
+    /* Card fills the column; only the grid body scrolls, "Nộp bài" stays in view (Athena audit). */
+    .vt-exam-aside > .vt-card { display: flex; flex-direction: column; min-height: 0; max-height: 100%; padding: 18px 20px; }
+    .vt-exam-aside .vt-qgrid { min-height: 0; flex: 1 1 auto; }
+    .vt-exam-aside .vt-qgrid-body { overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+    /* 6 columns like HS-Web-LamBai: 1–12 fit on two rows. */
+    .vt-exam-aside .vt-qgrid-cells { grid-template-columns: repeat(6, minmax(40px, 1fr)); }
 }
+.vt-qgrid-body { display: flex; flex-direction: column; gap: 14px; }
+.vt-qgrid-foot { display: flex; flex-direction: column; gap: 10px; flex-shrink: 0; }
 
 /* Section (Phần I…IV) */
 .vt-exam-section { display: flex; flex-direction: column; }

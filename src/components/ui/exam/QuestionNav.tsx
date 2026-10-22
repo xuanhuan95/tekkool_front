@@ -82,18 +82,21 @@ export function QuestionGrid({parts, current, onJump, showHeading, footer, class
             <span className='vt-qgrid-title'>Đi tới câu</span>
             <span className='vt-qgrid-count'>{done} / {all.length} đã làm</span>
         </div>}
-        {parts.map(p => <div key={p.title} className='vt-qgrid-part' role='group' aria-label={p.title}>
-            <span className='vt-qgrid-part-title' aria-hidden='true'>{p.title}</span>
-            <div className='vt-qgrid-cells'>
-                {p.questions.map(q => <Cell key={q.number} q={q} current={q.number === current} onJump={onJump}/>)}
+        {/* Body scrolls on its own in the web side column, so the footer (Nộp bài) is always visible. */}
+        <div className='vt-qgrid-body'>
+            {parts.map(p => <div key={p.title} className='vt-qgrid-part' role='group' aria-label={p.title}>
+                <span className='vt-qgrid-part-title' aria-hidden='true'>{p.title}</span>
+                <div className='vt-qgrid-cells'>
+                    {p.questions.map(q => <Cell key={q.number} q={q} current={q.number === current} onJump={onJump}/>)}
+                </div>
+            </div>)}
+            <div className='vt-qlegend' aria-hidden='true'>
+                <span><i className='is-done'/>Đã làm</span>
+                <span><i className='is-todo'/>Chưa làm</span>
+                <span><i className='is-current'/>Đang xem</span>
+                <span><i className='is-flag'/>Xem lại sau</span>
             </div>
-        </div>)}
-        <div className='vt-qlegend' aria-hidden='true'>
-            <span><i className='is-done'/>Đã làm</span>
-            <span><i className='is-todo'/>Chưa làm</span>
-            <span><i className='is-current'/>Đang xem</span>
-            <span><i className='is-flag'/>Xem lại sau</span>
         </div>
-        {footer}
+        {footer && <div className='vt-qgrid-foot'>{footer}</div>}
     </div>;
 }

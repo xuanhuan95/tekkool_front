@@ -53,7 +53,7 @@ function StartBlock({examId, name}: {examId: string; name: string}) {
     </>;
 
     if (left === 0) return <>
-        <div className='hs-note hs-note--err' role='note'><IconTicket size={18}/>
+        <div className='hs-note' role='note'><IconTicket size={18}/>
             <span><b>Bạn đã hết lượt thi.</b> Mua thêm gói để làm đề này.</span></div>
         <div className='hs-start-bar'>
             <Link to={hsPath.packages} className={buttonClass({variant: 'primary', size: 'lg', block: true})}>Mua thêm lượt</Link>

@@ -1,9 +1,10 @@
 import type {ReactNode} from 'react';
-import {Link, NavLink} from 'react-router-dom';
+import {Link, useLocation} from 'react-router-dom';
 
 import WaveLine from '../WaveLine';
 import StatPill from '../StatPill';
 import {cx} from '../cx';
+import {isNavActive} from './nav';
 import type {NavItem} from './nav';
 
 export interface HeaderStickyProps {
@@ -20,6 +21,7 @@ export interface HeaderStickyProps {
 
 /** Sticky header on paper with the hand-drawn wave underneath (DS-Header.dc.html). */
 export default function HeaderSticky({variant, nav, navLabel = 'Menu chính', right, logoTo = '/', className}: HeaderStickyProps) {
+    const {pathname} = useLocation();
     const logo = <Link to={logoTo} className='vt-logo' aria-label='viettestpro — Trang chủ'>viettestpro</Link>;
 
     if (variant === 'mobile') {
@@ -37,7 +39,8 @@ export default function HeaderSticky({variant, nav, navLabel = 'Menu chính', ri
             {logo}
             {nav && nav.length > 0 &&
                 <nav aria-label={navLabel} className='vt-topnav'>
-                    {nav.map(it => <NavLink key={it.to} to={it.to} end={it.end}>{it.label}</NavLink>)}
+                    {nav.map(it => <Link key={it.to} to={it.to}
+                aria-current={isNavActive(it, pathname) ? 'page' : undefined}>{it.label}</Link>)}
                 </nav>}
             {right && <div className='vt-header-right'>{right}</div>}
         </div>
@@ -63,7 +66,7 @@ export function StudentStats({stars, turns, title, size = 'md', turnsTo = '/pack
         {stars != null && <StatPill kind='star' size={size} label={stars + ' sao'}>{stars}</StatPill>}
         {turns != null &&
             <StatPill kind='turns' size={size} to={turnsTo} label={`Còn ${turns} lượt — mua thêm`}>
-                {sm ? turns : turns + ' lượt'}
+                {turns + ' lượt'}
             </StatPill>}
     </>;
 }
