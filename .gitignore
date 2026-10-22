@@ -6,6 +6,9 @@
 # testing
 /coverage
 
+# production build (Vite)
+/dist
+
 # misc
 .DS_Store
 .env.local
@@ -22,3 +25,7 @@ yarn-error.log*
 .pyenv
 semantic.json
 semantic/
+
+# cau hinh cuc bo cua Claude Code
+.claude/
+.codegraph/

@@ -325,3 +325,1065 @@ body {
     background-size: 100% 2px, 100% 1px;
     outline: none;
 }
+
+/* The + add-exam button inside a folder: hidden to keep the subject list clean,
+   shown only when hovering that folder's row. */
+.addExam {
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.15s;
+    vertical-align: middle;
+}
+
+.addExam > i.icon {
+    color: #888;
+    font-size: 0.85em;
+    margin: 0;
+}
+
+.list > .item:hover > .content .addExam,
+.addExam.active,
+.addExam:hover {
+    opacity: 1;
+}
+
+.addExam > i.icon:hover {
+    color: #2185d0;
+}
+
+/* ------- Word exam import screen: review & edit before saving ------- */
+.import-exam-head {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+}
+
+.import-exam-name {
+    flex: 1;
+    font-weight: bold;
+}
+
+.import-exam-name input {
+    font-weight: bold !important;
+}
+
+.import-exam-meta {
+    color: #767676;
+    white-space: nowrap;
+}
+
+.import-section {
+    margin-top: 14px;
+}
+
+.import-question {
+    border-left: 3px solid #e8e8e8;
+    margin-bottom: 14px;
+    padding-left: 12px;
+}
+
+/* A multiple-choice question missing a correct answer -> auto-grading always yields 0, so it must be obvious. */
+.import-question.has-warning {
+    border-left-color: #f2711c;
+}
+
+.import-question-head {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+/* Delete icon pushed to the right to avoid mis-clicks while reading content. */
+.import-question-head > i.icon {
+    margin-left: auto;
+}
+
+.answer-row {
+    align-items: flex-start;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 2px;
+}
+
+.answer-key {
+    line-height: 1.6;
+    min-width: 18px;
+}
+
+.answer-body {
+    flex: 1;
+}
+
+.import-save-hint {
+    color: #767676;
+    margin-left: 12px;
+}
+
+/* Split-screen: left = recognized (editable), right = original text for comparison. */
+.import-split {
+    display: flex;
+    gap: 16px;
+    margin-top: 14px;
+}
+
+.import-parsed,
+.import-source {
+    flex: 1;
+    min-width: 0;   /* without this, long content pushes the column wider */
+}
+
+/* The source column is STICKY to the viewport: scrolling to read questions on the left
+   keeps the right column in view for comparison. Previously it stayed at its old
+   position, so scrolling down lost the original text.
+   ponytail: sticky instead of JS scroll sync; correct sync needs a question -> line
+   mapping, but the two sides' layouts differ so it would always drift. Sticky lets the
+   user scroll the right column themselves and is never wrong. */
+.import-source {
+    align-self: flex-start;
+    position: sticky;
+    top: 12px;
+}
+
+.import-source .src-view {
+    background: #fafafa;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    /* Except for the column title row and the rough spacing. */
+    height: calc(100vh - 90px);
+    overflow: auto;
+    padding: 8px 0;
+}
+
+.import-col-head {
+    color: #767676;
+    font-size: 0.9em;
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.src-line {
+    display: flex;
+    font-family: Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+}
+
+.src-line:hover {
+    background: #f0f0f0;
+}
+
+.src-no {
+    color: #bbb;
+    flex: none;
+    padding: 0 10px;
+    text-align: right;
+    user-select: none;   /* copying the text doesn't pick up line numbers */
+    width: 44px;
+}
+
+.src-text {
+    padding-right: 10px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Structure markers (Câu 1., Phần I, VĂN BẢN 2: Vietnamese for Question 1, Part I, TEXT 2) and answer labels A. B. C. D. */
+.src-q {
+    color: #1a5fb4;
+    font-style: normal;
+    font-weight: bold;
+}
+
+.src-a {
+    color: #c01c28;
+    font-style: normal;
+    font-weight: bold;
+}
+
+.src-empty {
+    color: #999;
+    font-style: italic;
+    padding: 12px;
+}
+
+@media (max-width: 1200px) {
+    .import-split {
+        flex-direction: column;
+    }
+
+    /* Stacked vertically, sticky is meaningless; revert to normal scrolling. */
+    .import-source {
+        position: static;
+    }
+
+    .import-source .src-view {
+        height: auto;
+        max-height: 60vh;
+    }
+}
+
+.q-chip {
+    cursor: pointer;
+    margin: 2px !important;
+}
+
+/* Flash the background when jumping to a question from the "Thông tin đề" (exam info) modal. */
+.import-question.flash {
+    background: #fff8d5;
+    transition: background 0.4s;
+}
+
+/* Reading-comprehension passage shared by a whole question group: printed once at the first question of the group.
+   The backend returns HTML with multiple <p> tags, so pre-line is not needed. */
+.passage {
+    background: #f7f9fb;
+    border-left: 3px solid #1a5fb4;
+    padding: 10px 14px;
+    margin: 10px 0;
+    line-height: 1.6;
+}
+
+/* Passage at import time: it is an editor box, so shrink the padding to fit,
+   keep the left border so it is still clear this block is shared by the whole group. */
+.passage-edit {
+    padding: 8px 12px;
+}
+
+.passage p:last-child {
+    margin-bottom: 0;
+}
+
+.passage-label {
+    color: #767676;
+    font-size: 0.85em;
+    font-style: italic;
+    margin-bottom: 6px;
+}
+
+/* Under 1 minute left: red clock so the examinee knows to submit. */
+.time-up {
+    color: #db2828;
+}
+
+/* Minutes / price boxes on each exam's title row at import.
+   The two boxes do NOT share a width: "90" and "100000" differ by 4 digits, so forcing one
+   width either leaves minutes with spare room or clips the price (this happened). Size each
+   by its inner input, leaving room for the type=number spinner. */
+.import-exam-num {
+    flex-shrink: 0;
+}
+
+.import-exam-num input {
+    padding: 6px 8px !important;
+    width: 7ch !important;
+}
+
+.import-exam-price input {
+    width: 13ch !important;
+}
+
+/* "40 câu" (40 questions) and the Info button: must not shrink, otherwise the text wraps
+   into two lines and doubles the row height. */
+.import-exam-meta,
+.import-exam-head > .ui.button {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+/* Word-limit box for essay questions at import. */
+.import-wordlimit {
+    margin-top: 8px;
+}
+
+.import-wordlimit input {
+    width: 90px;
+}
+
+/* Question-type select at import: shrunk to fit the question title row. */
+.import-type {
+    font-size: 0.85em !important;
+    min-height: 0 !important;
+    padding: 5px 24px 5px 8px !important;
+}
+
+.import-type > .icon {
+    padding: 5px !important;
+}
+
+/* ---- Review / grading screen ---- */
+.sub-summary {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+}
+
+.sub-answer-head {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+/* Score pushed right so the whole column lines up for quick reading. */
+.sub-answer-score {
+    color: #767676;
+    margin-left: auto;
+}
+
+.sub-label {
+    color: #767676;
+    font-size: 0.85em;
+    font-style: italic;
+    margin: 10px 0 4px;
+}
+
+.sub-question {
+    line-height: 1.6;
+}
+
+.sub-given {
+    background: #f7f9fb;
+    border-left: 3px solid #bbb;
+    padding: 8px 12px;
+}
+
+/* Question the machine graded wrong: red border so you see at a glance where you went wrong. */
+.sub-given.wrong {
+    border-left-color: #db2828;
+}
+
+.sub-correct {
+    background: #f6fff6;
+    border-left: 3px solid #21ba45;
+    padding: 8px 12px;
+}
+
+.sub-grade {
+    border-top: 1px dashed #ccc;
+    margin-top: 12px;
+    padding-top: 10px;
+}
+
+.sub-comment {
+    margin-top: 10px !important;
+}
+
+/* The editor emits inline <p> in #ExamCreation; these screens need normal line breaks. */
+.sub-detail p {
+    display: block;
+    margin: 0 0 6px;
+}
+
+/* ---- Review: rebuild the exam-taking screen layout ---- */
+.sub-passage {
+    background: #fafafa;
+    border-left: 3px solid #ccc;
+    padding: 12px 16px;
+    margin-bottom: 14px;
+    font-style: italic;
+}
+.sub-choices { margin: 10px 0 6px 0; }
+.sub-choice {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+/* Student picked wrong: red. If they picked the correct answer, the .key rule below overrides this. */
+.sub-choice.picked { background: #fff0f0; }
+.sub-choice.key    { background: #f0fff4; }
+
+/* Dot instead of radio + text label: gray border = unrelated,
+   solid red = student's choice (wrong), solid green = correct answer.
+   If they picked the correct answer, .key comes AFTER so it wins -> green dot. */
+.sub-dot {
+    flex: none;
+    width: 13px;
+    height: 13px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+.sub-choice.picked .sub-dot { border-color: #db2828; background: #db2828; }
+.sub-choice.key    .sub-dot { border-color: #21ba45; background: #21ba45; }
+
+/* Option content is HTML -> renderHTML produces <p>; force inline to avoid line breaks. */
+.sub-choice-text p { display: inline; margin: 0; }
+
+/* The "pending grading" bell on the teacher bar. The label sits inside the text item,
+   not `floating` (which overflows past the top of the bar). */
+.tk-bell {
+    position: relative;
+}
+
+.tk-bell .ui.label {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    margin: 0;
+    padding: 2px 5px;
+    min-width: 16px;
+    line-height: 1.1;
+}
+
+/* ---- Teacher home: exam bank ---- */
+/* Top bar: the title flexes, the search box and button keep their width. Wraps
+   when narrow instead of squeezing the search box down to a few characters. */
+.tk-dash-bar {
+    align-items: flex-end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.tk-dash-title {
+    flex: 1;
+    margin: 0 !important;
+    min-width: 200px;
+}
+
+/* Card.Group uses a horizontal margin of -1em to offset each card's gutter. Added to
+   the page's .margin 10px, the right edge exceeds the viewport -> the whole page gets a
+   horizontal scrollbar. Clip the overflow here, do NOT touch .card's margin; Semantic
+   computes itemsPerRow width from exactly that -1em figure. */
+.tk-dash {
+    overflow-x: hidden;
+    /* `hidden` forces overflow-y to auto -> the block becomes a scroll area exactly as tall
+       as its content, and the "Tạo đề" (create exam) menu of the last folder gets cut off. `clip` only
+       clips horizontally. Browsers without `clip` fall back to the line above. */
+    overflow-x: clip;
+    /* Cap the width: on a 2000px screen letting the page stretch makes the three package cards
+       a long strip, and the eye must scan a meter sideways to compare prices. 1120px fits
+       3 card columns.
+       Edge spacing uses `padding`, not the app's `.margin` class:
+       that class is `margin: 10px !important`, and `!important` on the shorthand
+       overrides every margin-left/right, including `margin-inline: auto`, so the block can't
+       be centered. `.margin` was removed from the 4 pages using `.tk-dash`. */
+    box-sizing: border-box;
+    max-width: 1120px;
+    margin: 10px auto;
+    padding: 0 10px;
+}
+
+.tk-folders {
+    margin-bottom: 16px !important;
+}
+
+.tk-folder .header {
+    margin-left: 10px;
+    vertical-align: middle;
+}
+
+/* Open folder: light blue background + border, not just an icon color change; at a
+   glance you must see which folder is open. */
+.tk-folder.active {
+    background: #f4f9fd !important;
+    box-shadow: 0 0 0 2px #2185d0 !important;
+}
+
+.tk-folder .extra .ui.button {
+    margin-right: 6px;
+}
+
+.tk-exam-row {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 6px 0;
+}
+
+.tk-exam-row:hover {
+    background: #fafafa;
+}
+
+.tk-exam-row:last-child {
+    border-bottom: none;
+}
+
+/* One exam row on the TEACHER page: the name flexes, the button group sits at the right edge.
+   Prefix 'dexam' rather than 'exam': .tk-exam belongs to the student screens
+   in student.css (Billing, MySubmissions); reusing the name makes the two
+   pages override each other's styles (it happened: the exam row jumped to 62px tall). */
+.tk-dexam {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.tk-dexam-name {
+    flex: 1;
+    min-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tk-dexam-actions {
+    display: flex;
+    flex: none;
+    gap: 4px;
+}
+
+.tk-dexam-actions .ui.button {
+    margin: 0;
+}
+
+/* Narrow screens: the search box takes the full row, and buttons are 44px tall to tap with a finger
+   (Semantic's size='mini' gives only 28px, too small for touch screens). */
+@media (max-width: 767px) {
+    .tk-dash-bar > .ui.input,
+    .tk-dash-bar > .ui.button {
+        width: 100%;
+    }
+
+    .tk-dexam-actions .ui.button,
+    .tk-folder .extra .ui.button {
+        min-height: 44px;
+    }
+
+    /* Exam name and button group go on two lines so they don't crowd each other. */
+    .tk-dexam-name {
+        flex-basis: 100%;
+    }
+}
+
+/* ---- Question bank inventory block on the Word import screen ---- */
+.import-bank-head {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+}
+
+/* The text part flexes so the "Rút thử" (trial draw) button always sits at the right edge. */
+.import-bank-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.import-bank-head > .ui.button {
+    flex-shrink: 0;
+}
+
+.import-bank-types {
+    margin-top: 10px;
+}
+
+.import-bank-types .ui.label {
+    margin: 0 6px 6px 0;
+}
+
+/* ---- Payment confirmation pending screen ---- */
+/* The old version had a hard width: 480px -> overflowed phone screens. Scanning a QR code almost
+   certainly means holding a phone, so this is the main screen of this flow. */
+.tk-pay-result { margin: 3em auto; max-width: 480px; padding: 0 16px; }
+.tk-pay-bar { margin: 18px 0 4px !important; }
+.tk-pay-warn { margin-top: 20px !important; text-align: left; }
+.tk-pay-inv { font-size: .85em; margin-top: 14px; }
+.tk-pay-result .ui.button { margin: 6px 4px 0; }
+
+/* ---- Exam-attempt package card (shared by the out-of-attempts popup + the buy-package page) ---- */
+/* Packages appear in 3 places in 3 styles: the out-of-attempts popup, the buy page, the
+   confirmation page. One shared set of classes, not an inline style in each place. */
+.tk-pkg-list { display: grid; gap: 16px; margin-top: 18px;
+    /* 3 packages stretched across 1120px leave each card empty in the middle; cap it to keep the block compact.
+       NOT margin-inline:auto: centering would offset the grid to the right of the heading
+       "Gói thi thử" (mock exam packages), which hugs the left edge, so the two blocks wouldn't align. */
+    max-width: 860px; }
+/* auto-fit + minmax: 1 package takes the full width, 3 packages split into 3 columns, phones
+   fall back to 1 column by themselves. No hand-computed itemsPerRow per package count. */
+@media (min-width: 560px) {
+    .tk-pkg-list { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+}
+
+.tk-pkg {
+    background: var(--tk-card);
+    border: 1px solid var(--tk-line);
+    border-radius: var(--tk-r, 14px);
+    padding: 26px 20px;
+    text-align: center;
+    cursor: pointer;
+    /* A real button, not a clickable div: keyboard Tab reaches it, Enter activates it. */
+    font: inherit; color: inherit; width: 100%;
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+    /* Column: descriptions differ in length between packages; without a column layout a package
+       with a 2-line description pushes its price out of line with a 1-line-description package. `auto` pushes the
+       description to the bottom so name/attempts/price always line up across cards. */
+    display: flex;
+    flex-direction: column;
+}
+.tk-pkg:hover, .tk-pkg:focus-visible {
+    border-color: var(--tk-primary);
+    box-shadow: var(--tk-shadow-lift, 0 8px 20px rgba(31, 41, 51, .12));
+    transform: translateY(-2px);
+}
+/* Keep the focus ring: removing the outline makes keyboard users lose their position entirely. */
+.tk-pkg:focus-visible { outline: 2px solid var(--tk-primary); outline-offset: 2px; }
+
+.tk-pkg-name { font-weight: 600; font-size: 1.05em; color: var(--tk-ink); }
+.tk-pkg-turns {
+    /* The card is a flex column -> the default align-items: stretch makes the pill as wide as
+       the card, looking like a bar rather than a label. `align-self: center`
+       makes it shrink to its text. inline-block alone can't stop the stretch. */
+    align-self: center;
+    display: inline-block; margin: 8px 0 10px;
+    background: var(--tk-primary-soft);
+    color: var(--tk-primary-dark);
+    border-radius: 999px; padding: 3px 12px;
+    font-size: .88em; font-weight: 600;
+}
+.tk-pkg-price { font-size: 1.45em; font-weight: 700; color: var(--tk-ink); }
+/* Remaining attempts wallet on the title bar. Replaces Semantic's <Statistic>: that component
+   forces a serif font on the number and uppercases the label, clashing with the page's type system. */
+.tk-turns {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+    background: var(--tk-primary-soft);
+    border-radius: 999px;
+    padding: 7px 16px;
+}
+.tk-turns-num {
+    font-size: 1.35em; font-weight: 700; line-height: 1;
+    color: var(--tk-primary-dark);
+}
+.tk-turns-label { font-size: .9em; font-weight: 600; color: var(--tk-primary-dark); }
+/* Out of attempts: light red to be noticed at once, but not shouting like the old red 0;
+   this page is where you buy more, not where you report an error. */
+.tk-turns.empty { background: var(--tk-danger-soft); }
+.tk-turns.empty .tk-turns-num, .tk-turns.empty .tk-turns-label { color: var(--tk-danger); }
+
+.tk-pkg-desc {
+    color: var(--tk-muted); font-size: .85em;
+    line-height: 1.55;
+    /* auto: pushes the description to the bottom of the card, so name/attempts/price line up across
+       cards regardless of description length. 8px is the minimum gap. */
+    margin-top: auto; padding-top: 10px;
+    /* Cap line length + balance lines: a 2-line description whose last line has just 2 words looks
+       very lopsided. `balance` evens the lines out, `max-inline-size` keeps lines from getting too long
+       on wide cards. Older browsers ignore balance -> wrap as before. */
+    max-inline-size: 30ch;
+    margin-inline: auto;
+    text-wrap: balance;
+    /* Description centered in the card -> ragged left edge when wrapping to 2 lines.
+       Left-aligning inside the width-balanced block reads best. */
+    text-align: left;
+}
+
+/* ---- Package purchase confirmation page ---- */
+/* Shares the frame with .tk-pay-result: same flow, same width, and it already has
+   max-width + padding guarding against phone overflow. */
+.tk-pay-sum {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 12px 0; border-bottom: 1px solid var(--tk-line);
+}
+.tk-pay-sum:last-of-type { border-bottom: 0; }
+.tk-pay-sum .k { color: var(--tk-muted); }
+.tk-pay-sum .v { font-weight: 600; color: var(--tk-ink); }
+.tk-pay-sum.total .v { font-size: 1.5em; color: var(--tk-primary-dark); }
+
+/* ---- Out-of-attempts popup ---- */
+.tk-out-icon {
+    width: 64px; height: 64px; margin: 6px auto 14px;
+    border-radius: 50%;
+    background: var(--tk-primary-soft);
+    color: var(--tk-primary-dark);  /* dark: primary on the soft background is only 4.18:1 */
+    display: flex; align-items: center; justify-content: center;
+}
+.tk-out-icon .icon { margin: 0 !important; }
+.tk-out-title { margin: 0 0 6px; color: var(--tk-ink); }
+
+/* ---- Question navigation panel while taking the exam ---- */
+/* Without this panel the student only learns they skipped something at the moment of pressing Submit;
+   too late to find which questions are still blank. */
+.tk-qnav { margin-top: 14px; text-align: left; }
+.tk-qnav-grid {
+    /* auto-fill + 44px cap: 5 columns of `1fr` + aspect-ratio means cell height equals column
+       width; fine in a narrow Rail, but in a wide place the cell balloons into a 130px square for
+       one digit. 44px is exactly the minimum touch-target size, no bigger than needed. */
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(38px, 44px));
+    gap: 6px;
+}
+.tk-qnav-cell {
+    aspect-ratio: 1; min-height: 38px; max-height: 44px;
+    border: 1px solid var(--tk-line);
+    background: #fff; color: var(--tk-muted);
+    border-radius: 8px; cursor: pointer;
+    font: 600 .9em/1 inherit;
+    transition: background .12s, border-color .12s;
+}
+.tk-qnav-cell:hover { border-color: var(--tk-primary); }
+.tk-qnav-cell:focus-visible { outline: 2px solid var(--tk-primary); outline-offset: 1px; }
+/* Done = filled in. Not done stays white: what you need to find is the BLANK cell, so it must
+   be what stands out among the filled ones, not the other way around. */
+.tk-qnav-cell.done {
+    background: var(--tk-primary);
+    border-color: var(--tk-primary);
+    color: #fff;
+}
+.tk-qnav-count { margin-top: 10px; font-size: .9em; color: var(--tk-muted); }
+.tk-qnav-count .done { color: var(--tk-green); font-weight: 600; }
+
+/* ============================================================
+   Semantic `primary` follows the app color.
+   The library hardcodes #2185D0: blue, but off-tone versus var(--tk-primary)
+   of the login page; side by side you can see two different blues.
+   21 places use <Button primary>; fixing each one is wasteful:
+   changing it here once covers them all.
+   ============================================================ */
+.ui.primary.button,
+.ui.primary.buttons .button {
+    background-color: var(--tk-primary);
+    /* Common shape for every primary button in the app, taken from the login page's .tka-btn
+       but WITHOUT text-transform: uppercase: Vietnamese capitals with diacritics
+       ("THANH TOÁN", i.e. PAYMENT) cram the marks into the line spacing and make long buttons hard to read.
+       Keep the 6px radius and bold weight so it is still the same visual language. */
+    border-radius: 6px;
+    font-family: var(--tk-font);
+    font-weight: 700;
+    letter-spacing: .01em;
+}
+.ui.primary.button:hover,
+.ui.primary.buttons .button:hover,
+.ui.primary.button:focus,
+.ui.primary.buttons .button:focus {
+    background-color: var(--tk-primary-dark);
+}
+/* Keep the focus ring visible: Semantic removes the outline and keyboard users
+   lose the cursor entirely. */
+.ui.primary.button:focus-visible {
+    outline: 2px solid var(--tk-primary-dark);
+    outline-offset: 2px;
+}
+
+/* Secondary (basic) buttons share the primary button's shape, otherwise two adjacent buttons
+   have mismatched corner radii. */
+.ui.basic.button {
+    border-radius: 6px;
+    font-family: var(--tk-font);
+    font-weight: 600;
+}
+.ui.basic.button:hover { color: var(--tk-primary-dark) !important; }
+
+/* ============================================================
+   Shared Loading (components/Loading.jsx)
+   Four bars rise and fall, a wave running left to right.
+   Only transform + opacity are animated -> the browser pushes it to the GPU and does not
+   recompute layout each frame. Animating a bar's `height` or `y` would be
+   the opposite: every frame is a re-layout, janky on weak devices.
+   ============================================================ */
+.tk-load {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 16px;
+}
+
+/* Overlay: COVERS the existing content rather than replacing it, so the page frame
+   stays still while loading. Slightly translucent background so the text below is still faintly visible; the user
+   knows the old data is still there, just being refreshed. */
+.tk-load-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    background: rgba(244, 246, 251, .72);
+    backdrop-filter: blur(2px);
+    /* Block click-through while loading: clicking on old data that is about to be replaced
+       is a source of bugs, not a feature. */
+    cursor: progress;
+}
+/* The overlay's parent must have position so `inset: 0` anchors correctly. */
+.tk-load-host { position: relative; min-height: 120px; }
+
+.tk-load-svg { display: block; margin: 0 auto; }
+.tk-load-svg rect {
+    fill: var(--tk-primary);
+    /* Transform origin at the BOTTOM of the bar: scaleY stretches from the foot up, foot stays put.
+       Without this line the bar shrinks toward its center, looking like flicker rather than rising. */
+    transform-origin: 50% 100%;
+    animation: tk-load-wave 1.1s cubic-bezier(.5, .05, .5, .95) infinite;
+}
+/* Phase offset of .1s per bar: the wave runs left to right. In phase, all four bars
+   pulse together, looking like one jerking block rather than a wave. */
+.tk-load-svg rect:nth-of-type(2) { animation-delay: .1s; }
+.tk-load-svg rect:nth-of-type(3) { animation-delay: .2s; }
+.tk-load-svg rect:nth-of-type(4) { animation-delay: .3s; }
+
+/* The bar reaches up then drops back to .45. 45% opacity when low so the wave stands out,
+   rather than four solid bars pulsing evenly. */
+@keyframes tk-load-wave {
+    0%, 60%, 100% { transform: scaleY(.45); opacity: .45; }
+    30%           { transform: scaleY(1);   opacity: 1; }
+}
+
+/* People turn on "reduce motion" in the OS usually because of dizziness or
+   vestibular disorders. Disable the rise/fall, keep the dim pulse so it's still clear it's loading. */
+@media (prefers-reduced-motion: reduce) {
+    .tk-load-svg rect {
+        animation: tk-load-pulse 1.6s ease-in-out infinite;
+        transform: scaleY(1);
+    }
+    @keyframes tk-load-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+}
+
+/* Per-section score table on the "Đã nộp bài" (submitted) screen. That screen is text-center, so the table must
+   left-align itself again, otherwise the score column jumps around with the section name length. */
+.tk-result {
+    max-width: 420px;
+    margin: 18px auto;
+    text-align: left;
+}
+.tk-result-group {
+    font-weight: 700;
+    margin-top: 14px;
+    margin-bottom: 4px;
+}
+.tk-result-group:first-child { margin-top: 0; }
+.tk-result-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 0 5px 14px;
+    border-bottom: 1px solid var(--tk-line);
+}
+.tk-result-row i { color: var(--tk-muted); font-style: normal; }
+/* Narrow screen: section name and score both wrap to 2 lines and stagger, so you can't tell which
+   line goes with which. Stack vertically, with the score indented under the name. */
+@media (max-width: 460px) {
+    .tk-result-row { display: block; }
+    .tk-result-row b, .tk-result-row i { display: block; padding-left: 12px; }
+}
+/* Total only shows when there are 2 or more machine-graded sections; with one section the total row
+   merely repeats it. */
+.tk-result-total { border-bottom: none; border-top: 2px solid var(--tk-line); }
+
+/* ============================================================
+   Create exam from the bank (CreateFromBank). Each block type has its own color
+   (--block-color, set inline from MAU_LOAI); students see the same color in DoExam.
+   ============================================================ */
+.tk-cfb {
+    max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px;
+    font-family: var(--tk-font); color: var(--tk-ink);
+}
+.tk-cfb-head h2 { margin: 0 0 4px; font-size: 1.6em; }
+.tk-cfb-head h2 .icon { color: var(--tk-primary); }
+.tk-cfb-head p { color: var(--tk-muted); margin: 0 0 20px; }
+.tk-cfb-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.tk-cfb-side { position: sticky; top: 16px; display: grid; gap: 16px; }
+.tk-cfb-main { display: grid; gap: 16px; }
+.tk-cfb-card {
+    background: var(--tk-card); border: 1px solid var(--tk-line);
+    border-radius: var(--tk-r, 14px); box-shadow: var(--tk-shadow); padding: 20px;
+}
+.tk-cfb-card h3 { font-size: 1.1em; margin: 0 0 12px; }
+.tk-cfb-title { display: flex; justify-content: space-between; align-items: baseline; }
+.tk-cfb-title span { color: var(--tk-muted); font-weight: 600; }
+.tk-cfb-hint { color: var(--tk-muted); font-size: .92em; }
+
+/* --- Section list --- */
+.tk-cfb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.tk-cfb-slot {
+    display: flex; align-items: center; gap: 12px;
+    background: #fff; border: 1px solid var(--tk-line);
+    border-left: 5px solid var(--block-color); border-radius: 12px; padding: 10px 12px;
+    cursor: grab; position: relative;
+    transition: transform .15s ease, box-shadow .15s ease, opacity .15s;
+    animation: tk-cfb-enter .22s ease-out;
+}
+.tk-cfb-slot:hover { box-shadow: var(--tk-shadow-lift); transform: translateY(-1px); }
+.tk-cfb-slot:active { cursor: grabbing; }
+/* Card being lifted: faded, slightly tilted; its old spot is still readable. */
+.tk-cfb-slot.lifted { opacity: .45; transform: rotate(-1deg) scale(.98); }
+/* Bright bar above the card = dropping here inserts before this card. */
+.tk-cfb-slot.over::before, .tk-cfb-drop.over::before {
+    content: ''; position: absolute; left: 8px; right: 8px; top: -7px; height: 4px;
+    border-radius: 4px; background: var(--tk-primary);
+    box-shadow: 0 0 0 4px rgba(47, 111, 228, .18);
+}
+.tk-cfb-grip { color: var(--tk-faint); margin: 0 !important; }
+.tk-cfb-num {
+    flex: none; width: 32px; height: 32px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--block-color); color: #fff; font-weight: 700;
+}
+.tk-cfb-slot-body { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.tk-cfb-kind { font-size: .82em; font-weight: 600; color: var(--block-color); }
+.tk-cfb-input {
+    width: 100%; border: 1px solid transparent; border-radius: 8px;
+    padding: 6px 8px; margin-left: -8px; font: 600 1.02em/1.3 inherit; color: inherit;
+    background: transparent; transition: border-color .12s, background .12s;
+}
+.tk-cfb-input::placeholder { color: var(--tk-faint); font-weight: 500; }
+.tk-cfb-input:hover { background: var(--tk-bg); }
+.tk-cfb-input:focus { outline: none; border-color: var(--tk-primary); background: #fff; }
+.tk-cfb-actions { display: flex; gap: 2px; flex: none; }
+.tk-cfb-actions button, .tk-cfb-type button {
+    width: 32px; height: 32px; border: 0; border-radius: 8px; cursor: pointer;
+    background: transparent; color: var(--tk-muted);
+    display: grid; place-items: center; transition: background .12s, color .12s;
+}
+.tk-cfb-actions button .icon, .tk-cfb-type button .icon { margin: 0; }
+.tk-cfb-actions button:hover:not(:disabled) { background: var(--tk-bg); color: var(--tk-ink); }
+.tk-cfb-actions button.remove:hover { background: var(--tk-danger-soft); color: var(--tk-danger); }
+.tk-cfb-actions button:disabled, .tk-cfb-type button:disabled { opacity: .35; cursor: default; }
+.tk-cfb-actions button:focus-visible, .tk-cfb-type button:focus-visible {
+    outline: 2px solid var(--tk-primary); outline-offset: 1px;
+}
+.tk-cfb-drop {
+    position: relative; border: 2px dashed var(--tk-line); border-radius: 12px;
+    padding: 12px; text-align: center; color: var(--tk-muted); font-size: .92em;
+    transition: border-color .15s, background .15s;
+}
+.tk-cfb-drop.empty { padding: 40px 16px; font-size: 1em; }
+.tk-cfb-drop.over { border-color: var(--tk-primary); background: var(--tk-primary-soft); color: var(--tk-primary-dark); }
+.tk-cfb-drop.over::before { display: none; }
+
+/* --- Block type table --- */
+.tk-cfb-palette { display: grid; gap: 8px; }
+.tk-cfb-type {
+    display: flex; align-items: center; gap: 10px; padding: 8px 6px 8px 8px;
+    border: 1px solid var(--tk-line); border-radius: 12px; background: #fff;
+    cursor: grab; transition: transform .15s ease, box-shadow .15s ease, border-color .15s;
+}
+.tk-cfb-type:hover:not(.off) { transform: translateY(-2px); box-shadow: var(--tk-shadow-lift); border-color: var(--block-color); }
+.tk-cfb-type.off { cursor: default; opacity: .5; }
+.tk-cfb-type-icon {
+    flex: none; width: 34px; height: 34px; border-radius: 10px;
+    display: grid; place-items: center; background: var(--block-color); color: #fff;
+}
+.tk-cfb-type-icon .icon { margin: 0; }
+.tk-cfb-type-text { flex: 1; min-width: 0; display: grid; line-height: 1.25; }
+.tk-cfb-type-text b { font-size: .92em; }
+.tk-cfb-type-text small { color: var(--tk-muted); font-size: 12px; }
+.tk-cfb-type-text small.short { color: var(--tk-danger); font-weight: 600; }
+.tk-cfb-type button { color: var(--block-color); }
+.tk-cfb-type button:hover:not(:disabled) { background: var(--block-color); color: #fff; }
+
+/* --- Capacity: big number, color by level --- */
+.tk-cfb-capacity { --level-color: var(--tk-muted); --level-bg: #fff; background: var(--level-bg); transition: background .25s; }
+.tk-cfb-capacity.low { --level-color: var(--tk-danger); --level-bg: var(--tk-danger-soft); }
+.tk-cfb-capacity.mid { --level-color: var(--tk-warn); --level-bg: var(--tk-warn-soft); }
+.tk-cfb-capacity.high { --level-color: var(--tk-green); --level-bg: var(--tk-green-soft); }
+.tk-cfb-runs { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; color: var(--level-color); }
+.tk-cfb-runs b { font-size: 3.2em; line-height: 1; font-variant-numeric: tabular-nums; }
+.tk-cfb-runs span { font-weight: 600; line-height: 1.3; }
+.tk-cfb-capacity p { color: var(--tk-ink); font-size: .92em; }
+.tk-cfb-capacity .ui.button { margin-top: 12px; }
+
+@keyframes tk-cfb-enter { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 900px) {
+    .tk-cfb-layout { grid-template-columns: 1fr; }
+    .tk-cfb-side { position: static; }
+}
+@media (max-width: 520px) {
+    .tk-cfb-grip { display: none; }
+    .tk-cfb-slot { flex-wrap: wrap; }
+    .tk-cfb-slot-body { flex-basis: calc(100% - 44px); }
+    .tk-cfb-actions { margin-left: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .tk-cfb-slot, .tk-cfb-type { animation: none; transition: none; }
+    .tk-cfb-slot:hover, .tk-cfb-type:hover:not(.off), .tk-cfb-slot.lifted { transform: none; }
+}
+
+/* ============================================================
+   Exam-taking screen (DoExam): section cards colored by block type, progress,
+   color-changing clock, celebration on submit.
+   ============================================================ */
+#Exam .tk-part {
+    margin-top: 18px; padding: 0 0 4px 16px;
+    border-left: 4px solid var(--block-color);
+}
+#Exam .tk-part:first-child { margin-top: 0; }
+.tk-part-head {
+    display: flex; align-items: center; gap: 12px;
+    margin: 0 0 14px -16px; padding: 12px 16px;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--block-color) 12%, #fff), #fff 70%);
+    border-radius: 0 12px 12px 0;
+}
+.tk-part-num {
+    flex: none; width: 38px; height: 38px; border-radius: 12px;
+    display: grid; place-items: center; background: var(--block-color); color: #fff;
+}
+.tk-part-num .icon { margin: 0; }
+.tk-part-head small {
+    color: var(--block-color); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; font-size: .78em;
+}
+.tk-part-name { font-weight: 700; font-size: 1.08em; color: var(--tk-ink); }
+.tk-part-name p { margin: 0; }
+
+/* "Question N" label: once answered, a green check shows right away. */
+.tk-qlabel { display: inline-flex; align-items: center; gap: 6px; }
+.tk-qlabel .icon { color: var(--tk-green); margin: 0; animation: tk-tick .3s ease-out; }
+@keyframes tk-tick { from { transform: scale(0); } 60% { transform: scale(1.25); } to { transform: scale(1); } }
+
+/* Clock: green → yellow (≤ 5 min) → pulsing red (≤ 1 min). */
+.tk-timer {
+    --timer-color: var(--tk-primary);
+    border: 1px solid var(--tk-line); border-radius: var(--tk-r, 14px);
+    padding: 12px 14px 14px; background: #fff; color: var(--timer-color);
+    transition: color .3s, border-color .3s, background .3s;
+}
+.tk-timer .icon { margin: 0; }
+.tk-timer h1 { margin: 2px 0 8px; color: inherit; font-variant-numeric: tabular-nums; }
+.tk-timer.time-low { --timer-color: var(--tk-warn); background: var(--tk-warn-soft); border-color: var(--tk-warn-line); }
+.tk-timer.time-up { --timer-color: var(--tk-danger); background: var(--tk-danger-soft); border-color: var(--tk-danger-line); animation: tk-blink 1s ease-in-out infinite; }
+@keyframes tk-blink { 50% { box-shadow: 0 0 0 6px rgba(185, 28, 28, .15); } }
+.tk-timer-bar, .tk-progress-bar {
+    height: 6px; border-radius: 6px; background: var(--tk-bg); overflow: hidden;
+}
+.tk-timer-bar span, .tk-progress-bar span {
+    display: block; height: 100%; border-radius: inherit; background: var(--timer-color, var(--tk-primary));
+    transition: width .4s ease;
+}
+
+.tk-progress { margin-top: 14px; text-align: left; }
+.tk-progress-text { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: .92em; }
+.tk-progress-text span { color: var(--tk-muted); }
+.tk-progress-bar { height: 10px; }
+.tk-progress-bar span { background: linear-gradient(90deg, var(--tk-primary), var(--tk-green)); }
+
+/* "Đã nộp bài" (submitted) screen: confetti falls once, the icon pops up. */
+.tk-submitted { position: relative; overflow: hidden; }
+.tk-submitted-icon { animation: tk-pop .5s cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes tk-pop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.tk-confetti { position: absolute; inset: 0; pointer-events: none; }
+.tk-confetti i {
+    position: absolute; top: -12px; width: 8px; height: 14px; border-radius: 2px; opacity: 0;
+    animation: tk-fall 1.8s ease-in forwards;
+}
+.tk-confetti i:nth-child(3n) { width: 10px; height: 10px; border-radius: 50%; }
+@keyframes tk-fall {
+    0% { opacity: 1; transform: translateY(0) rotate(0); }
+    100% { opacity: 0; transform: translateY(420px) rotate(540deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tk-confetti { display: none; }
+    .tk-submitted-icon, .tk-qlabel .icon, .tk-timer.time-up { animation: none; }
+}
+
+/* ---- Semantic color labels → token pairs ----
+   Semantic paints white text on #21ba45 (2.57:1) and #fbbd08 (1.70:1): score and
+   "pending" labels were unreadable. Soft background + dark text, all ≥ 4.5:1.
+   .basic labels keep their own (more specific) rule; circular count badges stay solid. */
+.ui.green.label:not(.circular) {
+    background-color: var(--tk-green-soft) !important; border-color: var(--tk-green-soft) !important; color: var(--tk-green) !important;
+}
+.ui.yellow.label:not(.circular), .ui.orange.label:not(.circular) {
+    background-color: var(--tk-warn-soft) !important; border-color: var(--tk-warn-line) !important; color: var(--tk-warn) !important;
+}
+.ui.red.label:not(.circular) {
+    background-color: var(--tk-danger-soft) !important; border-color: var(--tk-danger-soft) !important; color: var(--tk-danger) !important;
+}
+.ui.blue.label:not(.circular), .ui.olive.label:not(.circular) {  /* olive = mid score: must differ from green */
+    background-color: var(--tk-primary-soft) !important; border-color: var(--tk-primary-soft) !important; color: var(--tk-primary-dark) !important;
+}
+
+/* Semantic small label is 11px; 12px is the floor for any text. */
+.ui.small.label, .ui.small.labels .label { font-size: 12px; }

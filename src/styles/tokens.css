@@ -1,0 +1,91 @@
+/* ============================================================
+   Design tokens — the ONE place to change brand color, font, radius.
+   Every component reads from here; /design-system renders them all.
+   Imported first in App.tsx, after semantic.min.css.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&display=swap');
+
+:root {
+    /* Fonts */
+    --tk-font: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    --tk-font-title: 'Newsreader', Georgia, serif;
+
+    /* Brand: same blue as the login page (.tka-btn) so signing in
+       doesn't feel like landing in another app. dark = hover. */
+    --tk-primary: #2f6fe4;
+    --tk-primary-soft: #eef3fc;
+    --tk-primary-dark: #1b4fb5;
+
+    /* Neutrals */
+    --tk-ink: #16203a;
+    /* auth.css used #7b869e: only 3.65:1 on white, below WCAG AA 4.5:1.
+       One step darker, same hue. */
+    --tk-muted: #636e8a;
+    --tk-faint: #8a93ab;      /* placeholder, drag handle — never body text */
+    --tk-line: #e1e7f2;
+    --tk-bg: #f4f6fb;
+    --tk-card: #ffffff;
+
+    /* Status. #16a34a is only 3.30:1 on white, hence the darker green. */
+    --tk-green: #15803d;
+    --tk-green-soft: #ecfdf3;
+    --tk-warn: #b45309;
+    --tk-warn-soft: #fffbeb;
+    --tk-warn-line: #fcd34d;
+    --tk-danger: #b91c1c;
+    --tk-danger-soft: #fef2f2;
+    --tk-danger-line: #fca5a5;
+
+    /* Block types (exam sections). White text sits on these: all ≥ 4.5:1. */
+    --tk-block-reading: #2f6fe4;
+    --tk-block-choice: #7c3aed;
+    --tk-block-truefalse: #0e7490;
+    --tk-block-short: #b45309;
+    --tk-block-essay-math: #be185d;
+    --tk-block-paragraph: #15803d;
+    --tk-block-essay: #c2410c;
+    --tk-block-cloze: #4f46e5;
+
+    /* Shape */
+    --tk-r: 14px;             /* cards */
+    --tk-r-sm: 8px;           /* buttons, inputs, small tiles */
+    --tk-shadow: 0 1px 2px rgba(31, 41, 51, .06), 0 8px 24px rgba(31, 41, 51, .06);
+    --tk-shadow-lift: 0 2px 4px rgba(31, 41, 51, .08), 0 16px 32px rgba(31, 41, 51, .12);
+
+    /* Scrollbar color source */
+    --foreground: var(--tk-ink);
+}
+
+/* ===== Auto-hiding scrollbar (evon:ui-ux I18) =====
+   Transparent at rest, faint on hover, darker while scrolling. Hidden by
+   COLOR, not `scrollbar-width: none`, so the 4px gutter stays and content
+   doesn't shift. Thumb color goes through a variable on the scroller itself:
+   Chrome doesn't repaint `*:hover::-webkit-scrollbar-thumb`. */
+* { --scrollbar-thumb: transparent; }
+*:hover { --scrollbar-thumb: color-mix(in srgb, var(--foreground) 16%, transparent); }
+.is-scrolling { --scrollbar-thumb: color-mix(in srgb, var(--foreground) 28%, transparent); }
+/* `body` prefix: semantic.min.css ships `body ::-webkit-scrollbar` (10px, always
+   visible), which outranks bare `::-webkit-scrollbar`. */
+::-webkit-scrollbar, body ::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track, body ::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb, body ::-webkit-scrollbar-thumb,
+body ::-webkit-scrollbar-thumb:window-inactive { background: var(--scrollbar-thumb); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover, body ::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, var(--foreground) 40%, transparent); }
+
+/* Firefox. Must stay inside @supports: since Chrome 121 an element with
+   scrollbar-width/scrollbar-color makes Chrome ignore ::-webkit-scrollbar. */
+@supports not selector(::-webkit-scrollbar) {
+    * { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+    *:hover { scrollbar-color: color-mix(in srgb, var(--foreground) 18%, transparent) transparent; }
+    .is-scrolling { scrollbar-color: color-mix(in srgb, var(--foreground) 28%, transparent) transparent; }
+}
+
+/* Horizontal chip/tab rows only, where a bottom scrollbar looks like a bug. */
+.scrollbar-clean { scrollbar-width: none; }
+.scrollbar-clean::-webkit-scrollbar { display: none; }
+
+body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
