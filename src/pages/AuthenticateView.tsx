@@ -1,3 +1,4 @@
+import { Suspense, lazy } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom'
 
 import Dashboard from './dashboard/Dashboard';
@@ -18,11 +19,21 @@ import PaymentResult from './payment/PaymentResult';
 import TopToolbar from './TopToolbar'
 import StudentShell from './student/StudentShell';
 import {useAuthStore} from '../stores/authStore';
+import Loading from '../components/Loading';
+
+// Admin area /manage/* (SPT-27/23/47): own layout, own chunk.
+const ManageApp = lazy(() => import('./manage/ManageApp'));
 
 
 export default function AuthenticateView() {
-    const isTeacher = useAuthStore(s => s.user?.group) === 'teacher';
+    const group = useAuthStore(s => s.user?.group);
+    const isTeacher = group === 'teacher';
     const {pathname} = useLocation();
+
+    // Admin only uses /manage/*; ManageApp redirects any other path there and shows 403 to non-admins.
+    if (group === 'admin' || pathname.startsWith('/manage')) {
+        return <Suspense fallback={<Loading/>}><ManageApp/></Suspense>;
+    }
     // Taking an exam / paying stay full-screen; every other student page sits in the app shell.
     const shell = !isTeacher && !/^\/(do-exam|payment)\//.test(pathname);
 
