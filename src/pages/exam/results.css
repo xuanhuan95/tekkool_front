@@ -1,0 +1,91 @@
+/* Result (HS-KetQua), review (HS-XemLai), history (HS-LichSu). Inside the student shell. */
+
+.vt-res { display: flex; flex-direction: column; gap: 14px; max-width: 760px; margin: 0 auto; width: 100%;
+          box-sizing: border-box; font-family: var(--vt-font); color: var(--vt-ink); }
+.vt-res-head { display: flex; flex-direction: column; gap: 2px; }
+.vt-res-meta { font-size: 13px; color: var(--vt-muted); }
+.vt-res-back { align-self: flex-start; }
+
+/* Score card */
+.vt-score { display: flex; flex-direction: column; gap: 10px; }
+.vt-score-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.vt-score-label { font-size: 13px; color: var(--vt-muted); }
+.vt-score-big { display: flex; align-items: baseline; gap: 8px; }
+.vt-score-num { font-family: var(--vt-font-hand); font-weight: 700; font-size: 64px; line-height: .95; font-variant-numeric: tabular-nums; }
+.vt-score-of { font-family: var(--vt-font-hand); font-weight: 700; font-size: 30px; color: var(--vt-muted); }
+.vt-score-note { font-size: 14px; color: var(--vt-muted); }
+.vt-score-time { padding-top: 10px; border-top: 1.5px solid var(--vt-line-soft); font-size: 14px; }
+
+/* Parts table */
+.vt-parts { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+.vt-parts th, .vt-parts td { padding: 12px 0; text-align: right; }
+.vt-parts thead th { font-size: 13px; color: var(--vt-muted); font-weight: 500; padding: 10px 0; }
+.vt-parts thead th:first-child, .vt-parts tbody th { text-align: left; }
+.vt-parts tbody th { font-weight: 600; padding-right: 8px; }
+.vt-parts tbody tr { border-top: 1.5px solid var(--vt-line-soft); }
+.vt-parts tbody tr.vt-parts-total { border-top: var(--vt-border); }
+.vt-parts-total th { font-weight: 700; }
+.vt-muted { color: var(--vt-muted); }
+.vt-parts-card { padding: 6px 16px 12px; }
+
+/* Ranking points */
+.vt-rankpts { display: flex; flex-direction: column; gap: 2px; }
+.vt-rankpts-title { font-family: var(--vt-font-hand); font-weight: 700; font-size: 24px; line-height: 1.1; }
+.vt-rankpts-desc { font-size: 13px; color: var(--vt-muted); }
+
+.vt-res-actions { display: flex; flex-direction: column; gap: 10px; }
+@media (min-width: 640px) { .vt-res-actions { flex-direction: row; } .vt-res-actions > * { flex: 1; } }
+
+/* Review cards */
+.vt-rv { display: flex; flex-direction: column; gap: 12px; }
+.vt-rv-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.vt-rv-num { font-family: var(--vt-font-hand); font-weight: 700; font-size: 24px; line-height: 1; }
+.vt-rv-prompt { font-size: 15px; line-height: 1.6; overflow-wrap: anywhere; }
+.vt-rv-prompt img, .vt-rv-opt img, .vt-rv-answer img { max-width: 100%; height: auto; }
+.vt-rv-prompt p { margin: 0 0 .4em; }
+.vt-rv-prompt p:last-child { margin-bottom: 0; }
+.vt-rv-passage { background: var(--vt-paper); border: 1.5px solid var(--vt-line-soft); border-radius: var(--vt-r-card-md);
+                 padding: 12px 14px; font-size: 15px; line-height: 1.6; }
+.vt-rv-opts { display: flex; flex-direction: column; gap: 8px; }
+.vt-rv-opt {
+    display: flex; align-items: center; gap: 10px; padding: 9px 12px; font-size: 15px;
+    border: 1.5px solid var(--vt-line-soft); border-radius: var(--vt-r-btn); color: var(--vt-muted);
+}
+.vt-rv-letter {
+    width: 26px; height: 26px; box-sizing: border-box; flex-shrink: 0; border: 1.5px solid #a8a29e; border-radius: 999px;
+    display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px;
+}
+.vt-rv-optbody { flex-grow: 1; min-width: 0; overflow-wrap: anywhere; }
+.vt-rv-tag { font-size: 12px; font-weight: 600; white-space: nowrap; }
+.vt-rv-opt--wrong { border: 2px solid var(--vt-err); color: var(--vt-ink); }
+.vt-rv-opt--wrong .vt-rv-letter { border-color: var(--vt-err); color: var(--vt-err); }
+.vt-rv-opt--wrong .vt-rv-tag { color: var(--vt-err); }
+.vt-rv-opt--right { border: 2px solid var(--vt-ok-ink); background: var(--vt-ok-bg); color: var(--vt-ink); font-weight: 600; }
+.vt-rv-opt--right .vt-rv-letter { border-color: var(--vt-ok-ink); background: var(--vt-ok-ink); color: #fff; }
+.vt-rv-opt--right .vt-rv-tag { color: var(--vt-ok-ink); }
+.vt-rv-tf { display: flex; flex-direction: column; }
+.vt-rv-tfrow { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1.5px solid var(--vt-line-soft); font-size: 14px; }
+.vt-rv-tftext { flex-grow: 1; min-width: 0; overflow-wrap: anywhere; }
+.vt-rv-tfmine { font-size: 12px; color: var(--vt-muted); white-space: nowrap; }
+.vt-rv-ok { color: var(--vt-ok-ink); }
+.vt-rv-bad { color: var(--vt-err); }
+.vt-rv-mark { flex-shrink: 0; width: 18px; display: flex; justify-content: center; font-weight: 700; }
+.vt-rv-label { font-size: 14px; color: var(--vt-muted); }
+.vt-rv-answer { font-size: 14px; line-height: 1.6; border-left: 3px solid var(--vt-line-soft); padding-left: 10px; overflow-wrap: anywhere; }
+.vt-rv-answer p { margin: 0 0 .4em; }
+.vt-rv-comment { font-size: 14px; line-height: 1.6; background: var(--vt-paper); border-radius: var(--vt-r-chip); padding: 10px 12px; }
+.vt-rv-hint { font-size: 13px; color: var(--vt-muted); }
+
+/* History rows */
+.vt-hist { display: flex; flex-direction: column; gap: 10px; list-style: none; margin: 0; padding: 0; }
+.vt-hist-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    text-decoration: none; color: inherit; width: 100%; box-sizing: border-box; text-align: left;
+}
+.vt-hist-row:hover { background: var(--vt-paper); }
+.vt-hist-info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.vt-hist-name { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.vt-hist-meta { font-size: 13px; color: var(--vt-muted); }
+.vt-hist-score { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+.vt-hist-num { font-family: var(--vt-font-hand); font-weight: 700; font-size: 28px; line-height: 1; font-variant-numeric: tabular-nums; }
+.vt-hist-of { font-size: 12px; color: var(--vt-muted); }

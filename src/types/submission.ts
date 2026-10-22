@@ -48,6 +48,11 @@ export type ScoreSection = {
  */
 export type SubmissionAnswer = {
     question_id: string;
+    /** Question type at submit time (MultipleChoice, TrueFalse, ShortAnswer, FillBlank, FreeAnswer...). */
+    type?: string;
+    /** Part title snapshotted at submit ("Phần I", teacher's title...). */
+    section_name?: string | null;
+    block_type?: string | null;
     question_text?: string;
     /** The student's work: option id (multiple choice) or HTML (essay). */
     answer?: string | null;

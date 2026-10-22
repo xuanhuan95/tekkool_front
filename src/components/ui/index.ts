@@ -38,6 +38,6 @@ export {default as QuestionBlock} from './exam/QuestionBlock';
 export type {QuestionBlockProps, ChoiceOption, TrueFalseStatement, EssayTool} from './exam/QuestionBlock';
 export {QuestionNumberStrip, QuestionGrid} from './exam/QuestionNav';
 export type {QuestionGridPart} from './exam/QuestionNav';
-export {ExamHeader, ExamSection, ExamEnd, ExamLayout, AutosaveNote} from './exam/ExamFrame';
+export {ExamHeader, ExamSection, ExamEnd, ExamLayout, AutosaveNote, ExamBanner} from './exam/ExamFrame';
 export {countTrueFalse, countWords, formatClock, questionCellLabel, WARN_SECONDS} from './exam/types';
 export type {QuestionStatus, TrueFalseValue} from './exam/types';

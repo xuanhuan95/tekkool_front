@@ -10,8 +10,8 @@ import {WARN_SECONDS, formatClock, spokenClock} from './types';
 export interface ExamHeaderProps {
     /** "Toán · Đề thi thử SPT số 3" */
     title: string;
-    /** Seconds left — the CALLER computes it from the server deadline; this only draws it. */
-    secondsLeft: number;
+    /** Seconds left — the CALLER computes it from the server deadline; this only draws it. null = no time limit. */
+    secondsLeft: number | null;
     answered: number;
     total: number;
     onExit: () => void;
@@ -28,7 +28,7 @@ export interface ExamHeaderProps {
  * Phone and web are ONE markup rearranged by CSS grid (exam.css).
  */
 export function ExamHeader({title, secondsLeft, answered, total, onExit, onSubmit, submitting, strip}: ExamHeaderProps) {
-    const warn = secondsLeft <= WARN_SECONDS;
+    const warn = secondsLeft !== null && secondsLeft <= WARN_SECONDS;
     return <div className='vt-exam-top'>
         <header className='vt-exam-header'>
             <div className='vt-exam-header-grid'>
@@ -42,8 +42,10 @@ export function ExamHeader({title, secondsLeft, answered, total, onExit, onSubmi
                 </div>
                 <div className='vt-exam-timer-wrap'>
                     {/* role=timer is not live: a screen reader reads it on demand, not every second. */}
-                    <span role='timer' aria-label={'Thời gian còn lại ' + spokenClock(secondsLeft)}
-                          className={cx('vt-timer', warn && 'vt-timer--warn')}>{formatClock(secondsLeft)}</span>
+                    {secondsLeft === null
+                        ? <span className='vt-timer vt-timer--none'>Không giới hạn</span>
+                        : <span role='timer' aria-label={'Thời gian còn lại ' + spokenClock(secondsLeft)}
+                                className={cx('vt-timer', warn && 'vt-timer--warn')}>{formatClock(secondsLeft)}</span>}
                 </div>
                 <div className='vt-exam-tail'>
                     <span className='vt-exam-count'>{answered} / {total} đã làm</span>
@@ -81,14 +83,21 @@ export function ExamSection({id, title, note, children}: ExamSectionProps) {
 export interface AutosaveNoteProps {
     /** "20:41" — time of the last successful save. */
     savedAt?: string | null;
-    /** Last save failed (offline...). */
+    /** Last save failed for good (e.g. answer too long). */
     error?: boolean;
+    /** A save is on its way. */
+    saving?: boolean;
+    /** Network lost: answers are kept on this device and retried. Wins over the others. */
+    offline?: boolean;
 }
 
-/** "Đã lưu tự động lúc 20:41" with the green tick; red when the last save failed. */
-export function AutosaveNote({savedAt, error}: AutosaveNoteProps) {
+/** "Đã lưu tự động lúc 20:41" with the green tick; "Đang lưu…"; red when offline or failed. */
+export function AutosaveNote({savedAt, error, saving, offline}: AutosaveNoteProps) {
+    if (offline) return <span role='status' className='vt-saved vt-saved--error'><IconAlert size={14}/>
+        Mất kết nối — đáp án được giữ trên máy, sẽ tự lưu khi có mạng.</span>;
     if (error) return <span role='status' className='vt-saved vt-saved--error'><IconAlert size={14}/>
         Chưa lưu được. Kiểm tra mạng.</span>;
+    if (saving) return <span role='status' className='vt-saved'>Đang lưu…</span>;
     if (!savedAt) return null;
     return <span role='status' className='vt-saved'><IconSaved/>Đã lưu tự động lúc {savedAt}</span>;
 }
@@ -99,12 +108,17 @@ export interface ExamEndProps {
     flagged?: number;
     savedAt?: string | null;
     saveError?: boolean;
+    saving?: boolean;
+    offline?: boolean;
     onSubmit: () => void;
     submitting?: boolean;
+    /** Paper locked (time up): button disabled. */
+    disabled?: boolean;
 }
 
 /** End of the paper: "Hết đề", answered/flagged summary, autosave line, big "Nộp bài". */
-export function ExamEnd({answered, total, flagged = 0, savedAt, saveError, onSubmit, submitting}: ExamEndProps) {
+export function ExamEnd({answered, total, flagged = 0, savedAt, saveError, saving, offline, onSubmit, submitting,
+                         disabled}: ExamEndProps) {
     return <Card as='section' aria-label='Nộp bài' className='vt-exam-end'>
         <div className='vt-exam-end-info'>
             <span className='vt-exam-end-title'>Hết đề</span>
@@ -112,10 +126,27 @@ export function ExamEnd({answered, total, flagged = 0, savedAt, saveError, onSub
                 Bạn đã làm <span className='vt-num'>{answered} / {total}</span> câu
                 {flagged > 0 && <> · {flagged} câu đánh dấu</>}
             </span>
-            <AutosaveNote savedAt={savedAt} error={saveError}/>
+            <AutosaveNote savedAt={savedAt} error={saveError} saving={saving} offline={offline}/>
         </div>
-        <Button variant='primary' size='lg' block loading={submitting} onClick={onSubmit}>Nộp bài</Button>
+        <Button variant='primary' size='lg' block loading={submitting} disabled={disabled}
+                onClick={onSubmit}>Nộp bài</Button>
     </Card>;
+}
+
+export interface ExamBannerProps {
+    tone?: 'error' | 'warn';
+    icon?: ReactNode;
+    children: ReactNode;
+}
+
+/**
+ * Full-width strip under the exam header (HS-LamBai-DangCuon): "Còn dưới 5 phút — bài sẽ tự nộp
+ * khi hết giờ", "Mất kết nối…". role=alert so it is announced once when it appears.
+ */
+export function ExamBanner({tone = 'error', icon, children}: ExamBannerProps) {
+    return <div role='alert' className={cx('vt-exam-banner', tone === 'warn' && 'vt-exam-banner--warn')}>
+        {icon ?? <IconAlert size={16}/>}<span>{children}</span>
+    </div>;
 }
 
 export interface ExamLayoutProps {

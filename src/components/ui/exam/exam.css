@@ -304,3 +304,80 @@
     .vt-exam-end { margin-top: 12px; padding: 20px 24px; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
     .vt-exam-end .vt-btn--lg { padding-left: 32px; padding-right: 32px; width: auto; }
 }
+
+/* ---------- Banner under the header (≤5 min left, offline) ---------- */
+.vt-exam-banner {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 20px;
+    font-size: 13px; font-weight: 600; line-height: 1.4;
+    background: var(--vt-err-bg); color: var(--vt-err);
+    border-bottom: 1.5px solid var(--vt-err);
+}
+.vt-exam-banner > svg { flex-shrink: 0; }
+.vt-exam-banner--warn { background: var(--vt-sun-soft); color: var(--vt-sun-ink); border-bottom-color: var(--vt-sun); }
+@media (min-width: 1024px) { .vt-exam-banner { justify-content: center; padding: 8px 24px; } }
+
+.vt-timer--none { font-size: 20px; padding: 6px 12px; }
+@media (min-width: 1024px) { .vt-timer--none { font-size: 24px; } }
+
+/* Shared reading text (Đọc hiểu) before the first question of its group */
+.vt-exam-paper .passage {
+    margin: 10px 0 2px;
+    padding: 12px 14px;
+    background: var(--vt-paper);
+    border: 1.5px solid var(--vt-line-soft); border-radius: var(--vt-r-card-md);
+    font-size: 15px; line-height: 1.6; overflow-wrap: anywhere;
+}
+.vt-exam-paper .passage img { max-width: 100%; height: auto; }
+.vt-exam-paper .passage p { margin: 0 0 .5em; }
+.vt-exam-paper .passage p:last-child { margin-bottom: 0; }
+
+/* TipTap editor inside the essay box (keeps formulas/images of the old answer box) */
+.vt-essay .tt-editor {
+    min-height: 220px; box-sizing: border-box;
+    border: var(--vt-border); border-radius: var(--vt-r-card-md); background: var(--vt-card);
+    font-size: 15px; line-height: 1.6;
+}
+.vt-essay .tt-editor:focus-within { box-shadow: 0 0 0 3px var(--vt-action); }
+.vt-essay .tt-editor .ProseMirror { min-height: 200px; padding: 10px 14px; }
+
+/* "Lên đầu" floating button (phone) */
+.vt-totop.vt-btn {
+    position: fixed; right: 16px; bottom: 20px; z-index: 15;
+    font-size: 13px; min-height: 44px; padding: 0 12px;
+}
+@media (min-width: 1024px) { .vt-totop.vt-btn { display: none; } }
+
+/* Submit dialog (HS-XacNhanNop) */
+.vt-submit-rows { display: flex; flex-direction: column; }
+.vt-submit-row {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 10px 0; border-top: 1.5px solid var(--vt-line-soft); font-size: 15px;
+}
+.vt-submit-row:last-child { border-bottom: 1.5px solid var(--vt-line-soft); }
+.vt-submit-line { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.vt-submit-line b { font-variant-numeric: tabular-nums; }
+.vt-submit-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.vt-submit-chip {
+    font-family: inherit; font-size: 13px; font-weight: 600; color: var(--vt-ink);
+    background: var(--vt-card); border: 1.5px solid var(--vt-ink); border-radius: var(--vt-r-chip);
+    padding: 0 12px; min-height: 44px; display: flex; align-items: center; gap: 4px; cursor: pointer;
+}
+.vt-submit-hint { font-size: 13px; color: var(--vt-muted); }
+.vt-submit-flagdot {
+    width: 8px; height: 8px; box-sizing: border-box; border-radius: 999px;
+    background: var(--vt-sun); border: 1px solid var(--vt-sun-ink); display: inline-block; margin-right: 8px;
+}
+.vt-submit-warn {
+    display: flex; align-items: flex-start; gap: 8px; margin-top: 16px;
+    background: var(--vt-err-bg); color: var(--vt-err); border-radius: var(--vt-r-chip);
+    padding: 10px 12px; font-size: 13px; font-weight: 600;
+}
+.vt-submit-warn > svg { flex-shrink: 0; margin-top: 1px; }
+
+/* Exam page while loading / on error */
+.vt-exam-status { display: flex; flex-direction: column; gap: 14px; padding-top: 24px; max-width: 560px; }
+.vt-out-icon {
+    width: 56px; height: 56px; box-sizing: border-box; border: var(--vt-border); border-radius: 999px;
+    background: var(--vt-action); display: flex; align-items: center; justify-content: center; margin-bottom: 12px;
+}

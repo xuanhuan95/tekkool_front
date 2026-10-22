@@ -3,7 +3,7 @@ import {fireEvent, render, screen, within} from '@testing-library/react';
 
 import QuestionBlock from './QuestionBlock';
 import {QuestionGrid, QuestionNumberStrip} from './QuestionNav';
-import {ExamEnd, ExamHeader} from './ExamFrame';
+import {AutosaveNote, ExamBanner, ExamEnd, ExamHeader} from './ExamFrame';
 import {countTrueFalse, countWords, formatClock, questionCellLabel} from './types';
 
 const OPTIONS = [{key: 'A', content: '2'}, {key: 'B', content: '6'}, {key: 'C', content: '4'}, {key: 'D', content: '8'}];
@@ -236,5 +236,29 @@ describe('exam helpers', () => {
     });
     it('questionCellLabel', () => {
         expect(questionCellLabel({number: 4, answered: false}, true)).toBe('Câu 4, chưa làm, đang xem');
+    });
+});
+
+describe('ExamHeader no limit, AutosaveNote states, ExamBanner', () => {
+    it('secondsLeft null shows "Không giới hạn" and no timer role', () => {
+        render(<ExamHeader title='Đề' secondsLeft={null} answered={0} total={3} onExit={() => {}} onSubmit={() => {}}/>);
+        expect(screen.getByText('Không giới hạn')).toBeTruthy();
+        expect(screen.queryByRole('timer')).toBeNull();
+    });
+
+    it('offline wins over saved; saving shows "Đang lưu…"', () => {
+        const {rerender} = render(<AutosaveNote savedAt='20:41' offline/>);
+        expect(screen.getByRole('status').textContent).toMatch(/Mất kết nối/);
+        rerender(<AutosaveNote savedAt='20:41' saving/>);
+        expect(screen.getByRole('status').textContent).toBe('Đang lưu…');
+        rerender(<AutosaveNote savedAt='20:41'/>);
+        expect(screen.getByRole('status').textContent).toMatch(/Đã lưu tự động lúc 20:41/);
+    });
+
+    it('ExamBanner is an alert; ExamEnd disabled blocks the button', () => {
+        render(<><ExamBanner>Còn dưới 5 phút</ExamBanner>
+            <ExamEnd answered={1} total={2} onSubmit={() => {}} disabled/></>);
+        expect(screen.getByRole('alert').textContent).toMatch(/Còn dưới 5 phút/);
+        expect(screen.getByRole('button', {name: 'Nộp bài'})).toBeDisabled();
     });
 });
