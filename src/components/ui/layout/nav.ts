@@ -24,11 +24,15 @@ export const STUDENT_NAV_WEB: NavItem[] = [
     {to: '/packages', label: 'Gói thi'},
 ];
 
-/** Admin manages teachers, users, packages + prices, revenue, transactions (CLAUDE.md, chốt 21/10). */
+/**
+ * Admin manages teachers, users, packages + prices, revenue, transactions (CLAUDE.md, chốt 21/10).
+ * NOT under /admin: tekkool-deploy/nginx.conf has `location /admin { return 404; }` (blocks the
+ * BE's unauthenticated Flask-Admin), so F5 on an /admin/... SPA route would 404.
+ */
 export const ADMIN_NAV: NavItem[] = [
-    {to: '/admin/teachers', label: 'Giáo viên'},
-    {to: '/admin/users', label: 'Người dùng'},
-    {to: '/admin/packages', label: 'Gói thi'},
-    {to: '/admin/revenue', label: 'Doanh thu'},
-    {to: '/admin/transactions', label: 'Giao dịch'},
+    {to: '/manage/teachers', label: 'Giáo viên'},
+    {to: '/manage/users', label: 'Người dùng'},
+    {to: '/manage/packages', label: 'Gói thi'},
+    {to: '/manage/revenue', label: 'Doanh thu'},
+    {to: '/manage/transactions', label: 'Giao dịch'},
 ];
