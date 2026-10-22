@@ -1,7 +1,7 @@
 import {describe, it, expect} from 'vitest';
 
-import {errorText, formatDayMonth, formatIsoDay, formatPoints, formatScore, minutesLeft, parseServerDate, plainText, score10} from './format';
-import {studentTitle} from './title';
+import {errorText, formatDecimal, formatMinutes, formatTimeDate, formatDayMonth, formatIsoDayMonth, formatPoints, formatScore, minutesLeft, parseServerDate, plainText, score10} from './format';
+import {studentTitle} from '../pages/hs/title';
 
 describe('format', () => {
     it('score on 10 with Vietnamese comma', () => {
@@ -20,7 +20,7 @@ describe('format', () => {
         expect(parseServerDate('2026-10-18T18:30:00')!.toISOString()).toBe('2026-10-18T18:30:00.000Z');
         expect(formatDayMonth('2026-10-18T18:30:00')).toBe('19/10');   // 01:30 on the 19th in Vietnam
         expect(formatDayMonth(null)).toBe('—');
-        expect(formatIsoDay('2026-10-19')).toBe('19/10');
+        expect(formatIsoDayMonth('2026-10-19')).toBe('19/10');
     });
     it('minutes left rounds up', () => {
         expect(minutesLeft(2280)).toBe('còn 38 phút');
@@ -34,6 +34,30 @@ describe('format', () => {
         expect(errorText({code: 400, error: 'Sai'}, 'x')).toBe('Sai');
         expect(errorText({code: 500}, 'Lỗi')).toBe('Lỗi');
         expect(errorText(new TypeError('fetch'), 'x')).toMatch(/kết nối/);
+    });
+});
+
+describe('shared formats (exam screens)', () => {
+    it('formatDecimal uses the Vietnamese comma and drops trailing zeros', () => {
+        expect(formatDecimal(0.25)).toBe('0,25');
+        expect(formatDecimal(7.256)).toBe('7,26');
+        expect(formatDecimal(2)).toBe('2');
+    });
+    it('time · date in Vietnam time; minutes round up', () => {
+        expect(formatTimeDate('2026-10-21T13:47:00')).toBe('20:47 · 21/10/2026');
+        expect(formatTimeDate('2026-10-21T13:47:00Z')).toBe('20:47 · 21/10/2026');
+        expect(formatTimeDate(null)).toBe('—');
+        expect(formatMinutes(4920)).toBe('82 phút');
+        expect(formatMinutes(0)).toBe('—');
+    });
+    it('scores 2 decimals, points 1 decimal', () => {
+        expect(formatScore(6.5)).toBe('6,50');
+        expect(formatPoints(10)).toBe('10,0');
+    });
+    it('errorText: server message, network TypeError, Error.message, fallback', () => {
+        expect(errorText({code: 400, error: 'Gói này đã ngừng bán'}, 'x')).toBe('Gói này đã ngừng bán');
+        expect(errorText(new Error('boom'), 'x')).toBe('boom');
+        expect(errorText(undefined, 'mặc định')).toBe('mặc định');
     });
 });
 

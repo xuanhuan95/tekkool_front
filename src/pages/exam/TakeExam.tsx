@@ -7,6 +7,7 @@ import {fetchDuringTest, isRecentSubmission} from '../../queries/examSession';
 import type {ApiError} from '../../services/api';
 import type {TestExam} from '../../types/exam';
 import ExamRoom from './ExamRoom';
+import {parseServerDate} from '../../lib/format';
 
 type LoadState =
     | {kind: 'loading'}
@@ -14,10 +15,26 @@ type LoadState =
     | {kind: 'outOfTurns'}
     | {kind: 'ready'; exam: TestExam; deadlineMs: number | null};
 
-/** remaining_sec from the server wins; only the exam owner (no attempt) falls back to the duration. */
+/** Device clock this far off the server = trust remaining_sec instead of the absolute expires_at. */
+export const CLOCK_SKEW_TOLERANCE_MS = 30_000;
+
+/**
+ * Wall-clock deadline of the attempt (ms), null = no limit.
+ *  1. `expires_at` (SPT-60, UTC "Z") — the server's real deadline;
+ *  2. but if the device clock disagrees with the server's `remaining_sec` by more than 30 s (phone
+ *     clock set wrong), an absolute time would show a wrong countdown → use now + remaining_sec;
+ *  3. no attempt (exam owner trying it): the exam's duration.
+ */
 export function deadlineFrom(exam: TestExam, now = Date.now()): number | null {
-    if (exam.remaining_sec !== null && exam.remaining_sec !== undefined) return now + Math.max(0, exam.remaining_sec) * 1000;
-    return exam.duration && exam.duration > 0 ? now + exam.duration * 60_000 : null;
+    const hasRemaining = exam.remaining_sec !== null && exam.remaining_sec !== undefined;
+    const byRemaining = hasRemaining ? now + Math.max(0, exam.remaining_sec as number) * 1000 : null;
+    const expires = parseServerDate(exam.expires_at)?.getTime() ?? null;
+    if (expires !== null && (byRemaining === null || Math.abs(expires - byRemaining) <= CLOCK_SKEW_TOLERANCE_MS)) {
+        return expires;
+    }
+    if (byRemaining !== null) return byRemaining;
+    const minutes = exam.duration_min ?? exam.duration;
+    return minutes && minutes > 0 ? now + minutes * 60_000 : null;
 }
 
 function loadErrorMessage(e: unknown): string {

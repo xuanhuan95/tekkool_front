@@ -12,6 +12,7 @@ import type {SubmissionDetail} from '../../types/submission';
 const DETAIL: SubmissionDetail = {
     id: 'SUB1', exam_name: 'Toán — Đề 3', submitted_at: '2026-10-21T13:47:00', duration_sec: 82 * 60,
     score: 5.75, max_score: 10, graded_max_score: 8.5, pending_count: 1, status: 'GRADING',
+    subject: {id: 'F1', name: 'Toán'}, duration_min: 90, ranking_contribution: 15.8,
     phan: [
         {ten: 'I · Trắc nghiệm', score: 0.25, max_score: 0.5, pending: 0},
         {ten: 'II · Đúng/Sai', score: 0.25, max_score: 1, pending: 0},
@@ -19,7 +20,8 @@ const DETAIL: SubmissionDetail = {
     ],
     answers: [
         {question_id: 'Q1', type: 'MultipleChoice', section_name: 'I · Trắc nghiệm', question_text: '<p>1+1?</p>',
-         answers: [{id: 'A1', value: '2'}, {id: 'A2', value: '3'}], correct_id: 'A1', answer: '3', score: 0, max_score: 0.25},
+         answers: [{id: 'A1', value: '2'}, {id: 'A2', value: '3'}], correct_id: 'A1', answer: '3', score: 0, max_score: 0.25,
+         explanation: '<p>Một cộng một bằng hai.</p>'},
         {question_id: 'Q2', type: 'MultipleChoice', section_name: 'I · Trắc nghiệm', question_text: '<p>2+2?</p>',
          answers: [{id: 'B1', value: '4'}, {id: 'B2', value: '5'}], correct_id: 'B1', answer: '4', score: 0.25, max_score: 0.25},
         ...['T1', 'T2', 'T3', 'T4'].map((id, k) => ({
@@ -61,7 +63,21 @@ describe('ResultPage', () => {
         expect(within(table).getByText('Chờ chấm')).toBeTruthy();
         expect(screen.getByText(/\+15,8 điểm xếp hạng tuần/)).toBeTruthy();
         expect(screen.getByText('82 phút')).toBeTruthy();
+        expect(screen.getByText('/ 90 phút')).toBeTruthy();
+        expect(screen.getByText(/Môn Toán/)).toBeTruthy();
         expect(screen.getByRole('link', {name: 'Xem lại bài'})).toHaveAttribute('href', '/review/SUB1');
+    });
+
+    it('ranking line uses BE ranking_contribution; 0 explains why; absent → hidden', async () => {
+        vi.spyOn(Api, 'get').mockResolvedValue({...DETAIL, ranking_contribution: 0});
+        const {unmount} = page('/result/SUB1');
+        await screen.findByText(/\+0,0 điểm xếp hạng tuần/);
+        expect(screen.getByText(/Lần này không cộng thêm/)).toBeTruthy();
+        unmount();
+        vi.spyOn(Api, 'get').mockResolvedValue({...DETAIL, ranking_contribution: undefined});
+        page('/result/SUB1');
+        await screen.findByText('Toán — Đề 3');
+        expect(screen.queryByText(/điểm xếp hạng tuần/)).toBeNull();
     });
 
     it('final score when everything is graded — no "Tạm tính"', async () => {
@@ -89,6 +105,10 @@ describe('ReviewPage', () => {
         expect(within(q1).getByText('Sai · 0 điểm')).toBeTruthy();
         expect(within(q1).getByText('Bạn chọn')).toBeTruthy();
         expect(within(q1).getByText('Đáp án đúng')).toBeTruthy();
+        // Wrong answer with an explanation: "Lời giải" open.
+        expect(within(q1).getByText('Lời giải').closest('details')).toHaveAttribute('open');
+        expect(within(q1).getByText('Một cộng một bằng hai.')).toBeTruthy();
+        expect(within(screen.getByRole('article', {name: 'Câu 2'})).queryByText('Lời giải')).toBeNull();
 
         const q3 = screen.getByRole('article', {name: 'Câu 3'});
         expect(within(q3).getByText('2 / 4 ý · 0,25 / 1')).toBeTruthy();
@@ -120,6 +140,21 @@ describe('HistoryPage', () => {
         expect(screen.getAllByRole('link').map(a => a.getAttribute('href'))).toEqual(['/result/SUB1', '/result/SUB0']);
         fireEvent.click(screen.getByRole('radio', {name: 'Chờ chấm · 1'}));
         expect(screen.queryByText('Ngữ văn — Đề 2')).toBeNull();
+    });
+
+    it('subject filter chips appear when there are 2+ subjects', async () => {
+        vi.spyOn(Api, 'get').mockResolvedValue([
+            {...DETAIL, answers: undefined},
+            {id: 'SUB0', exam_name: 'Đề 2', subject: {id: 'F2', name: 'Ngữ văn'}, submitted_at: '2026-10-19T12:15:00',
+             score: 6.5, max_score: 10, graded_max_score: 10, pending_count: 0, status: 'GRADED'},
+        ]);
+        page('/history');
+        await screen.findByText('Ngữ văn — Đề 2');
+        fireEvent.click(screen.getByRole('button', {name: 'Toán'}));
+        expect(screen.queryByText('Ngữ văn — Đề 2')).toBeNull();
+        expect(screen.getByText('Toán — Toán — Đề 3')).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', {name: 'Tất cả môn'}));
+        expect(screen.getByText('Ngữ văn — Đề 2')).toBeTruthy();
     });
 
     it('empty history → empty state with a way to the exams', async () => {

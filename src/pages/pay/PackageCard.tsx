@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 
 import {StatusBadge} from '../../components/ui';
 import type {Package} from '../../types/payment';
-import {formatMoney, groupDigits, pricePerTurn} from './format';
+import {formatMoney, groupDigits, pricePerTurn} from '../../lib/format';
 
 /**
  * One package as the student sees it (HS-Goi). Also the Admin "Xem trước — học sinh sẽ thấy"

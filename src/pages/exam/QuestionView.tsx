@@ -3,7 +3,8 @@ import {memo} from 'react';
 import {QuestionBlock} from '../../components/ui';
 import renderHTML from '../../components/SafeHtml';
 import {Editor} from '../../components/Editor';
-import {choiceKey, choiceWrites, formatDecimal, textValue, trueFalseValue, trueFalseWrites} from './paper';
+import {formatDecimal} from '../../lib/format';
+import {choiceKey, choiceWrites, textValue, trueFalseValue, trueFalseWrites} from './paper';
 import type {PaperQuestion, RawAnswers} from './paper';
 
 type QuestionViewProps = {

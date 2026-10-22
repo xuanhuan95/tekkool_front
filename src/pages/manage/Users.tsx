@@ -6,7 +6,8 @@ import {Avatar, Badge, Button, Card, ConfirmDialog, ErrorState, PageColumns, Pag
 import type {Column} from '../../components/ui';
 import {useLockUser, useResetPassword, useUserDetail, useUsers} from '../../queries/manage';
 import type {AdminUser} from '../../queries/manage';
-import {errorText, formatDate, formatDateTime, formatMoney, groupDigits, orderName, orderStatus} from '../pay/format';
+import {errorText, formatDate, formatDateTime, formatMoney, groupDigits} from '../../lib/format';
+import {orderName, orderStatus} from '../pay/order';
 import {AccountBadge, Pager, ROLE_LABEL, TempPasswordDialog, useDebounced} from './shared';
 
 const LIMIT = 20;

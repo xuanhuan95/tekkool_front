@@ -1,6 +1,6 @@
 import type {Board, BoardEntry} from '../../types/student';
 import type {BoardKind} from '../../queries/student';
-import {formatIsoDay, plainText} from './format';
+import {formatIsoDayMonth, plainText} from '../../lib/format';
 
 /** Second line under a name on the board. Titles of OTHER students: no API yet → activity instead. */
 export function rowSubline(e: BoardEntry, kind: BoardKind): string {
@@ -24,7 +24,7 @@ export function meCard(board: Board, kind: BoardKind, myName?: string | null): {
 export function boardIntro(board: Board | undefined, kind: BoardKind): string {
     if (kind === 'achievements') return 'Điểm cao nhất (thang 10) của mỗi học sinh, tính mọi lúc.';
     const week = board?.week_start && board.week_end
-        ? ' Tuần ' + formatIsoDay(board.week_start) + ' – ' + formatIsoDay(board.week_end) + '.' : '';
+        ? ' Tuần ' + formatIsoDayMonth(board.week_start) + ' – ' + formatIsoDayMonth(board.week_end) + '.' : '';
     return 'Mỗi đề hoàn thành +10, cộng điểm bài; mỗi đề tính lần tốt nhất.' + week;
 }
 

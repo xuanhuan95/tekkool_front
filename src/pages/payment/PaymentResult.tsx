@@ -4,7 +4,8 @@ import {Button, ProgressBar, WaveLine, buttonClass} from '../../components/ui';
 import {POLL_TOTAL_SECONDS, usePaymentStatus} from '../../queries/payment';
 import {useWallet} from '../../queries/wallet';
 import type {Payment} from '../../types/payment';
-import {errorText, formatMoney, orderName, orderTurns} from '../pay/format';
+import {errorText, formatMoney} from '../../lib/format';
+import {orderName, orderTurns} from '../pay/order';
 import '../pay/pay.css';
 
 const RefreshIcon = () => <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.2'

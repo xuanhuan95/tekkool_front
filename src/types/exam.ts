@@ -18,6 +18,9 @@ export type ExamSummary = {
     last_score?: number | null;
     last_max?: number | null;
     last_status?: string | null;
+    /** SPT-60 `exam/browse`: the viewer's BEST attempt (by score/max ratio, provisional included). */
+    best_score?: number | null;
+    best_max?: number | null;
 };
 
 /** Question bank inventory — `question_bank/stats`. */
@@ -95,4 +98,10 @@ export type TestExam = {
     sections: TestSection[];
     /** Seconds left, computed by the SERVER from the attempt's expires_at. null = no attempt clock. */
     remaining_sec?: number | null;
+    /** SPT-60: absolute deadline, ISO UTC with "Z". null = no attempt (owner trying the exam). */
+    expires_at?: string | null;
+    /** SPT-60: subject of the original exam. */
+    subject?: {id: string | null; name: string | null} | null;
+    /** SPT-60: exam duration in minutes. */
+    duration_min?: number | null;
 };

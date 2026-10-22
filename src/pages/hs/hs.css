@@ -119,3 +119,4 @@ button.hs-setting:first-child, a.hs-setting:first-child { border-top: 0; }
 .hs-setting:hover { background: var(--vt-paper); color: var(--vt-ink); }
 .hs-setting-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .hs-form { display: flex; flex-direction: column; gap: 14px; }
+.hs-parts-amount { color: var(--vt-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }

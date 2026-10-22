@@ -8,8 +8,8 @@ import OutOfTurnsModal from '../../components/OutOfTurnsModal';
 import PaymentResult from '../payment/PaymentResult';
 import Packages from './Packages';
 import PurchaseHistory, {purchaseSummary} from './PurchaseHistory';
-import {errorText, formatDate, formatDateTime, formatMoney, formatShortDateTime, groupDigits, orderStatus, orderTurns,
-    pricePerTurn, todayVn} from './format';
+import {errorText, formatDate, formatDateTime, formatMoney, formatShortDateTime, groupDigits, pricePerTurn, todayVn} from '../../lib/format';
+import {orderStatus, orderTurns} from './order';
 import type {Payment} from '../../types/payment';
 
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });

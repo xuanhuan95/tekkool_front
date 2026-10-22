@@ -6,7 +6,7 @@ import {Button, Card, CardTitle, ErrorState, FilterChip, PageColumns, PageTitle,
 import type {Column} from '../../components/ui';
 import {useReconcile, useTransaction, useTransactions} from '../../queries/manage';
 import type {Anomaly, AnomalyType, TimelineEvent, Transaction, TxStatus} from '../../queries/manage';
-import {errorText, formatDateTime, formatMoney, formatShortDateTime, formatTime, groupDigits} from '../pay/format';
+import {errorText, formatDateTime, formatMoney, formatShortDateTime, formatTime, groupDigits} from '../../lib/format';
 import {Pager, TX_STATUS, TxBadge, useDebounced} from './shared';
 
 const LIMIT = 20;

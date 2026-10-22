@@ -31,6 +31,21 @@ export type ExamMeta = {
     /** Bank exam structure: one slot per part. */
     cau_truc?: Array<{loai?: string; tieu_de?: string}>;
     bank?: unknown;
+    /** SPT-60 `exam/fetch`: structure preview, one row per (part, question type). No content. */
+    parts?: ExamPart[];
+};
+
+export type ExamPartType = 'mcq' | 'tf' | 'short' | 'essay';
+
+export type ExamPart = {
+    name: string | null;
+    type: ExamPartType;
+    /** Questions (Đúng/Sai counted per 4-statement question); for bank exams: blocks → approx. */
+    count: number;
+    /** null when unknown (bank exam of a subject without weights). */
+    points_total: number | null;
+    /** Bank exam: drawn per attempt, numbers are indicative ("khoảng"). */
+    approx?: boolean;
 };
 
 /** `me/profile`. */

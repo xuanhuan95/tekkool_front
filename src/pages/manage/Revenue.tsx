@@ -6,7 +6,7 @@ import {Avatar, Button, Card, CardTitle, ErrorState, PageColumns, PageTitle, Ske
 import type {Column} from '../../components/ui';
 import {useRevenueSummary, useTransactions} from '../../queries/manage';
 import type {Period, RevenueSummary, Transaction} from '../../queries/manage';
-import {errorText, formatIsoDay, formatMoney, formatShortDateTime, groupDigits, todayVn, vnClock} from '../pay/format';
+import {errorText, formatIsoDay, formatMoney, formatShortDateTime, groupDigits, todayVn, vnClock} from '../../lib/format';
 import {bucketLabel, changeText, currentKey, niceScale, shiftAnchor, thousands} from './chart';
 import {PackagesSubNav, TxBadge} from './shared';
 

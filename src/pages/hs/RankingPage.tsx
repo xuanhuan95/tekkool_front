@@ -8,7 +8,7 @@ import {useBoard, useMeProfile, useSubjects} from '../../queries/student';
 import type {BoardKind} from '../../queries/student';
 import type {Board, BoardEntry} from '../../types/student';
 import {LoadError, PageHead, hsPath} from './common';
-import {formatPoints} from './format';
+import {formatPoints} from '../../lib/format';
 import {boardIntro, meCard, rowName, rowSubline} from './ranking';
 
 const KINDS: {value: BoardKind; label: string}[] = [

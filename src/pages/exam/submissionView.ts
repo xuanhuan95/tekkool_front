@@ -1,5 +1,6 @@
 import type {Submission, SubmissionAnswer, SubmissionDetail} from '../../types/submission';
-import {formatDecimal, kindOf} from './paper';
+import {formatDecimal, score10} from '../../lib/format';
+import {kindOf} from './paper';
 import type {QuestionKind} from './paper';
 import {stripQuestionLabel, stripStatementLabel} from './stripLabel';
 
@@ -9,44 +10,28 @@ import {stripQuestionLabel, stripStatementLabel} from './stripLabel';
  * answers only exist there, i.e. after the attempt is submitted.
  */
 
-/** Points per finished exam on the weekly board (core_ranking.POINTS_PER_EXAM). */
-export const POINTS_PER_EXAM = 10;
-
-/** Score on the 10-point scale. SPT papers are already out of 10; other papers are scaled. */
-export function toScale10(score: number | null | undefined, max: number | null | undefined): number {
-    if (!max || max <= 0) return 0;
-    return ((score || 0) / max) * 10;
-}
-
-/** "7,25" — scores always with 2 decimals, like the design. */
-export function formatScore(n: number): string {
-    return (Math.round(n * 100) / 100).toFixed(2).replace('.', ',');
-}
-
-/** "17,3" — ranking points rounded to 1 decimal (business rule). */
-export function formatRankPoints(n: number): string {
-    return (Math.round(n * 10) / 10).toFixed(1).replace('.', ',');
-}
-
 export type ScoreSummary = {
     /** Score /10 so far (machine-graded part + graded essays). */
     score10: number;
     /** Essays still waiting: points on the 10 scale still open. 0 = final. */
     pendingPoints10: number;
     isProvisional: boolean;
-    /** + points on the weekly board if this is the best attempt of the exam this week. */
-    rankPoints: number;
+    /**
+     * Points this submission REALLY adds to the weekly board, computed by BE (SPT-60
+     * `ranking_contribution`: 0 when it is not the best attempt of the week, blank paper…).
+     * null = BE did not send it (older API) → the screen hides the line instead of guessing.
+     */
+    rankPoints: number | null;
 };
 
 export function summarize(s: Submission): ScoreSummary {
-    const score10 = toScale10(s.score, s.max_score);
     const pendingPoints10 = s.pending_count > 0
-        ? toScale10(Math.max(0, (s.max_score || 0) - (s.graded_max_score || 0)), s.max_score) : 0;
+        ? score10(Math.max(0, (s.max_score || 0) - (s.graded_max_score || 0)), s.max_score) ?? 0 : 0;
     return {
-        score10,
+        score10: score10(s.score, s.max_score) ?? 0,
         pendingPoints10,
         isProvisional: s.pending_count > 0,
-        rankPoints: Math.round((POINTS_PER_EXAM + score10) * 10) / 10,
+        rankPoints: typeof s.ranking_contribution === 'number' ? s.ranking_contribution : null,
     };
 }
 
@@ -87,7 +72,19 @@ export type ReviewItem = {
     /** Short answer: accepted answers ('|' separated on BE). */
     correctText: string | null;
     comment: string | null;
+    /** Lời giải (SPT-60), HTML; null when the teacher wrote none. */
+    explanation: string | null;
 };
+
+/** Distinct non-empty explanations of a group, joined (Đúng/Sai: usually on one statement only). */
+function joinExplanations(list: SubmissionAnswer[]): string | null {
+    const seen: string[] = [];
+    for (const a of list) {
+        const e = (a.explanation || '').trim();
+        if (e && !seen.includes(e)) seen.push(e);
+    }
+    return seen.length ? seen.join('') : null;
+}
 
 function statementOk(a: SubmissionAnswer): boolean {
     const mine = toBool(a.answer), right = toBool(a.correct);
@@ -132,6 +129,7 @@ export function buildReview(answers: SubmissionAnswer[]): ReviewItem[] {
                 passage: null, score: Math.round(score * 10000) / 10000, maxScore,
                 status: okCount === statements.length ? 'correct' : okCount === 0 ? 'wrong' : 'partial',
                 options: [], statements, answer: '', correctText: null, comment: a.comment || null,
+                explanation: joinExplanations(group),
             });
             lastPassage = a.passage_id;
             i += group.length;
@@ -156,6 +154,7 @@ export function buildReview(answers: SubmissionAnswer[]): ReviewItem[] {
             answer: a.answer || '',
             correctText: kind === 'short' ? (a.correct || null) : null,
             comment: a.comment || null,
+            explanation: joinExplanations([a]),
         });
         i += 1;
     }
@@ -209,24 +208,4 @@ export function reviewBadge(it: ReviewItem): string {
     }
     if (it.kind === 'essay') return `${sc} / ${formatDecimal(it.maxScore)} điểm`;
     return `${it.status === 'correct' ? 'Đúng' : 'Sai'} · ${sc} điểm`;
-}
-
-/** BE dates are UTC without 'Z' (datetime.utcnow().isoformat()). */
-export function parseServerDate(iso?: string | null): Date | null {
-    if (!iso) return null;
-    const d = new Date(/[Z+]/.test(iso) ? iso : iso + 'Z');
-    return isNaN(d.getTime()) ? null : d;
-}
-
-/** "20:47 · 21/10/2026" */
-export function formatTimeDate(d: Date | null): string {
-    if (!d) return '—';
-    const p = (n: number) => String(n).padStart(2, '0');
-    return `${p(d.getHours())}:${p(d.getMinutes())} · ${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
-}
-
-/** 4920 s → "82 phút" (minutes, rounded up so 30 s is "1 phút", 0/absent → "—"). */
-export function formatMinutes(sec?: number | null): string {
-    if (!sec || sec <= 0) return '—';
-    return Math.ceil(sec / 60) + ' phút';
 }

@@ -6,7 +6,7 @@ import {Avatar, Badge, Button, ConfirmDialog, EmptyState, ErrorState, FilterChip
 import type {Column} from '../../components/ui';
 import {useCreateTeacher, useLockTeacher, useResetPassword, useTeachers} from '../../queries/manage';
 import type {Teacher} from '../../queries/manage';
-import {errorText, formatDate} from '../pay/format';
+import {errorText, formatDate} from '../../lib/format';
 import {AccountBadge, Pager, SUBJECTS, TempPasswordDialog, generateTempPassword, isValidTempPassword,
     useDebounced} from './shared';
 

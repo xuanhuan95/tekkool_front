@@ -1,9 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
-import {
-    buildReview, filterReview, formatMinutes, formatRankPoints, formatScore, formatTimeDate, parseServerDate,
-    partRows, reviewBadge, summarize, toScale10,
-} from './submissionView';
+import {buildReview, filterReview, partRows, reviewBadge, summarize} from './submissionView';
 import type {SubmissionAnswer, SubmissionDetail} from '../../types/submission';
 
 const tf = (id: string, answer: string | null, correct: string, score: number): SubmissionAnswer => ({
@@ -34,27 +31,23 @@ const DETAIL: SubmissionDetail = {
 };
 
 describe('score on the 10-point scale', () => {
-    it('SPT paper out of 10 stays as is; other papers are scaled', () => {
-        expect(toScale10(7.25, 10)).toBe(7.25);
-        expect(toScale10(8, 16)).toBe(5);
-        expect(toScale10(3, 0)).toBe(0);
+    it('SPT paper out of 10 stays as is; other papers are scaled; no max → 0', () => {
+        expect(summarize({...DETAIL, score: 7.25, max_score: 10}).score10).toBe(7.25);
+        expect(summarize({...DETAIL, score: 8, max_score: 16}).score10).toBe(5);
+        expect(summarize({...DETAIL, score: 3, max_score: 0}).score10).toBe(0);
     });
 
-    it('provisional while essays wait; pending points on the 10 scale; +10 rank points', () => {
-        const s = summarize({...DETAIL, score: 5.75, max_score: 10, graded_max_score: 8.5});
+    it('provisional while essays wait; pending points on the 10 scale; rank points from BE only', () => {
+        const s = summarize({...DETAIL, score: 5.75, max_score: 10, graded_max_score: 8.5, ranking_contribution: 15.8});
         expect(s.isProvisional).toBe(true);
         expect(s.score10).toBe(5.75);
         expect(s.pendingPoints10).toBeCloseTo(1.5);
         expect(s.rankPoints).toBe(15.8);
+        expect(summarize({...DETAIL, ranking_contribution: 0}).rankPoints).toBe(0);
+        expect(summarize(DETAIL).rankPoints).toBeNull();   // older API: hide, never guess
         expect(summarize({...DETAIL, pending_count: 0, score: 7.25, max_score: 10, graded_max_score: 10}).pendingPoints10).toBe(0);
     });
 
-    it('formats like the design: 7,25 · 6,50 · 17,3', () => {
-        expect(formatScore(7.25)).toBe('7,25');
-        expect(formatScore(6.5)).toBe('6,50');
-        expect(formatRankPoints(17.25)).toBe('17,3');
-        expect(formatRankPoints(10)).toBe('10,0');
-    });
 });
 
 describe('review items', () => {
@@ -110,22 +103,11 @@ it('part table: correct counts per part, "ý" for Đúng/Sai, essay pending', ()
     ]);
 });
 
-it('dates from BE are UTC without Z; minutes round up', () => {
-    const d = parseServerDate('2026-10-21T13:47:00');
-    expect(d?.toISOString()).toBe('2026-10-21T13:47:00.000Z');
-    expect(parseServerDate('nope')).toBeNull();
-    expect(formatTimeDate(new Date(2026, 9, 21, 20, 47))).toBe('20:47 · 21/10/2026');
-    expect(formatMinutes(4920)).toBe('82 phút');
-    expect(formatMinutes(0)).toBe('—');
-});
-
-it('review strips imported labels like the exam page', () => {
+it('explanations: per question, Đúng/Sai group joins distinct ones', () => {
     const items = buildReview([
-        {question_id: 'X', type: 'TrueFalse', section_name: 'II', question_text: 'a) f(1) = 0', passage: 'Câu 1. Cho f',
-         passage_id: 'P', answer: 'true', correct: 'true', score: 0.25, max_score: 0.25},
-        {question_id: 'Y', type: 'TrueFalse', section_name: 'II', question_text: 'b) f(2) = 0', passage: 'Câu 1. Cho f',
-         passage_id: 'P', answer: 'true', correct: 'true', score: 0.25, max_score: 0.25},
+        {...ANSWERS[0], explanation: '<p>Vì 1+1=2</p>'},
+        ...ANSWERS.slice(2, 6).map((a, k) => ({...a, explanation: k === 0 ? 'Giải Đ/S' : null})),
+        {...ANSWERS[7], explanation: null},
     ]);
-    expect(items[0].prompt).toBe('Cho f');
-    expect(items[0].statements.map(s => s.html)).toEqual(['f(1) = 0', 'f(2) = 0']);
+    expect(items.map(i => i.explanation)).toEqual(['<p>Vì 1+1=2</p>', 'Giải Đ/S', null]);
 });

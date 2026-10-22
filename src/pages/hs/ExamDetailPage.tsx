@@ -7,8 +7,8 @@ import {useWallet} from '../../queries/wallet';
 import {useExamMeta, useSubjects} from '../../queries/student';
 import {useMediaQuery, DESKTOP} from '../useMediaQuery';
 import {LoadError, hsPath} from './common';
-import {durationLabel, partCount} from './examStatus';
-import {minutesLeft, plainText} from './format';
+import {durationLabel, partCount, partsFromStructure, structureRows} from './examStatus';
+import {minutesLeft, plainText} from '../../lib/format';
 
 /** Scoring rules of the SPT exam (CLAUDE.md, chốt 21/10) — the same for every exam, so static here. */
 function ScoringCard() {
@@ -96,8 +96,10 @@ export default function ExamDetailPage() {
     const name = plainText(exam.name) || 'Đề không tên';
     // Subject label: the ?mon we came from, else the exam's own folder when it is a subject.
     const subject = subjects.data?.find(s => s.id === (monParam || exam.folder));
-    const parts = partCount(exam);
-    const structure = (exam.cau_truc || []).filter(c => c.tieu_de);
+    const parts = partsFromStructure(exam.parts) || partCount(exam);
+    const structure = structureRows(exam.parts);
+    // Older API without `parts`: titles of the bank structure only.
+    const titles = structure.rows.length ? [] : (exam.cau_truc || []).filter(c => c.tieu_de);
 
     const info = <>
         <div className='hs-head'>
@@ -109,10 +111,20 @@ export default function ExamDetailPage() {
             <div className='hs-fact'><span className='hs-meta'>Số phần</span><b>{parts > 0 ? parts + ' phần' : '—'}</b></div>
             <div className='hs-fact'><span className='hs-meta'>Thang điểm</span><b>10</b></div>
         </div>
-        {structure.length > 0 && <Card as='section' className='hs-card-pad' aria-labelledby='hs-structure'>
-            <h2 id='hs-structure' className='hs-h2'>Cấu trúc đề</h2>
-            <div className='hs-parts'>{structure.map((c, i) => <div key={i}><span>{c.tieu_de}</span></div>)}</div>
-        </Card>}
+        {(structure.rows.length > 0 || titles.length > 0) &&
+            <Card as='section' className='hs-card-pad' aria-labelledby='hs-structure'>
+                <h2 id='hs-structure' className='hs-h2'>Cấu trúc đề</h2>
+                <div className='hs-parts'>
+                    {structure.rows.map((r, i) => <div key={i}>
+                        <span>{r.name && <b>{r.name}</b>}{r.name ? ' · ' : ''}{r.kind}</span>
+                        <span className='hs-parts-amount'>{r.amount}</span>
+                    </div>)}
+                    {titles.map((c, i) => <div key={i}><span>{c.tieu_de}</span></div>)}
+                </div>
+                {structure.total && <span className='hs-meta'>{structure.total}</span>}
+                {exam.parts?.some(p => p.approx) &&
+                    <span className='hs-meta'>Đề rút ngẫu nhiên từ ngân hàng mỗi lần làm — số câu là ước tính.</span>}
+            </Card>}
     </>;
     const start = <StartBlock examId={exam.id} name={name}/>;
 

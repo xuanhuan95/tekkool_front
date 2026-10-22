@@ -4,7 +4,7 @@ import {NavLink} from 'react-router-dom';
 import {Badge, Button, Modal, notify} from '../../components/ui';
 import type {BadgeTone} from '../../components/ui';
 import type {AccountStatus, Role, TxStatus} from '../../queries/manage';
-import {groupDigits} from '../pay/format';
+import {groupDigits} from '../../lib/format';
 
 /** The 12 SPT subjects (design-system.md §7). */
 export const SUBJECTS = ['Toán', 'Ngữ văn', 'Tiếng Anh', 'Vật lí', 'Hóa học', 'Sinh học', 'Lịch sử', 'Địa lí',

@@ -10,7 +10,7 @@ import type {SubjectSummary} from '../../types/student';
 import type {Submission} from '../../types/submission';
 import {useMediaQuery, DESKTOP} from '../useMediaQuery';
 import {ContinueCard, LoadError, PageHead, TitleCard, greetName, hsPath} from '../hs/common';
-import {formatDayMonth, formatPoints, formatScore, minutesLeft, plainText, score10} from '../hs/format';
+import {formatDayMonth, formatPoints, formatScore, minutesLeft, plainText, score10} from '../../lib/format';
 import {studentTitle} from '../hs/title';
 
 /** Subjects shown on the phone home before "Xem cả N môn" (design: 6). */

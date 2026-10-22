@@ -11,7 +11,7 @@ import {useWallet} from '../../queries/wallet';
 import {PROFILE_KEY, useMeProfile, useMySubmissions, useRankingPrivacy} from '../../queries/student';
 import type {MeProfile} from '../../types/student';
 import {LoadError, PageHead, hsPath} from './common';
-import {errorText} from './format';
+import {errorText} from '../../lib/format';
 import {studentTitle} from './title';
 import {passwordApiError, validateName, validatePassword} from './account';
 import type {PasswordErrors, PasswordForm} from './account';

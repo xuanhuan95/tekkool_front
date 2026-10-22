@@ -8,7 +8,7 @@ import {useAdminPackages, usePackageMutations} from '../../queries/manage';
 import type {PackageInput} from '../../queries/manage';
 import type {Package} from '../../types/payment';
 import PackageCard from '../pay/PackageCard';
-import {errorText, formatMoney, groupDigits} from '../pay/format';
+import {errorText, formatMoney, groupDigits} from '../../lib/format';
 import {PackagesSubNav} from './shared';
 
 // Same limits as apis/package.py.

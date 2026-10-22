@@ -1,6 +1,7 @@
 import type {TestExam, TestQuestion, TestSection} from '../../types/exam';
 import type {TrueFalseValue} from '../../components/ui';
 import {stripQuestionLabel, stripStatementLabel} from './stripLabel';
+import {formatDecimal} from '../../lib/format';
 
 /*
  * Turns `exam/during_test` into the SPT paper the student sees, and maps answers both ways.
@@ -77,12 +78,6 @@ export const roman = (n: number) => ROMAN[n - 1] || String(n);
 
 export function stripHtml(html?: string | null): string {
     return String(html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-/** 0.25 → "0,25"; 1.5 → "1,5"; 2 → "2" (Vietnamese decimal comma, at most 2 decimals). */
-export function formatDecimal(n: number, digits = 2): string {
-    const r = Math.round(n * 10 ** digits) / 10 ** digits;
-    return String(r).replace('.', ',');
 }
 
 function toNumber(v: unknown): number | null {

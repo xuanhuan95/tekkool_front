@@ -139,6 +139,21 @@ describe('clock fixed by the server', () => {
         expect(deadlineFrom({...EXAM, remaining_sec: -3}, 1000)).toBe(1000);
     });
 
+    it('deadlineFrom uses expires_at (SPT-60) unless the device clock is off by more than 30 s', () => {
+        const now = Date.parse('2026-10-22T10:00:00Z');
+        const exp = '2026-10-22T10:10:00Z';
+        expect(deadlineFrom({...EXAM, remaining_sec: 595, expires_at: exp}, now)).toBe(Date.parse(exp));
+        // Phone clock 1 hour behind: expires_at would show 70 minutes left → trust remaining_sec.
+        expect(deadlineFrom({...EXAM, remaining_sec: 600, expires_at: exp}, now - 3_600_000)).toBe(now - 3_600_000 + 600_000);
+        expect(deadlineFrom({...EXAM, remaining_sec: null, expires_at: null, duration_min: 60, duration: 90}, 0)).toBe(60 * 60_000);
+    });
+
+    it('header shows the subject (SPT-60)', async () => {
+        vi.spyOn(Api, 'get').mockResolvedValue({...EXAM, subject: {id: 'F', name: 'Toán'}});
+        renderPage();
+        await screen.findByText('Toán · Toán — Đề 3');
+    });
+
     it('≤5 minutes: red warning banner', async () => {
         vi.spyOn(Api, 'get').mockResolvedValue({...EXAM, remaining_sec: 290});
         renderPage();

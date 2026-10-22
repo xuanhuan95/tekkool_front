@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 
 import {
-    buildPaper, choiceKey, choiceWrites, formatDecimal, initialAnswers, isAnswered, kindOf, textValue,
+    buildPaper, choiceKey, choiceWrites, initialAnswers, isAnswered, kindOf, textValue,
     trueFalseValue, trueFalseWrites,
 } from './paper';
 import type {TestExam, TestQuestion} from '../../types/exam';
@@ -111,11 +111,6 @@ describe('writes sent to save_answer', () => {
     });
 });
 
-it('formatDecimal uses the Vietnamese comma', () => {
-    expect(formatDecimal(0.25)).toBe('0,25');
-    expect(formatDecimal(7.256)).toBe('7,26');
-    expect(formatDecimal(2)).toBe('2');
-});
 
 it('imported labels ("Câu 1.", "a)") are not shown twice (QC B3)', () => {
     const p = buildPaper({id: 'E', sections: [{id: 'S', questions: [

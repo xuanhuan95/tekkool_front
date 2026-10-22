@@ -2,7 +2,6 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import Api from '../services/api';
 import type {ExamSummary, Folder} from '../types/exam';
-import type {Submission} from '../types/submission';
 import type {Board, ExamMeta, MeProfile, SubjectSummary} from '../types/student';
 
 /** 403/404/400 are answers, not flakes — retry only network/5xx once. */
@@ -50,16 +49,8 @@ export function useExamMeta(examId: string | undefined) {
     });
 }
 
-/** Same key as the result/history screens (['submission', 'mine']) so they share one cache entry. */
-export function useMySubmissions(enabled = true) {
-    return useQuery({
-        queryKey: ['submission', 'mine'],
-        queryFn: () => Api.get<Submission[]>('exam/my_submissions'),
-        enabled,
-        staleTime: 15_000,
-        retry: retryFlaky,
-    });
-}
+// One hook for `exam/my_submissions` (home, title badge, history) — defined with the other submission queries.
+export {useMySubmissions} from './submissions';
 
 export type BoardKind = 'week' | 'achievements';
 

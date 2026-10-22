@@ -1,4 +1,4 @@
-import {parseServerDate, vnParts} from './format';
+import {parseServerDate, vnParts} from '../../lib/format';
 
 /**
  * Danh hiệu (title) rule — NOT FINAL (PM 22/10, waiting for anh Thịnh). Kept in this one file so the

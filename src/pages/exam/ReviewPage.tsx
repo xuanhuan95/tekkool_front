@@ -5,9 +5,9 @@ import {Badge, Card, EmptyState, ErrorState, PageTitle, SkeletonCard, Tabs, butt
 import type {BadgeTone} from '../../components/ui';
 import renderHTML from '../../components/SafeHtml';
 import {useSubmission} from '../../queries/submissions';
-import {formatDecimal} from './paper';
+import {formatDecimal, formatScore} from '../../lib/format';
 import {loadError} from './ResultPage';
-import {buildReview, filterReview, formatScore, reviewBadge, summarize} from './submissionView';
+import {buildReview, filterReview, reviewBadge, summarize} from './submissionView';
 import type {ReviewFilter, ReviewItem} from './submissionView';
 import './results.css';
 
@@ -78,6 +78,10 @@ function ReviewCard({item}: {item: ReviewItem}) {
             {item.kind === 'truefalse' && <TrueFalseBody item={item}/>}
             {(item.kind === 'short' || item.kind === 'essay') && <TextBody item={item}/>}
             {item.comment && <div className='vt-rv-comment'><b>Giáo viên:</b> {item.comment}</div>}
+            {item.explanation && <details className='vt-rv-sol' open={item.status === 'wrong' || item.status === 'partial'}>
+                <summary>Lời giải</summary>
+                <div className='vt-rv-solbody'>{renderHTML(item.explanation)}</div>
+            </details>}
         </Card>
     </>;
 }

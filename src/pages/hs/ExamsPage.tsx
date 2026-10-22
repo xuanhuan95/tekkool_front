@@ -8,7 +8,7 @@ import type {SubjectSummary} from '../../types/student';
 import {LoadError, PageHead, hsPath} from './common';
 import {durationLabel, examStatus, filterExams} from './examStatus';
 import type {ExamFilter} from './examStatus';
-import {plainText} from './format';
+import {plainText} from '../../lib/format';
 
 const FILTERS: {value: ExamFilter; label: string}[] = [
     {value: 'all', label: 'Tất cả'}, {value: 'todo', label: 'Chưa làm'}, {value: 'done', label: 'Đã làm'},

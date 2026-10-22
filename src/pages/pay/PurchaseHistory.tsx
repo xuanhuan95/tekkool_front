@@ -3,7 +3,8 @@ import {Link} from 'react-router-dom';
 import {Badge, EmptyState, ErrorState, PageTitle, SkeletonCard, buttonClass, icons} from '../../components/ui';
 import {usePaymentHistory} from '../../queries/payment';
 import type {Payment} from '../../types/payment';
-import {errorText, formatDateTime, formatMoney, orderName, orderStatus, orderTurns} from './format';
+import {errorText, formatDateTime, formatMoney} from '../../lib/format';
+import {orderName, orderStatus, orderTurns} from './order';
 import './pay.css';
 
 /** "Đã mua 3 gói · 25 lượt": PAID orders only; turns from the checkout snapshot (OrderItem.turns). */

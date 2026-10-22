@@ -21,6 +21,7 @@ import type {RawAnswers} from './paper';
 import QuestionView from './QuestionView';
 import SubmitDialog from './SubmitDialog';
 import {useCountdown} from './useCountdown';
+import {plainText} from '../../lib/format';
 
 /** Debounce per kind: clicks go out at once, typing waits for a pause. */
 const TEXT_DELAY_MS = 800;
@@ -214,7 +215,7 @@ export default function ExamRoom({examId, exam, deadlineMs}: ExamRoomProps) {
     const disabled = locked || submitting;
 
     return <ExamLayout
-        header={<ExamHeader title={exam.name || 'Đề thi'} secondsLeft={secondsLeft} answered={answered} total={total}
+        header={<ExamHeader title={[exam.subject?.name, plainText(exam.name) || 'Đề thi'].filter(Boolean).join(' · ')} secondsLeft={secondsLeft} answered={answered} total={total}
                             onExit={() => setExit(true)} onSubmit={openConfirm} submitting={submitting && !locked}
                             strip={<>
                                 {warn && <ExamBanner>Còn dưới 5 phút — bài sẽ tự nộp khi hết giờ</ExamBanner>}

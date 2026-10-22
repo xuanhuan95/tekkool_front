@@ -4,7 +4,7 @@ import {EmptyState, ErrorState, PageTitle, SkeletonCard, buttonClass, icons} fro
 import {usePackages} from '../../queries/payment';
 import {useWallet} from '../../queries/wallet';
 import PackageCard from './PackageCard';
-import {errorText} from './format';
+import {errorText} from '../../lib/format';
 import './pay.css';
 
 /**

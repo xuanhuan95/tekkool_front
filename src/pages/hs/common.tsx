@@ -4,7 +4,7 @@ import {Link} from 'react-router-dom';
 import {Badge, ErrorState, ProgressBar, buttonClass} from '../../components/ui';
 import {IconCrown} from '../../components/ui/icons';
 import type {InProgress} from '../../queries/inProgress';
-import {errorText, minutesLeft, plainText} from './format';
+import {errorText, minutesLeft, plainText} from '../../lib/format';
 import type {TitleInfo} from './title';
 import './hs.css';
 

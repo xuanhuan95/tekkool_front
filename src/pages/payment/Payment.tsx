@@ -6,7 +6,7 @@ import Api from '../../services/api';
 import {usePackages} from '../../queries/payment';
 import {useWallet} from '../../queries/wallet';
 import type {CheckoutForm} from '../../types/payment';
-import {errorText, formatMoney} from '../pay/format';
+import {errorText, formatMoney} from '../../lib/format';
 import '../pay/pay.css';
 
 /**

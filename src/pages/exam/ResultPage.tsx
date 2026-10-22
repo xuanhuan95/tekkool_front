@@ -4,10 +4,8 @@ import {Badge, Button, Card, ErrorState, PageTitle, SkeletonCard, buttonClass} f
 import {IconStar} from '../../components/ui/icons';
 import {useSubmission} from '../../queries/submissions';
 import type {ApiError} from '../../services/api';
-import {formatDecimal} from './paper';
-import {
-    formatMinutes, formatRankPoints, formatScore, formatTimeDate, parseServerDate, partRows, summarize, toScale10,
-} from './submissionView';
+import {formatDecimal, formatMinutes, formatPoints, formatScore, formatTimeDate} from '../../lib/format';
+import {partRows, summarize} from './submissionView';
 import './results.css';
 
 export function loadError(e: unknown): string {
@@ -40,7 +38,9 @@ export default function ResultPage() {
 
     return <div className='vt-res'>
         <div className='vt-res-head'>
-            <span className='vt-res-meta'>Đã nộp lúc {formatTimeDate(parseServerDate(data.submitted_at))}</span>
+            <span className='vt-res-meta'>
+                {data.subject?.name && <>Môn {data.subject.name} · </>}Đã nộp lúc {formatTimeDate(data.submitted_at)}
+            </span>
             <PageTitle>{data.exam_name || 'Bài thi'}</PageTitle>
         </div>
 
@@ -59,7 +59,8 @@ export default function ResultPage() {
                 <span className='vt-score-note'>Tạm tính · chờ chấm {formatDecimal(sum.pendingPoints10)}đ tự luận</span>}
             {scaleNote && <span className='vt-score-note'>Thang 10{scaleNote}</span>}
             {data.auto_submitted && <span className='vt-score-note'>Hết giờ — hệ thống đã tự nộp bài.</span>}
-            <div className='vt-score-time'>Thời gian làm: <b>{formatMinutes(data.duration_sec)}</b></div>
+            <div className='vt-score-time'>Thời gian làm: <b>{formatMinutes(data.duration_sec)}</b>
+                {data.duration_min ? <span className='vt-muted'> / {data.duration_min} phút</span> : null}</div>
         </Card>
 
         {rows.length > 0 && <Card className='vt-parts-card'>
@@ -78,17 +79,20 @@ export default function ResultPage() {
                     <tr className='vt-parts-total'>
                         <th scope='row'>{sum.isProvisional ? 'Tạm tính' : 'Tổng'}</th>
                         <td/>
-                        <td><b>{formatScore(toScale10(data.score, data.max_score))}</b> <span className='vt-muted'>/ 10</span></td>
+                        <td><b>{formatScore(sum.score10)}</b> <span className='vt-muted'>/ 10</span></td>
                     </tr>
                 </tbody>
             </table>
         </Card>}
 
-        {data.max_score > 0 && <Card size='md' className='vt-rankpts'>
-            <span className='vt-rankpts-title'><IconStar size={20}/> +{formatRankPoints(sum.rankPoints)} điểm xếp hạng tuần</span>
+        {/* The number comes from BE (ranking_contribution) — same rule as the weekly board, never recomputed here. */}
+        {sum.rankPoints !== null && <Card size='md' className='vt-rankpts'>
+            <span className='vt-rankpts-title'><IconStar size={20}/> +{formatPoints(sum.rankPoints)} điểm xếp hạng tuần</span>
             <span className='vt-rankpts-desc'>
-                10 (hoàn thành đề) + {formatScore(sum.score10)} (điểm bài), làm tròn 1 chữ số. Chỉ tính lần làm tốt
-                nhất của mỗi đề trong tuần.{sum.isProvisional && ' Sẽ cập nhật khi chấm xong tự luận.'}
+                {sum.rankPoints > 0
+                    ? '10 (hoàn thành đề) + điểm bài (thang 10), làm tròn 1 chữ số. Chỉ tính lần làm tốt nhất của mỗi đề trong tuần.'
+                    : 'Lần này không cộng thêm: bảng tuần chỉ tính lần làm tốt nhất của mỗi đề trong tuần.'}
+                {sum.isProvisional && ' Sẽ cập nhật khi chấm xong tự luận.'}
             </span>
         </Card>}
 

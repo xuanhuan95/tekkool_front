@@ -1,6 +1,6 @@
 /* Pure helpers for the revenue bar chart (AD-DoanhThu). Kept apart so they can be tested without the DOM. */
 import type {Period} from '../../queries/manage';
-import {groupDigits} from '../pay/format';
+import {groupDigits} from '../../lib/format';
 
 /** Axis for values in thousands: 4 equal steps of a "nice" size (1, 2, 2.5, 3, 5 × 10^k) covering max. */
 export function niceScale(max: number): {top: number; ticks: number[]} {
