@@ -50,6 +50,8 @@ describe('SPT-60: best score and exam structure', () => {
         expect(bank.rows[0]).toEqual({name: '', kind: 'Trắc nghiệm', amount: 'khoảng 2 câu'});
         expect(bank.total).toBeNull();
         expect(structureRows(undefined)).toEqual({rows: [], total: null});
+        // The part title already names the type → not repeated.
+        expect(structureRows([{name: 'Phần II. Đúng / Sai (4,0 điểm)', type: 'tf', count: 4, points_total: 4}]).rows[0].kind).toBe('');
     });
 
     it('part count from structure: distinct part names', () => {

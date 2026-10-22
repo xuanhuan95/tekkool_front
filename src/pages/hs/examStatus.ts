@@ -55,12 +55,16 @@ export type StructureRow = {name: string; kind: string; amount: string};
  */
 export function structureRows(parts: ExamPart[] | undefined): {rows: StructureRow[]; total: string | null} {
     const list = parts || [];
-    const rows = list.map(p => ({
-        name: (p.name || '').trim(),
-        kind: PART_TYPE_LABEL[p.type] || p.type,
+    const rows = list.map(p => {
+        const name = (p.name || '').trim();
+        const kind = PART_TYPE_LABEL[p.type] || p.type;
+        // "Phần I. Trắc nghiệm (3,0 điểm)" already says the type — do not repeat it.
+        const said = name.toLowerCase().replace(/\s*\/\s*/g, '/').includes(kind.split(' (')[0].toLowerCase());
+        return {name, kind: said ? '' : kind,
         amount: (p.approx ? 'khoảng ' : '') + p.count + ' câu'
             + (p.points_total != null ? ' · ' + formatDecimal(p.points_total) + 'đ' : ''),
-    }));
+        };
+    });
     const exact = list.length > 0 && list.every(p => !p.approx && p.points_total != null);
     const total = exact
         ? 'Tổng ' + list.reduce((t, p) => t + p.count, 0) + ' câu · '

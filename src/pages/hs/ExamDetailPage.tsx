@@ -116,7 +116,7 @@ export default function ExamDetailPage() {
                 <h2 id='hs-structure' className='hs-h2'>Cấu trúc đề</h2>
                 <div className='hs-parts'>
                     {structure.rows.map((r, i) => <div key={i}>
-                        <span>{r.name && <b>{r.name}</b>}{r.name ? ' · ' : ''}{r.kind}</span>
+                        <span>{r.name && <b>{r.name}</b>}{r.name && r.kind ? ' · ' : ''}{r.kind}</span>
                         <span className='hs-parts-amount'>{r.amount}</span>
                     </div>)}
                     {titles.map((c, i) => <div key={i}><span>{c.tieu_de}</span></div>)}
