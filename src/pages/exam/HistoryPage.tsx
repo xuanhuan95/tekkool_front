@@ -4,7 +4,7 @@ import {Link} from 'react-router-dom';
 import {Badge, EmptyState, ErrorState, FilterChip, PageTitle, SegmentedControl, SkeletonCard, buttonClass} from '../../components/ui';
 import {useMySubmissions} from '../../queries/submissions';
 import type {Submission} from '../../types/submission';
-import {formatMinutes, formatScore, formatTimeDate, plainText} from '../../lib/format';
+import {formatMinutes, formatScore, formatTimeDate, withSubject} from '../../lib/format';
 import {summarize} from './submissionView';
 import './results.css';
 
@@ -25,7 +25,7 @@ export function subjectsOf(list: Submission[]): Array<{key: string; name: string
 
 function HistoryRow({s}: {s: Submission}) {
     const sum = summarize(s);
-    const title = [s.subject?.name, plainText(s.exam_name) || 'Bài thi'].filter(Boolean).join(' — ');
+    const title = withSubject(s.subject?.name, s.exam_name, ' — ') || 'Bài thi';
     return <li>
         <Link to={'/result/' + s.id} className='vt-card vt-card--md vt-hist-row'>
             <span className='vt-hist-info'>

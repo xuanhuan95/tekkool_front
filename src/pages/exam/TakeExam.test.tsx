@@ -149,9 +149,9 @@ describe('clock fixed by the server', () => {
     });
 
     it('header shows the subject (SPT-60)', async () => {
-        vi.spyOn(Api, 'get').mockResolvedValue({...EXAM, subject: {id: 'F', name: 'Toán'}});
+        vi.spyOn(Api, 'get').mockResolvedValue({...EXAM, name: 'Đề 3', subject: {id: 'F', name: 'Toán'}});
         renderPage();
-        await screen.findByText('Toán · Toán — Đề 3');
+        await screen.findByText('Toán · Đề 3');
     });
 
     it('≤5 minutes: red warning banner', async () => {

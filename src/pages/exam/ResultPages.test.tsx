@@ -152,7 +152,7 @@ describe('HistoryPage', () => {
         await screen.findByText('Ngữ văn — Đề 2');
         fireEvent.click(screen.getByRole('button', {name: 'Toán'}));
         expect(screen.queryByText('Ngữ văn — Đề 2')).toBeNull();
-        expect(screen.getByText('Toán — Toán — Đề 3')).toBeTruthy();
+        expect(screen.getByText('Toán — Đề 3')).toBeTruthy();
         fireEvent.click(screen.getByRole('button', {name: 'Tất cả môn'}));
         expect(screen.getByText('Ngữ văn — Đề 2')).toBeTruthy();
     });

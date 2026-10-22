@@ -21,7 +21,7 @@ import type {RawAnswers} from './paper';
 import QuestionView from './QuestionView';
 import SubmitDialog from './SubmitDialog';
 import {useCountdown} from './useCountdown';
-import {plainText} from '../../lib/format';
+import {withSubject} from '../../lib/format';
 
 /** Debounce per kind: clicks go out at once, typing waits for a pause. */
 const TEXT_DELAY_MS = 800;
@@ -78,6 +78,8 @@ export default function ExamRoom({examId, exam, deadlineMs}: ExamRoomProps) {
     const [submitError, setSubmitError] = useState<string | null>(null);
     /** Time is up (clock, or the server said so): the paper is read-only, we submit for the student. */
     const [locked, setLocked] = useState(false);
+    /** "Lên đầu" only once the student has scrolled away from the top (it covers answer buttons otherwise). */
+    const [showTop, setShowTop] = useState(false);
 
     const submittingRef = useRef(false);
     const doneRef = useRef(false);
@@ -164,6 +166,12 @@ export default function ExamRoom({examId, exam, deadlineMs}: ExamRoomProps) {
         return () => window.removeEventListener('beforeunload', onBeforeUnload);
     }, [saver]);
 
+    useEffect(() => {
+        const onScroll = () => setShowTop(window.scrollY > 600);
+        window.addEventListener('scroll', onScroll, {passive: true});
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
     // Which question is in view (strip + grid highlight).
     useEffect(() => {
         if (typeof IntersectionObserver === 'undefined') return;
@@ -215,7 +223,7 @@ export default function ExamRoom({examId, exam, deadlineMs}: ExamRoomProps) {
     const disabled = locked || submitting;
 
     return <ExamLayout
-        header={<ExamHeader title={[exam.subject?.name, plainText(exam.name) || 'Đề thi'].filter(Boolean).join(' · ')} secondsLeft={secondsLeft} answered={answered} total={total}
+        header={<ExamHeader title={withSubject(exam.subject?.name, exam.name) || 'Đề thi'} secondsLeft={secondsLeft} answered={answered} total={total}
                             onExit={() => setExit(true)} onSubmit={openConfirm} submitting={submitting && !locked}
                             strip={<>
                                 {warn && <ExamBanner>Còn dưới 5 phút — bài sẽ tự nộp khi hết giờ</ExamBanner>}
@@ -254,8 +262,8 @@ export default function ExamRoom({examId, exam, deadlineMs}: ExamRoomProps) {
         {saveStatus.state === 'error' && saveStatus.message &&
             <p role='alert' className='vt-saved vt-saved--error'>{saveStatus.message}</p>}
 
-        <Button variant='secondary' className='vt-totop' aria-label='Lên đầu trang'
-                onClick={() => jump(1)}>Lên đầu</Button>
+        {showTop && <Button variant='secondary' className='vt-totop' aria-label='Lên đầu trang'
+                            onClick={() => jump(1)}>Lên đầu</Button>}
 
         <Modal open={sheet} onClose={() => setSheet(false)} title='Đi tới câu' placement='sheet' showClose
                footer={<>

@@ -170,3 +170,15 @@ export function errorText(e: unknown, fallback: string): string {
     if (o && typeof o.message === 'string' && o.message) return o.message;
     return fallback;
 }
+
+/**
+ * "Toán · Đề số 3" — prefixes the subject unless the exam name already starts with it
+ * ("Toán — Đề thi thử SPT số 3" stays as is, never "Toán · Toán — …").
+ */
+export function withSubject(subject: string | null | undefined, examName: string | null | undefined, sep = ' · '): string {
+    const name = plainText(examName);
+    const sub = plainText(subject);
+    if (!sub) return name;
+    if (!name) return sub;
+    return name.toLowerCase().startsWith(sub.toLowerCase()) ? name : sub + sep + name;
+}

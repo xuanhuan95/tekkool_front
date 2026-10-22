@@ -1,6 +1,6 @@
 import {describe, it, expect} from 'vitest';
 
-import {errorText, formatDecimal, formatMinutes, formatTimeDate, formatDayMonth, formatIsoDayMonth, formatPoints, formatScore, minutesLeft, parseServerDate, plainText, score10} from './format';
+import {withSubject, errorText, formatDecimal, formatMinutes, formatTimeDate, formatDayMonth, formatIsoDayMonth, formatPoints, formatScore, minutesLeft, parseServerDate, plainText, score10} from './format';
 import {studentTitle} from '../pages/hs/title';
 
 describe('format', () => {
@@ -59,6 +59,13 @@ describe('shared formats (exam screens)', () => {
         expect(errorText(new Error('boom'), 'x')).toBe('boom');
         expect(errorText(undefined, 'mặc định')).toBe('mặc định');
     });
+});
+
+it('withSubject does not repeat the subject already in the exam name', () => {
+    expect(withSubject('Toán', 'Đề 3')).toBe('Toán · Đề 3');
+    expect(withSubject('Toán', 'Toán — Đề thi thử SPT số 3')).toBe('Toán — Đề thi thử SPT số 3');
+    expect(withSubject(null, '<p>Đề 3</p>')).toBe('Đề 3');
+    expect(withSubject('Toán', '', ' — ')).toBe('Toán');
 });
 
 describe('studentTitle (temporary rule)', () => {
