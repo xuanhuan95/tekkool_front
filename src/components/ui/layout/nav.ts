@@ -41,6 +41,7 @@ export const STUDENT_NAV_WEB: NavItem[] = [
 export const ADMIN_NAV: NavItem[] = [
     {to: '/manage/teachers', label: 'Giáo viên'},
     {to: '/manage/users', label: 'Người dùng'},
+    {to: '/manage/subjects', label: 'Môn học'},
     {to: '/manage/packages', label: 'Gói thi'},
     {to: '/manage/revenue', label: 'Doanh thu'},
     {to: '/manage/transactions', label: 'Giao dịch'},

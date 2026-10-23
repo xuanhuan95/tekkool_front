@@ -69,6 +69,7 @@ Bốn màn ngân hàng/nhập đề đã reskin theo design D (SPT-57), chạy t
 |---|---|---|---|---|
 | `/manage/teachers` | Giáo viên: tạo, khoá/mở, đặt lại mật khẩu | `pages/manage/Teachers.tsx` | AD-GiaoVien, AD-TaoGiaoVien | `admin/teachers`, `admin/create_teacher`, `admin/lock_teacher/<id>`, `admin/unlock_teacher/<id>`, `admin_users/reset_password/<id>` |
 | `/manage/users` (`?group=&id=`) | Người dùng + chi tiết | `pages/manage/Users.tsx` | AD-NguoiDung | `admin_users/list`, `admin_users/detail/<id>`, `admin_users/lock|unlock/<id>`, `admin_users/reset_password/<id>` |
+| `/manage/subjects` | Môn học: tạo, đổi tên, ẩn/hiện (không xoá). Chỉ Admin; giáo viên chỉ chọn môn có sẵn | `pages/manage/AdminSubjects.tsx` | SPT-65 | `folder/subjects`, `folder/create`, `folder/update` |
 | `/manage/packages` | Gói & giá, sắp xếp | `pages/manage/AdminPackages.tsx` | AD-Goi | `package/list?all=1`, `package/create`, `package/update/<id>`, `package/reorder`, `package/remove/<id>` |
 | `/manage/revenue` | Doanh thu | `pages/manage/Revenue.tsx` | AD-DoanhThu | `admin_revenue/summary`, `admin_revenue/transactions` |
 | `/manage/transactions` (`?tab=reconcile&inv=…`) | Giao dịch & đối soát | `pages/manage/Transactions.tsx` | AD-GiaoDich | `admin_revenue/transactions`, `admin_revenue/transaction/<inv>`, `admin_revenue/reconcile` |

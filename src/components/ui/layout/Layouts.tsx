@@ -110,11 +110,13 @@ export interface AdminLayoutProps {
 
 /** Admin: Giáo viên · Người dùng · Gói thi · Doanh thu · Giao dịch; "Admin" role badge + name + avatar, no stat pills. */
 export function AdminLayout({children, name = 'Quản trị viên', nav = ADMIN_NAV}: AdminLayoutProps) {
+    const signOut = useAuthStore(s => s.signOut);
     return <WebLayout nav={nav} navLabel='Menu quản trị'
                       right={<>
                           <Badge tone='title'>Admin</Badge>
                           <span className='vt-header-name'>{name}</span>
                           <Avatar name={name} initials={name === 'Quản trị viên' ? 'QT' : undefined}/>
+                          <Button variant='ghost' size='sm' onClick={() => signOut()}>Đăng xuất</Button>
                       </>}>
         {children}
     </WebLayout>;

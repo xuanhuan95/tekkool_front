@@ -14,6 +14,7 @@
 .vt-mg-person { display: inline-flex; align-items: center; gap: 10px; }
 .vt-mg-tags { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .vt-mg-actions { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+@media (max-width: 640px) { .vt-mg-actions { flex-direction: column; align-items: flex-start; } }
 .vt-mg-link { font: inherit; font-weight: 600; color: var(--vt-ink); background: none; border: 0; padding: 0; text-decoration: underline;
     text-underline-offset: 3px; cursor: pointer; min-height: 32px; text-align: left; }
 
@@ -77,6 +78,8 @@
 /* Package edit (AD-Goi) */
 .vt-mg-order { display: inline-flex; align-items: center; gap: 4px; }
 .vt-mg-order .vt-btn { width: 36px; min-height: 36px; height: 36px; padding: 0; }
+.vt-mg-actions { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+@media (max-width: 640px) { .vt-mg-actions { flex-direction: column; align-items: flex-start; } }
 .vt-mg-form-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
 .vt-mg-preview-label { font-size: 13px; font-weight: 600; color: var(--vt-muted); }
 
