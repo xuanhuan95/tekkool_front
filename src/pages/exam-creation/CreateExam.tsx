@@ -14,6 +14,16 @@ import PreviewAnswer from './PreviewAnswer';
 import {useAuthStore} from '../../stores/authStore';
 import {useExamDraftStore} from '../../stores/examDraftStore';
 import {Editor} from "../../components/Editor";
+import {errorText} from '../../lib/format';
+import {backendProblems, examProblems} from './examRules';
+
+const MAX_SHOWN = 6;
+
+/** One toast listing the questions that block saving. */
+const showProblems = (problems: string[]) => toast.error(
+    ['Chưa lưu được:', ...problems.slice(0, MAX_SHOWN),
+        problems.length > MAX_SHOWN ? `… và ${problems.length - MAX_SHOWN} lỗi nữa` : ''].filter(Boolean).join('\n'),
+    {duration: 8000, style: {whiteSpace: 'pre-line'}});
 
 const AUTO_SAVE_MS = 120_000;
 
@@ -52,10 +62,22 @@ export default function CreateExam() {
     // ponytail: `save` reads the exam from the store at call time (getState) instead of
     // closing over it — otherwise the interval holds the first render's draft and auto-save
     // overwrites everything typed afterwards.
-    const save = async (successMsg: string) => {
+    const save = async (successMsg: string, manual = true) => {
         const current = useExamDraftStore.getState().exam;
         if (!current) return;
-        await Api.post('exam/create', current);
+        // SPT-63: the backend refuses these, so say which question is wrong instead of failing silently.
+        const problems = examProblems(current.sections);
+        if (problems.length) {
+            if (manual) showProblems(problems);
+            return;
+        }
+        try {
+            await Api.post('exam/create', current);
+        } catch (e) {
+            const fromServer = backendProblems(e);
+            if (manual) fromServer ? showProblems(fromServer) : toast.error(errorText(e, 'Lưu thất bại'));
+            return;
+        }
 
         // ponytail: exam/create does NOT accept a folder field (the BE keeps the old
         // version's folder; a new exam -> null). Call the existing move_to_folder instead of changing the BE.
@@ -73,7 +95,7 @@ export default function CreateExam() {
     // after leaving the page it still POSTed exam/create with stale state (creating empty exams in the DB).
     useEffect(() => {
         if (!ready) return;
-        const id = setInterval(() => { save('Auto save successfully'); }, AUTO_SAVE_MS);
+        const id = setInterval(() => { save('Auto save successfully', false); }, AUTO_SAVE_MS);
         return () => clearInterval(id);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ready]);

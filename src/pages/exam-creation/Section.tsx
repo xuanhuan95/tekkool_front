@@ -3,7 +3,8 @@ import {Fragment, useState} from 'react';
 import {Menu, Icon, Rail, Sticky} from 'semantic-ui-react';
 import MultipleChoice from './questions/MultipleChoice';
 import FillBlank from './questions/FillBlank';
-import TrueFalse from './questions/TrueFalse';
+import TrueFalseBlock from './TrueFalseBlock';
+import {toUnits} from './examRules';
 import ErrorIdentify from './questions/ErrorIdentify';
 import FreeAnswer from './questions/FreeAnswer';
 import Default from './Default';
@@ -16,7 +17,6 @@ import {Editor} from "../../components/Editor";
 const questionTypes: Record<string, any> = {
     'FillBlank': FillBlank,
     'MultipleChoice': MultipleChoice,
-    'TrueFalse': TrueFalse,
     'ErrorIdentify': ErrorIdentify,
     'FreeAnswer': FreeAnswer,
 };
@@ -39,16 +39,25 @@ export default function Section({section}: Props) {
     };
 
     const addQuestion = (questionType: string) => {
-        const questions = [...section.questions,
-            Default.question(questionType, section.exam, section.id)];
+        // A Đúng/Sai question is a block of 4 ý, never a single one (SPT-63).
+        const added = questionType === 'TrueFalse'
+            ? Default.trueFalseGroup(section.exam, section.id)
+            : [Default.question(questionType, section.exam, section.id)];
+        const questions = [...section.questions, ...added];
         // Merged into a single write: the old version called setSectionState twice in a row,
         // re-rendering twice for the same action.
         setSectionState({question_type: questionType, questions});
     };
 
-    const removeQuestion = (question: Question) => {
-        setSectionState({questions: section.questions.filter(q => q.id !== question.id)});
+    // Removing a Đúng/Sai block removes all its ý together.
+    const removeUnit = (unit: Question[]) => {
+        const ids = unit.map(q => q.id);
+        setSectionState({questions: section.questions.filter(q => !ids.includes(q.id))});
     };
+
+    const patchData = (id: string, data: Record<string, unknown>) =>
+        setSectionState({questions: section.questions.map(q =>
+            q.id === id ? {...q, data: {...q.data, ...data}} : q)});
 
     // ponytail: the passage is copied into EACH question of the group -> an edit must be written
     // back to the whole group by passageId. Editing only the first question leaves the later ones
@@ -70,12 +79,14 @@ export default function Section({section}: Props) {
             onChange={(value: string) => setSectionState({name: value})}
         />
 
-        {questions.map((question, idx) => {
+        {toUnits(questions).map((unit, uidx, units) => {
+            const question = unit[0];
+            const isTrueFalse = question.type === 'TrueFalse';
             const QuestionView = questionTypes[question.type];
-            const prev = questions[idx - 1];
+            const prev = uidx ? units[uidx - 1][0] : undefined;
             const {passage, passageId} = question.data || {};
             // Only show the passage editor on the FIRST question of the group.
-            const showPassage = passage &&
+            const showPassage = !isTrueFalse && passage &&
                 !(prev && prev.data && prev.data.passageId === passageId);
 
             return <div key={question.id} style={{position: 'relative'}}>
@@ -91,15 +102,18 @@ export default function Section({section}: Props) {
                 </div>}
 
                 <Icon
-                    onClick={() => removeQuestion(question)}
+                    onClick={() => removeUnit(unit)}
                     name='close'
                     className='cursor'
                     style={{position: 'absolute', right: '5px', zIndex: '999'}}
                 />
 
                 <div id={question.id} style={{marginBottom: '18px'}}>
-                    <QuestionView question={question} section={section}
-                                  setSectionState={setSectionState}/>
+                    {isTrueFalse
+                        ? <TrueFalseBlock unit={unit} onPatch={patchData}
+                                          onPassage={html => setPassage(passageId, html)}/>
+                        : <QuestionView question={question} section={section}
+                                        setSectionState={setSectionState}/>}
                 </div>
             </div>
         })}
