@@ -50,13 +50,6 @@ export default function Dashboard() {
         enabled: !!activeFolder,
     });
 
-    const createFolder = async () => {
-        const name = prompt('Tên môn / bộ đề mới:');
-        if (!name) return;
-        await Api.post('folder/create', {name});
-        qc.invalidateQueries({queryKey: ['folder', 'list']});
-    };
-
     const moveToFolder = async (examId: string, folderId: string | null) => {
         await Api.post('exam/move_to_folder', {examId, folderId});
         refreshExams();
@@ -92,14 +85,11 @@ export default function Dashboard() {
         <Segment placeholder>
             <Header icon>
                 <Icon name='folder open outline' color='grey'/>
-                Chưa có đề nào
+                Chưa có môn học
                 <Header.Subheader>
-                    Tạo một thư mục cho môn học trước, rồi thêm đề vào trong đó.
+                    Chưa có môn học — liên hệ Admin để thêm môn.
                 </Header.Subheader>
             </Header>
-            <Button primary icon labelPosition='left' onClick={createFolder}>
-                <Icon name='folder'/> Tạo thư mục môn học
-            </Button>
         </Segment>
     </div>;
 
@@ -120,9 +110,6 @@ export default function Dashboard() {
                     <Icon name='database'/> Ngân hàng câu hỏi
                 </Button>
             </Link>
-            <Button primary icon labelPosition='left' onClick={createFolder}>
-                <Icon name='plus'/> Thư mục mới
-            </Button>
         </div>
 
         {q && !shownFolders.length && !shownLoose.length && !shownInFolder.length &&
