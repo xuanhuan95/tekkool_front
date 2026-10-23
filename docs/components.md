@@ -65,7 +65,7 @@ const columns: Column<Pkg>[] = [
 | Component | Props chính | Dùng khi |
 |---|---|---|
 | `StudentLayout` | `name`, `turns`, `stars`, `title`, `navMobile`, `navWeb`, `accountTo` | Khung mọi màn HS (đã dùng trong `pages/student/StudentShell.tsx`): header dính + bottom nav (điện thoại) / menu trên (web) |
-| `AdminLayout` | `name`, `nav` | Khung `/manage/*`; menu: Giáo viên · Người dùng · Môn học · Gói thi · Doanh thu · Giao dịch |
+| `AdminLayout` | `name`, `nav` | Khung `/manage/*`; menu: Giáo viên · Người dùng · Môn học · Gói thi · Doanh thu · Giao dịch; header có nút **Đăng xuất** (gọi `useAuthStore.signOut`), xuống dòng dưới menu ở 390px |
 | `WebLayout` | `nav`, `navLabel`, `right` | Khung web chung |
 | `HeaderSticky`, `StudentStats`, `BottomNav` | `variant`, `nav`, `right` ; `turns`, `stars`, `title` ; `items` | Thành phần của các layout trên |
 | `PageColumns` | `main`, `side` | Bố cục 2 cột web (cột phụ ≤ 380px), xuống 1 cột trên điện thoại |
