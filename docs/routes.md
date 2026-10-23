@@ -32,11 +32,19 @@ Artboard design: `design/screens/<Tên>.dc.html` (mobile 390px; `HS-Web-*` là b
 | `/me` | Tài khoản | `pages/hs/AccountPage.tsx` | HS-TaiKhoan | `me/profile` (`title`, `title_next`), `me/ranking_privacy`, `me/update`, `me/change_password`, `payment/wallet` |
 | `/packages` | Gói thi | `pages/pay/Packages.tsx` | HS-Goi | `package/list`, `payment/wallet` |
 | `/payment/:packageId` | Xác nhận thanh toán → chuyển SePay | `pages/payment/Payment.tsx` | HS-ThanhToan | `package/list`, `payment/checkout` (form POST sang SePay theo đúng thứ tự trường BE trả) |
-| `/payment/result?inv=` | Chờ xác nhận / thành công / thất bại | `pages/payment/PaymentResult.tsx` | HS-ThanhToanCho, HS-ThanhToanXong | `payment/status/<inv>` (hỏi lại định kỳ), `payment/wallet` |
-| `/billing` | Lịch sử mua gói | `pages/pay/PurchaseHistory.tsx` | HS-LichSuMua | `payment/history` |
+| `/payment/result?inv=[&result=cancel\|error]` | Chờ xác nhận / thành công / thất bại / đã huỷ | `pages/payment/PaymentResult.tsx` | HS-ThanhToanCho, HS-ThanhToanXong | `payment/status/<inv>` (hỏi lại định kỳ), `payment/cancel/<inv>` (khi có `result`), `payment/wallet` |
+| `/billing` | Lịch sử mua gói (CANCELLED = nhãn xám "Đã huỷ") | `pages/pay/PurchaseHistory.tsx` | HS-LichSuMua | `payment/history` |
 | `/my-exams`, `/my-exams/:id` | Đường dẫn cũ | — | — | HS được chuyển sang `/history`, `/result/:id` |
 
 **Không đổi** `/payment/result`: đây là return URL đã cấu hình ở SePay.
+
+Huỷ thanh toán (SPT-58): SePay trả về `…&result=cancel` (học sinh bấm Huỷ) hoặc `…&result=error`. Trang gọi
+`POST payment/cancel/<inv>` **một lần** (`usePaymentStatus(inv, cancel)`), rồi hiển thị theo `status` server trả về,
+không tin URL (`paymentView` trong `pages/pay/order.ts`): `CANCELLED` → "Đã huỷ thanh toán" (`result=error`:
+"Thanh toán không thành công") + nút "Chọn gói khác" về `/packages` (mua lại = đơn mới), không hỏi lại;
+`PAID` → màn thành công (SePay đã nhận tiền thì BE không huỷ). Không có `result` → hỏi lại `payment/status` 90 giây
+như cũ; đơn `CANCELLED` dừng hỏi ngay. Admin: trạng thái hiển thị `cancelled` ("Đã huỷ", xám) ở Giao dịch
+(lọc `?status=cancelled`), Doanh thu, và `order_counts.cancelled` ở chi tiết Người dùng.
 
 ## Giáo viên (giao diện cũ, Semantic UI — reskin sprint sau)
 

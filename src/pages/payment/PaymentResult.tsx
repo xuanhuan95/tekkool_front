@@ -5,7 +5,7 @@ import {POLL_TOTAL_SECONDS, usePaymentStatus} from '../../queries/payment';
 import {useWallet} from '../../queries/wallet';
 import type {Payment} from '../../types/payment';
 import {errorText, formatMoney} from '../../lib/format';
-import {orderName, orderTurns} from '../pay/order';
+import {orderName, orderTurns, paymentView} from '../pay/order';
 import '../pay/pay.css';
 
 const RefreshIcon = () => <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.2'
@@ -25,22 +25,23 @@ function OrderBox({inv, payment}: {inv: string | null; payment: Payment | null})
  * SePay return page: waiting (HS-ThanhToanCho) → success / failure (HS-ThanhToanXong).
  * Route /payment/result?inv=… is what the BE gives SePay as success/error/cancel URL — DO NOT move it.
  * Polling is the old behaviour (every 2 s, up to 90 s); see usePaymentStatus.
+ * `&result=cancel|error` (SPT-58): POST payment/cancel once, then show whatever status the BE returns.
  */
 export default function PaymentResult() {
     const navigate = useNavigate();
     const [params] = useSearchParams();
     const inv = params.get('inv');
-    const {payment, error, seconds, timedOut, restart} = usePaymentStatus(inv);
-    const paid = payment?.status === 'PAID';
+    const result = params.get('result');
+    const {payment, error, seconds, timedOut, restart} = usePaymentStatus(inv, result === 'cancel' || result === 'error');
+    const view = paymentView(payment, error, timedOut);
+    const paid = view === 'paid';
     const {data: wallet} = useWallet(paid);
-
-    const waiting = !error && (!payment || payment.status === 'PENDING');
-    const failed = !error && payment && payment.status !== 'PENDING' && !paid;
+    const waiting = view === 'waiting' || view === 'timeout';
     const turns = payment ? orderTurns(payment) : null;
     const packageId = payment?.items?.[0]?.target_id;
 
     let card;
-    if (error) {
+    if (view === 'error') {
         // Money may already be gone: never strand the student. Always show the order code + history.
         card = <section role='alert' className='vt-card vt-card--error vt-pay-state'>
             <span className='vt-pay-ring vt-pay-ring--err' aria-hidden='true'>!</span>
@@ -65,7 +66,21 @@ export default function PaymentResult() {
                 <span className='vt-pay-have'>Bạn có {wallet.remaining} lượt</span>}
             <Link to='/exams' className={buttonClass({variant: 'primary', block: true})}>Làm đề ngay</Link>
         </section>;
-    } else if (failed) {
+    } else if (view === 'cancelled') {
+        card = <section role='status' className='vt-card vt-pay-state'>
+            <span className='vt-pay-ring vt-pay-ring--muted' aria-hidden='true'>
+                <svg width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.6'
+                     strokeLinecap='round'><path d='M7 7l10 10M17 7L7 17'/></svg>
+            </span>
+            <h1 className='vt-pay-state-title'>{result === 'error' ? 'Thanh toán không thành công' : 'Đã huỷ thanh toán'}</h1>
+            <p className='vt-muted'>Đơn <b className='vt-pay-ink vt-num'>{inv}</b> đã huỷ. Muốn mua lại, hãy chọn gói để tạo
+                đơn mới. Nếu tài khoản vẫn bị trừ tiền, lượt sẽ tự cộng — xem ở Lịch sử mua gói.</p>
+            <div className='vt-pay-2btn'>
+                <Link to='/packages' className={buttonClass({variant: 'primary'})}>Chọn gói khác</Link>
+                <Link to='/billing' className={buttonClass()}>Lịch sử mua gói</Link>
+            </div>
+        </section>;
+    } else if (view === 'failed') {
         card = <section role='alert' className='vt-card vt-card--error vt-pay-state'>
             <span className='vt-pay-ring vt-pay-ring--err' aria-hidden='true'>
                 <svg width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.6'
@@ -79,7 +94,7 @@ export default function PaymentResult() {
                 <Link to='/packages' className={buttonClass()}>Chọn gói khác</Link>
             </div>
         </section>;
-    } else if (waiting && timedOut) {
+    } else if (view === 'timeout') {
         // 90 s and nothing back: NOT a failure — the money may be charged, the IPN is just slow.
         card = <section role='status' className='vt-card vt-pay-state'>
             <span className='vt-pay-ring vt-pay-ring--sun' aria-hidden='true'>…</span>
@@ -114,7 +129,7 @@ export default function PaymentResult() {
         </header>
         <main className='vt-pay-main vt-pay-main--center'>
             {card}
-            {waiting && !error && <>
+            {waiting && <>
                 <Button variant='secondary' block onClick={restart} icon={<RefreshIcon/>}>Kiểm tra lại</Button>
                 <Link to='/billing' className={buttonClass({variant: 'ghost'}) + ' vt-pay-center'}>Xem lịch sử mua gói</Link>
             </>}

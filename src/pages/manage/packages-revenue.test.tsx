@@ -136,7 +136,7 @@ describe('chart helpers', () => {
 
 const SUMMARY = {
     period: 'week', date_from: '2026-10-19', date_to: '2026-10-25', revenue: 4776000, prev_revenue: 4264000, change_pct: 12,
-    orders: {paid: 44, pending: 1, failed: 3, mismatch: 1}, turns_sold: 500, buyers: 38,
+    orders: {paid: 44, pending: 1, failed: 3, mismatch: 1, cancelled: 2}, turns_sold: 500, buyers: 38,
     series: [{key: '2026-10-19', revenue: 1137000}, {key: '2026-10-20', revenue: 509000}, {key: '2026-10-21', revenue: 0}],
     by_package: [{package_id: 'p10', name: 'Gói 10 lượt', orders: 26, quantity: 26, revenue: 2574000}],
 };
@@ -151,7 +151,7 @@ describe('Revenue (AD-DoanhThu)', () => {
         renderAt(<Revenue/>);
         expect(await screen.findByText('4.776.000đ')).toBeTruthy();
         expect(screen.getByText('tăng 12% so với tuần trước')).toBeTruthy();
-        expect(screen.getByText('1 đang xử lý · 1 lệch tiền · 3 thất bại')).toBeTruthy();
+        expect(screen.getByText('1 đang xử lý · 1 lệch tiền · 3 thất bại · 2 đã huỷ')).toBeTruthy();
         expect(screen.getByText('500 lượt')).toBeTruthy();
         expect(screen.getByRole('img', {name: /cao nhất T2 19\/10 với 1\.137\.000đ/})).toBeTruthy();
         expect(screen.getByText('26 đơn · 2.574.000đ')).toBeTruthy();

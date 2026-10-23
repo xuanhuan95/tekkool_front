@@ -155,7 +155,7 @@ export default function Transactions() {
                 <span className='vt-mg-stat-sub'>chờ webhook SePay</span></Card>
             <Card size='md' className='vt-mg-stat'><span className='vt-mg-stat-label'>Lệch tiền / Thất bại</span>
                 <span className='vt-mg-stat-value vt-num'>{stat('mismatch').count} / {stat('failed').count}</span>
-                <span className='vt-mg-stat-sub'>{stat('mismatch').count} đơn lệch tiền cần xử lý tay</span></Card>
+                <span className='vt-mg-stat-sub'>{stat('mismatch').count} đơn lệch tiền cần xử lý tay · {stat('cancelled').count} đã huỷ</span></Card>
         </div>}
         <Card flush className='vt-table-card'>
         <div className='vt-table-toolbar'>

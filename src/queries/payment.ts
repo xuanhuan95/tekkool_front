@@ -40,8 +40,12 @@ export type PaymentPoll = {
  * Polls `payment/status/<inv>` every 2 s until the order leaves PENDING, an error happens, or
  * 90 s pass. When the order turns PAID the wallet and the purchase history are refetched so the
  * header pill and "Bạn có N lượt" show the new balance.
+ *
+ * `cancel` (SePay sent the student back with `?result=cancel|error`, SPT-58): the first request is
+ * `POST payment/cancel/<inv>` instead — sent ONCE per page load; "Kiểm tra lại" only reads the status.
+ * BE may still answer PAID (SePay already took the money), so the screen follows the returned status.
  */
-export function usePaymentStatus(inv: string | null): PaymentPoll {
+export function usePaymentStatus(inv: string | null, cancel = false): PaymentPoll {
     const qc = useQueryClient();
     const [payment, setPayment] = useState<Payment | null>(null);
     const [error, setError] = useState<unknown>(null);
@@ -50,6 +54,7 @@ export function usePaymentStatus(inv: string | null): PaymentPoll {
     const [run, setRun] = useState(0);
     const qcRef = useRef(qc);
     qcRef.current = qc;
+    const cancelSent = useRef(false);
 
     useEffect(() => {
         if (!inv) { setError({error: 'Thiếu mã đơn hàng'}); return; }
@@ -68,7 +73,12 @@ export function usePaymentStatus(inv: string | null): PaymentPoll {
             while (!cancelled && (Date.now() - startedAt) / 1000 < POLL_TOTAL_SECONDS) {
                 let res: Payment;
                 try {
-                    res = await Api.get<Payment>('payment/status/' + encodeURIComponent(inv));
+                    if (cancel && !cancelSent.current) {
+                        cancelSent.current = true;
+                        res = await Api.post<Payment>('payment/cancel/' + encodeURIComponent(inv));
+                    } else {
+                        res = await Api.get<Payment>('payment/status/' + encodeURIComponent(inv));
+                    }
                 } catch (e) {
                     if (!cancelled) setError(e);
                     return;
@@ -88,7 +98,7 @@ export function usePaymentStatus(inv: string | null): PaymentPoll {
         })().finally(() => clearInterval(clock));
 
         return () => { cancelled = true; clearInterval(clock); };
-    }, [inv, run]);
+    }, [inv, run, cancel]);
 
     return {payment, error, seconds, timedOut, restart: () => setRun(n => n + 1)};
 }

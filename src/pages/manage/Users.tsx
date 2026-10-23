@@ -91,6 +91,7 @@ function UserDetail({userId, onLock, onReset}: {userId: string; onLock: (u: Admi
         {(student || u.orders.length > 0) && <>
             <hr className='vt-mg-sep'/>
             <span className='vt-mg-section-title'>Đơn gần đây</span>
+            <span className='vt-muted vt-mg-small vt-num'>{u.order_counts.paid} thành công · {u.order_counts.pending} đang xử lý · {u.order_counts.failed} thất bại · {u.order_counts.cancelled ?? 0} đã huỷ</span>
             {!u.orders.length ? <span className='vt-muted'>Chưa có đơn nào.</span>
                 : u.orders.slice(0, 5).map(o => {
                     const st = orderStatus(o.status);
