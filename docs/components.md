@@ -99,7 +99,7 @@ Cách các component này được nối với API: [lam-bai.md](lam-bai.md).
 
 | Thành phần | Ghi chú |
 |---|---|
-| `TeacherLayout`, `TEACHER_NAV` (`ui/layout`) | Khung giáo viên: menu trên (web) / dưới (điện thoại), badge số bài chờ chấm (`usePendingCount`) |
+| `TeacherLayout`, `TEACHER_NAV` (`ui/layout`) | Khung giáo viên: menu trên (web) / dưới (điện thoại), badge số bài chờ chấm (`usePendingCount`), nút **Đăng xuất** ở cả header điện thoại và web (`useAuthStore.signOut`) |
 | `DesktopOnly` (`backTo`) | Màn chỉ cho máy tính: dưới 1024px hiện empty state + link về `backTo`. Lưu ý: cả empty state và `children` đều có trong DOM, CSS (`.vt-only-mobile`/`.vt-only-web`) ẩn bớt. |
 | `queries/questionBank.ts` | `useBanks`, `useBankSubjects`, `useCreateBank`, `useRemoveBank`, `useBankCapacity`, `useBankStock`, `useCreateFromBank`, `useDrawInfo`, `useDrawExam`; khoá cache `bankKeys` |
 | `ImportExam` (lời giải) | Câu có `data.explanation` (SPT-62) hiện khối "Lời giải" gập được, qua `SafeHtml`; `max_score`/`explanation` giữ nguyên khi đổi loại câu, `block_type` bị bỏ |

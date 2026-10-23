@@ -3,10 +3,11 @@ import {Link} from 'react-router-dom';
 
 import Avatar from '../Avatar';
 import Badge from '../Badge';
-import {buttonClass} from '../Button';
+import Button, {buttonClass} from '../Button';
 import StatPill from '../StatPill';
 import {EmptyState} from '../States';
 import {cx} from '../cx';
+import {useAuthStore} from '../../../stores/authStore';
 import BottomNav from './BottomNav';
 import HeaderSticky, {StudentStats} from './Header';
 import {ADMIN_NAV, STUDENT_NAV_MOBILE, STUDENT_NAV_WEB, TEACHER_NAV} from './nav';
@@ -74,12 +75,14 @@ export interface TeacherLayoutProps {
  * yellow "N bài chờ chấm", purple "Giáo viên" badge, avatar; under 1024px the menu becomes the bottom nav.
  */
 export function TeacherLayout({children, name, pending, accountTo = '/profile'}: TeacherLayoutProps) {
+    const signOut = useAuthStore(s => s.signOut);
+    const logout = <Button variant='ghost' size='sm' onClick={() => signOut()}>Đăng xuất</Button>;
     const grading = pending ? <StatPill kind='grading' to='/to-grade'>{pending + ' bài chờ chấm'}</StatPill> : null;
     return <div className='vt-paper vt-shell'>
         <HeaderSticky variant='mobile' className='vt-only-mobile'
-                      right={<><Badge tone='title'>Giáo viên</Badge><Avatar name={name} size={36} to={accountTo}/></>}/>
+                      right={<><Badge tone='title'>Giáo viên</Badge><Avatar name={name} size={36} to={accountTo}/>{logout}</>}/>
         <HeaderSticky variant='web' className='vt-only-web' nav={TEACHER_NAV} navLabel='Menu giáo viên'
-                      right={<>{grading}<Badge tone='title'>Giáo viên</Badge><Avatar name={name} to={accountTo}/></>}/>
+                      right={<>{grading}<Badge tone='title'>Giáo viên</Badge><Avatar name={name} to={accountTo}/>{logout}</>}/>
         <main className='vt-main vt-main--student'>{children}</main>
         <BottomNav items={TEACHER_NAV} className='vt-only-mobile'/>
     </div>;
