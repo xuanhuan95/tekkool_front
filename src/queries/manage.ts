@@ -261,3 +261,17 @@ export function useReconcile(type?: string) {
         placeholderData: keepPreviousData,
     });
 }
+
+// ---------- Subjects (SPT-65) ----------
+export function useSubjectMutations() {
+    const qc = useQueryClient();
+    const done = () => qc.invalidateQueries({queryKey: ['folder']});   // student/teacher subject lists too
+    return {
+        create: useMutation({mutationFn: (name: string) => Api.post<{id: string; name: string}>('folder/create', {name}), onSuccess: done}),
+        update: useMutation({
+            mutationFn: (b: {id: string; name?: string; hidden?: boolean}) =>
+                Api.post<{id: string; name: string; hidden: boolean}>('folder/update', b),
+            onSuccess: done,
+        }),
+    };
+}

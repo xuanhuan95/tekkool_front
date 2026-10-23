@@ -4,6 +4,8 @@
 export type SubjectSummary = {
     id: string;
     name: string;
+    /** Admin only: hidden subjects are listed for Admin and absent for everyone else (SPT-65). */
+    hidden?: boolean;
     /** Exams in the subject (its folder + child folders). */
     exams: number;
     /** Exams the viewer has submitted at least once. */
