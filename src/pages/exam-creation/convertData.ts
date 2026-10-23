@@ -4,6 +4,11 @@ export type QuestionData = {
     passage?: string;
     passageId?: string;
     max_words?: number;
+    /** Set by the Word import (SPT-62): score of the question and the HTML solution shown after submitting. */
+    max_score?: number;
+    explanation?: string;
+    /** Import hint for the bank slot (short answer in Toán/Lí/Hoá = 'TraLoiNgan'); only valid for the type it was set for. */
+    block_type?: string;
     answers?: Array<{id: string; value: string}>;
     correctAnswerId?: string;
     /** WARNING: the meaning differs per type — TrueFalse reads a boolean, FillBlank reads an HTML string. */
@@ -18,9 +23,12 @@ export type QuestionData = {
  * function builds a NEW object instead of mutating the old one.
  */
 export function convertData(data: QuestionData, to: string): QuestionData {
-    // question / passage / passageId / max_words are shared by every type.
-    const {question, passage, passageId, max_words} = data;
+    // question / passage / passageId / max_words / max_score / explanation are shared by every type.
+    // block_type is NOT: it was guessed for the old type, the backend re-derives it.
+    const {question, passage, passageId, max_words, max_score, explanation} = data;
     const next: QuestionData = {question};
+    if (max_score !== undefined) next.max_score = max_score;
+    if (explanation) next.explanation = explanation;
     if (passage) { next.passage = passage; next.passageId = passageId; }
 
     if (to === 'MultipleChoice' || to === 'ErrorIdentify') {

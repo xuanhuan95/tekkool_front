@@ -102,5 +102,6 @@ Cách các component này được nối với API: [lam-bai.md](lam-bai.md).
 | `TeacherLayout`, `TEACHER_NAV` (`ui/layout`) | Khung giáo viên: menu trên (web) / dưới (điện thoại), badge số bài chờ chấm (`usePendingCount`) |
 | `DesktopOnly` (`backTo`) | Màn chỉ cho máy tính: dưới 1024px hiện empty state + link về `backTo`. Lưu ý: cả empty state và `children` đều có trong DOM, CSS (`.vt-only-mobile`/`.vt-only-web`) ẩn bớt. |
 | `queries/questionBank.ts` | `useBanks`, `useBankSubjects`, `useCreateBank`, `useRemoveBank`, `useBankCapacity`, `useBankStock`, `useCreateFromBank`, `useDrawInfo`, `useDrawExam`; khoá cache `bankKeys` |
+| `ImportExam` (lời giải) | Câu có `data.explanation` (SPT-62) hiện khối "Lời giải" gập được, qua `SafeHtml`; `max_score`/`explanation` giữ nguyên khi đổi loại câu, `block_type` bị bỏ |
 | `exam-creation/importRules.ts` | Luật thuần của màn nhập đề, có test: `toUnits` (gộp các ý Đúng/Sai cùng `passageId` thành một câu), `isMissingKey` (Q12), `isBadTrueFalse` (Q13, dùng lại được cho editor), `saveBlocker`, `examStats`, `fileProblem`, `importErrorText`, và các hàm sửa payload (`setType`, `setPassage`, `setAnswer`, `removeQuestions`…) |
 | `CreateFromBank.suggestedMinutes` | Gợi ý số phút theo môn (Toán/Ngữ văn 90, môn khác 60); giáo viên vẫn sửa được |

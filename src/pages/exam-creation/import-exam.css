@@ -64,3 +64,7 @@
 .vt-imp-bar-hint.err { color: var(--vt-err); font-weight: 700; }
 .vt-imp-info td, .vt-imp-info th { vertical-align: top; }
 .vt-imp-jump { min-height: 32px; margin: 2px 4px 2px 0; padding: 0 10px; border: 1.5px solid var(--vt-line-option); border-radius: 999px; background: var(--vt-paper); font: inherit; font-size: 13px; cursor: pointer; }
+
+.vt-imp-explain { margin-top: 10px; border-top: 1px dashed var(--vt-line-option); padding-top: 8px; font-size: 14px; }
+.vt-imp-explain summary { cursor: pointer; color: var(--vt-muted); font-weight: 600; }
+.vt-imp-explain > div { margin-top: 6px; }

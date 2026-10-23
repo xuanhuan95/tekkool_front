@@ -138,6 +138,11 @@ function UnitCard({unit, no, edit, showPassage, duplicates}: UnitCardProps) {
                     </div>;
                 })}
             </>}
+
+        {first.data.explanation && <details className='vt-imp-explain'>
+            <summary>Lời giải (học sinh thấy sau khi nộp bài)</summary>
+            <div>{renderHTML(first.data.explanation)}</div>
+        </details>}
     </div>;
 }
 

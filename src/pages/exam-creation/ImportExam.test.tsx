@@ -229,4 +229,15 @@ describe('ImportExam: payload decides which slot a question goes into', () => {
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         expect(sent[0].sections[0].questions.map((q: any) => q.data.passageId)).toEqual(['P1', 'P1']);
     });
+
+    it('shows the solution (explanation) of a question and sends it back untouched', async () => {
+        const sent = mockPost();
+        renderScreen();
+        const q = mc('Q1', 'Q1A');
+        await loadFile(examOf({...q, data: {...q.data, explanation: '<p>Vì 1+1=2</p>', max_score: 0.25}}));
+        expect(screen.getByText('Vì 1+1=2')).toBeTruthy();
+        fireEvent.click(saveButton());
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        expect(sent[0].sections[0].questions[0].data).toMatchObject({explanation: '<p>Vì 1+1=2</p>', max_score: 0.25});
+    });
 });
