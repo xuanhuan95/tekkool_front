@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
 
-import {Button, Card, EmptyState, FilterChip, Medal, PageColumns, SkeletonCard, Tabs, buttonClass} from '../../components/ui';
+import {Button, Card, EmptyState, FilterChip, Medal, PageColumns, SkeletonCard, Tabs, TitleChip, buttonClass} from '../../components/ui';
 import {IconEye, IconEyeOff} from '../../components/ui/icons';
 import {useAuthStore} from '../../stores/authStore';
 import {useBoard, useMeProfile, useSubjects} from '../../queries/student';
@@ -9,7 +9,7 @@ import type {BoardKind} from '../../queries/student';
 import type {Board, BoardEntry} from '../../types/student';
 import {LoadError, PageHead, hsPath} from './common';
 import {formatPoints} from '../../lib/format';
-import {boardIntro, meCard, rowName, rowSubline} from './ranking';
+import {boardIntro, meCard, rowName, rowSubline, rowTitle} from './ranking';
 
 const KINDS: {value: BoardKind; label: string}[] = [
     {value: 'week', label: 'Tuần này'}, {value: 'achievements', label: 'Thành tích'},
@@ -27,7 +27,9 @@ function Row({e, kind}: {e: BoardEntry; kind: BoardKind}) {
         {e.hidden && !e.is_me && <IconEyeOff size={18}/>}
         <span className='hs-board-name'>
             <b>{rowName(e)}{e.is_me && ' (Bạn)'}</b>
-            <span className='hs-meta'>{rowSubline(e, kind)}</span>
+            {rowTitle(e)
+                ? <span><TitleChip title={rowTitle(e)!}/></span>
+                : <span className='hs-meta'>{rowSubline(e, kind)}</span>}
         </span>
         <span className='hs-board-pts vt-hand'>{formatPoints(e.points)}</span>
     </li>;
@@ -38,7 +40,8 @@ function MeCard({board, kind}: {board: Board; kind: BoardKind}) {
     const c = meCard(board, kind, name);
     return <section className='vt-card vt-card--md hs-board-row hs-board-row--me hs-board-me' aria-label='Hạng của bạn'>
         <span className='hs-rank-none' style={{width: 34, fontSize: 26}}>{board.me?.rank ?? '–'}</span>
-        <span className='hs-board-name'><b>{c.title}</b><span>{c.sub}</span></span>
+        <span className='hs-board-name'><b>{c.title}</b><span>{c.sub}</span>
+            {board.me?.title && <span><TitleChip title={board.me.title}/></span>}</span>
         <span className='hs-board-pts vt-hand' style={{fontSize: 26}}>{formatPoints(board.me?.points ?? 0)}</span>
     </section>;
 }

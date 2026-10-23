@@ -1,11 +1,11 @@
 import type {ReactNode} from 'react';
 import {Link} from 'react-router-dom';
 
-import {Badge, ErrorState, ProgressBar, buttonClass} from '../../components/ui';
+import {Badge, ErrorState, ProgressBar, TitleChip, buttonClass} from '../../components/ui';
 import {IconCrown} from '../../components/ui/icons';
 import type {InProgress} from '../../queries/inProgress';
 import {errorText, minutesLeft, plainText} from '../../lib/format';
-import type {TitleInfo} from './title';
+import type {StudentTitle, TitleHint} from '../../types/student';
 import './hs.css';
 
 /** Route builders in ONE place (PM merges three branches — fix a path here, not in every screen). */
@@ -72,23 +72,26 @@ export function ContinueCard({cont, web}: {cont: InProgress; web?: boolean}) {
     </section>;
 }
 
-/** Title card with progress to the next title (temporary rule, hs/title.ts). */
-export function TitleCard({info, web}: {info: TitleInfo; web?: boolean}) {
+/**
+ * Title card (SPT-64): the student's tier from BE + the BE hint toward the next one
+ * ("Còn 3 bài nữa trong tháng này để lên Học sinh chăm"). No tier yet → "Chưa có danh hiệu" + hint.
+ */
+export function TitleCard({title, next, web}: {title: StudentTitle | null; next: TitleHint | null; web?: boolean}) {
     return <section className={'vt-card vt-card--md hs-title' + (web ? ' hs-title--web' : '')} aria-label='Danh hiệu'>
         <span className='hs-title-icon'><IconCrown size={20}/></span>
         <div className='hs-title-main'>
-            <div className='hs-row'>
-                {web ? <span className='hs-col2'><span className='hs-meta'>Danh hiệu</span>
-                        <span className='hs-title-name'>{info.title}</span></span>
-                    : <Badge tone='title'>{info.title}</Badge>}
-                {info.next && <span className='hs-meta vt-num'>{info.next.value} / {info.next.max} đề</span>}
-            </div>
-            {info.next
-                ? <>
-                    <ProgressBar value={info.next.value} max={info.next.max} label={'Tiến độ lên ' + info.next.title}/>
-                    <span className='hs-meta'>Làm thêm {info.next.remaining} đề trong tháng này để lên “{info.next.title}”.</span>
-                </>
-                : <span className='hs-meta'>{info.month} đề trong tháng này. Giữ nhịp nhé!</span>}
+            {web
+                ? <span className='hs-col2'><span className='hs-meta'>Danh hiệu</span>
+                    <span className='hs-title-name'>{title ? title.name : 'Chưa có danh hiệu'}</span></span>
+                : title ? <span><TitleChip title={title} icon={false}/></span> : <span className='hs-meta'>Chưa có danh hiệu</span>}
+            {next ? <span className='hs-meta'>{next.hint}.</span>
+                : title && <span className='hs-meta'>Bạn đang ở bậc cao nhất. Giữ phong độ nhé!</span>}
         </div>
     </section>;
+}
+
+/** The hint to show: next tier of the current title, or `title_next` when there is no title yet. */
+export function titleHint(p?: {title?: StudentTitle | null; title_next?: TitleHint | null} | null): TitleHint | null {
+    if (!p) return null;
+    return p.title ? (p.title.next ?? null) : (p.title_next ?? null);
 }

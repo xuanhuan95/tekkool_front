@@ -4,15 +4,14 @@ import {Link} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 
 import Api from '../../services/api';
-import {Avatar, Badge, Button, Card, Modal, PasswordField, ProgressBar, SkeletonCard, Switch, TextField, notify} from '../../components/ui';
+import {Avatar, Button, Card, Modal, PasswordField, SkeletonCard, Switch, TextField, TitleChip, notify} from '../../components/ui';
 import {IconCrown, IconEdit} from '../../components/ui/icons';
 import {useAuthStore} from '../../stores/authStore';
 import {useWallet} from '../../queries/wallet';
-import {PROFILE_KEY, useMeProfile, useMySubmissions, useRankingPrivacy} from '../../queries/student';
+import {PROFILE_KEY, useMeProfile, useRankingPrivacy} from '../../queries/student';
 import type {MeProfile} from '../../types/student';
-import {LoadError, PageHead, hsPath} from './common';
+import {LoadError, PageHead, hsPath, titleHint} from './common';
 import {errorText} from '../../lib/format';
-import {studentTitle} from './title';
 import {passwordApiError, validateName, validatePassword} from './account';
 import type {PasswordErrors, PasswordForm} from './account';
 
@@ -127,11 +126,11 @@ export default function AccountPage() {
     const signOut = useAuthStore(s => s.signOut);
     const profile = useMeProfile();
     const wallet = useWallet();
-    const subs = useMySubmissions();
     const [dialog, setDialog] = useState<'rename' | 'password' | null>(null);
     const [leaving, setLeaving] = useState(false);
 
-    const title = studentTitle(subs.data);
+    const title = profile.data?.title ?? null;
+    const next = titleHint(profile.data);
     const name = profile.data?.name || authUser?.name || '';
     const email = profile.data?.email || authUser?.email || '';
 
@@ -144,14 +143,13 @@ export default function AccountPage() {
                 <div className='hs-col2'>
                     <span className='hs-h2' style={{overflowWrap: 'anywhere'}}>{name || 'Học sinh'}</span>
                     <span className='hs-meta' style={{overflowWrap: 'anywhere'}}>{email}</span>
-                    {title && <span><Badge tone='title'><IconCrown size={13}/> {title.title}</Badge></span>}
+                    {title && <span><TitleChip title={title}/></span>}
                 </div>
             </div>
-            {title?.next && <>
-                <div className='hs-row'><span className='hs-meta'>Lên “{title.next.title}”</span>
-                    <b className='vt-num' style={{fontSize: 13}}>{title.next.value} / {title.next.max} đề trong tháng</b></div>
-                <ProgressBar value={title.next.value} max={title.next.max} label='Tiến độ danh hiệu'/>
-            </>}
+            {next && <div className='hs-row' style={{justifyContent: 'flex-start', flexWrap: 'nowrap', gap: 8}}>
+                <IconCrown size={16}/>
+                <span className='hs-meta'><b>{title ? 'Bậc tiếp theo' : 'Danh hiệu đầu tiên'}: {next.name}.</b> {next.hint}.</span>
+            </div>}
         </Card>
 
         <Card as='section' className='hs-card-pad' aria-label='Lượt thi'>

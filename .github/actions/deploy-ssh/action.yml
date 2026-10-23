@@ -1,0 +1,114 @@
+# Kiem tra cau hinh + dung SSH toi server deploy (SPT-67).
+# Sau buoc nay: `ssh deploy-target ...`, `rsync ... deploy-target:...`,
+# va bien moi truong DEPLOY_PATH, ENV_FILE, SITE_URL cho cac buoc sau.
+# KHONG in secret ra log.
+name: deploy-ssh
+description: Kiem tra secrets/variables va cau hinh SSH (ghim host key) toi server
+inputs:
+  ssh_key:
+    description: Private key ed25519 (secret DEPLOY_SSH_KEY)
+    required: true
+  known_hosts:
+    description: Dong known_hosts cua server (secret DEPLOY_KNOWN_HOSTS)
+    required: true
+  host:
+    description: vars.DEPLOY_HOST
+    required: true
+  user:
+    description: vars.DEPLOY_USER
+    required: true
+  path:
+    description: vars.DEPLOY_PATH (mac dinh /opt/tekkool)
+    required: false
+    default: ''
+  env_file:
+    description: vars.DEPLOY_ENV_FILE (.env hoac .env.prod) — bat buoc
+    required: true
+  site_url:
+    description: vars.SITE_URL (vd https://entclinic.cloud)
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Kiem tra secrets / variables
+      shell: bash
+      env:
+        IN_KEY: ${{ inputs.ssh_key }}
+        IN_KH: ${{ inputs.known_hosts }}
+        IN_HOST: ${{ inputs.host }}
+        IN_USER: ${{ inputs.user }}
+        IN_PATH: ${{ inputs.path }}
+        IN_ENV: ${{ inputs.env_file }}
+        IN_URL: ${{ inputs.site_url }}
+      run: |
+        thieu=""
+        [ -n "$IN_KEY" ]  || thieu="$thieu secret:DEPLOY_SSH_KEY"
+        [ -n "$IN_KH" ]   || thieu="$thieu secret:DEPLOY_KNOWN_HOSTS"
+        [ -n "$IN_HOST" ] || thieu="$thieu variable:DEPLOY_HOST"
+        [ -n "$IN_USER" ] || thieu="$thieu variable:DEPLOY_USER"
+        [ -n "$IN_ENV" ]  || thieu="$thieu variable:DEPLOY_ENV_FILE"
+        [ -n "$IN_URL" ]  || thieu="$thieu variable:SITE_URL"
+        if [ -n "$thieu" ]; then
+          echo "::error::Thieu cau hinh GitHub (Settings > Secrets and variables > Actions):$thieu. Xem docs/ci-cd.md"
+          exit 1
+        fi
+        case "$IN_ENV" in
+          .env|.env.prod) ;;
+          *) echo "::error::DEPLOY_ENV_FILE phai la .env hoac .env.prod (dang la: $IN_ENV)"; exit 1 ;;
+        esac
+        case "$IN_URL" in
+          http://*|https://*) ;;
+          *) echo "::error::SITE_URL phai bat dau bang http:// hoac https://"; exit 1 ;;
+        esac
+        {
+          echo "DEPLOY_PATH=${IN_PATH:-/opt/tekkool}"
+          echo "ENV_FILE=$IN_ENV"
+          echo "SITE_URL=${IN_URL%/}"
+        } >> "$GITHUB_ENV"
+    - name: Cau hinh SSH (StrictHostKeyChecking yes)
+      shell: bash
+      env:
+        IN_KEY: ${{ inputs.ssh_key }}
+        IN_KH: ${{ inputs.known_hosts }}
+        IN_HOST: ${{ inputs.host }}
+        IN_USER: ${{ inputs.user }}
+      run: |
+        install -m 700 -d ~/.ssh
+        printf '%s\n' "$IN_KEY" > ~/.ssh/tekkool_deploy
+        chmod 600 ~/.ssh/tekkool_deploy
+        printf '%s\n' "$IN_KH" > ~/.ssh/known_hosts_tekkool
+        chmod 644 ~/.ssh/known_hosts_tekkool
+        cat > ~/.ssh/config <<CFG
+        Host deploy-target
+          HostName $IN_HOST
+          User $IN_USER
+          IdentityFile ~/.ssh/tekkool_deploy
+          IdentitiesOnly yes
+          StrictHostKeyChecking yes
+          UserKnownHostsFile ~/.ssh/known_hosts_tekkool
+          BatchMode yes
+          ConnectTimeout 20
+          ServerAliveInterval 30
+        CFG
+        chmod 600 ~/.ssh/config
+        # Thu ket noi: sai khoa / host key doi -> do ngay o day, ro nguyen nhan.
+        if ! ssh deploy-target true; then
+          echo "::error::Khong SSH duoc toi server. Kiem tra DEPLOY_SSH_KEY (public key da them vao ~/.ssh/authorized_keys tren server?) va DEPLOY_KNOWN_HOSTS (host key co doi?). Xem docs/ci-cd.md muc Su co."
+          exit 1
+        fi
+    - name: Kiem tra server
+      shell: bash
+      run: |
+        # shellcheck disable=SC2029  # bien duoc mo rong phia runner co chu dich
+        ssh deploy-target "set -e; cd '$DEPLOY_PATH' && test -f docker-compose.yml && test -f '$ENV_FILE'" || {
+          echo "::error::Tren server thieu $DEPLOY_PATH/docker-compose.yml hoac $DEPLOY_PATH/$ENV_FILE"
+          exit 1
+        }
+        if [ "$ENV_FILE" = .env.prod ]; then
+          # Giong deploy.sh: .env.prod bat buoc la tien that.
+          ssh deploy-target "grep -q '^SEPAY_ENV=production' '$DEPLOY_PATH/.env.prod'" || {
+            echo "::error::.env.prod tren server thieu SEPAY_ENV=production"
+            exit 1
+          }
+        fi
+        echo "Server OK: $DEPLOY_PATH, env $ENV_FILE"

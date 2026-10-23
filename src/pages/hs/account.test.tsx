@@ -27,7 +27,9 @@ describe('account logic', () => {
 });
 
 describe('AccountPage', () => {
-    const profile = {id: 'me', name: 'Nguyễn Minh Anh', email: 'a@b.vn', group: 'student', hide_ranking_name: false};
+    const profile = {id: 'me', name: 'Nguyễn Minh Anh', email: 'a@b.vn', group: 'student', hide_ranking_name: false,
+        title: {key: 'newbie', name: 'Người mới', next: {name: 'Học sinh chăm', hint: 'Còn 4 bài nữa trong tháng này để lên Học sinh chăm'}},
+        title_next: {name: 'Học sinh chăm', hint: 'Còn 4 bài nữa trong tháng này để lên Học sinh chăm'}};
     beforeEach(() => {
         get.mockReset(); post.mockReset();
         useAuthStore.setState({user: {id: 'me', name: 'Nguyễn Minh Anh', email: 'a@b.vn', group: 'student'}});
@@ -38,12 +40,24 @@ describe('AccountPage', () => {
         }));
     });
 
-    it('shows info, turns and the temporary title', async () => {
+    it('shows info, turns, the title from me/profile and the BE hint to the next tier', async () => {
         renderAt('/me', [['/me', <AccountPage/>]]);
         expect(await screen.findByText('a@b.vn')).toBeInTheDocument();
         expect(await screen.findByText('7 lượt')).toBeInTheDocument();
-        expect(await screen.findByText(/Người mới/)).toBeInTheDocument();
-        expect(screen.getByText('1 / 5 đề trong tháng')).toBeInTheDocument();
+        const chip = await screen.findByText('Người mới');
+        expect(chip.closest('[data-tier]')).toHaveAttribute('data-tier', 'newbie');
+        expect(screen.getByText(/Còn 4 bài nữa trong tháng này để lên Học sinh chăm/)).toBeInTheDocument();
+    });
+
+    it('no title yet: no chip, but the hint toward the first tier (title_next)', async () => {
+        get.mockImplementation(routeApi({
+            'me/profile': {...profile, title: null, title_next: {name: 'Học sinh chăm', hint: 'Còn 2 bài nữa trong tháng này để lên Học sinh chăm'}},
+            'payment/wallet': {bought: 10, used: 3, remaining: 7},
+        }));
+        renderAt('/me', [['/me', <AccountPage/>]]);
+        expect(await screen.findByText(/Còn 2 bài nữa/)).toBeInTheDocument();
+        expect(screen.getByText(/Danh hiệu đầu tiên: Học sinh chăm/)).toBeInTheDocument();
+        expect(document.querySelector('[data-tier]')).toBeNull();
     });
 
     it('privacy switch posts hide=true when turning "show my name" off', async () => {

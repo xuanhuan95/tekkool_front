@@ -287,3 +287,16 @@ describe('DateField: dd/mm/yyyy whatever the browser locale (Athena audit)', () 
         expect(onChange).toHaveBeenLastCalledWith('');
     });
 });
+
+describe('TitleChip (SPT-64)', () => {
+    it('one tone per tier, unknown key falls back to newbie', async () => {
+        const {default: TitleChip, TITLE_TONE} = await import('./TitleChip');
+        const tiers = ['newbie', 'diligent', 'warrior', 'conqueror'] as const;
+        expect(new Set(tiers.map(t => TITLE_TONE[t])).size).toBe(4);
+        render(<>{tiers.map(k => <TitleChip key={k} title={{key: k, name: 'T-' + k}}/>)}
+            <TitleChip title={{key: 'lạ', name: 'T-x'}} icon={false}/></>);
+        for (const k of tiers) expect(screen.getByText('T-' + k)).toHaveClass('vt-badge', 'vt-titlechip', TITLE_TONE[k]);
+        expect(screen.getByText('T-x')).toHaveClass(TITLE_TONE.newbie);
+        expect(screen.getByText('T-x').querySelector('svg')).toBeNull();
+    });
+});

@@ -5,7 +5,7 @@ const {get} = vi.hoisted(() => ({get: vi.fn()}));
 vi.mock('../../services/api', () => ({default: {get, post: vi.fn()}, setToken: vi.fn()}));
 
 import RankingPage from './RankingPage';
-import {boardIntro, meCard, rowSubline} from './ranking';
+import {boardIntro, meCard, rowSubline, rowTitle} from './ranking';
 import {renderAt, routeApi} from './testUtils';
 import {useAuthStore} from '../../stores/authStore';
 import type {Board, BoardEntry} from '../../types/student';
@@ -67,5 +67,15 @@ describe('RankingPage', () => {
         fireEvent.click(screen.getByRole('tab', {name: 'Thành tích'}));
         expect(await screen.findByText('Lê Quốc Huy')).toBeInTheDocument();
         expect(screen.getByText('9,5')).toBeInTheDocument();
+    });
+});
+
+describe('rowTitle (SPT-64)', () => {
+    const base = {rank: 1, is_me: false, hidden: false, name: 'An', points: 10};
+    it('shows the BE title, null when none; never on rows of people who hid their name', () => {
+        expect(rowTitle({...base, title: {key: 'warrior', name: 'Chiến binh'}})).toEqual({key: 'warrior', name: 'Chiến binh'});
+        expect(rowTitle({...base, title: null})).toBeNull();
+        expect(rowTitle({...base, hidden: true, name: 'Học sinh ẩn danh', title: {key: 'newbie', name: 'Người mới'}})).toBeNull();
+        expect(rowTitle({...base, hidden: true, is_me: true, title: {key: 'newbie', name: 'Người mới'}})).toEqual({key: 'newbie', name: 'Người mới'});
     });
 });

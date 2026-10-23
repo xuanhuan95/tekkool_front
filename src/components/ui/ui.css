@@ -481,3 +481,11 @@ a.vt-avatar { position: relative; }
 .vt-table-scroll--nosticky .vt-table .vt-td--sticky { position: static; }
 .vt-table-scroll--nosticky .vt-table .vt-td--sticky::before,
 .vt-table-scroll--nosticky .vt-table .vt-td--sticky::after { content: none; }
+
+/* Student title chips (SPT-64): one light tier colour + a 1px rule in the tier's ink so the chip
+   still reads on the blue "Bạn" row. */
+.vt-titlechip { border: 1px solid transparent; }
+.vt-titlechip--newbie { background: var(--vt-draft-bg); color: var(--vt-draft-ink); border-color: var(--vt-dot); }
+.vt-titlechip--diligent { background: var(--vt-action); color: var(--vt-ink); border-color: var(--vt-turn-icon); }
+.vt-titlechip--warrior { background: var(--vt-sun-soft); color: var(--vt-sun-ink); border-color: var(--vt-sun); }
+.vt-titlechip--conqueror { background: var(--vt-title-bg); color: var(--vt-title-ink); border-color: var(--vt-title-icon); }
