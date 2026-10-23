@@ -19,7 +19,8 @@ deploy.yml: CI lại trên main ──(xanh)──> rsync vào <DEPLOY_PATH>/fro
 | `.github/actions/deploy-ssh` | Bước trong deploy | Kiểm secrets/variables, SSH ghim host key (`StrictHostKeyChecking yes`), kiểm `.env*` trên server |
 | `.github/scripts/health_check.sh` | Bước trong deploy | Giống hệt file cùng tên ở backend; deploy FE đặt `CHECK_API=0` |
 
-- `concurrency: deploy-prod`, không huỷ deploy đang chạy. `environment: production` (bật Required reviewers nếu muốn).
+- `concurrency: deploy-prod`, không huỷ deploy đang chạy. Chỉ cần repository secrets/variables — không dùng Environments
+  (repo private gói Free không có); muốn duyệt trước khi deploy: xem Bước 4 (tuỳ chọn) ở bản đầy đủ.
 - `tekkool-deploy/deploy.sh front` (chạy tay) vẫn dùng được khi khẩn cấp hoặc khi đổi `nginx.conf` / `Dockerfile.front`.
 
 ## Cấu hình cần tạo trong repo này
@@ -29,7 +30,8 @@ Settings → Secrets and variables → Actions (cách lấy giá trị: xem bả
 - **Secrets:** `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` (cùng giá trị với repo backend).
 - **Variables:** `DEPLOY_HOST` (`161.118.222.140`), `DEPLOY_USER` (`ubuntu`), `DEPLOY_PATH` (`/opt/tekkool`, có thể bỏ trống),
   `DEPLOY_ENV_FILE` (`.env.prod` hoặc `.env` — bắt buộc), `SITE_URL` (`https://entclinic.cloud`).
-- **Environment:** `production` (Settings → Environments).
+- **Quyền:** cần quyền **Admin** repo (thấy tab Settings); không có thì nhờ chủ repo `xuanhuan95` cấp (Settings → Collaborators and teams) hoặc tự thêm.
+- Bảo vệ nhánh `main` có thể không bật được trên repo private gói Free → quy ước **chỉ merge qua PR có CI ✓**.
 
 ## Rollback
 

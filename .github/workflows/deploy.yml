@@ -24,7 +24,6 @@ jobs:
     name: Deploy front
     needs: test
     runs-on: ubuntu-22.04
-    environment: production
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
