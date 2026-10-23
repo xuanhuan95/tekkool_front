@@ -2,7 +2,9 @@ import type {ReactNode} from 'react';
 
 import Avatar from '../Avatar';
 import Badge from '../Badge';
+import Button from '../Button';
 import {cx} from '../cx';
+import {useAuthStore} from '../../../stores/authStore';
 import BottomNav from './BottomNav';
 import HeaderSticky, {StudentStats} from './Header';
 import {ADMIN_NAV, STUDENT_NAV_MOBILE, STUDENT_NAV_WEB} from './nav';
@@ -65,11 +67,13 @@ export interface AdminLayoutProps {
 
 /** Admin: Giáo viên · Người dùng · Gói thi · Doanh thu · Giao dịch; "Admin" role badge + name + avatar, no stat pills. */
 export function AdminLayout({children, name = 'Quản trị viên', nav = ADMIN_NAV}: AdminLayoutProps) {
+    const signOut = useAuthStore(s => s.signOut);
     return <WebLayout nav={nav} navLabel='Menu quản trị'
                       right={<>
                           <Badge tone='title'>Admin</Badge>
                           <span className='vt-header-name'>{name}</span>
                           <Avatar name={name} initials={name === 'Quản trị viên' ? 'QT' : undefined}/>
+                          <Button variant='ghost' size='sm' onClick={() => signOut()}>Đăng xuất</Button>
                       </>}>
         {children}
     </WebLayout>;
