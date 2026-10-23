@@ -116,7 +116,7 @@ export default function Revenue() {
                 <Card size='md' className='vt-mg-stat'>
                     <span className='vt-mg-stat-label'>Số đơn thành công</span>
                     <span className='vt-mg-stat-value vt-num'>{groupDigits(s.orders.paid)}</span>
-                    <span className='vt-mg-stat-sub'>{s.orders.pending} đang xử lý · {s.orders.mismatch} lệch tiền · {s.orders.failed} thất bại</span>
+                    <span className='vt-mg-stat-sub'>{s.orders.pending} đang xử lý · {s.orders.mismatch} lệch tiền · {s.orders.failed} thất bại · {s.orders.cancelled ?? 0} đã huỷ</span>
                 </Card>
                 <Card size='md' className='vt-mg-stat'>
                     <span className='vt-mg-stat-label'>Lượt đã bán</span>

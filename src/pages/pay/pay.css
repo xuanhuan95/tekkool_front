@@ -59,6 +59,7 @@
 .vt-pay-ring--sun { width: 72px; height: 72px; background: var(--vt-sun-soft); }
 .vt-pay-ring--ok { border-color: var(--vt-ok-ink); background: var(--vt-ok-bg); color: var(--vt-ok-ink); }
 .vt-pay-ring--err { border-color: var(--vt-err); background: var(--vt-err-bg); color: var(--vt-err); }
+.vt-pay-ring--muted { background: var(--vt-draft-bg); color: var(--vt-draft-ink); }
 .vt-pay-have { font-family: var(--vt-font-hand); font-weight: 700; font-size: 24px; color: var(--vt-ok-ink); }
 .vt-pay-orderbox { width: 100%; box-sizing: border-box; background: var(--vt-paper); border: 1.5px solid var(--vt-line-soft); border-radius: var(--vt-r-btn); padding: 10px 14px; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
 .vt-pay-orderbox > div { display: flex; justify-content: space-between; gap: 8px; text-align: right; }

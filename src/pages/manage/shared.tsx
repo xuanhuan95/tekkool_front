@@ -29,6 +29,7 @@ export const TX_STATUS: Record<TxStatus, {tone: BadgeTone; label: string}> = {
     pending: {tone: 'sun-strong', label: 'Đang xử lý'},
     mismatch: {tone: 'err', label: 'Lệch tiền'},
     failed: {tone: 'err', label: 'Thất bại'},
+    cancelled: {tone: 'draft', label: 'Đã huỷ'},
 };
 
 export function TxBadge({status}: {status: TxStatus}) {

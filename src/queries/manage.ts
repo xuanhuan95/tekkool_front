@@ -46,12 +46,13 @@ export interface AdminUser {
 export interface AdminUserDetail extends AdminUser {
     turns: {bought: number; used: number; remaining: number};
     orders: Array<Payment & {created_at?: string | null}>;
-    order_counts: {paid: number; pending: number; failed: number};
+    order_counts: {paid: number; pending: number; failed: number; cancelled?: number};
     submissions: {count: number; exams: number; last_at: string | null};
     exam_count?: number;
 }
 
-export type TxStatus = 'paid' | 'pending' | 'failed' | 'mismatch';
+/** `cancelled` = student cancelled on SePay (SPT-58). */
+export type TxStatus = 'paid' | 'pending' | 'failed' | 'mismatch' | 'cancelled';
 export type Period = 'day' | 'week' | 'month' | 'all';
 
 export interface RevenueSummary {

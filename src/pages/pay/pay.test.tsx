@@ -9,7 +9,7 @@ import PaymentResult from '../payment/PaymentResult';
 import Packages from './Packages';
 import PurchaseHistory, {purchaseSummary} from './PurchaseHistory';
 import {errorText, formatDate, formatDateTime, formatMoney, formatShortDateTime, groupDigits, pricePerTurn, todayVn} from '../../lib/format';
-import {orderStatus, orderTurns} from './order';
+import {orderStatus, orderTurns, paymentView} from './order';
 import type {Payment} from '../../types/payment';
 
 afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
@@ -72,8 +72,17 @@ describe('format', () => {
         expect(orderStatus('PAID').label).toBe('Thành công');
         expect(orderStatus('PENDING').label).toBe('Đang xử lý');
         expect(orderStatus('FAILED').tone).toBe('err');
-        expect(orderStatus('CANCELLED').label).toBe('Thất bại');
+        expect(orderStatus('CANCELLED')).toEqual({tone: 'draft', label: 'Đã huỷ'});
         expect(orderStatus('LẠ').label).toBe('LẠ');
+    });
+
+    it('payment view follows the server status, not the URL', () => {
+        expect(paymentView(null, null, false)).toBe('waiting');
+        expect(paymentView({status: 'PENDING'}, null, true)).toBe('timeout');
+        expect(paymentView({status: 'PAID'}, null, false)).toBe('paid');
+        expect(paymentView({status: 'CANCELLED'}, null, false)).toBe('cancelled');
+        expect(paymentView({status: 'FAILED'}, null, false)).toBe('failed');
+        expect(paymentView({status: 'PAID'}, {code: 403}, false)).toBe('error');
     });
 
     it('error text', () => {
@@ -192,6 +201,46 @@ describe('PaymentResult (HS-ThanhToanCho / Xong)', () => {
         fail = false;
         fireEvent.click(screen.getByRole('button', {name: 'Thử lại'}));
         await screen.findByText('Đã cộng 10 lượt');
+    });
+
+    it('?result=cancel posts payment/cancel once and shows the cancelled card, no polling', async () => {
+        const post = vi.spyOn(Api, 'post').mockResolvedValue({...PAID, status: 'CANCELLED'});
+        const get = mockGet({});
+        wrap(<PaymentResult/>, '/payment/result?inv=TK9&result=cancel');
+        await screen.findByText('Đã huỷ thanh toán');
+        expect(post).toHaveBeenCalledTimes(1);
+        expect(post).toHaveBeenCalledWith('payment/cancel/TK9');
+        expect(get).not.toHaveBeenCalled();
+        expect(screen.getByRole('link', {name: 'Chọn gói khác'}).getAttribute('href')).toBe('/packages');
+    });
+
+    it('?result=error with a cancelled order reads as unsuccessful', async () => {
+        vi.spyOn(Api, 'post').mockResolvedValue({...PAID, status: 'CANCELLED'});
+        wrap(<PaymentResult/>, '/payment/result?inv=TK9&result=error');
+        await screen.findByText('Thanh toán không thành công');
+    });
+
+    it('cancel answered PAID (SePay already took the money) shows success', async () => {
+        vi.spyOn(Api, 'post').mockResolvedValue(PAID);
+        mockGet({'payment/wallet': {bought: 10, used: 0, remaining: 10}});
+        wrap(<PaymentResult/>, '/payment/result?inv=TK9&result=cancel');
+        await screen.findByText('Đã cộng 10 lượt');
+    });
+
+    it('cancel 403 (not my order) shows the lookup error, page does not crash', async () => {
+        vi.spyOn(Api, 'post').mockRejectedValue({code: 403, error: 'Không có quyền'});
+        wrap(<PaymentResult/>, '/payment/result?inv=TK9&result=cancel');
+        await screen.findByText('Không tra cứu được đơn');
+    });
+
+    it('CANCELLED from payment/status (no ?result) stops polling', async () => {
+        const get = mockGet({'payment/status/': {...PAID, status: 'CANCELLED'}});
+        const post = vi.spyOn(Api, 'post');
+        wrap(<PaymentResult/>, '/payment/result?inv=TK9');
+        await screen.findByText('Đã huỷ thanh toán');
+        await new Promise(r => setTimeout(r, 2200));
+        expect(get).toHaveBeenCalledTimes(1);
+        expect(post).not.toHaveBeenCalled();
     });
 
     it('missing ?inv is an error, no request', async () => {
