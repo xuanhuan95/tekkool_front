@@ -1,4 +1,5 @@
 import { Suspense, lazy } from 'react';
+import type { ReactNode } from 'react';
 import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 
 import Dashboard from './dashboard/Dashboard';
@@ -27,6 +28,8 @@ import ExamDetailPage from './hs/ExamDetailPage';
 import RankingPage from './hs/RankingPage';
 import AccountPage from './hs/AccountPage';
 import Loading from '../components/Loading';
+import {TeacherLayout} from '../components/ui';
+import {usePendingCount} from '../queries/submissions';
 
 // Admin area /manage/* (SPT-27/23/47): own layout, own chunk.
 const ManageApp = lazy(() => import('./manage/ManageApp'));
@@ -36,6 +39,14 @@ const ManageApp = lazy(() => import('./manage/ManageApp'));
 function ToResult() {
     const {id} = useParams();
     return <Navigate to={'/result/' + id} replace/>;
+}
+
+const TEACHER_D = /^\/(question-bank|import-exam|create-from-bank|draw-exam)(\/|$)/;
+
+function TeacherShell({children}: {children: ReactNode}) {
+    const name = useAuthStore(s => s.user?.name);
+    const {data: pending} = usePendingCount();
+    return <TeacherLayout name={name} pending={pending}>{children}</TeacherLayout>;
 }
 
 export default function AuthenticateView() {
@@ -92,6 +103,8 @@ export default function AuthenticateView() {
 
     if (shell) return <StudentShell>{routes}</StudentShell>;
     if (fullScreen) return routes;
+    // SPT-57: reskinned teacher screens get the design-D teacher shell; the rest keep TopToolbar for now.
+    if (isTeacher && TEACHER_D.test(pathname)) return <TeacherShell>{routes}</TeacherShell>;
     return (
         <div id="AuthenticateView">
             <TopToolbar />

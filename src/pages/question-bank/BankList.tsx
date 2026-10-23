@@ -1,174 +1,113 @@
-import {Component} from 'react';
-import Loading from '../../components/Loading';
+import {useState} from 'react';
 import {Link} from 'react-router-dom';
-import withRouter from '../../withRouter';
-import type {RouterProps} from '../../withRouter';
-import {Button, Card, Form, Header, Icon, Label, Message, Modal, Segment} from 'semantic-ui-react';
-import Api from '../../services/api';
 
-/** A question bank. `blocks` = number of passage blocks it currently holds. */
-type Bank = {id: string; name: string; subject: string; blocks: number};
-
-type State = {
-    banks: Bank[] | null;
-    subjects: string[];
-    open: boolean;
-    saving: boolean;
-    name: string;
-    subject: string;
-    error: string | null;
-};
+import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, Modal, PageTitle, Select, SkeletonCard, TextField,
+    buttonClass, notify} from '../../components/ui';
+import {errorText} from '../../lib/format';
+import {useBankSubjects, useBanks, useCreateBank, useRemoveBank} from '../../queries/questionBank';
+import type {BankSummary} from '../../types/exam';
+import './question-bank.css';
 
 /**
- * List of question banks.
- *
- * Previously a bank was not something teachers created: blocks drifted into
- * one shared basket, tagged with a subject guessed from the folder name. Now a
- * bank has a name and a subject and is created by hand — subject is required
- * because the exam-draw matrix looks up by subject name.
+ * GV-NganHang: banks by subject, the door to Nhập đề / Tạo đề / Làm thử.
+ * ponytail: no screen to view or edit single blocks (design Q14) — fix in Word and import again.
  */
-class BankList extends Component<RouterProps, State> {
-    state: State = {banks: null, subjects: [], open: false, saving: false,
-             name: '', subject: '', error: null};
+export default function BankList() {
+    const {data: banks, isError, error, refetch, isFetching} = useBanks();
+    const remove = useRemoveBank();
+    const [creating, setCreating] = useState(false);
+    const [removing, setRemoving] = useState<BankSummary | null>(null);
 
-    componentDidMount = async () => {
-        let [banks, subjects] = await Promise.all([
-            Api.get('question_bank/list'),
-            Api.get('question_bank/subjects'),
-        ]);
-        this.setState({banks, subjects});
-    };
+    const openCreate = <Button variant='primary' onClick={() => setCreating(true)}>+ Ngân hàng mới</Button>;
 
-    save = async () => {
-        let {name, subject} = this.state;
-        if (!name.trim()) { this.setState({error: 'Chưa nhập tên ngân hàng'}); return; }
-        if (!subject) { this.setState({error: 'Chưa chọn môn học'}); return; }
-
-        this.setState({saving: true, error: null});
-        let r = await Api.post('question_bank/create', {name, subject});
-        if (r && r.error) {
-            this.setState({saving: false, error: r.error});
-            return;
-        }
-
-        this.setState({open: false, saving: false, name: '', subject: '',
-                       banks: await Api.get('question_bank/list')});
-    };
-
-    remove = async (b: Bank) => {
-        if (!window.confirm('Xoá ngân hàng “' + b.name + '”? '
-            + b.blocks + ' khối bên trong mất theo, không lấy lại được.')) return;
-        await Api.post('question_bank/remove', {id: b.id});
-        this.setState({banks: await Api.get('question_bank/list')});
-    };
-
-    render() {
-        let {banks, subjects, open, saving, name, subject, error} = this.state;
-        if (!banks) return <Loading/>;
-
-        let subjectOptions = subjects.map(s => ({key: s, text: s, value: s}));
-
-        return <div className='tk-dash'>
-            <div className='tk-dash-bar'>
-                <Header as='h2' className='tk-dash-title'>
-                    Ngân hàng câu hỏi
-                    <Header.Subheader>
-                        {banks.length} ngân hàng · nhập đề Word vào đây để rút đề ngẫu nhiên
-                    </Header.Subheader>
-                </Header>
-                <Button primary icon labelPosition='left'
-                        onClick={() => this.setState({open: true})}>
-                    <Icon name='plus'/> Tạo ngân hàng mới
-                </Button>
+    return <div className='vt-qb-page'>
+        <div className='vt-qb-head'>
+            <div>
+                <PageTitle>Ngân hàng câu hỏi</PageTitle>
+                <p>Nhập đề Word vào ngân hàng của môn, rồi tạo đề hoặc để mỗi học sinh rút một đề khác nhau.</p>
             </div>
+            {banks && banks.length > 0 && openCreate}
+        </div>
 
-            {!banks.length
-                ? <Segment placeholder>
-                    <Header icon>
-                        <Icon name='database' color='grey'/>
-                        Chưa có ngân hàng nào
-                        <Header.Subheader>
-                            Tạo một ngân hàng cho môn học, rồi nhập đề Word vào đó.
-                            Mỗi học sinh sẽ rút được một đề khác nhau.
-                        </Header.Subheader>
-                    </Header>
-                    <Button primary icon labelPosition='left'
-                            onClick={() => this.setState({open: true})}>
-                        <Icon name='plus'/> Tạo ngân hàng mới
-                    </Button>
-                </Segment>
-                : <Card.Group itemsPerRow={3} stackable className='tk-folders'>
-                    {banks.map(b =>
-                        <Card key={b.id} className='tk-folder'>
-                            <Card.Content>
-                                <Card.Header>
-                                    <Icon name='database' color='blue'/>
-                                    {b.name}
-                                </Card.Header>
-                                <Card.Meta>{b.subject}</Card.Meta>
-                                <Card.Description>
-                                    <Label basic color={b.blocks ? 'green' : 'grey'} size='small'>
-                                        {b.blocks} khối
-                                    </Label>
-                                </Card.Description>
-                            </Card.Content>
-                            <Card.Content extra>
-                                <Link to={'/import-exam?bank=' + b.id}>
-                                    <Button size='mini' basic>
-                                        <Icon name='file word outline'/> Nhập đề
-                                    </Button>
-                                </Link>
-                                {/* The bank's main output: a named EXAM that
-                                    students can take. "Draw exam" below is only
-                                    for teachers to try one out. */}
-                                <Link to={'/create-from-bank?bank=' + b.id}>
-                                    <Button size='mini' primary disabled={!b.blocks}>
-                                        <Icon name='clipboard list'/> Tạo đề
-                                    </Button>
-                                </Link>
-                                <Link to={'/draw-exam/bank/' + b.id}>
-                                    <Button size='mini' basic disabled={!b.blocks}>
-                                        <Icon name='random'/> Làm thử
-                                    </Button>
-                                </Link>
-                                <Button size='mini' basic icon title='Xoá ngân hàng'
-                                        onClick={() => this.remove(b)}>
-                                    <Icon name='trash alternate outline' color='red'/>
-                                </Button>
-                            </Card.Content>
-                        </Card>)}
-                </Card.Group>}
+        {isError
+            ? <ErrorState title='Không tải được danh sách ngân hàng.' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
+                          onRetry={() => refetch()} retrying={isFetching}/>
+            : !banks
+                ? <div className='vt-qb-grid'><SkeletonCard/><SkeletonCard/></div>
+                : banks.length === 0
+                    ? <EmptyState title='Chưa có ngân hàng nào'
+                                  description='Tạo một ngân hàng cho môn học, rồi nhập đề Word vào đó.' action={openCreate}/>
+                    : <>
+                        <div className='vt-qb-grid'>
+                            {banks.map(b => <Card key={b.id} as='article' className='vt-qb-card'>
+                                <h2 className='vt-qb-name'>{b.name}</h2>
+                                <div><Badge tone='title'>{b.subject}</Badge></div>
+                                {b.blocks
+                                    ? <div className='vt-qb-count'><b>{b.blocks}</b> khối câu hỏi</div>
+                                    : <div className='vt-qb-empty-box'>Chưa có khối nào — bấm Nhập đề để thêm.</div>}
+                                <div className='vt-qb-actions'>
+                                    <Link to={'/import-exam?bank=' + b.id} className={buttonClass({variant: 'primary'})}>Nhập đề</Link>
+                                    {b.blocks
+                                        ? <Link to={'/create-from-bank?bank=' + b.id} className={buttonClass({variant: 'secondary'})}>Tạo đề</Link>
+                                        : <Button variant='secondary' disabled>Tạo đề</Button>}
+                                    {b.blocks > 0 &&
+                                        <Link to={'/draw-exam/bank/' + b.id} className={buttonClass({variant: 'ghost'})}>Làm thử</Link>}
+                                    <Button variant='ghost' className='vt-qb-remove' aria-label={'Xoá ngân hàng ' + b.name}
+                                            onClick={() => setRemoving(b)}>Xoá</Button>
+                                </div>
+                            </Card>)}
+                        </div>
+                        <p className='vt-qb-note'>Chưa có màn xem hoặc sửa từng khối. Muốn sửa, hãy sửa file Word rồi nhập lại.</p>
+                    </>}
 
-            <Modal open={open} size='tiny'
-                   onClose={() => this.setState({open: false, error: null})}>
-                <Modal.Header>Tạo ngân hàng câu hỏi mới</Modal.Header>
-                <Modal.Content>
-                    <Form error={!!error}>
-                        <Form.Input label='Tên ngân hàng' placeholder='Ví dụ: Ngữ văn 12 — HK1'
-                                    value={name} autoFocus
-                                    onChange={(_e, {value}) => this.setState({name: value})}/>
-                        {/* Subject is REQUIRED: the draw matrix looks up by subject
-                            name; without it we can't tell how many blocks of each
-                            type an exam needs. */}
-                        <Form.Select label='Môn học' required
-                                     placeholder='Chọn môn' options={subjectOptions}
-                                     value={subject}
-                                     onChange={(_e, {value}) => this.setState({subject: String(value ?? '')})}/>
-                        <Message error content={error}/>
-                    </Form>
-                </Modal.Content>
-                <Modal.Actions>
-                    <Button basic onClick={() => this.setState({open: false, error: null})}>
-                        Huỷ
-                    </Button>
-                    <Button primary loading={saving} onClick={this.save}>
-                        <Icon name='check'/> Lưu
-                    </Button>
-                </Modal.Actions>
-            </Modal>
+        <CreateBankModal open={creating} onClose={() => setCreating(false)}/>
 
-        </div>;
-    }
+        <ConfirmDialog open={!!removing} tone='danger' loading={remove.isPending}
+                       title={removing ? `Xoá ngân hàng "${removing.name}"?` : ''}
+                       message={removing && <span className='vt-qb-warn'>
+                           {removing.blocks} khối bên trong mất theo, không lấy lại được.</span>}
+                       cancelLabel='Giữ lại' confirmLabel='Xoá ngân hàng'
+                       onCancel={() => setRemoving(null)}
+                       onConfirm={() => removing && remove.mutate(removing.id, {
+                           onSuccess: () => { notify.success('Đã xoá ngân hàng', removing.name); setRemoving(null); },
+                           onError: e => { notify.error('Không xoá được', errorText(e, 'Thử lại sau.')); setRemoving(null); },
+                       })}/>
+    </div>;
 }
 
-export default withRouter(BankList);
+function CreateBankModal({open, onClose}: {open: boolean; onClose: () => void}) {
+    const {data: subjects = []} = useBankSubjects();
+    const create = useCreateBank();
+    const [name, setName] = useState('');
+    const [subject, setSubject] = useState('');
+    const [errors, setErrors] = useState<{name?: string; subject?: string; server?: string}>({});
+
+    const close = () => { setName(''); setSubject(''); setErrors({}); onClose(); };
+    const submit = () => {
+        const next = {
+            name: name.trim() ? undefined : 'Chưa nhập tên ngân hàng',
+            subject: subject ? undefined : 'Chưa chọn môn',
+        };
+        setErrors(next);
+        if (next.name || next.subject) return;
+        create.mutate({name: name.trim(), subject}, {
+            onSuccess: () => { notify.success('Đã tạo ngân hàng', name.trim()); close(); },
+            onError: e => setErrors({server: errorText(e, 'Không tạo được ngân hàng.')}),
+        });
+    };
+
+    return <Modal open={open} onClose={create.isPending ? undefined : close} title='Ngân hàng mới'
+                  footer={<>
+                      <Button variant='secondary' onClick={close} disabled={create.isPending}>Huỷ</Button>
+                      <Button variant='primary' onClick={submit} loading={create.isPending}>Tạo ngân hàng</Button>
+                  </>}>
+        <form className='vt-qb-page' onSubmit={e => { e.preventDefault(); submit(); }}>
+            <TextField label='Tên ngân hàng' placeholder='Ví dụ: Ngữ văn 12 — HK1' value={name} error={errors.name}
+                       onChange={e => setName(e.target.value)}/>
+            <Select label='Môn' placeholder='Chọn môn' value={subject} error={errors.subject}
+                    hint='Không đổi được sau khi tạo.' options={subjects.map(s => ({value: s, label: s}))}
+                    onChange={e => setSubject(e.target.value)}/>
+            {errors.server && <div role='alert' className='vt-qb-warn'>{errors.server}</div>}
+        </form>
+    </Modal>;
+}
