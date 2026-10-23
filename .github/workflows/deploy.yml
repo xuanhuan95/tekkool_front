@@ -1,0 +1,76 @@
+# Deploy frontend len server khi merge vao main (SPT-67). Lam dung nhu
+# tekkool-deploy/deploy.sh front: rsync code vao <DEPLOY_PATH>/front/, build + up
+# container front (npm ci + vite build trong Dockerfile.front), kiem tra / va /admin.
+# Huong dan cai dat: docs/ci-cd.md
+name: Deploy frontend
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Deploy front
+    needs: test
+    runs-on: ubuntu-22.04
+    environment: production
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/deploy-ssh
+        with:
+          ssh_key: ${{ secrets.DEPLOY_SSH_KEY }}
+          known_hosts: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          host: ${{ vars.DEPLOY_HOST }}
+          user: ${{ vars.DEPLOY_USER }}
+          path: ${{ vars.DEPLOY_PATH }}
+          env_file: ${{ vars.DEPLOY_ENV_FILE }}
+          site_url: ${{ vars.SITE_URL }}
+
+      - name: Day code len server (rsync -> front/)
+        run: |
+          # Loai tru giong deploy.sh: node_modules, .git, dist, build, deploy/.
+          rsync -az --delete \
+            --exclude node_modules --exclude .git --exclude .github \
+            --exclude dist --exclude build --exclude deploy \
+            ./ "deploy-target:$DEPLOY_PATH/front/"
+
+      - name: Build + khoi dong lai container front
+        run: |
+          # shellcheck disable=SC2029
+          ssh deploy-target "set -e; cd '$DEPLOY_PATH'; DC='docker compose --env-file $ENV_FILE'; \$DC build front && \$DC up -d front"
+
+      - name: Kiem tra site (/ = 200, /admin = 404)
+        env:
+          CHECK_API: '0'
+        run: bash .github/scripts/health_check.sh "$SITE_URL"
+
+      - name: Tom tat
+        if: always()
+        run: |
+          {
+            echo "### Deploy frontend — ${{ job.status }}"
+            echo "- Commit: \`${GITHUB_SHA::7}\` (${{ github.event_name }})"
+            echo "- Server: \`$DEPLOY_PATH\`, env \`$ENV_FILE\`"
+            echo "- Nguoi dung nho Ctrl/Cmd+Shift+R neu van thay ban cu (cache trinh duyet)."
+            echo "- Rollback: Actions > Deploy frontend > lan chay cua commit truoc > Re-run all jobs (docs/ci-cd.md)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Goi y khi loi
+        if: failure()
+        run: |
+          echo "::error::Deploy loi. Xem log container front tren server."
+          # shellcheck disable=SC2029
+          ssh deploy-target "cd '$DEPLOY_PATH' && docker compose --env-file '$ENV_FILE' logs --tail 50 front" || true

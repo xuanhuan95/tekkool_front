@@ -1,0 +1,44 @@
+# CI frontend (SPT-67): typecheck + unit test + build tren moi PR va push nhanh.
+# Push main chay trong deploy.yml (goi lai file nay qua workflow_call).
+name: CI frontend
+
+on:
+  pull_request:
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    name: tsc + vitest + vite build (Node 22)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: npm ci
+        run: npm ci --no-audit --no-fund
+
+      - name: Typecheck (tsc)
+        run: npx tsc --noEmit -p .
+
+      - name: Unit test (vitest)
+        run: npx vitest run
+
+      - name: Build (vite)
+        env:
+          VITE_API_URL: /api/   # giong Dockerfile.front
+        run: npx vite build

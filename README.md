@@ -58,7 +58,14 @@ npx vitest run                                      # chạy test (npx vitest = 
 - Trang catalogue component: `http://localhost:3000/dev/ui` (chỉ có ở dev, không vào bản build).
 - Chạy kèm backend thật trên mongomock để thử end-to-end: `tests_qc/devstack/up.sh` trong repo backend.
 
-Trước khi báo xong một task: `tsc`, `vitest`, `vite build` đều phải sạch.
+Trước khi báo xong một task: `tsc`, `vitest`, `vite build` đều phải sạch — CI (GitHub Actions) chạy đúng 3 lệnh này
+trên mọi PR.
+
+## Deploy
+
+Merge PR vào `main` → GitHub Actions tự test và deploy lên server (`.github/workflows/deploy.yml`).
+Cài đặt và rollback: [docs/ci-cd.md](docs/ci-cd.md) (bản đầy đủ ở repo backend `docs/ci-cd.md`).
+`tekkool-deploy/deploy.sh front` vẫn dùng được khi khẩn cấp.
 
 ## Quy ước
 
