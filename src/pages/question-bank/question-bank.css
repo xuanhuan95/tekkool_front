@@ -1,0 +1,15 @@
+/* GV-NganHang (SPT-57). Tokens only (--vt-*). */
+.vt-qb-page { display: flex; flex-direction: column; gap: 16px; }
+.vt-qb-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px 16px; flex-wrap: wrap; }
+.vt-qb-head p { margin: 4px 0 0; font-size: 14px; color: var(--vt-muted); }
+.vt-qb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 16px; }
+.vt-qb-card { display: flex; flex-direction: column; gap: 12px; }
+.vt-qb-name { margin: 0; font-family: var(--vt-font-hand); font-weight: 700; font-size: 26px; line-height: 1.15; overflow-wrap: anywhere; }
+.vt-qb-count { font-size: 15px; }
+.vt-qb-count b { font-size: 20px; }
+.vt-qb-empty-box { padding: 10px 12px; background: var(--vt-sun-soft); border: 1.5px solid var(--vt-sun); border-radius: var(--vt-r-btn);
+    color: var(--vt-sun-ink); font-size: 14px; font-weight: 600; }
+.vt-qb-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: auto; }
+.vt-qb-remove { color: var(--vt-err); margin-left: auto; }
+.vt-qb-warn { padding: 10px 12px; background: var(--vt-err-bg); border-radius: var(--vt-r-btn); color: var(--vt-err); font-size: 14px; font-weight: 600; }
+.vt-qb-note { font-size: 13px; color: var(--vt-muted); }

@@ -1,0 +1,70 @@
+/* GV-ImportDe (SPT-57). Tokens only (--vt-*). Source-view colours follow spec §3.1: purple structure, blue question opening. */
+.vt-imp { display: flex; flex-direction: column; gap: 16px; width: 100%; padding-bottom: 96px; }
+.vt-imp-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px 16px; flex-wrap: wrap; }
+.vt-imp-head p { margin: 4px 0 0; font-size: 14px; color: var(--vt-muted); }
+.vt-imp-drop { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 32px 16px; text-align: center; }
+.vt-imp-drop h2 { margin: 0; font-family: var(--vt-font-hand); font-size: 26px; }
+.vt-imp-drop p { margin: 0; font-size: 14px; color: var(--vt-muted); }
+.vt-imp-error { border-color: var(--vt-err); }
+.vt-imp-error p { color: var(--vt-err); font-weight: 600; }
+.vt-imp-notice { padding: 12px 14px; background: var(--vt-sun-soft); border: 1.5px solid var(--vt-sun); border-radius: var(--vt-r-btn); color: var(--vt-sun-ink); font-size: 14px; }
+.vt-imp-notice ul { margin: 6px 0 0; padding-left: 20px; }
+.vt-imp-bank { display: flex; flex-direction: column; gap: 10px; }
+.vt-imp-bank-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.vt-imp-bank-head b { font-size: 18px; }
+.vt-imp-bank-head p { margin: 2px 0 0; font-size: 14px; color: var(--vt-muted); }
+.vt-imp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.vt-imp-listhead { display: flex; align-items: center; gap: 10px; padding-bottom: 10px; border-bottom: 1.5px solid var(--vt-line-option); font-weight: 600; }
+.vt-imp-check { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
+.vt-imp-check input { width: 22px; height: 22px; accent-color: var(--vt-action); }
+.vt-imp-exam { padding: 12px 0; border-bottom: 1px solid var(--vt-line-option); }
+.vt-imp-exam:last-child { border-bottom: 0; }
+.vt-imp-exam-row { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; }
+.vt-imp-exam-name { flex: 1 1 240px; min-width: 0; }
+.vt-imp-exam-min { width: 120px; }
+.vt-imp-exam-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--vt-muted); }
+.vt-imp-split { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; margin-top: 12px; align-items: start; }
+.vt-imp-col { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.vt-imp-col-head { font-family: var(--vt-font-hand); font-size: 20px; font-weight: 700; }
+.vt-imp-section { margin: 4px 0 0; font-size: 16px; font-weight: 700; padding-bottom: 6px; border-bottom: 1.5px solid var(--vt-line-option); }
+.vt-imp-q { display: flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--vt-card); border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); }
+.vt-imp-q.bad-key { border-color: var(--vt-err); }
+.vt-imp-q.bad-tf { border-color: var(--vt-sun); }
+.vt-imp-q.flash { box-shadow: 0 0 0 3px var(--vt-sun); }
+.vt-imp-q-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.vt-imp-q-head b { font-size: 16px; }
+.vt-imp-q-type { width: 190px; }
+.vt-imp-q-type .vt-field-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.vt-imp-flag { font-size: 13px; font-weight: 700; }
+.vt-imp-flag.err { color: var(--vt-err); }
+.vt-imp-flag.warn { color: var(--vt-sun-ink); }
+.vt-imp-remove { margin-left: auto; color: var(--vt-err); }
+.vt-imp-passage { padding: 10px 12px; background: var(--vt-paper); border: 1.5px dashed var(--vt-line-option); border-radius: var(--vt-r-btn); }
+.vt-imp-passage-label { margin-bottom: 6px; font-size: 13px; color: var(--vt-muted); }
+.vt-imp-answer { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border-radius: var(--vt-r-btn); border: 1.5px solid transparent; }
+.vt-imp-answer.on { background: var(--vt-ok-bg); border-color: var(--vt-ok-ink); }
+.vt-imp-answer input { width: 22px; height: 22px; margin-top: 8px; accent-color: var(--vt-ok-ink); }
+.vt-imp-answer-key { margin-top: 6px; font-weight: 700; }
+.vt-imp-answer-body { flex: 1; min-width: 0; }
+.vt-imp-words { max-width: 220px; }
+.vt-imp-dup { align-self: flex-start; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--vt-title-bg); border: 1.5px solid var(--vt-line-option); }
+.vt-imp-dup.mid { background: var(--vt-sun-soft); border-color: var(--vt-sun); }
+.vt-imp-dup.high { background: var(--vt-sun-soft); border-color: #faad05; border-width: 2px; }
+.vt-src { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; background: var(--vt-paper); border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); padding: 8px 0; max-height: 70vh; overflow: auto; }
+.vt-src-empty { padding: 12px; color: var(--vt-muted); font-size: 14px; }
+.vt-src-line { display: flex; gap: 10px; padding: 1px 10px; }
+.vt-src-no { flex: none; width: 28px; text-align: right; color: var(--vt-muted); user-select: none; }
+.vt-src-text { min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.vt-src-text em.src-q { font-style: normal; font-weight: 700; color: #1d4ed8; }
+.vt-src-text em.src-h { font-style: normal; font-weight: 700; color: #7e22ce; }
+.vt-src-text em.src-a { font-style: normal; font-weight: 700; color: var(--vt-muted); }
+.vt-imp-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap;
+    padding: 12px 24px; background: var(--vt-card); border-top: 2px solid var(--vt-ink); }
+.vt-imp-bar-hint { flex: 1 1 260px; font-size: 13px; color: var(--vt-muted); }
+.vt-imp-bar-hint.err { color: var(--vt-err); font-weight: 700; }
+.vt-imp-info td, .vt-imp-info th { vertical-align: top; }
+.vt-imp-jump { min-height: 32px; margin: 2px 4px 2px 0; padding: 0 10px; border: 1.5px solid var(--vt-line-option); border-radius: 999px; background: var(--vt-paper); font: inherit; font-size: 13px; cursor: pointer; }
+
+.vt-imp-explain { margin-top: 10px; border-top: 1px dashed var(--vt-line-option); padding-top: 8px; font-size: 14px; }
+.vt-imp-explain summary { cursor: pointer; color: var(--vt-muted); font-weight: 600; }
+.vt-imp-explain > div { margin-top: 6px; }

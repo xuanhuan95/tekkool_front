@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest';
-import {render} from '@testing-library/react';
+import {render, fireEvent} from '@testing-library/react';
 import renderHTML from './SafeHtml';
 
 // Students, preview and the submission review all show question HTML through here.
@@ -25,6 +25,13 @@ describe('SafeHtml', () => {
         const c = show('<p onclick="x()">a<script>alert(1)</script><img src="x" onerror="y()"></p>');
         expect(c.querySelector('script')).toBeNull();
         expect(c.innerHTML).not.toMatch(/onclick|onerror/);
+    });
+
+    it('a broken image becomes the "Không tải được hình" box', () => {
+        const c = show('<p><img src="https://x/missing.png"></p>');
+        fireEvent.error(c.querySelector('img') as HTMLImageElement);
+        expect(c.querySelector('img')).toBeNull();
+        expect(c.textContent).toContain('Không tải được hình');
     });
 
     it('a broken formula does not throw', () => {

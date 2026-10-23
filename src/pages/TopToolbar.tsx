@@ -1,10 +1,8 @@
 import {Link} from 'react-router-dom';
 import {Menu, Icon, Button, Label} from 'semantic-ui-react';
-import {useQuery} from '@tanstack/react-query';
 
-import Api from '../services/api';
 import {useAuthStore} from '../stores/authStore';
-import type {Submission} from '../types/submission';
+import {usePendingCount} from '../queries/submissions';
 import StudentNav from './StudentNav';
 
 export default function TopToolbar() {
@@ -12,23 +10,7 @@ export default function TopToolbar() {
     const logout = useAuthStore(s => s.signOut);
     const isTeacher = user?.group === 'teacher';
 
-    // Count attempts awaiting grading for the bell. Reuse the existing GET exam/pending (the
-    // /to-grade screen uses the very same one) rather than adding an endpoint just to return a number —
-    // one teacher's list is not big enough to deserve its own API.
-    const {data: pending = 0} = useQuery({
-        queryKey: ['exam', 'pending'],
-        // Every 60s: students can submit at any time, without refresh the teacher
-        // would have to F5 to see it. Faster is wasteful, slower makes the bell
-        // pointless.
-        refetchInterval: 60_000,
-        enabled: isTeacher,
-        // Network lost / session expired: keep the old number, do not break the navigation bar.
-        placeholderData: prev => prev,
-        queryFn: async () => {
-            const subs = await Api.get<Submission[]>('exam/pending');
-            return Array.isArray(subs) ? subs.length : 0;
-        },
-    });
+    const {data: pending = 0} = usePendingCount(isTeacher);
 
     // Students / visitors use a separate navigation bar. The teacher screen keeps the
     // old menu as is — changing both at once means two things to verify.

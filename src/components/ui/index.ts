@@ -32,8 +32,8 @@ export {cx} from './cx';
 
 export {default as HeaderSticky, StudentStats} from './layout/Header';
 export {default as BottomNav} from './layout/BottomNav';
-export {StudentLayout, WebLayout, AdminLayout, PageColumns} from './layout/Layouts';
-export {STUDENT_NAV_MOBILE, STUDENT_NAV_WEB, ADMIN_NAV} from './layout/nav';
+export {StudentLayout, WebLayout, AdminLayout, TeacherLayout, DesktopOnly, PageColumns} from './layout/Layouts';
+export {STUDENT_NAV_MOBILE, STUDENT_NAV_WEB, ADMIN_NAV, TEACHER_NAV} from './layout/nav';
 export type {NavItem} from './layout/nav';
 
 export {default as QuestionBlock} from './exam/QuestionBlock';
