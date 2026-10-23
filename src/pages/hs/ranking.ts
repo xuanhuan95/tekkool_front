@@ -2,7 +2,16 @@ import type {Board, BoardEntry} from '../../types/student';
 import type {BoardKind} from '../../queries/student';
 import {formatIsoDayMonth, plainText} from '../../lib/format';
 
-/** Second line under a name on the board. Titles of OTHER students: no API yet → activity instead. */
+/**
+ * Title shown under a name (SPT-64): the student's tier from BE. Not for people who hid their name
+ * (their row stays anonymous); null → the activity line below is shown instead.
+ */
+export function rowTitle(e: BoardEntry): {key: string; name: string} | null {
+    if (e.hidden && !e.is_me) return null;
+    return e.title ?? null;
+}
+
+/** Second line under a name on the board when there is no title: activity. */
 export function rowSubline(e: BoardEntry, kind: BoardKind): string {
     if (e.hidden && !e.is_me) return 'Đã ẩn tên';
     const tmp = e.provisional ? ' · tạm tính' : '';

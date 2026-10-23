@@ -12,6 +12,8 @@ export {default as Button, buttonClass} from './Button';
 export type {ButtonProps, ButtonVariant, ButtonSize} from './Button';
 export {default as Card, CardTitle, PageTitle} from './Card';
 export {default as Badge, StatusBadge, FilterChip, STATUS_BADGE} from './Badge';
+export {default as TitleChip, TITLE_TONE} from './TitleChip';
+export type {TitleTier} from './TitleChip';
 export type {BadgeTone, Status} from './Badge';
 export {default as StatPill} from './StatPill';
 export {TextField, TextArea, Select, PasswordField, DateField, parseDmy, isoToDmy, maskDmy} from './Field';

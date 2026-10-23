@@ -5,13 +5,12 @@ import type {Column} from '../../components/ui';
 import {useAuthStore} from '../../stores/authStore';
 import {useInProgress} from '../../queries/inProgress';
 import {useWallet} from '../../queries/wallet';
-import {useBoard, useMySubmissions, useSubjects} from '../../queries/student';
+import {useBoard, useMeProfile, useMySubmissions, useSubjects} from '../../queries/student';
 import type {SubjectSummary} from '../../types/student';
 import type {Submission} from '../../types/submission';
 import {useMediaQuery, DESKTOP} from '../useMediaQuery';
-import {ContinueCard, LoadError, PageHead, TitleCard, greetName, hsPath} from '../hs/common';
+import {ContinueCard, LoadError, PageHead, TitleCard, greetName, hsPath, titleHint} from '../hs/common';
 import {formatDayMonth, formatPoints, formatScore, minutesLeft, plainText, score10} from '../../lib/format';
-import {studentTitle} from '../hs/title';
 
 /** Subjects shown on the phone home before "Xem cả N môn" (design: 6). */
 const MOBILE_SUBJECTS = 6;
@@ -68,10 +67,12 @@ function TurnsCard({web}: {web: boolean}) {
 }
 
 function TitleBlock({web}: {web: boolean}) {
-    const subs = useMySubmissions();
-    const info = studentTitle(subs.data);
-    // No data or no title under the temporary rule → nothing (see hs/title.ts).
-    return info ? <TitleCard info={info} web={web}/> : null;
+    const profile = useMeProfile();
+    const p = profile.data;
+    const next = titleHint(p);
+    // Not a student / still loading / nothing to say → no card.
+    if (!p || (!p.title && !next)) return null;
+    return <TitleCard title={p.title ?? null} next={next} web={web}/>;
 }
 
 function WeekTop() {

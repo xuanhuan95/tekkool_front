@@ -48,6 +48,15 @@ export type ExamPart = {
     approx?: boolean;
 };
 
+/** Student title tiers (SPT-64, computed by BE core_title.py): newbie < diligent < warrior < conqueror. */
+export type TitleKey = 'newbie' | 'diligent' | 'warrior' | 'conqueror';
+
+/** Next tier and how to get there — a ready-made sentence from BE ("Còn 3 bài nữa trong tháng này…"). */
+export type TitleHint = {name: string; hint: string};
+
+/** Title as BE sends it; `next` only on me/profile (null at the top tier). */
+export type StudentTitle = {key: TitleKey; name: string; next?: TitleHint | null};
+
 /** `me/profile`. */
 export type MeProfile = {
     id: string;
@@ -55,6 +64,10 @@ export type MeProfile = {
     email: string;
     group: string | null;
     hide_ranking_name: boolean;
+    /** SPT-64: null = no tier reached (or not a student). */
+    title?: StudentTitle | null;
+    /** SPT-64: next tier hint, present even when `title` is null (students only). */
+    title_next?: TitleHint | null;
 };
 
 /** One row of `ranking/week` / `ranking/achievements` (core_ranking.rank_board). */
@@ -74,6 +87,8 @@ export type BoardEntry = {
     exam?: string;
     exam_name?: string | null;
     submitted_at?: string | null;
+    /** SPT-64: that student's title, null when none. */
+    title?: StudentTitle | null;
 };
 
 export type Board = {
