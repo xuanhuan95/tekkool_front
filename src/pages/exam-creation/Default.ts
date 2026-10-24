@@ -65,4 +65,13 @@ export default class Default {
         section: sectionId,
         data: {}
     });
+
+    /** One Đúng/Sai question = 4 consecutive TrueFalse ý (a–d) sharing a new passageId. */
+    static trueFalseGroup = (examId: string, sectionId: string): Question[] => {
+        const passageId = 'P_' + uuid();
+        return Array.from({length: 4}, () => ({
+            ...Default.question('TrueFalse', examId, sectionId),
+            data: {passage: '', passageId},
+        }));
+    };
 }

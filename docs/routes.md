@@ -53,7 +53,7 @@ Bốn màn ngân hàng/nhập đề đã reskin theo design D (SPT-57), chạy t
 | Route | Màn | File |
 |---|---|---|
 | `/`, `/subject/:subjectId` | Môn & đề (thư mục, danh sách đề) | `pages/dashboard/Dashboard.tsx` (`exam/list`, `folder/list`) |
-| `/create-exam`, `/edit-exam/:examId` | Soạn đề bằng editor | `pages/exam-creation/CreateExam.tsx` (`exam/info`, `exam/create`) |
+| `/create-exam`, `/edit-exam/:examId` | Soạn đề bằng editor | `pages/exam-creation/CreateExam.tsx` (`exam/info`, `exam/create`). Câu Đúng/Sai là **khối 4 ý a–d** (`TrueFalseBlock.tsx`, chung `passageId`, xoá cả khối); luật chặn lưu ở `examRules.ts` khớp BE `invalid_questions` (SPT-63): thiếu đáp án trắc nghiệm, Đúng/Sai ≠ 4 ý hoặc ý chưa đặt Đúng/Sai → toast nêu số câu, không gọi API; lỗi 400 `invalid_questions` từ BE cũng hiện cùng cách. Tự lưu 2 phút bỏ qua im lặng khi đề còn lỗi |
 | `/import-exam` (`?bank=` hoặc `?folder=`) | Nhập đề .docx — xem trước, sửa, **chặn lưu** khi trắc nghiệm thiếu đáp án (Q12) hoặc Đúng/Sai ≠ 4 ý (Q13); luật ở `importRules.ts` | `pages/exam-creation/ImportExam.tsx` (`import_docx/preview`, `question_bank/{save,check_trung,capacity}`, `exam/create`, `exam/move_to_folder`) |
 | `/create-from-bank`, `/draw-exam[...]` | Tạo đề theo cấu trúc từ ngân hàng; Rút thử | `CreateFromBank.tsx`, `DrawExam.tsx` (`exam/create_from_bank`, `question_bank/draw`) |
 | `/question-bank` | Ngân hàng câu hỏi | `pages/question-bank/BankList.tsx` (`question_bank/{list,subjects,create,remove,capacity}`) |
