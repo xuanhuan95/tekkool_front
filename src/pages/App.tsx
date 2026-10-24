@@ -54,7 +54,7 @@ export default function App() {
 
     return <QueryClientProvider client={queryClient}>
         <div id='App'>
-            <Toaster position='top-right'/>
+            <Toaster position='bottom-right'/>
             {!user
                 ? <AnonymousView/>
                 : user.group === 'visitor'

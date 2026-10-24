@@ -17,6 +17,7 @@ import {Editor} from "../../components/Editor";
 import {errorText} from '../../lib/format';
 import {backendProblems, examTotal, publishProblems, reviewHints, withDefaultScores} from './examRules';
 import {useFolders} from '../../queries/exams';
+import {suggestedMinutes} from './CreateFromBank';
 import {Badge, Button, ConfirmDialog} from '../../components/ui';
 
 const MAX_SHOWN = 6;
@@ -50,6 +51,12 @@ export default function CreateExam() {
     const folders = useFolders().data;
     const folderId = new URLSearchParams(location.search).get('folder') || (exam as {folder?: string} | null)?.folder;
     const subject = folders?.find(f => f.id === folderId)?.name ?? null;
+
+    // New exam: duration follows the subject (SPT: Toán/Ngữ văn 90, others 60) until the teacher types their own.
+    const durationTouched = useRef(false);
+    useEffect(() => {
+        if (!examId && ready && subject && !durationTouched.current) patchExam({duration: suggestedMinutes(subject)});
+    }, [examId, ready, subject, patchExam]);
 
     useEffect(() => {
         let cancelled = false;
@@ -291,7 +298,7 @@ export default function CreateExam() {
                                     label='Phút'
                                     placeholder='0 = không giới hạn'
                                     value={exam.duration === undefined ? Default.DURATION : exam.duration}
-                                    onChange={(_e, {value}) => patchExam({duration: parseInt(value, 10) || 0})}
+                                    onChange={(_e, {value}) => { durationTouched.current = true; patchExam({duration: parseInt(value, 10) || 0}); }}
                                 />
                             </Grid.Column>
                         </Grid.Row>

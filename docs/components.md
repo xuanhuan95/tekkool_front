@@ -47,7 +47,7 @@ Nguyên tắc: component **không tự gọi API, không đọc store** — nh�
 | `Table`, `Column` | `columns` (`key`, `header`, `render`, `align`, `emphasis`, **`sticky`**), `rows`, `rowKey`, `caption` (bắt buộc), `minWidth`, `isHighlighted`, `empty`, **`toolbar`**, **`bare`** | Bảng rộng cuộn ngang trong thẻ, có bóng mép báo còn cột. `sticky` ghim cột (Thao tác) bên phải — tự bỏ ghim nếu cột rộng hơn 45% khung. `toolbar` = tiêu đề/bộ lọc trong thẻ; `bare` khi màn đã tự bọc thẻ (`<Card flush className='vt-table-card'>`). |
 | `Modal` | `open`, `onClose` (bỏ = không đóng được), `title`, `footer`, `size`, `placement` center · sheet, `showClose`, `initialFocus` | Khoá focus trong hộp, Esc đóng, khoá cuộn trang |
 | `ConfirmDialog` | `open`, `title`, `message`, `confirmLabel`, `cancelLabel`, `tone` danger, `loading`, `onConfirm`, `onCancel` | Focus vào nút an toàn (huỷ) |
-| `notify.success / .error`, `ToastCard` | `(title, description?)` | Toast design D trên `<Toaster/>` của react-hot-toast |
+| `notify.success / .error`, `ToastCard` | `(title, description?)` | Toast design D trên `<Toaster position='bottom-right'/>` của react-hot-toast (góc dưới để không che thanh menu editor) |
 | `EmptyState` | `title`, `description`, `icon`, `action`, `bare` | Trạng thái rỗng |
 | `ErrorState` | `title`, `description`, `onRetry`, `retrying` | Lỗi + "Thử lại" |
 | `Skeleton`, `SkeletonCard` | `width`, `height`, `shape`; `label` | Đang tải — không dùng spinner giữa trang |

@@ -26,8 +26,8 @@ const examName = (e: ExamSummary) => striptags(e.name) || '(đề không tên)';
 /**
  * GV-Mon / GV-DanhSachDe: subject cards → exam table of the open subject, with Nháp / Đã xuất bản.
  * Route `/` and `/subject/:subjectId` (the open subject is the URL param, so F5 and Back keep it).
- * ponytail: search runs on the FE over the loaded list; exam/list has no submission count, so the
- * "bài nộp" number and the locked Xoá come from BE answers (to_grade before unpublish, 409 on delete).
+ * ponytail: search runs on the FE over the loaded list; exam/list gives only `has_submissions` (no count),
+ * so Xoá is locked up front by it; the "bài nộp" number still comes from to_grade, and the 409 on delete stays as a safety net.
  */
 export default function Dashboard() {
     const isTeacher = useAuthStore(s => s.user?.group) === 'teacher';
@@ -170,7 +170,9 @@ function ExamList({subject, subjects, q}: {subject: Folder; subjects: Folder[]; 
                 onChange={ev => move(e, ev.target.value)}>
             {subjects.filter(s => !s.hidden || s.id === subject.id).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-        <Button variant='ghost' className='vt-th-del' disabled={busy} onClick={() => setPending({kind: 'delete', exam: e})}>Xoá</Button>
+        <Button variant='ghost' className='vt-th-del' disabled={busy || !!e.has_submissions}
+                title={e.has_submissions ? 'Đề đã có bài nộp — chỉ chuyển về Nháp được' : undefined}
+                onClick={() => setPending({kind: 'delete', exam: e})}>Xoá</Button>
     </div>;
 
     const columns: Column<ExamSummary>[] = [

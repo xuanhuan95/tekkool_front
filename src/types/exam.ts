@@ -3,7 +3,7 @@ export type Folder = {
     id: string;
     name: string;
     parent?: string | null;
-    /** Admin-hidden subject (SPT-65). BE currently shows hidden subjects to Admin only. */
+    /** Admin-hidden subject (SPT-65). Admin sees every hidden subject; a teacher gets only the hidden subjects that still hold their exams. */
     hidden?: boolean;
 };
 
@@ -18,6 +18,8 @@ export type ExamSummary = {
     question_count?: number;
     /** SPT-66: absent on old exams = published. */
     status?: ExamStatus;
+    /** SPT-68: the exam has at least one attempt → cannot be deleted, only moved back to Nháp. */
+    has_submissions?: boolean;
     price?: number;
     /** `exam/browse` only: the viewer's own attempts on this exam. */
     attempts?: number;
