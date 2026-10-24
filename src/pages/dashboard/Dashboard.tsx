@@ -9,7 +9,7 @@ import type {Column} from '../../components/ui';
 import {errorText} from '../../lib/format';
 import Api from '../../services/api';
 import {useAuthStore} from '../../stores/authStore';
-import {useFolderExams, useFolders} from '../../queries/exams';
+import {useFolders, useSubjectExams} from '../../queries/exams';
 import type {ExamStatus, ExamSummary, Folder} from '../../types/exam';
 import Default from '../exam-creation/Default';
 import {useMediaQuery} from '../useMediaQuery';
@@ -75,7 +75,7 @@ function TeacherHome() {
         </div>
 
         {subjectId && subjects.some(s => s.id === subjectId) &&
-            <ExamList subject={subjects.find(s => s.id === subjectId)!} subjects={subjects} q={q}/>}
+            <ExamList subject={subjects.find(s => s.id === subjectId)!} subjects={subjects} folders={folders.data} q={q}/>}
     </div>;
 }
 
@@ -97,10 +97,10 @@ function SubjectCard({subject, active, menuOpen, onMenu}: {subject: Folder; acti
     </Card>;
 }
 
-function ExamList({subject, subjects, q}: {subject: Folder; subjects: Folder[]; q: string}) {
+function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: Folder[]; folders: Folder[]; q: string}) {
     const qc = useQueryClient();
     const wide = useMediaQuery('(min-width: 768px)');
-    const {data, isError, isFetching, refetch} = useFolderExams(subject.id);
+    const {data, isError, isFetching, refetch} = useSubjectExams(subject.id, folders);
     const [filter, setFilter] = useState<Filter>('all');
     const [pending, setPending] = useState<Pending | null>(null);
     const [busy, setBusy] = useState(false);

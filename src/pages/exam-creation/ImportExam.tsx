@@ -450,7 +450,7 @@ export default function ImportExam() {
                     </Button>}
                 {!bankId && !params.get('folder') &&
                     <Select label='Môn học' value={pickedFolder} onChange={ev => setPickedFolder(ev.target.value)}
-                            placeholder='Chọn môn' options={(folders || []).filter(f => !f.hidden).map(f => ({value: f.id, label: f.name}))}/>}
+                            placeholder='Chọn môn' options={(folders || []).filter(f => !f.parent && !f.hidden).map(f => ({value: f.id, label: f.name}))}/>}
                 <span className={cx('vt-imp-bar-hint', blocker && 'err')} role={blocker ? 'alert' : undefined}>
                     {blocker
                         ? blocker + ' — sửa ngay trong đề, hoặc sửa file Word rồi nhập lại.'
