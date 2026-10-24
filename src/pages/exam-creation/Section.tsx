@@ -4,7 +4,8 @@ import {Menu, Icon, Rail, Sticky} from 'semantic-ui-react';
 import MultipleChoice from './questions/MultipleChoice';
 import FillBlank from './questions/FillBlank';
 import TrueFalseBlock from './TrueFalseBlock';
-import {toUnits} from './examRules';
+import {scoreData, toUnits} from './examRules';
+import ScoreField from './ScoreField';
 import ErrorIdentify from './questions/ErrorIdentify';
 import FreeAnswer from './questions/FreeAnswer';
 import Default from './Default';
@@ -24,9 +25,11 @@ const questionTypes: Record<string, any> = {
 type Props = {
     section: SectionType;
     questionIndex?: number;
+    /** Subject name: picks the default score (Ngữ văn trắc nghiệm 0,3). */
+    subject?: string | null;
 };
 
-export default function Section({section}: Props) {
+export default function Section({section, subject}: Props) {
     const [contextRef, setContextRef] = useState<HTMLElement | null>(null);
     const write = useExamDraftStore(s => s.setSectionState);
     const touch = useExamDraftStore(s => s.touch);
@@ -58,6 +61,28 @@ export default function Section({section}: Props) {
     const patchData = (id: string, data: Record<string, unknown>) =>
         setSectionState({questions: section.questions.map(q =>
             q.id === id ? {...q, data: {...q.data, ...data}} : q)});
+
+    // undefined score = reset to default (drop max_score so withDefaultScores refills it on save).
+    const setScore = (unit: Question[], score: number | undefined) => {
+        const pairs = new Map(score === undefined ? [] : scoreData(unit, score));
+        const ids = unit.map(q => q.id);
+        setSectionState({questions: section.questions.map(q => {
+            if (!ids.includes(q.id)) return q;
+            const {max_score, ...rest} = q.data;
+            return {...q, data: pairs.has(q.id) ? {...rest, max_score: pairs.get(q.id)} : rest};
+        })});
+    };
+
+    // "+ Thêm ý d)": append one ý to a Đúng/Sai block that has fewer than 4.
+    const addStatement = (unit: Question[]) => {
+        const last = unit[unit.length - 1];
+        const added = {...Default.question('TrueFalse', section.exam, section.id),
+            data: {passage: last.data.passage || '', passageId: last.data.passageId}};
+        const at = section.questions.findIndex(q => q.id === last.id) + 1;
+        const questions = [...section.questions];
+        questions.splice(at, 0, added);
+        setSectionState({questions});
+    };
 
     // ponytail: the passage is copied into EACH question of the group -> an edit must be written
     // back to the whole group by passageId. Editing only the first question leaves the later ones
@@ -111,9 +136,11 @@ export default function Section({section}: Props) {
                 <div id={question.id} style={{marginBottom: '18px'}}>
                     {isTrueFalse
                         ? <TrueFalseBlock unit={unit} onPatch={patchData}
-                                          onPassage={html => setPassage(passageId, html)}/>
+                                          onPassage={html => setPassage(passageId, html)}
+                                          onAddStatement={() => addStatement(unit)}/>
                         : <QuestionView question={question} section={section}
                                         setSectionState={setSectionState}/>}
+                    <ScoreField unit={unit} subject={subject} onChange={setScore}/>
                 </div>
             </div>
         })}
@@ -137,10 +164,6 @@ export default function Section({section}: Props) {
 
                             <Menu.Item onClick={() => addQuestion('TrueFalse')}>
                                 <Icon name='checkmark'/>
-                            </Menu.Item>
-
-                            <Menu.Item onClick={() => addQuestion('ErrorIdentify')}>
-                                <Icon name='find'/>
                             </Menu.Item>
 
                             <Menu.Item onClick={() => addQuestion('FreeAnswer')}>

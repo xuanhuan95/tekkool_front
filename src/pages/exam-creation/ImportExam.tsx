@@ -18,6 +18,7 @@ import {
     patchData, patchQuestion, removeQuestions, saveBlocker, setAnswer, setPassage, setType, toUnits, TRUE_FALSE_STATEMENTS,
     type DuplicateInfo, type ImportedExam, type NumberedUnit, type QuestionUnit,
 } from './importRules';
+import {withDefaultScores} from './examRules';
 import './import-exam.css';
 
 // The parser can only guess pick-one / free answer (has A.B.C.D. or not); the rest the teacher picks.
@@ -26,7 +27,6 @@ const QUESTION_TYPES = [
     {value: 'TrueFalse', label: 'Đúng/Sai'},
     {value: 'FillBlank', label: 'Trả lời ngắn'},
     {value: 'FreeAnswer', label: 'Tự luận'},
-    {value: 'ErrorIdentify', label: 'Tìm lỗi sai'},
 ];
 
 type Edit = (fn: (e: ImportedExam) => ImportedExam) => void;
@@ -217,7 +217,9 @@ export default function ImportExam() {
     const [checking, setChecking] = useState(false);
 
     const chosen = exams.filter(e => picked[e.id]);
-    const blocker = saveBlocker(chosen);
+    // Q15: imported exams are saved as Nháp even with errors — only the bank path (?bank=) keeps its block.
+    const problems = saveBlocker(chosen);
+    const blocker = bankId ? problems : null;
     const busy = saving || reading;
 
     const upload = async ({target}: ChangeEvent<HTMLInputElement>) => {
@@ -291,7 +293,7 @@ export default function ImportExam() {
                     const r = await Api.post<{saved: number}>('question_bank/save', {...e, bank: bankId});
                     added += r.saved;
                 } else {
-                    await Api.post('exam/create', e);
+                    await Api.post('exam/create', {...e, sections: withDefaultScores(e.sections as never, folder?.name) });
                     // exam/create takes no folder → the existing move_to_folder.
                     if (folderId) await Api.post('exam/move_to_folder', {examId: e.id, folderId});
                 }
@@ -301,11 +303,12 @@ export default function ImportExam() {
                 notify.success(`Đã thêm ${added} khối vào ngân hàng. Số liệu sức chứa ở trên đã cập nhật.`);
             } else if (folderId) {
                 qc.invalidateQueries({queryKey: ['exam']});
+                notify.success(`Đã tạo ${done} đề nháp. Sửa cho hết lỗi rồi bấm Xuất bản để học sinh thấy.`);
                 navigate('/subject/' + folderId);
             } else {
                 qc.invalidateQueries({queryKey: ['exam']});
-                notify.success(`Đã tạo ${done} đề. Đề đang ở 'Đề ngoài thư mục' — chọn môn để học sinh thấy.`);
-                navigate('/question-bank');
+                notify.success(`Đã tạo ${done} đề nháp. Vào Môn & đề để chọn môn và xuất bản.`);
+                navigate('/');
             }
         } catch (err) {
             // keep what is already saved; the teacher sees which exam stopped it
@@ -441,11 +444,13 @@ export default function ImportExam() {
                     </>
                     : <Button variant='primary' loading={saving} loadingText={`Đang lưu ${progress + 1}/${chosen.length}…`}
                               disabled={!chosen.length || !!blocker} onClick={() => save(false)}>
-                        {folderId ? `Tạo ${chosen.length} đề trong ${folder?.name || 'môn này'}` : direct('Tạo thẳng')}
+                        {`Tạo ${chosen.length} đề nháp`}
                     </Button>}
                 <span className={cx('vt-imp-bar-hint', blocker && 'err')} role={blocker ? 'alert' : undefined}>
                     {blocker
                         ? blocker + ' — sửa ngay trong đề, hoặc sửa file Word rồi nhập lại.'
+                        : problems && !bankId
+                            ? problems + ' — vẫn tạo được đề nháp; phải sửa xong mới xuất bản được.'
                         : saving ? 'Lưu lần lượt từng đề, đừng đóng trang.'
                         : !bankId && !folderId
                             ? <>Muốn lưu vào ngân hàng thì vào <Link to='/question-bank'>Ngân hàng câu hỏi</Link> chọn một ngân hàng rồi bấm “Nhập đề”.</>

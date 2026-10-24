@@ -27,6 +27,8 @@ export type Exam = {
     right_header?: string;
     /** Owner. CreateExam sets it from the logged-in user before POST. */
     user?: string;
+    /** SPT-66: new exams are drafts; absent on old exams = published. */
+    status?: 'draft' | 'published';
 };
 
 export default class Default {

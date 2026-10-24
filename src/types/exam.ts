@@ -3,7 +3,11 @@ export type Folder = {
     id: string;
     name: string;
     parent?: string | null;
+    /** Admin-hidden subject (SPT-65). BE currently shows hidden subjects to Admin only. */
+    hidden?: boolean;
 };
+
+export type ExamStatus = 'draft' | 'published';
 
 /** Exam as BE returns it on browse/take-exam screens (unlike Exam on the authoring screen). */
 export type ExamSummary = {
@@ -12,6 +16,8 @@ export type ExamSummary = {
     duration?: number;
     description?: string;
     question_count?: number;
+    /** SPT-66: absent on old exams = published. */
+    status?: ExamStatus;
     price?: number;
     /** `exam/browse` only: the viewer's own attempts on this exam. */
     attempts?: number;

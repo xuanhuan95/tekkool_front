@@ -1387,3 +1387,17 @@ body {
 
 /* Semantic small label is 11px; 12px is the floor for any text. */
 .ui.small.label, .ui.small.labels .label { font-size: 12px; }
+
+/* SPT-67: editor score field, error panels, status bar */
+.vt-score-field { margin-top: 8px; font-size: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.vt-score-field input { width: 80px; padding: 4px 6px; border: 1px solid var(--vt-line, #ccc); border-radius: 6px; }
+.vt-score-edited { color: var(--vt-ink-soft, #666); font-size: 12px; }
+.vt-score-reset { background: none; border: 0; color: var(--vt-primary, #2563eb); cursor: pointer; padding: 0; }
+.vt-score-missing { color: #b42318; font-weight: 600; }
+.vt-add-statement { margin-top: 12px; background: none; border: 1px dashed var(--vt-line, #bbb); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+.vt-editor-summary { padding: 8px 14px; font-size: 14px; }
+.vt-editor-summary ul { margin: 4px 0 8px; padding-left: 18px; }
+.vt-editor-problems { background: #fef3f2; color: #b42318; border-radius: 8px; padding: 8px; margin-top: 8px; }
+.vt-editor-hints { background: #fffaeb; color: #93370d; border-radius: 8px; padding: 8px; margin-top: 8px; }
+.vt-editor-problems-title { font-weight: 600; }
+#topMenu .vt-status-item button, #topMenu button { margin-left: 6px; }

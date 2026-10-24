@@ -32,3 +32,12 @@ export function useFolders(enabled = true) {
         enabled,
     });
 }
+
+/** Exams of one folder (teacher's own, drafts included). */
+export function useFolderExams(folderId?: string) {
+    return useQuery({
+        queryKey: [...EXAMS_KEY, folderId],
+        queryFn: () => Api.get<ExamSummary[]>('exam/list?folder=' + folderId),
+        enabled: !!folderId,
+    });
+}
