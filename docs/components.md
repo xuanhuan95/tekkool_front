@@ -47,7 +47,7 @@ Nguyên tắc: component **không tự gọi API, không đọc store** — nh�
 | `Table`, `Column` | `columns` (`key`, `header`, `render`, `align`, `emphasis`, **`sticky`**), `rows`, `rowKey`, `caption` (bắt buộc), `minWidth`, `isHighlighted`, `empty`, **`toolbar`**, **`bare`** | Bảng rộng cuộn ngang trong thẻ, có bóng mép báo còn cột. `sticky` ghim cột (Thao tác) bên phải — tự bỏ ghim nếu cột rộng hơn 45% khung. `toolbar` = tiêu đề/bộ lọc trong thẻ; `bare` khi màn đã tự bọc thẻ (`<Card flush className='vt-table-card'>`). |
 | `Modal` | `open`, `onClose` (bỏ = không đóng được), `title`, `footer`, `size`, `placement` center · sheet, `showClose`, `initialFocus` | Khoá focus trong hộp, Esc đóng, khoá cuộn trang |
 | `ConfirmDialog` | `open`, `title`, `message`, `confirmLabel`, `cancelLabel`, `tone` danger, `loading`, `onConfirm`, `onCancel` | Focus vào nút an toàn (huỷ) |
-| `notify.success / .error`, `ToastCard` | `(title, description?)` | Toast design D trên `<Toaster/>` của react-hot-toast |
+| `notify.success / .error`, `ToastCard` | `(title, description?)` | Toast design D trên `<Toaster position='bottom-right'/>` của react-hot-toast (góc dưới để không che thanh menu editor) |
 | `EmptyState` | `title`, `description`, `icon`, `action`, `bare` | Trạng thái rỗng |
 | `ErrorState` | `title`, `description`, `onRetry`, `retrying` | Lỗi + "Thử lại" |
 | `Skeleton`, `SkeletonCard` | `width`, `height`, `shape`; `label` | Đang tải — không dùng spinner giữa trang |
@@ -99,9 +99,12 @@ Cách các component này được nối với API: [lam-bai.md](lam-bai.md).
 
 | Thành phần | Ghi chú |
 |---|---|
-| `TeacherLayout`, `TEACHER_NAV` (`ui/layout`) | Khung giáo viên: menu trên (web) / dưới (điện thoại), badge số bài chờ chấm (`usePendingCount`), nút **Đăng xuất** ở cả header điện thoại và web (`useAuthStore.signOut`) |
+| `TeacherLayout`, `TEACHER_NAV` (`ui/layout`) | Khung giáo viên, menu 3 mục (Môn & đề · Ngân hàng câu hỏi · Chấm bài): menu trên (web) / dưới (điện thoại), badge số bài chờ chấm (`usePendingCount`), nút **Đăng xuất** ở cả header điện thoại và web (`useAuthStore.signOut`) |
 | `DesktopOnly` (`backTo`) | Màn chỉ cho máy tính: dưới 1024px hiện empty state + link về `backTo`. Lưu ý: cả empty state và `children` đều có trong DOM, CSS (`.vt-only-mobile`/`.vt-only-web`) ẩn bớt. |
 | `queries/questionBank.ts` | `useBanks`, `useBankSubjects`, `useCreateBank`, `useRemoveBank`, `useBankCapacity`, `useBankStock`, `useCreateFromBank`, `useDrawInfo`, `useDrawExam`; khoá cache `bankKeys` |
 | `ImportExam` (lời giải) | Câu có `data.explanation` (SPT-62) hiện khối "Lời giải" gập được, qua `SafeHtml`; `max_score`/`explanation` giữ nguyên khi đổi loại câu, `block_type` bị bỏ |
 | `exam-creation/importRules.ts` | Luật thuần của màn nhập đề, có test: `toUnits` (gộp các ý Đúng/Sai cùng `passageId` thành một câu), `isMissingKey` (Q12), `isBadTrueFalse` (Q13, dùng lại được cho editor), `saveBlocker`, `examStats`, `fileProblem`, `importErrorText`, và các hàm sửa payload (`setType`, `setPassage`, `setAnswer`, `removeQuestions`…) |
 | `CreateFromBank.suggestedMinutes` | Gợi ý số phút theo môn (Toán/Ngữ văn 90, môn khác 60); giáo viên vẫn sửa được |
+| `Dashboard.tsx` → `TeacherHome` / `SubjectCard` / `ExamList` (SPT-67) | Màn Môn & đề của giáo viên: `useFolderExams`, bộ lọc trạng thái (`FilterChip`), `Table` ≥768px / thẻ ở 390px, `ConfirmDialog` cho Xoá và Chuyển về nháp |
+| `exam-creation/ScoreField.tsx` | Ô điểm từng câu: mặc định theo `defaultScore`, nhãn "đã chỉnh", "↺ mặc định", cảnh báo tự luận chưa có điểm |
+| `examRules.ts` (SPT-67) | `publishProblems` (chặn Xuất bản/In = `examProblems` + tự luận thiếu điểm), `reviewHints` ("Nên xem lại"), `defaultScore`, `unitScore`, `scoreData`, `withDefaultScores`, `examTotal` |

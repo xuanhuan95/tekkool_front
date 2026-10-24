@@ -1,4 +1,4 @@
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQueries, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import Api from '../services/api';
 import type {ExamSummary, Folder} from '../types/exam';
@@ -32,3 +32,19 @@ export function useFolders(enabled = true) {
         enabled,
     });
 }
+
+/** A subject's exams, including those filed in its child folders (exam/list?folder= is not recursive). */
+export function useSubjectExams(subjectId: string, folders: Folder[]) {
+    const ids = [subjectId, ...folders.filter(f => f.parent === subjectId).map(f => f.id)];
+    const results = useQueries({queries: ids.map(id => ({
+        queryKey: [...EXAMS_KEY, id],
+        queryFn: () => Api.get<ExamSummary[]>('exam/list?folder=' + id),
+    }))});
+    return {
+        data: results.some(r => !r.data) ? undefined : results.flatMap(r => r.data as ExamSummary[]),
+        isError: results.some(r => r.isError),
+        isFetching: results.some(r => r.isFetching),
+        refetch: () => results.forEach(r => r.refetch()),
+    };
+}
+

@@ -1,196 +1,229 @@
 import {useState} from 'react';
-import type React from 'react';
-import {Link, useNavigate} from 'react-router-dom';
-import {Button, Card, Dropdown, Header, Icon, Input, Segment} from 'semantic-ui-react';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {Link, useNavigate, useParams} from 'react-router-dom';
+import {useQueryClient} from '@tanstack/react-query';
+import striptags from 'striptags';
 
-import Loading from '../../components/Loading';
+import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, FilterChip, PageTitle, SkeletonCard, StatusBadge, Table,
+    TextField, buttonClass, notify} from '../../components/ui';
+import type {Column} from '../../components/ui';
+import {errorText} from '../../lib/format';
 import Api from '../../services/api';
 import {useAuthStore} from '../../stores/authStore';
-import {useExams, useFolders, useRefreshExams} from '../../queries/exams';
-import type {ExamSummary} from '../../types/exam';
-import ExamFile from './ExamFile';
-import type {FolderOption} from './ExamFile';
+import {useFolders, useSubjectExams} from '../../queries/exams';
+import type {ExamStatus, ExamSummary, Folder} from '../../types/exam';
+import Default from '../exam-creation/Default';
+import {useMediaQuery} from '../useMediaQuery';
 import StudentHome from '../student/StudentHome';
+import {stripAccents} from './subjectStyle';
+import './teacher-home.css';
 
-// Strip accents so typing "toan" still matches "Toán" — teachers searching for exams need not type full accents.
-const stripAccents = (s?: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
-    .replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
+type Filter = 'all' | ExamStatus;
+type Pending = {kind: 'delete' | 'unpublish'; exam: ExamSummary; submissions?: number};
+
+const isPublished = (e: ExamSummary) => e.status !== 'draft';
+const examName = (e: ExamSummary) => striptags(e.name) || '(đề không tên)';
 
 /**
- * Teacher home: subject folders as cards, open a card to get the exam list.
- *
- * The old layout was a nested <List> with bare 'Folder'/'Document' words as headings,
- * with every exam in one long column. Now two clear levels: pick a subject -> see the
- * exams in it. Exams outside any folder are grouped separately at the bottom.
- *
- * ponytail: search filtering runs on the FE over the already-loaded list. A teacher has
- * a few dozen exams, so calling a search API is an extra endpoint and a network round trip.
+ * GV-Mon / GV-DanhSachDe: subject cards → exam table of the open subject, with Nháp / Đã xuất bản.
+ * Route `/` and `/subject/:subjectId` (the open subject is the URL param, so F5 and Back keep it).
+ * ponytail: search runs on the FE over the loaded list; exam/list gives only `has_submissions` (no count),
+ * so Xoá is locked up front by it; the "bài nộp" number still comes from to_grade, and the 409 on delete stays as a safety net.
  */
 export default function Dashboard() {
-    const navigate = useNavigate();
-    const qc = useQueryClient();
-    // group is a string id ('teacher' | 'student' | 'visitor').
     const isTeacher = useAuthStore(s => s.user?.group) === 'teacher';
+    return isTeacher ? <TeacherHome/> : <StudentHome/>;
+}
 
-    const [activeFolder, setActiveFolder] = useState<string | null>(null);
+function TeacherHome() {
+    const {subjectId} = useParams();
     const [q, setQ] = useState('');
+    const [menuFor, setMenuFor] = useState<string | null>(null);
+    const folders = useFolders();
 
-    // Students never render the part below -> `enabled` blocks both requests.
-    // The old version had to call unconditionally because `auth` might not be ready at
-    // componentDidMount; the zustand store has a value from the first render so
-    // that trap is gone.
-    const {data: exams = []} = useExams(isTeacher);
-    const {data: folders} = useFolders(isTeacher);
-    const refreshExams = useRefreshExams();
+    if (folders.isError) return <ErrorState title='Không tải được kho đề' description='Kiểm tra kết nối mạng rồi thử lại. Đề của cô vẫn an toàn.'
+                                            onRetry={() => folders.refetch()} retrying={folders.isFetching}/>;
+    if (!folders.data) return <div className='vt-th-page'><SkeletonCard/><SkeletonCard/></div>;
 
-    const {data: folderExams = [], isFetching: loadingExams} = useQuery({
-        queryKey: ['exam', 'list', activeFolder],
-        queryFn: () => Api.get<ExamSummary[]>('exam/list?folder=' + activeFolder),
-        enabled: !!activeFolder,
-    });
+    // Subjects only (root folders); child folders are not shown (Q5: no rename/delete UI yet).
+    const subjects = folders.data.filter(f => !f.parent);
+    const hiddenCount = subjects.filter(s => s.hidden).length;
+    const match = (t: string) => stripAccents(t).includes(stripAccents(q));
+    const shown = q ? subjects.filter(s => match(s.name)) : subjects;
 
-    const moveToFolder = async (examId: string, folderId: string | null) => {
-        await Api.post('exam/move_to_folder', {examId, folderId});
-        refreshExams();
-        qc.invalidateQueries({queryKey: ['exam', 'list', folderId]});
-        setActiveFolder(folderId);
-    };
-
-    // Create an exam right inside the folder: the new exam already sits in the subject, no manual drag.
-    // More importantly: ImportExam takes the SUBJECT NAME from the folder to attach to the
-    // bank block — importing outside a folder leaves subject empty and the draw screen blank.
-    const addExam = (path: string, folderId: string) =>
-        navigate(path + '?folder=' + folderId);
-
-    // Clicking the folder that is already open closes it — there is no other way to close.
-    const openFolder = (folderId: string) =>
-        setActiveFolder(activeFolder === folderId ? null : folderId);
-
-    if (!isTeacher) return <StudentHome/>;
-    if (!folders) return <Loading/>;
-
-    const folderOptions: FolderOption[] = [
-        {text: '(ngoài thư mục)', value: ''},
-        ...folders.map(f => ({text: f.name, value: f.id})),
-    ];
-
-    const matches = (t?: string) => stripAccents(t).includes(stripAccents(q));
-    const shownFolders = q ? folders.filter(f => matches(f.name)) : folders;
-    const shownLoose = q ? exams.filter(e => matches(e.name)) : exams;
-    const shownInFolder = q ? folderExams.filter(e => matches(e.name)) : folderExams;
-
-    // Nothing yet: a single path, don't lay out three buttons.
-    if (!folders.length && !exams.length) return <div className='margin'>
-        <Segment placeholder>
-            <Header icon>
-                <Icon name='folder open outline' color='grey'/>
-                Chưa có môn học
-                <Header.Subheader>
-                    Chưa có môn học — liên hệ Admin để thêm môn.
-                </Header.Subheader>
-            </Header>
-        </Segment>
+    if (!subjects.length) return <div className='vt-th-page'>
+        <PageTitle>Môn & đề</PageTitle>
+        <EmptyState title='Chưa có môn học nào'
+                    description='Môn học do Admin tạo. Khi Admin tạo xong, môn sẽ hiện ở đây để cô soạn đề. Cô báo Admin giúp nhé.'/>
     </div>;
 
-    return <div className='tk-dash'>
-        <div className='tk-dash-bar'>
-            <Header as='h2' className='tk-dash-title'>
-                Kho đề của tôi
-                <Header.Subheader>
-                    {folders.length} thư mục · {exams.length} đề ngoài thư mục
-                </Header.Subheader>
-            </Header>
-            <Input icon='search' iconPosition='left' placeholder='Tìm đề, tìm môn...'
-                   value={q} onChange={(_e, {value}) => setQ(value)}/>
-            {/* Entry to the bank: a separate screen because a bank is now a named
-                entity, no longer something guessed from the folder name. */}
-            <Link to='/question-bank'>
-                <Button basic icon labelPosition='left'>
-                    <Icon name='database'/> Ngân hàng câu hỏi
-                </Button>
-            </Link>
+    return <div className='vt-th-page'>
+        <div className='vt-th-head'>
+            <div>
+                <PageTitle>Môn & đề</PageTitle>
+                <p>{subjects.length} môn{hiddenCount > 0 && ` · ${hiddenCount} môn đang ẩn`}. Danh sách môn do Admin quản lý — cô chọn môn có sẵn để soạn đề. Cần thêm môn, báo Admin.</p>
+            </div>
+            <TextField label='Tìm đề, tìm môn' placeholder='Tìm đề, tìm môn' value={q} onChange={e => setQ(e.target.value)}/>
         </div>
 
-        {q && !shownFolders.length && !shownLoose.length && !shownInFolder.length &&
-        <Segment placeholder>
-            <Header icon>
-                <Icon name='search' color='grey'/>
-                Không có mục nào khớp “{q}”
-            </Header>
-        </Segment>}
+        {q && !shown.length && !subjectId && <EmptyState title={`Không có mục nào khớp “${q}”`}
+            action={<Button variant='secondary' onClick={() => setQ('')}>Xoá ô tìm</Button>}/>}
 
-        <Card.Group itemsPerRow={3} stackable className='tk-folders'>
-            {shownFolders.map(f =>
-                <Card key={f.id} link
-                      className={activeFolder === f.id ? 'tk-folder active' : 'tk-folder'}
-                      onClick={() => openFolder(f.id)}>
-                    <Card.Content>
-                        {/* Icon sits INSIDE Card.Header: outside, Header is a
-                            block, the icon drops to its own line and the card doubles in height. */}
-                        <Card.Header>
-                            <Icon name={activeFolder === f.id ? 'folder open' : 'folder'}
-                                  color={activeFolder === f.id ? 'blue' : 'grey'}/>
-                            {f.name}
-                        </Card.Header>
-                    </Card.Content>
-                    {/* The "Create exam" button is always VISIBLE, not hidden behind hover: keyboards
-                        and touch screens have no hover, hiding it loses the entry point. */}
-                    <Card.Content extra onClick={(e: React.MouseEvent) => e.stopPropagation()}>
-                        <Dropdown button className='mini basic icon tk-add-exam'
-                                  labeled icon='plus' text='Tạo đề'>
-                            <Dropdown.Menu>
-                                <Dropdown.Item icon='edit outline' text='Tự soạn'
-                                               onClick={() => addExam('/create-exam', f.id)}/>
-                                <Dropdown.Item icon='file word outline' text='Nhập Word'
-                                               onClick={() => addExam('/import-exam', f.id)}/>
-                                <Dropdown.Item icon='random' text='Từ ngân hàng đề'
-                                               onClick={() => addExam('/create-from-bank', f.id)}/>
-                            </Dropdown.Menu>
-                        </Dropdown>
-                    </Card.Content>
-                </Card>
-            )}
-        </Card.Group>
+        <div className='vt-th-subjects'>
+            {shown.map(s => <SubjectCard key={s.id} subject={s} active={s.id === subjectId}
+                                         menuOpen={menuFor === s.id}
+                                         onMenu={() => setMenuFor(menuFor === s.id ? null : s.id)}/>)}
+        </div>
 
-        {activeFolder && <Segment className='tk-exams tk-load-host'>
-            <Header as='h4'>
-                <Icon name='folder open outline'/>
-                <Header.Content>
-                    {folders.find(f => f.id === activeFolder)?.name}
-                </Header.Content>
-            </Header>
-            {/* Overlay rather than replacing: the folder name and Segment frame stay
-                still while loading, switching to another folder makes no page
-                jump. `tk-load-host` gives the overlay something to anchor to. */}
-            {loadingExams && <Loading overlay/>}
-            {!shownInFolder.length
-                ? !loadingExams && <p className='text-muted'>
-                    {q ? 'Không có đề nào khớp trong thư mục này.'
-                       : 'Thư mục trống — bấm “Tạo đề” ở thẻ trên.'}
-                </p>
-                : shownInFolder.map(exam =>
-                    <div className='tk-exam-row' key={exam.id}>
-                        <ExamFile exam={exam} folderOptions={folderOptions}
-                                  moveToFolder={moveToFolder}/>
-                    </div>)}
-        </Segment>}
-
-        {!!shownLoose.length && <Segment className='tk-exams'>
-            <Header as='h4'>
-                <Icon name='file outline'/>
-                <Header.Content>
-                    Đề ngoài thư mục
-                    <Header.Subheader>
-                        Đề ở đây chưa gắn môn — kéo vào một thư mục để rút được từ ngân hàng.
-                    </Header.Subheader>
-                </Header.Content>
-            </Header>
-            {shownLoose.map(exam =>
-                <div className='tk-exam-row' key={exam.id}>
-                    <ExamFile exam={exam} folderOptions={folderOptions}
-                              moveToFolder={moveToFolder}/>
-                </div>)}
-        </Segment>}
+        {subjectId && subjects.some(s => s.id === subjectId) &&
+            <ExamList subject={subjects.find(s => s.id === subjectId)!} subjects={subjects} folders={folders.data} q={q}/>}
     </div>;
+}
+
+function SubjectCard({subject, active, menuOpen, onMenu}: {subject: Folder; active: boolean; menuOpen: boolean; onMenu: () => void}) {
+    const navigate = useNavigate();
+    const to = (path: string) => navigate(path + '?folder=' + subject.id);
+    return <Card as='article' className={'vt-th-subject' + (active ? ' is-active' : '')}>
+        <Link to={'/subject/' + subject.id} className='vt-th-subject-name' aria-current={active ? 'true' : undefined}>{subject.name}</Link>
+        {subject.hidden && <Badge tone='sun'>Môn đang ẩn — học sinh không thấy</Badge>}
+        <Button variant='secondary' aria-expanded={menuOpen} onClick={onMenu}>+ Tạo đề</Button>
+        {menuOpen && <div className='vt-th-menu' role='menu'>
+            <button role='menuitem' type='button' onClick={() => to('/create-exam')}>
+                <b>Tự soạn</b><span>Soạn theo phần trên máy tính</span></button>
+            <button role='menuitem' type='button' onClick={() => to('/import-exam')}>
+                <b>Nhập Word</b><span>Tải file .docx, xem lại rồi lưu</span></button>
+            <button role='menuitem' type='button' onClick={() => to('/create-from-bank')}>
+                <b>Từ ngân hàng đề</b><span>Theo cấu trúc, mỗi lượt một đề riêng</span></button>
+        </div>}
+    </Card>;
+}
+
+function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: Folder[]; folders: Folder[]; q: string}) {
+    const qc = useQueryClient();
+    const wide = useMediaQuery('(min-width: 768px)');
+    const {data, isError, isFetching, refetch} = useSubjectExams(subject.id, folders);
+    const [filter, setFilter] = useState<Filter>('all');
+    const [pending, setPending] = useState<Pending | null>(null);
+    const [busy, setBusy] = useState(false);
+
+    const refresh = () => qc.invalidateQueries({queryKey: ['exam', 'list']});
+    const run = async (fn: () => Promise<void>, failTitle: string) => {
+        setBusy(true);
+        try { await fn(); refresh(); }
+        catch (e) { notify.error(failTitle, errorText(e, 'Thử lại sau.')); }
+        finally { setBusy(false); setPending(null); }
+    };
+
+    const publish = (e: ExamSummary) => run(async () => {
+        try {
+            await Api.post(`exam/publish/${e.id}`);
+        } catch (err) {
+            const n = (err as {invalid_questions?: unknown[]})?.invalid_questions?.length;
+            throw n ? {error: `Đề còn ${n} chỗ phải sửa (mở Sửa để xem). Đề vẫn là Nháp.`} : err;
+        }
+        notify.success('Đã xuất bản', `Học sinh thấy đề này từ bây giờ, trong môn ${subject.name}.`);
+    }, 'Chưa xuất bản được');
+
+    const unpublish = (e: ExamSummary) => run(async () => {
+        await Api.post(`exam/unpublish/${e.id}`);
+        notify.success('Đã chuyển về nháp', 'Học sinh không còn thấy đề này.');
+    }, 'Không chuyển về nháp được');
+
+    // Light warning only when the exam already has submissions (to_grade lists them); none → switch at once.
+    const askUnpublish = async (e: ExamSummary) => {
+        setBusy(true);
+        try {
+            const subs = await Api.get<unknown[]>(`exam/to_grade/${e.id}`);
+            if (subs.length) { setPending({kind: 'unpublish', exam: e, submissions: subs.length}); setBusy(false); }
+            else { setBusy(false); unpublish(e); }
+        } catch (err) { setBusy(false); notify.error('Không chuyển về nháp được', errorText(err, 'Thử lại sau.')); }
+    };
+
+    const remove = (e: ExamSummary) => run(async () => {
+        await Api.post(`exam/delete/${e.id}`);
+        notify.success('Đã xoá đề', examName(e));
+    }, 'Không xoá được đề');
+
+    const duplicate = (e: ExamSummary) => run(async () => {
+        await Api.post(`exam/duplicate/${e.id}`, Default.exam());
+        notify.success('Đã nhân bản đề', examName(e));
+    }, 'Không nhân bản được');
+
+    const move = (e: ExamSummary, folderId: string) => run(async () => {
+        await Api.post('exam/move_to_folder', {examId: e.id, folderId});
+        notify.success('Đã chuyển đề', `Sang môn ${subjects.find(s => s.id === folderId)?.name}.`);
+    }, 'Không chuyển được đề');
+
+    const all = data || [];
+    const matched = q ? all.filter(e => stripAccents(examName(e)).includes(stripAccents(q))) : all;
+    const rows = matched.filter(e => filter === 'all' || (filter === 'draft') === !isPublished(e));
+    const count = (f: Filter) => matched.filter(e => f === 'all' || (f === 'draft') === !isPublished(e)).length;
+
+    const actions = (e: ExamSummary) => <div className='vt-th-actions'>
+        <Link to={'/edit-exam/' + e.id} className={buttonClass({variant: 'secondary'})}>Sửa</Link>
+        <Link to={`/do-exam/${e.id}?lam_lai=1`} className={buttonClass({variant: 'ghost'})}>Làm thử</Link>
+        <Link to={'/to-grade/' + e.id} className={buttonClass({variant: 'ghost'})}>Bài nộp</Link>
+        {isPublished(e)
+            ? <Button variant='ghost' disabled={busy} onClick={() => askUnpublish(e)}>Chuyển về nháp</Button>
+            : <Button variant='primary' disabled={busy} onClick={() => publish(e)}>Xuất bản</Button>}
+        <Button variant='ghost' disabled={busy} onClick={() => duplicate(e)}>Nhân bản</Button>
+        <select className='vt-th-move' aria-label={'Chuyển môn: ' + examName(e)} value={subject.id} disabled={busy}
+                onChange={ev => move(e, ev.target.value)}>
+            {subjects.filter(s => !s.hidden || s.id === subject.id).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <Button variant='ghost' className='vt-th-del' disabled={busy || !!e.has_submissions}
+                title={e.has_submissions ? 'Đề đã có bài nộp — chỉ chuyển về Nháp được' : undefined}
+                onClick={() => setPending({kind: 'delete', exam: e})}>Xoá</Button>
+    </div>;
+
+    const columns: Column<ExamSummary>[] = [
+        {key: 'name', header: 'Tên đề', emphasis: 'strong', render: examName},
+        {key: 'status', header: 'Trạng thái', render: e => <StatusBadge status={isPublished(e) ? 'published' : 'draft'}/>},
+        {key: 'duration', header: 'Thời gian', render: e => e.duration ? `${e.duration} phút` : 'Không giới hạn'},
+        {key: 'actions', header: 'Thao tác', render: actions},
+    ];
+
+    return <section className='vt-th-exams' aria-busy={isFetching}>
+        <div className='vt-th-exams-head'>
+            <h2>{subject.name}</h2>
+            <span>{all.length} đề · học sinh chỉ thấy đề đã xuất bản</span>
+            <div className='vt-th-filters'>
+                {([['all', 'Tất cả'], ['draft', 'Nháp'], ['published', 'Đã xuất bản']] as const).map(([k, label]) =>
+                    <FilterChip key={k} selected={filter === k} onChange={() => setFilter(k)}>{label} · {count(k)}</FilterChip>)}
+            </div>
+        </div>
+
+        {isError ? <ErrorState title='Không tải được kho đề' description='Kiểm tra kết nối mạng rồi thử lại. Đề của cô vẫn an toàn.'
+                               onRetry={() => refetch()} retrying={isFetching}/>
+            : !data ? <SkeletonCard/>
+            : !rows.length ? <EmptyState title={q ? `Không có đề nào khớp “${q}”`
+                                              : filter === 'draft' ? 'Chưa có đề nháp nào'
+                                              : filter === 'published' ? 'Chưa có đề nào xuất bản'
+                                              : 'Thư mục trống'}
+                                         description={!q && filter === 'all' ? 'Bấm “Tạo đề” trên thẻ môn.' : undefined}/>
+            : <div className={isFetching ? 'vt-th-loading' : undefined}>
+                {wide
+                    ? <Table caption={'Đề của môn ' + subject.name} columns={columns} rows={rows} rowKey={e => e.id} minWidth={820}/>
+                    : <ul className='vt-th-cards'>{rows.map(e => <li key={e.id}><Card>
+                        <b>{examName(e)}</b>
+                        <StatusBadge status={isPublished(e) ? 'published' : 'draft'}/>
+                        <p>{e.duration ? `${e.duration} phút` : 'Không giới hạn'} · Môn {subject.name}</p>
+                        <div className='vt-th-actions'>
+                            <Link to={`/do-exam/${e.id}?lam_lai=1`} className={buttonClass({variant: 'secondary'})}>Làm thử</Link>
+                            <Link to={'/to-grade/' + e.id} className={buttonClass({variant: 'secondary'})}>Bài nộp</Link>
+                        </div>
+                        <small>Sửa, xuất bản, xoá: dùng máy tính</small>
+                    </Card></li>)}</ul>}
+            </div>}
+
+        <ConfirmDialog open={pending?.kind === 'delete'} tone='danger' loading={busy}
+                       title='Xoá đề này?' cancelLabel='Giữ lại' confirmLabel='Xoá đề'
+                       message={pending && <span><b>{examName(pending.exam)}</b><br/>
+                           {isPublished(pending.exam) ? 'Đã xuất bản' : 'Nháp'}. Xoá rồi không lấy lại được. Chỉ đề chưa có bài nộp mới xoá được.</span>}
+                       onCancel={() => setPending(null)} onConfirm={() => pending && remove(pending.exam)}/>
+        <ConfirmDialog open={pending?.kind === 'unpublish'} loading={busy}
+                       title={pending ? `Chuyển “${examName(pending.exam)}” về nháp?` : ''}
+                       cancelLabel='Để nguyên' confirmLabel='Chuyển về nháp'
+                       message={pending && <span>Đề đã có <b>{pending.submissions} bài nộp</b>. Học sinh sẽ không còn thấy và không làm được đề này. Bài đã nộp vẫn giữ.</span>}
+                       onCancel={() => setPending(null)} onConfirm={() => pending && unpublish(pending.exam)}/>
+    </section>;
 }

@@ -1,5 +1,5 @@
 import {Fragment, useEffect} from 'react';
-import renderHTML from '../../components/SafeHtml';
+import toast from 'react-hot-toast';import renderHTML from '../../components/SafeHtml';
 import Passage from '../../components/Passage';
 import {useExamDraftStore} from '../../stores/examDraftStore';
 import {ExamHeader} from "./ExamHeader";
@@ -37,7 +37,7 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
         // ponytail: window.open() returns null when the browser blocks popups ->
         // the original 2018 code threw a silent TypeError. Tell the user instead of crashing.
         if (!w) {
-            alert('Trình duyệt đang chặn popup. Hãy cho phép popup cho trang này để in.');
+            toast.error('Trình duyệt đang chặn popup. Hãy cho phép popup cho trang này để in.');
             return;
         }
 

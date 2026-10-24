@@ -9,6 +9,8 @@ type Props = {
     unit: Question[];
     onPassage: (html: string) => void;
     onPatch: (id: string, data: Record<string, unknown>) => void;
+    /** Append ý d) etc. when the block has fewer than 4. */
+    onAddStatement: () => void;
 };
 
 /**
@@ -16,7 +18,7 @@ type Props = {
  * ponytail: ý can only be removed with the whole block (the ✕ in Section) — a block that is not
  * exactly 4 ý cannot be saved. An old 1-ý question still renders here and says what is wrong.
  */
-export default function TrueFalseBlock({unit, onPassage, onPatch}: Props) {
+export default function TrueFalseBlock({unit, onPassage, onPatch, onAddStatement}: Props) {
     const wrong = unit.length !== TRUE_FALSE_STATEMENTS;
 
     return <div className='question true-false-block'>
@@ -28,7 +30,7 @@ export default function TrueFalseBlock({unit, onPassage, onPatch}: Props) {
 
         {wrong && <div className='ui negative message' role='alert'>
             Câu Đúng/Sai này có {unit.length} ý, cần đúng {TRUE_FALSE_STATEMENTS} ý a–d.
-            Hãy xoá câu (nút ✕) và tạo lại.
+            {unit.length < TRUE_FALSE_STATEMENTS ? ' Bấm "+ Thêm ý" để bổ sung.' : ' Xoá câu (nút ✕) và tạo lại.'}
         </div>}
 
         {unit.map((q, i) => {
@@ -44,5 +46,10 @@ export default function TrueFalseBlock({unit, onPassage, onPatch}: Props) {
                        className='margin-left'/>
             </div>;
         })}
+
+        {unit.length < TRUE_FALSE_STATEMENTS &&
+        <button type='button' className='vt-add-statement' onClick={onAddStatement}>
+            + Thêm ý {String.fromCharCode(97 + unit.length)})
+        </button>}
     </div>;
 }

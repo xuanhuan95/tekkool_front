@@ -71,7 +71,7 @@ export interface TeacherLayoutProps {
 }
 
 /**
- * Teacher shell (spec-giao-vien §1, copied from GV-TongQuan): web header with the 4-item menu,
+ * Teacher shell (spec-giao-vien §1, copied from GV-TongQuan): web header with the 3-item menu (Môn & đề · Ngân hàng · Chấm bài),
  * yellow "N bài chờ chấm", purple "Giáo viên" badge, avatar; under 1024px the menu becomes the bottom nav.
  */
 export function TeacherLayout({children, name, pending, accountTo = '/profile'}: TeacherLayoutProps) {
@@ -92,7 +92,7 @@ export function TeacherLayout({children, name, pending, accountTo = '/profile'}:
  * GV screens that only work on a computer (import, create from bank): under 1024px show a note
  * instead of squeezing them (spec §1). ponytail: CSS switch, so the screen still mounts on phones.
  */
-export function DesktopOnly({children, backTo = '/subject'}: {children: ReactNode; backTo?: string}) {
+export function DesktopOnly({children, backTo = '/'}: {children: ReactNode; backTo?: string}) {
     return <>
         <div className='vt-only-mobile'>
             <EmptyState title='Màn này cần màn hình máy tính (từ 1024px)'
