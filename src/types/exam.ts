@@ -105,3 +105,6 @@ export type TestExam = {
     /** SPT-60: exam duration in minutes. */
     duration_min?: number | null;
 };
+
+/** `question_bank/list` row: `blocks` = passage blocks the bank holds now. */
+export type BankSummary = {id: string; name: string; subject: string; blocks: number};

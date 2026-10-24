@@ -1,14 +1,16 @@
-import {useEffect, useRef, useState} from 'react';
+import {useRef, useState} from 'react';
 import type {CSSProperties, DragEvent} from 'react';
-import {useNavigate, useSearchParams} from 'react-router-dom';
-import {Button, Dropdown, Form, Icon, Message} from 'semantic-ui-react';
+import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 
-import Loading from '../../components/Loading';
-import Api from '../../services/api';
-import type {BankCapacity, StructureSlot, Folder, QuestionBank} from '../../types/exam';
+import {Button, Card, CardTitle, DesktopOnly, ErrorState, PageTitle, SkeletonCard, TextField, buttonClass, cx,
+    notify} from '../../components/ui';
+import {errorText} from '../../lib/format';
+import {useBankCapacity, useBanks, useCreateFromBank} from '../../queries/questionBank';
+import {useFolders} from '../../queries/exams';
+import type {StructureSlot} from '../../types/exam';
 import {BLOCK_LABELS, blockStyle, blockLabel} from './blockTypes';
+import './create-from-bank.css';
 
-type Bank = QuestionBank & {blocks?: number};
 /** Structure slot with a stable key: reordering must not mix up the inputs between cards. */
 type Slot = StructureSlot & {key: number};
 /** What is being dragged: a block type from the side palette, or an existing card (at position `from`). */
@@ -18,13 +20,12 @@ const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'
 /** Suggested title by POSITION — reordering renumbers the parts automatically. */
 const suggestedTitle = (i: number, type: string) => 'Phần ' + (ROMAN[i] || i + 1) + '. ' + blockLabel(type);
 
-const errorMessage = (e: unknown, fallback: string) => {
-    const x = e as {error?: string; message?: string} | null;
-    return (x && (x.error || x.message)) || fallback;
-};
-
 // Compare folder name with the bank's subject, ignoring accents and case: folder "Văn" still matches "Ngữ văn".
 const normalize = (s?: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+/** SPT default (design §3.3): Toán and Ngữ văn 90 minutes, other subjects 60. */
+export const suggestedMinutes = (subject?: string) =>
+    !subject || ['toan', 'ngu van'].includes(normalize(subject)) ? 90 : 60;
 
 let keyCounter = 0;
 
@@ -38,65 +39,49 @@ export default function CreateFromBank() {
     const [params] = useSearchParams();
     const navigate = useNavigate();
     const folder = params.get('folder') || '';
+    const bankParam = params.get('bank');
 
-    const [banks, setBanks] = useState<Bank[] | null>(null);
-    const [selected, setSelected] = useState<string[]>([]);
+    const banksQ = useBanks();
+    const foldersQ = useFolders(!!folder);
+    const save = useCreateFromBank();
+    const banks = banksQ.data;
+
+    // Preselect: coming from a bank's "Tạo đề" picks exactly that bank; from a subject folder, every bank of that subject.
+    const [picked, setPicked] = useState<string[] | null>(null);
+    const defaultSelected = (): string[] => {
+        if (!banks) return [];
+        if (bankParam) return banks.some(b => b.id === bankParam) ? [bankParam] : [];
+        const f = (foldersQ.data || []).find(x => x.id === folder);
+        const match = f && banks.find(b => b.subject && (normalize(b.subject).includes(normalize(f.name))
+            || normalize(f.name).includes(normalize(b.subject))));
+        return match ? banks.filter(b => b.subject === match.subject).map(b => b.id) : [];
+    };
+    const selected = picked ?? defaultSelected();
+
     const [name, setName] = useState('');
-    const [minutes, setMinutes] = useState(90);
+    const [typedMinutes, setTypedMinutes] = useState<number | null>(null);
     const [structure, setStructure] = useState<Slot[]>([]);
-    const [capacity, setCapacity] = useState<BankCapacity | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [saving, setSaving] = useState(false);
+    const [formError, setFormError] = useState<string | null>(null);
     const [overIndex, setOverIndex] = useState<number | null>(null);
     const dragging = useRef<Dragged | null>(null);
 
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            try {
-                const [list, folders]: [Bank[], Folder[]] = await Promise.all([
-                    Api.get('question_bank/list'),
-                    folder ? Api.get('folder/list') : Promise.resolve([]),
-                ]);
-                if (cancelled) return;
-                setBanks(list);
-                // Preselect: coming from a bank's "Tạo đề" button picks exactly that
-                // bank; coming from a subject folder picks every bank of that subject.
-                const bank = params.get('bank');
-                const f = folders.find(x => x.id === folder);
-                if (bank) setSelected(list.some(b => b.id === bank) ? [bank] : []);
-                else if (f) {
-                    const matchedBank = list.find(b => b.subject && (normalize(b.subject).includes(normalize(f.name))
-                        || normalize(f.name).includes(normalize(b.subject))));
-                    if (matchedBank) setSelected(list.filter(b => b.subject === matchedBank.subject).map(b => b.id));
-                }
-            } catch (e) {
-                if (!cancelled) setError(errorMessage(e, 'Không tải được danh sách ngân hàng'));
-            }
-        })();
-        return () => { cancelled = true; };
-    }, []);
-
     const slots: Record<string, number> = {};
     structure.forEach(x => { slots[x.loai] = (slots[x.loai] || 0) + 1; });
-    const slotsKey = JSON.stringify(slots);
+    // Asks the BE whenever the banks or the slot count per type change; editing a title does not refetch.
+    // With no slots the BE uses the subject's standard matrix — still called for the stock (per_type).
+    const capQ = useBankCapacity(selected, slots);
+    const capacity = selected.length ? capQ.data : undefined;
 
-    // Ask the BE whenever the banks or the slot count per type change. Editing a
-    // title does not change the key, so no re-fetch. With no slots the BE uses the
-    // subject's standard matrix — still called to get the stock (per_type) for the type palette.
-    useEffect(() => {
-        if (!selected.length) return setCapacity(null);
-        let cancelled = false;
-        Api.post('question_bank/capacity', {banks: selected, slots})
-            .then((c: BankCapacity) => { if (!cancelled) setCapacity(c); })
-            .catch(e => { if (!cancelled) setError(errorMessage(e, 'Không tính được sức chứa ngân hàng')); });
-        return () => { cancelled = true; };
-    }, [selected.join(','), slotsKey]);
-
-    if (!banks && !error) return <Loading/>;
+    const selectedSubject = banks && selected.length ? (banks.find(b => b.id === selected[0]) || {}).subject : undefined;
+    const minutes = typedMinutes ?? suggestedMinutes(selectedSubject);
 
     const stock = (capacity && capacity.per_type) || {};
-    const selectedSubject = banks && selected.length ? (banks.find(b => b.id === selected[0]) || {}).subject : undefined;
+    // A type whose stock is below its slot count → say exactly how many are missing, not just "0 runs".
+    const missing = Object.keys(slots).filter(t => (stock[t] || 0) < slots[t]);
+    const runs = capacity && structure.length ? capacity.capacity : null;
+    const level = runs === null ? '' : runs <= 0 || missing.length ? 'low' : runs < 3 ? 'mid' : 'high';
+
+    const toggleBank = (id: string) => setPicked(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id]);
 
     const addSlot = (type: string, at = structure.length) =>
         setStructure(list => [...list.slice(0, at), {loai: type, tieu_de: '', key: ++keyCounter}, ...list.slice(at)]);
@@ -135,20 +120,14 @@ export default function CreateFromBank() {
     };
     const dragEnd = () => { dragging.current = null; setOverIndex(null); };
 
-    // A type whose stock is below its slot count → say exactly how many are missing, not just "0 runs".
-    const missing = Object.keys(slots).filter(t => (stock[t] || 0) < slots[t]);
-    const runs = capacity && structure.length ? capacity.capacity : null;
-    const level = runs === null ? '' : runs <= 0 ? 'low' : runs < 3 ? 'mid' : 'high';
-
-    const save = async () => {
-        setError(null);
-        if (!name.trim()) return setError('Chưa đặt tên đề.');
-        if (!selected.length) return setError('Chưa chọn ngân hàng đề.');
-        if (!structure.length) return setError('Cấu trúc đề đang trống — kéo ít nhất một loại khối vào.');
-        if (missing.length) return setError('Ngân hàng chưa đủ khối cho cấu trúc này.');
-        setSaving(true);
+    const submit = async () => {
+        setFormError(null);
+        if (!name.trim()) return setFormError('Chưa đặt tên đề.');
+        if (!selected.length) return setFormError('Chưa chọn ngân hàng đề.');
+        if (!structure.length) return setFormError('Cấu trúc đề đang trống — kéo ít nhất một loại khối vào.');
+        if (missing.length) return setFormError('Ngân hàng chưa đủ khối cho cấu trúc này.');
         try {
-            await Api.post('exam/create_from_bank', {
+            await save.mutateAsync({
                 banks: selected,
                 name: name.trim(),
                 duration: minutes,
@@ -156,137 +135,144 @@ export default function CreateFromBank() {
                 // An empty slot saves the suggested title: students must see "Phần I…", not a blank line.
                 cau_truc: structure.map((x, i) => ({loai: x.loai, tieu_de: x.tieu_de.trim() || suggestedTitle(i, x.loai)})),
             });
-            navigate('/');
         } catch (e) {
-            setSaving(false);
-            setError(errorMessage(e, 'Lưu đề thất bại, thử lại.'));
+            return setFormError(errorText(e, 'Lưu đề thất bại, thử lại.'));
+        }
+        if (folder) navigate('/subject/' + folder);
+        else {
+            notify.success("Đã tạo đề. Đề đang ở 'Đề ngoài thư mục' — chọn môn để học sinh thấy.");
+            navigate('/question-bank');
         }
     };
 
-    const options = (banks || []).map(b => ({
-        key: b.id, value: b.id,
-        text: b.name + (b.subject ? ' · ' + b.subject : ''),
-        description: (b.blocks || 0) + ' khối',
-        // Mixing subjects would grade with wrong weights (the BE grades per subject) — only allow the same subject.
-        disabled: !!selectedSubject && b.subject !== selectedSubject && !selected.includes(b.id),
-    }));
+    const body = banksQ.isError
+        ? <ErrorState title='Không tải được danh sách ngân hàng' description={errorText(banksQ.error, 'Kiểm tra mạng rồi thử lại.')}
+                      onRetry={() => banksQ.refetch()} retrying={banksQ.isFetching}/>
+        : !banks
+            ? <div className='vt-cfb-layout'><SkeletonCard/><SkeletonCard/></div>
+            : <div className='vt-cfb-layout'>
+                <div className='vt-cfb-main'>
+                    <Card>
+                        <div className='vt-cfb-info'>
+                            <TextField label='Tên đề' placeholder='Ví dụ: Đề luyện thi — Ngữ văn' value={name}
+                                       onChange={e => setName(e.target.value)} className='vt-cfb-name'/>
+                            <TextField label='Thời gian (phút)' type='number' inputMode='numeric' min={0} value={minutes}
+                                       onChange={e => setTypedMinutes(Math.max(0, Number(e.target.value) || 0))}
+                                       hint={selectedSubject && typedMinutes === null
+                                           ? 'Gợi ý cho ' + selectedSubject + ': ' + suggestedMinutes(selectedSubject) + ' phút' : undefined}/>
+                        </div>
+                        <div className='vt-cfb-banks' role='group' aria-label='Ngân hàng đề'>
+                            <span className='vt-field-label'>Ngân hàng đề</span>
+                            {banks.length === 0
+                                ? <p className='vt-cfb-hint'>Chưa có ngân hàng nào — tạo ở mục Ngân hàng câu hỏi.</p>
+                                : <div className='vt-cfb-chips'>
+                                    {banks.map(b => {
+                                        const on = selected.includes(b.id);
+                                        // Mixing subjects would grade with wrong weights (the BE grades per subject).
+                                        const off = !!selectedSubject && b.subject !== selectedSubject && !on;
+                                        return <button key={b.id} type='button' aria-pressed={on} disabled={off}
+                                                       className={cx('vt-cfb-chip', on && 'on')} onClick={() => toggleBank(b.id)}>
+                                            {b.name}{b.subject ? ' · ' + b.subject : ''} · {b.blocks} khối{on ? ' ×' : ''}
+                                        </button>;
+                                    })}
+                                </div>}
+                            <p className='vt-cfb-hint'>
+                                {folder ? 'Đề lưu vào thư mục môn đang mở và học sinh thấy ngay.'
+                                    : 'Đề nằm ở "Đề ngoài thư mục" — chọn môn sau để học sinh thấy.'}
+                            </p>
+                        </div>
+                    </Card>
 
-    return <div className='tk-cfb'>
-        <div className='tk-cfb-head'>
-            <h2><Icon name='random'/> Tạo đề từ ngân hàng</h2>
-            <p>Mỗi lượt làm, học sinh nhận một đề rút ngẫu nhiên theo cấu trúc dưới đây, không lặp khối đã gặp.</p>
+                    <Card>
+                        <div className='vt-cfb-title'>
+                            <CardTitle>Cấu trúc đề</CardTitle>
+                            <span>{structure.length} phần</span>
+                        </div>
+                        <p className='vt-cfb-hint'>Kéo loại khối từ cột phải vào, hoặc bấm +. Kéo để đổi thứ tự.</p>
+                        <ol className='vt-cfb-list' onDragOver={e => dragOver(e, structure.length)} onDrop={e => drop(e, structure.length)}>
+                            {structure.map((x, i) => {
+                                const isLifted = dragging.current && 'from' in dragging.current && dragging.current.from === i;
+                                return <li key={x.key} draggable
+                                           className={cx('vt-cfb-slot', overIndex === i && 'over', isLifted && 'lifted')}
+                                           style={{'--block-color': blockStyle(x.loai).color} as CSSProperties}
+                                           onDragStart={e => dragStart(e, {from: i})}
+                                           onDragOver={e => { e.stopPropagation(); dragOver(e, i); }}
+                                           onDrop={e => { e.stopPropagation(); drop(e, i); }}
+                                           onDragEnd={dragEnd}>
+                                    <span className='vt-cfb-grip' aria-hidden='true'>⋮⋮</span>
+                                    <div className='vt-cfb-slot-body'>
+                                        <span className='vt-cfb-kind'>{blockLabel(x.loai)}</span>
+                                        <input className='vt-input' value={x.tieu_de} aria-label={'Tiêu đề phần ' + (i + 1)}
+                                               placeholder={suggestedTitle(i, x.loai)} maxLength={200}
+                                               onChange={e => setTitle(i, e.target.value)}/>
+                                    </div>
+                                    <div className='vt-cfb-actions'>
+                                        <button type='button' aria-label='Lên' disabled={i === 0} onClick={() => move(i, i - 1)}>↑</button>
+                                        <button type='button' aria-label='Xuống' disabled={i === structure.length - 1}
+                                                onClick={() => move(i, i + 2)}>↓</button>
+                                        <button type='button' aria-label='Xoá' className='remove' onClick={() => remove(i)}>×</button>
+                                    </div>
+                                </li>;
+                            })}
+                            <li className={cx('vt-cfb-drop', overIndex === structure.length && 'over', !structure.length && 'empty')}>
+                                {structure.length ? 'Thả vào đây để thêm vào cuối'
+                                    : 'Kéo loại khối từ bên phải vào đây, hoặc bấm nút + để thêm'}
+                            </li>
+                        </ol>
+                    </Card>
+                </div>
+
+                <div className='vt-cfb-side'>
+                    <Card size='md'>
+                        <CardTitle>Loại khối</CardTitle>
+                        {!selected.length && <p className='vt-cfb-hint'>Chọn ngân hàng để xem kho có những khối nào.</p>}
+                        <div className='vt-cfb-palette'>
+                            {Object.keys(BLOCK_LABELS).map(t => {
+                                const have = stock[t] || 0;
+                                const used = slots[t] || 0;
+                                const off = !selected.length || !have;
+                                return <div key={t} className={cx('vt-cfb-type', off && 'off')}
+                                            style={{'--block-color': blockStyle(t).color} as CSSProperties}
+                                            draggable={!off} onDragStart={e => dragStart(e, {type: t})} onDragEnd={dragEnd}>
+                                    <div className='vt-cfb-type-text'>
+                                        <b>{blockLabel(t)}</b>
+                                        <small className={used > have ? 'short' : ''}>
+                                            {selected.length ? (used ? 'dùng ' + used + ' / ' : '') + 'có ' + have + ' khối' : '—'}
+                                        </small>
+                                    </div>
+                                    <button type='button' aria-label={'Thêm ' + blockLabel(t)} disabled={off}
+                                            onClick={() => addSlot(t)}>+</button>
+                                </div>;
+                            })}
+                        </div>
+                    </Card>
+
+                    <Card size='md' className={cx('vt-cfb-capacity', level)}>
+                        {capQ.isError && <p className='vt-cfb-err' role='alert'>Không tính được sức chứa ngân hàng</p>}
+                        {runs === null
+                            ? <p className='vt-cfb-hint'>Thêm khối vào cấu trúc để xem mỗi học sinh làm được bao nhiêu lần không lặp.</p>
+                            : <>
+                                <div className='vt-cfb-runs'><b>{runs}</b><span>lần làm không lặp<br/>cho mỗi học sinh</span></div>
+                                {missing.length > 0 && <p>Thiếu khối: {missing.map(t =>
+                                    blockLabel(t) + ' (cần ' + slots[t] + ', có ' + (stock[t] || 0) + ')').join('; ')}.</p>}
+                                {!missing.length && runs < 3 && <p>Ít — học sinh làm lại sẽ sớm gặp khối cũ. Thêm khối vào ngân hàng
+                                    {capacity && capacity.bottleneck ? ' loại ' + blockLabel(capacity.bottleneck[0]) : ''}.</p>}
+                                {!missing.length && runs >= 3 && capacity && capacity.bottleneck &&
+                                    <p>Loại hết trước: {blockLabel(capacity.bottleneck[0])}. Sau đó đề vẫn rút được, lặp khối ít gặp nhất.</p>}
+                            </>}
+                        {formError && <p className='vt-cfb-err' role='alert'>{formError}</p>}
+                        <Button variant='primary' block size='lg' loading={save.isPending}
+                                disabled={save.isPending || missing.length > 0} onClick={submit}>Lưu đề</Button>
+                    </Card>
+                </div>
+            </div>;
+
+    return <DesktopOnly backTo='/question-bank'>
+        <div className='vt-cfb'>
+            <Link to='/question-bank' className={buttonClass({variant: 'ghost'})}>← Ngân hàng câu hỏi</Link>
+            <PageTitle>Tạo đề từ ngân hàng</PageTitle>
+            <p className='vt-cfb-lead'>Mỗi lượt làm, học sinh nhận một đề rút ngẫu nhiên theo cấu trúc dưới đây, không lặp khối đã gặp.</p>
+            {body}
         </div>
-
-        <div className='tk-cfb-layout'>
-            <div className='tk-cfb-main'>
-                <div className='tk-cfb-card'>
-                    <Form>
-                        <Form.Group widths='equal'>
-                            <Form.Input label='Tên đề' placeholder='Ví dụ: Đề luyện thi vào 10 — Ngữ văn'
-                                        value={name} onChange={(_e, {value}) => setName(value)} width={12}/>
-                            <Form.Input label='Thời gian (phút)' type='number' min={0}
-                                        value={minutes} width={4}
-                                        onChange={(_e, {value}) => setMinutes(Math.max(0, Number(value) || 0))}/>
-                        </Form.Group>
-                        <Form.Field>
-                            <label>Ngân hàng đề</label>
-                            <Dropdown multiple search selection fluid options={options} value={selected}
-                                      placeholder={banks && banks.length ? 'Chọn một hoặc nhiều ngân hàng cùng môn'
-                                                                         : 'Chưa có ngân hàng nào — tạo ở mục Ngân hàng đề'}
-                                      onChange={(_e, {value}) => setSelected(value as string[])}/>
-                        </Form.Field>
-                    </Form>
-                </div>
-
-                <div className='tk-cfb-card'>
-                    <div className='tk-cfb-title'>
-                        <h3>Cấu trúc đề</h3>
-                        <span>{structure.length} phần</span>
-                    </div>
-                    <ol className='tk-cfb-list' onDragOver={e => dragOver(e, structure.length)} onDrop={e => drop(e, structure.length)}>
-                        {structure.map((x, i) => {
-                            const m = blockStyle(x.loai);
-                            const isLifted = dragging.current && 'from' in dragging.current && dragging.current.from === i;
-                            return <li key={x.key} draggable
-                                       className={'tk-cfb-slot' + (overIndex === i ? ' over' : '') + (isLifted ? ' lifted' : '')}
-                                       style={{'--block-color': m.color} as CSSProperties}
-                                       onDragStart={e => dragStart(e, {from: i})}
-                                       onDragOver={e => { e.stopPropagation(); dragOver(e, i); }}
-                                       onDrop={e => { e.stopPropagation(); drop(e, i); }}
-                                       onDragEnd={dragEnd}>
-                                <Icon name='bars' className='tk-cfb-grip' aria-hidden='true'/>
-                                <span className='tk-cfb-num'>{i + 1}</span>
-                                <div className='tk-cfb-slot-body'>
-                                    <span className='tk-cfb-kind'><Icon name={m.icon}/>{blockLabel(x.loai)}</span>
-                                    <input className='tk-cfb-input' value={x.tieu_de} aria-label={'Tiêu đề phần ' + (i + 1)}
-                                           placeholder={suggestedTitle(i, x.loai)} maxLength={200}
-                                           onChange={e => setTitle(i, e.target.value)}/>
-                                </div>
-                                <div className='tk-cfb-actions'>
-                                    <button type='button' aria-label='Lên' disabled={i === 0}
-                                            onClick={() => move(i, i - 1)}><Icon name='arrow up'/></button>
-                                    <button type='button' aria-label='Xuống' disabled={i === structure.length - 1}
-                                            onClick={() => move(i, i + 2)}><Icon name='arrow down'/></button>
-                                    <button type='button' aria-label='Xoá' className='remove'
-                                            onClick={() => remove(i)}><Icon name='close'/></button>
-                                </div>
-                            </li>;
-                        })}
-                        <li className={'tk-cfb-drop' + (overIndex === structure.length ? ' over' : '') + (structure.length ? '' : ' empty')}>
-                            <Icon name='hand pointer outline'/>
-                            {structure.length ? 'Thả vào đây để thêm vào cuối'
-                                      : 'Kéo loại khối từ bên phải vào đây, hoặc bấm nút + để thêm'}
-                        </li>
-                    </ol>
-                </div>
-            </div>
-
-            <div className='tk-cfb-side'>
-                <div className='tk-cfb-card'>
-                    <h3>Loại khối</h3>
-                    {!selected.length && <p className='tk-cfb-hint'>Chọn ngân hàng để xem kho có những khối nào.</p>}
-                    <div className='tk-cfb-palette'>
-                        {Object.keys(BLOCK_LABELS).map(t => {
-                            const m = blockStyle(t);
-                            const have = stock[t] || 0;
-                            const used = slots[t] || 0;
-                            const off = !selected.length || !have;
-                            return <div key={t} className={'tk-cfb-type' + (off ? ' off' : '')}
-                                        style={{'--block-color': m.color} as CSSProperties}
-                                        draggable={!off} onDragStart={e => dragStart(e, {type: t})} onDragEnd={dragEnd}>
-                                <span className='tk-cfb-type-icon'><Icon name={m.icon}/></span>
-                                <div className='tk-cfb-type-text'>
-                                    <b>{blockLabel(t)}</b>
-                                    <small className={used > have ? 'short' : ''}>
-                                        {selected.length ? (used ? 'dùng ' + used + ' / ' : '') + 'có ' + have + ' khối' : '—'}
-                                    </small>
-                                </div>
-                                <button type='button' aria-label={'Thêm ' + blockLabel(t)} disabled={off}
-                                        onClick={() => addSlot(t)}><Icon name='plus'/></button>
-                            </div>;
-                        })}
-                    </div>
-                </div>
-
-                <div className={'tk-cfb-card tk-cfb-capacity ' + level}>
-                    {runs === null
-                        ? <p className='tk-cfb-hint'>Thêm khối vào cấu trúc để xem mỗi học sinh làm được bao nhiêu lần không lặp.</p>
-                        : <>
-                            <div className='tk-cfb-runs'><b>{runs}</b><span>lần làm không lặp<br/>cho mỗi học sinh</span></div>
-                            {missing.length > 0 && <p>Thiếu khối: {missing.map(t =>
-                                blockLabel(t) + ' (cần ' + slots[t] + ', có ' + (stock[t] || 0) + ')').join('; ')}.</p>}
-                            {!missing.length && runs < 3 && <p>Ít — học sinh làm lại sẽ sớm gặp khối cũ. Thêm khối vào ngân hàng
-                                {capacity && capacity.bottleneck ? ' loại ' + blockLabel(capacity.bottleneck[0]) : ''}.</p>}
-                            {!missing.length && runs >= 3 && capacity && capacity.bottleneck &&
-                            <p>Loại hết trước: {blockLabel(capacity.bottleneck[0])}. Sau đó đề vẫn rút được, lặp khối ít gặp nhất.</p>}
-                        </>}
-                    {error && <Message negative size='small'>{error}</Message>}
-                    <Button primary fluid size='large' loading={saving} disabled={saving || !!missing.length}
-                            onClick={save}>
-                        <Icon name='save'/> Lưu đề
-                    </Button>
-                </div>
-            </div>
-        </div>
-    </div>;
+    </DesktopOnly>;
 }

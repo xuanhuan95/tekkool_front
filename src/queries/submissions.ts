@@ -40,3 +40,22 @@ export function useSubmission(id: string | undefined) {
         retry: retryFlaky,
     });
 }
+
+/**
+ * Teacher header: count of attempts awaiting grading. Reuses `exam/pending` (the /to-grade screen
+ * reads the same list) rather than an endpoint that returns just a number.
+ */
+export function usePendingCount(enabled = true) {
+    return useQuery({
+        queryKey: ['exam', 'pending'],
+        // Every 60s: students submit at any time; faster is wasteful, slower makes the pill pointless.
+        refetchInterval: 60_000,
+        enabled,
+        // Network lost / session expired: keep the old number, do not break the header.
+        placeholderData: prev => prev,
+        queryFn: async () => {
+            const subs = await Api.get<Submission[]>('exam/pending');
+            return Array.isArray(subs) ? subs.length : 0;
+        },
+    });
+}

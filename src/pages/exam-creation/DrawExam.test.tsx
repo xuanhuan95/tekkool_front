@@ -1,6 +1,7 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter, Route, Routes, useLocation} from 'react-router-dom';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import Api from '../../services/api';
 import DrawExam from './DrawExam';
@@ -22,12 +23,14 @@ function Arrived() {
 }
 
 const renderAt = (path: string) => render(
-    <MemoryRouter initialEntries={[path]}>
-        <Routes>
-            <Route path='/draw-exam/bank/:bankId' element={<DrawExam/>}/>
-            <Route path='/do-exam/:id' element={<Arrived/>}/>
-        </Routes>
-    </MemoryRouter>
+    <QueryClientProvider client={new QueryClient({defaultOptions: {queries: {retry: false}}})}>
+        <MemoryRouter initialEntries={[path]}>
+            <Routes>
+                <Route path='/draw-exam/bank/:bankId' element={<DrawExam/>}/>
+                <Route path='/do-exam/:id' element={<Arrived/>}/>
+            </Routes>
+        </MemoryRouter>
+    </QueryClientProvider>
 );
 
 beforeEach(() => {

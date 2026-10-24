@@ -80,3 +80,11 @@ describe('convertData: builds all fields for the new type', () => {
         expect(MC).toEqual(original);
     });
 });
+
+describe('convertData: Word import fields (SPT-62)', () => {
+    it('keeps max_score and explanation, drops block_type', () => {
+        const out = convertData({question: 'q', max_score: 0.25, explanation: '<p>lg</p>', block_type: 'TraLoiNgan'}, 'MultipleChoice');
+        expect(out).toMatchObject({max_score: 0.25, explanation: '<p>lg</p>'});
+        expect(out.block_type).toBeUndefined();
+    });
+});

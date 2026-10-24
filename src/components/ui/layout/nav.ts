@@ -46,3 +46,15 @@ export const ADMIN_NAV: NavItem[] = [
     {to: '/manage/revenue', label: 'Doanh thu'},
     {to: '/manage/transactions', label: 'Giao dịch'},
 ];
+
+/**
+ * Teacher (spec-giao-vien §1): Tổng quan · Môn & đề · Ngân hàng câu hỏi · Chấm bài.
+ * ponytail: no Tổng quan screen yet — '/' is still the old folder Dashboard, so "Môn & đề" points at
+ * '/subject' (falls through to the same Dashboard) until GV-TongQuan / GV-Mon are built.
+ */
+export const TEACHER_NAV: NavItem[] = [
+    {to: '/', label: 'Tổng quan', end: true},
+    {to: '/subject', label: 'Môn & đề', also: ['/create-exam', '/edit-exam', '/import-exam']},
+    {to: '/question-bank', label: 'Ngân hàng câu hỏi', also: ['/create-from-bank', '/draw-exam']},
+    {to: '/to-grade', label: 'Chấm bài', also: ['/my-exams']},
+];

@@ -90,7 +90,18 @@ Cách các component này được nối với API: [lam-bai.md](lam-bai.md).
 
 | File | Dùng khi |
 |---|---|
-| `SafeHtml.tsx` (`renderHTML(html)`) | Mọi nội dung đề do giáo viên nhập: lọc XSS (DOMPurify) + vẽ công thức `<span data-latex>` bằng KaTeX |
+| `SafeHtml.tsx` (`renderHTML(html)`) | Mọi nội dung đề do giáo viên nhập: lọc XSS (DOMPurify) + vẽ công thức `<span data-latex>` bằng KaTeX; hình lỗi tải → khung xám "Không tải được hình…" (`.vt-img-broken`) |
 | `Passage.tsx` | Đoạn văn dùng chung cho một nhóm câu (in một lần ở câu đầu nhóm, theo `data.passageId`) |
 | `Editor.tsx` | TipTap — ô tự luận của học sinh, editor soạn đề của giáo viên |
 | `OutOfTurnsModal.tsx` | Hộp "Bạn đã hết lượt thi" (HS-HetLuot) khi API trả 402 |
+
+## Khung và logic màn giáo viên (SPT-57)
+
+| Thành phần | Ghi chú |
+|---|---|
+| `TeacherLayout`, `TEACHER_NAV` (`ui/layout`) | Khung giáo viên: menu trên (web) / dưới (điện thoại), badge số bài chờ chấm (`usePendingCount`), nút **Đăng xuất** ở cả header điện thoại và web (`useAuthStore.signOut`) |
+| `DesktopOnly` (`backTo`) | Màn chỉ cho máy tính: dưới 1024px hiện empty state + link về `backTo`. Lưu ý: cả empty state và `children` đều có trong DOM, CSS (`.vt-only-mobile`/`.vt-only-web`) ẩn bớt. |
+| `queries/questionBank.ts` | `useBanks`, `useBankSubjects`, `useCreateBank`, `useRemoveBank`, `useBankCapacity`, `useBankStock`, `useCreateFromBank`, `useDrawInfo`, `useDrawExam`; khoá cache `bankKeys` |
+| `ImportExam` (lời giải) | Câu có `data.explanation` (SPT-62) hiện khối "Lời giải" gập được, qua `SafeHtml`; `max_score`/`explanation` giữ nguyên khi đổi loại câu, `block_type` bị bỏ |
+| `exam-creation/importRules.ts` | Luật thuần của màn nhập đề, có test: `toUnits` (gộp các ý Đúng/Sai cùng `passageId` thành một câu), `isMissingKey` (Q12), `isBadTrueFalse` (Q13, dùng lại được cho editor), `saveBlocker`, `examStats`, `fileProblem`, `importErrorText`, và các hàm sửa payload (`setType`, `setPassage`, `setAnswer`, `removeQuestions`…) |
+| `CreateFromBank.suggestedMinutes` | Gợi ý số phút theo môn (Toán/Ngữ văn 90, môn khác 60); giáo viên vẫn sửa được |
