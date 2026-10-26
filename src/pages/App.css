@@ -1401,3 +1401,20 @@ body {
 .vt-editor-hints { background: #fffaeb; color: #93370d; border-radius: 8px; padding: 8px; margin-top: 8px; }
 .vt-editor-problems-title { font-weight: 600; }
 #topMenu .vt-status-item button, #topMenu button { margin-left: 6px; }
+
+/* Exam editor on phones/tablets (SPT-72 QC): the 2018 layout is a fixed 250px sidebar + margin-left 260px,
+   a top menu that never wraps, and unclipped outline links → scrollWidth 1167 at 390px.
+   Below 1024px the sidebar becomes a short block above the content and the menus wrap. */
+@media (max-width: 1023.98px) {
+    #ExamCreation { display: block; height: auto; }
+    #ExamCreation #leftMenu { position: static; width: 100%; height: auto; }
+    #ExamCreation #leftMenu .exam-resume { height: auto; max-height: 30vh; }
+    #ExamCreation #leftMenu .exam-resume .item { min-width: 0; max-width: 100%; }
+    #ExamCreation #content { width: auto; height: auto; margin: 0; }
+    #ExamCreation #content .content-wrapper { height: auto; }
+    #ExamCreation #topMenu { flex-wrap: wrap; }
+    #ExamCreation .exam-section { width: 100%; }
+    /* the rail holds the add-question buttons: keep them, in flow under the section */
+    #ExamCreation .ui.right.rail { position: static; width: auto; margin: 8px 0 0; }
+    #ExamCreation .ui.right.rail .question-types { flex-direction: row; width: auto; }
+}
