@@ -62,25 +62,36 @@ class BaseApi {
     // ponytail: _call always does JSON.stringify + sets Content-Type: application/json,
     // so it cannot send files. Upload must let the browser set Content-Type with
     // the multipart boundary -> do NOT set headers manually here.
-    upload = <T = any>(url: string, file: File | Blob): Promise<T> => {
+    private send(url: string, file: File | Blob): Promise<Response> {
         let apiUrl = API_URL + url;
         if (window.token) apiUrl += (apiUrl.includes('?') ? '&' : '?') + 'token=' + window.token;
 
         const body = new FormData();
         body.append('file', file);
+        return fetch(apiUrl, {method: 'POST', body});
+    }
 
-        return fetch(apiUrl, {method: 'POST', body})
-            // a proxy 413/502 may answer with HTML: keep the status as `code`, like _call
-            .then(res => res.text().then(body => {
-                let json: any;
-                try { json = JSON.parse(body); } catch (e) {
-                    throw {code: res.status, error: 'Máy chủ lỗi (' + res.status + ')'} as ApiError;
-                }
-                if (json.code && json.code !== 200) throw json as ApiError;
-                if (!res.ok) throw {code: res.status, ...json} as ApiError;
-                return json as T;
-            }));
-    };
+    // a proxy 413/502 may answer with HTML: keep the status as `code`, like _call
+    private parse(res: Response): Promise<any> {
+        return res.text().then(body => {
+            let json: any;
+            try { json = JSON.parse(body); } catch (e) {
+                throw {code: res.status, error: 'Máy chủ lỗi (' + res.status + ')'} as ApiError;
+            }
+            if (json.code && json.code !== 200) throw json as ApiError;
+            if (!res.ok) throw {code: res.status, ...json} as ApiError;
+            return json;
+        });
+    }
+
+    upload = <T = any>(url: string, file: File | Blob): Promise<T> =>
+        this.send(url, file).then(res => this.parse(res) as Promise<T>);
+
+    /** Same request, but the answer is a file (import_docx/pdf): a JSON error body is still turned into an ApiError. */
+    uploadBlob = (url: string, file: File | Blob): Promise<Blob> =>
+        this.send(url, file).then(res => res.ok ? res.blob() : this.parse(res).then(() => {
+            throw {code: res.status, error: 'Máy chủ lỗi (' + res.status + ')'} as ApiError;
+        }));
 
     post = <T = any>(url: string, data?: unknown) => this._call<T>(url, 'POST', data);
     put = <T = any>(url: string, data?: unknown) => this._call<T>(url, 'PUT', data);

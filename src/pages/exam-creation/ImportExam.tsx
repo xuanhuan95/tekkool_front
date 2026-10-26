@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import type {ChangeEvent} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
@@ -14,6 +14,7 @@ import {useFolders} from '../../queries/exams';
 import {bankKeys, useBankStock, useBanks} from '../../queries/questionBank';
 import Api from '../../services/api';
 import {errorText} from '../../lib/format';
+import {DESKTOP, useMediaQuery} from '../useMediaQuery';
 import {blockLabel} from './blockTypes';
 import {
     badTrueFalse, countQuestions, examStats, fileProblem, importErrorText, isBadTrueFalse, isChoice, isMissingKey, missingKeys,
@@ -33,28 +34,19 @@ const QUESTION_TYPES = [
 
 type Edit = (fn: (e: ImportedExam) => ImportedExam) => void;
 
-/**
- * Right column: the Word file's own lines (already escaped by the backend) so a teacher can see where
- * the parser misread. ponytail: plain regex, 3 token kinds — no highlight library.
- */
-function highlight(html: string) {
-    // A marker counts only at the START of a line: "Những Câu chuyện này…" mid-line is not one.
-    const head = html.match(
-        /^(?:<b>)?\s*(?:(Câu\s*\d*[^.:<]{0,18}(?:<\/b>)?\s*[.:])|((?:Phần\s*\d*[^.:<]{0,18}(?:<\/b>)?\s*[.:])|(?:VĂN BẢN|ĐỀ SỐ)\s*\d+(?:<\/b>)?|ĐÁP\s*ÁN(?:<\/b>)?))/
-    );
-    if (head) return `<em class="${head[1] ? 'src-q' : 'src-h'}">${head[0]}</em>${html.slice(head[0].length)}`;
-    return html.replace(/(^|<br>|\s)([A-D]\s*\.)(\s)/g, '$1<em class="src-a">$2</em>$3');
-}
+type PdfState = {status: 'idle' | 'loading' | 'ready' | 'none'; url?: string};
 
-function SourceView({lines}: {lines?: string[]}) {
-    if (!lines || !lines.length) return <div className='vt-src vt-src-empty'>Không có văn bản gốc cho đề này.</div>;
-    return <div className='vt-src'>
-        {lines.map((t, i) => <div key={i} className='vt-src-line'>
-            <span className='vt-src-no'>{i + 1}</span>
-            {/* backend escapes every line; highlight only adds <em> */}
-            <span className='vt-src-text' dangerouslySetInnerHTML={{__html: highlight(t)}}/>
-        </div>)}
+/**
+ * Right column: the Word file itself as a PDF (SPT-70, LibreOffice on the BE — not the parser's text), so a teacher
+ * sees exactly what the file looks like next to what was recognised. 503 / any failure → no source, the rest still works.
+ */
+function SourcePdf({pdf}: {pdf: PdfState}) {
+    if (pdf.status === 'loading') return <div className='vt-src-empty' aria-live='polite'>
+        <ProgressBar value={1} max={3} label='Đang dựng bản gốc'/>
+        <p>Đang dựng bản gốc từ file Word… file nhiều đề có thể mất khoảng 15 giây.</p>
     </div>;
+    if (pdf.status === 'ready' && pdf.url) return <iframe className='vt-src-pdf' src={pdf.url} title='Bản gốc của file Word'/>;
+    return <div className='vt-src-empty'>Không có bản gốc cho file này.</div>;
 }
 
 /** Duplicate rate: never red — a warning to read, not an error to fix (same-template questions measure 80–90%). */
@@ -148,7 +140,7 @@ function UnitCard({unit, no, edit, showPassage, duplicates}: UnitCardProps) {
     </div>;
 }
 
-function ExamBody({exam, edit, duplicates}: {exam: ImportedExam; edit: Edit; duplicates: Record<string, DuplicateInfo>}) {
+function ExamBody({exam, edit, duplicates, pdf}: {exam: ImportedExam; edit: Edit; duplicates: Record<string, DuplicateInfo>; pdf: PdfState}) {
     let no = 0;
     return <div className='vt-imp-split'>
         <div className='vt-imp-col'>
@@ -167,7 +159,7 @@ function ExamBody({exam, edit, duplicates}: {exam: ImportedExam; edit: Edit; dup
         </div>
         <div className='vt-imp-col vt-imp-source'>
             <div className='vt-imp-col-head'>Văn bản gốc trong file Word</div>
-            <SourceView lines={exam.source}/>
+            {pdf.status !== 'idle' && <SourcePdf pdf={pdf}/>}
         </div>
     </div>;
 }
@@ -221,6 +213,13 @@ export default function ImportExam() {
     const [checking, setChecking] = useState(false);
     // images already uploaded (data URI → path): a retry after a dropped connection skips them
     const images = useRef<ImageCache>(new Map());
+    const desktop = useMediaQuery(DESKTOP);
+    const [pdf, setPdf] = useState<PdfState>({status: 'idle'});
+    // One object URL at a time: revoked when the file changes and when the screen closes.
+    const pdfUrl = useRef<string>();
+    const dropPdf = () => { if (pdfUrl.current) URL.revokeObjectURL(pdfUrl.current); pdfUrl.current = undefined; };
+    const seq = useRef(0);   // a PDF that arrives after another file was picked (or the screen closed) is ignored
+    useEffect(() => () => { seq.current++; dropPdf(); }, []);
 
     const chosen = exams.filter(e => picked[e.id]);
     // Q15: imported exams are saved as Nháp even with errors — only the bank path (?bank=) keeps its block.
@@ -236,6 +235,15 @@ export default function ImportExam() {
         const bad = fileProblem(file);
         if (bad) { setProblem(bad); target.value = ''; return; }
         setProblem(null); setReading(true);
+        dropPdf();
+        setPdf({status: desktop ? 'loading' : 'idle'});
+        // In parallel with the parse (the exams do not wait for it). Phones neither call it nor show the pane.
+        const mine = ++seq.current;
+        if (desktop) Api.uploadBlob('import_docx/pdf', file).then(blob => {
+            if (mine !== seq.current) return;
+            pdfUrl.current = URL.createObjectURL(blob);
+            setPdf({status: 'ready', url: pdfUrl.current});
+        }, () => { if (mine === seq.current) setPdf({status: 'none'}); });
         try {
             const res = await Api.upload<{exams: ImportedExam[]; warnings?: string[]}>('import_docx/preview', file);
             // Tick ALL by default: untick a few beats re-picking 20.
@@ -430,7 +438,7 @@ export default function ImportExam() {
                         <Button variant='secondary' size='sm' aria-expanded={open}
                                 onClick={() => setOpenId(open ? null : exam.id)}>{open ? 'Thu gọn' : 'Xem & sửa'}</Button>
                     </div>
-                    {open && <ExamBody exam={exam} edit={patchExam(exam.id)} duplicates={duplicates}/>}
+                    {open && <ExamBody exam={exam} edit={patchExam(exam.id)} duplicates={duplicates} pdf={pdf}/>}
                 </div>;
             })}
         </Card>}

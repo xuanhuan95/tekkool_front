@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {fireEvent, render, screen} from '@testing-library/react';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
@@ -260,5 +260,45 @@ describe('ImportExam: payload decides which slot a question goes into', () => {
         fireEvent.click(saveButton());
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         expect(sent[0].sections[0].questions[0].data).toMatchObject({explanation: '<p>Vì 1+1=2</p>', max_score: 0.25});
+    });
+});
+
+describe('ImportExam: bản gốc PDF (SPT-70)', () => {
+    const desktop = (on: boolean) => vi.stubGlobal('matchMedia', (q: string) =>
+        ({matches: on, media: q, addEventListener: () => {}, removeEventListener: () => {}}));
+    beforeEach(() => {
+        mockPost();
+        URL.createObjectURL = vi.fn(() => 'blob:pdf-1');
+        URL.revokeObjectURL = vi.fn();
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('desktop: asks for the PDF next to the parse and shows it in an iframe; revoked on unmount', async () => {
+        desktop(true);
+        vi.spyOn(Api, 'uploadBlob').mockResolvedValue(new Blob(['%PDF']));
+        const {unmount} = renderScreen();
+        await loadFile();
+        await vi.waitFor(() => expect(document.querySelector('iframe')?.getAttribute('src')).toBe('blob:pdf-1'));
+        expect(Api.uploadBlob).toHaveBeenCalledWith('import_docx/pdf', expect.any(File));
+        unmount();
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:pdf-1');
+    });
+
+    it('PDF fails (503): says there is no source, import still works', async () => {
+        desktop(true);
+        vi.spyOn(Api, 'uploadBlob').mockRejectedValue({code: 503, error: 'x'});
+        renderScreen();
+        await loadFile();
+        await screen.findByText('Không có bản gốc cho file này.');
+        expect(saveButton().disabled).toBe(false);
+    });
+
+    it('phone: no PDF call, no pane', async () => {
+        desktop(false);
+        const blob = vi.spyOn(Api, 'uploadBlob');
+        renderScreen();
+        await loadFile();
+        expect(blob).not.toHaveBeenCalled();
+        expect(document.querySelector('iframe')).toBeNull();
     });
 });
