@@ -18,6 +18,7 @@ describe('BankList (GV-NganHang)', () => {
         await screen.findByText('Toán rỗng');
         expect(screen.getByText('Chưa có khối nào — bấm Nhập đề để thêm.')).toBeTruthy();
         expect(screen.getAllByText('Làm thử').length).toBe(1);
+        expect(screen.getAllByText('Xem nội dung').length).toBe(1);
         expect((screen.getAllByRole('button', {name: 'Tạo đề'})[0] as HTMLButtonElement).disabled).toBe(true);
         expect(screen.getByText('khối câu hỏi', {exact: false})).toBeTruthy();
     });

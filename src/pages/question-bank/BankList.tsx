@@ -10,7 +10,7 @@ import './question-bank.css';
 
 /**
  * GV-NganHang: banks by subject, the door to Nhập đề / Tạo đề / Làm thử.
- * ponytail: no screen to view or edit single blocks (design Q14) — fix in Word and import again.
+ * Blocks are viewable and deletable (SPT-73, BankBlocks); editing one is still "fix in Word and import again" (design Q14).
  */
 export default function BankList() {
     const {data: banks, isError, error, refetch, isFetching} = useBanks();
@@ -47,6 +47,8 @@ export default function BankList() {
                                     : <div className='vt-qb-empty-box'>Chưa có khối nào — bấm Nhập đề để thêm.</div>}
                                 <div className='vt-qb-actions'>
                                     <Link to={'/import-exam?bank=' + b.id} className={buttonClass({variant: 'primary'})}>Nhập đề</Link>
+                                    {b.blocks > 0 &&
+                                        <Link to={'/question-bank/' + b.id} className={buttonClass({variant: 'secondary'})}>Xem nội dung</Link>}
                                     {b.blocks
                                         ? <Link to={'/create-from-bank?bank=' + b.id} className={buttonClass({variant: 'secondary'})}>Tạo đề</Link>
                                         : <Button variant='secondary' disabled>Tạo đề</Button>}
@@ -57,7 +59,7 @@ export default function BankList() {
                                 </div>
                             </Card>)}
                         </div>
-                        <p className='vt-qb-note'>Chưa có màn xem hoặc sửa từng khối. Muốn sửa, hãy sửa file Word rồi nhập lại.</p>
+                        <p className='vt-qb-note'>Bấm Xem nội dung để xem hoặc xoá từng khối. Muốn sửa nội dung, hãy sửa file Word rồi nhập lại.</p>
                     </>}
 
         <CreateBankModal open={creating} onClose={() => setCreating(false)}/>

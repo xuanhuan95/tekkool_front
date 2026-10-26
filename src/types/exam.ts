@@ -116,3 +116,11 @@ export type TestExam = {
 
 /** `question_bank/list` row: `blocks` = passage blocks the bank holds now. */
 export type BankSummary = {id: string; name: string; subject: string; blocks: number};
+
+/** `question_bank/blocks` (SPT-73): one block = a passage + its questions, or a single question. `data` carries the key + explanation. */
+export type BankBlock = {
+    id: string; block_type: string; block_type_name: string; question_type: string; count: number;
+    passage?: string | null;
+    questions: {id: string; type: string; data: Record<string, any>}[];
+};
+export type BankBlocksPage = {total: number; page: number; per_page: number; blocks: BankBlock[]};
