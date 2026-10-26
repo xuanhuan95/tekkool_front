@@ -40,7 +40,7 @@ function TeacherHome() {
     const [menuFor, setMenuFor] = useState<string | null>(null);
     const folders = useFolders();
 
-    if (folders.isError) return <ErrorState title='Không tải được kho đề' description='Kiểm tra kết nối mạng rồi thử lại. Đề của cô vẫn an toàn.'
+    if (folders.isError) return <ErrorState title='Không tải được kho đề' description={errorText(folders.error, 'Thử lại sau. Đề của cô vẫn an toàn.')}
                                             onRetry={() => folders.refetch()} retrying={folders.isFetching}/>;
     if (!folders.data) return <div className='vt-th-page'><SkeletonCard/><SkeletonCard/></div>;
 
@@ -100,7 +100,7 @@ function SubjectCard({subject, active, menuOpen, onMenu}: {subject: Folder; acti
 function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: Folder[]; folders: Folder[]; q: string}) {
     const qc = useQueryClient();
     const wide = useMediaQuery('(min-width: 768px)');
-    const {data, isError, isFetching, refetch} = useSubjectExams(subject.id, folders);
+    const {data, isError, error, isFetching, refetch} = useSubjectExams(subject.id, folders);
     const [filter, setFilter] = useState<Filter>('all');
     const [pending, setPending] = useState<Pending | null>(null);
     const [busy, setBusy] = useState(false);
@@ -192,7 +192,7 @@ function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: F
             </div>
         </div>
 
-        {isError ? <ErrorState title='Không tải được kho đề' description='Kiểm tra kết nối mạng rồi thử lại. Đề của cô vẫn an toàn.'
+        {isError ? <ErrorState title='Không tải được kho đề' description={errorText(error, 'Thử lại sau. Đề của cô vẫn an toàn.')}
                                onRetry={() => refetch()} retrying={isFetching}/>
             : !data ? <SkeletonCard/>
             : !rows.length ? <EmptyState title={q ? `Không có đề nào khớp “${q}”`

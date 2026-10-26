@@ -64,3 +64,14 @@
 .vt-draw-table tr.unused { background: var(--vt-sun-soft); }
 .vt-draw-table tr.unused td { text-align: left; color: var(--vt-sun-ink); }
 .vt-draw-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+
+/* Phone/tablet (SPT-72): main column, then the side panel; info fields stack. */
+@media (max-width: 1023.98px) {
+    .vt-cfb-layout { grid-template-columns: minmax(0, 1fr); }
+    .vt-cfb-side { position: static; }
+    .vt-cfb-info { grid-template-columns: minmax(0, 1fr); }
+    /* title input gets the full row; ↑ ↓ × drop under it */
+    .vt-cfb-slot { flex-wrap: wrap; }
+    .vt-cfb-slot-body { flex-basis: calc(100% - 30px); }
+    .vt-cfb-actions { margin-left: auto; }
+}

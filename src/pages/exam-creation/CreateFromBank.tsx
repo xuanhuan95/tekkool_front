@@ -2,7 +2,7 @@ import {useRef, useState} from 'react';
 import type {CSSProperties, DragEvent} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 
-import {Button, Card, CardTitle, DesktopOnly, ErrorState, PageTitle, SkeletonCard, TextField, buttonClass, cx,
+import {Button, Card, CardTitle, ErrorState, PageTitle, SkeletonCard, TextField, buttonClass, cx,
     notify} from '../../components/ui';
 import {errorText} from '../../lib/format';
 import {useBankCapacity, useBanks, useCreateFromBank} from '../../queries/questionBank';
@@ -267,12 +267,10 @@ export default function CreateFromBank() {
                 </div>
             </div>;
 
-    return <DesktopOnly backTo='/question-bank'>
-        <div className='vt-cfb'>
-            <Link to='/question-bank' className={buttonClass({variant: 'ghost'})}>← Ngân hàng câu hỏi</Link>
-            <PageTitle>Tạo đề từ ngân hàng</PageTitle>
-            <p className='vt-cfb-lead'>Mỗi lượt làm, học sinh nhận một đề rút ngẫu nhiên theo cấu trúc dưới đây, không lặp khối đã gặp.</p>
-            {body}
-        </div>
-    </DesktopOnly>;
+    return <div className='vt-cfb'>
+        <Link to='/question-bank' className={buttonClass({variant: 'ghost'})}>← Ngân hàng câu hỏi</Link>
+        <PageTitle>Tạo đề từ ngân hàng</PageTitle>
+        <p className='vt-cfb-lead'>Mỗi lượt làm, học sinh nhận một đề rút ngẫu nhiên theo cấu trúc dưới đây, không lặp khối đã gặp.</p>
+        {body}
+    </div>;
 }

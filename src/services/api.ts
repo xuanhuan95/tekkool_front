@@ -15,6 +15,21 @@ declare global {
     }
 }
 
+const SESSION_ERRORS = ['Session does not exist', 'Token is not valid', 'Token is required'];
+
+/** BE answers 400 with one of these messages when the session is gone (see tekkool_back/docs/api.md). */
+export function isSessionError(e: unknown): boolean {
+    const o = e as ApiError | null | undefined;
+    return !!o && o.code === 400 && typeof o.error === 'string' && SESSION_ERRORS.includes(o.error);
+}
+
+// authStore registers this (api.ts cannot import the store: it imports api.ts). The handler
+// itself decides whether a session error matters (only for a logged-in user).
+let onSessionError: (() => void) | null = null;
+export function setSessionErrorHandler(fn: () => void): void { onSessionError = fn; }
+
+const notifySession = (e: unknown) => { if (isSessionError(e)) onSessionError?.(); };
+
 class BaseApi {
     _call<T = any>(url: string, method: Method, data?: unknown): Promise<T> {
         const token = window.token;
@@ -25,7 +40,8 @@ class BaseApi {
             apiUrl += symbol + 'token=' + token;
         }
 
-        return new Promise<T>((resolve, reject) => {
+        return new Promise<T>((resolve, rejectRaw) => {
+            const reject = (e: unknown) => { notifySession(e); rejectRaw(e); };
             fetch(apiUrl, {
                 headers: {
                     Accept: 'application/json',
@@ -62,20 +78,37 @@ class BaseApi {
     // ponytail: _call always does JSON.stringify + sets Content-Type: application/json,
     // so it cannot send files. Upload must let the browser set Content-Type with
     // the multipart boundary -> do NOT set headers manually here.
-    upload = <T = any>(url: string, file: File | Blob): Promise<T> => {
+    private send(url: string, file: File | Blob): Promise<Response> {
         let apiUrl = API_URL + url;
         if (window.token) apiUrl += (apiUrl.includes('?') ? '&' : '?') + 'token=' + window.token;
 
         const body = new FormData();
         body.append('file', file);
+        return fetch(apiUrl, {method: 'POST', body});
+    }
 
-        return fetch(apiUrl, {method: 'POST', body})
-            .then(res => res.json())
-            .then(json => {
-                if (json.code && json.code !== 200) throw json as ApiError;
-                return json as T;
-            });
-    };
+    // a proxy 413/502 may answer with HTML: keep the status as `code`, like _call
+    private parse(res: Response): Promise<any> {
+        return res.text().then(body => {
+            let json: any;
+            try { json = JSON.parse(body); } catch (e) {
+                throw {code: res.status, error: 'Máy chủ lỗi (' + res.status + ')'} as ApiError;
+            }
+            if (json.code && json.code !== 200) throw json as ApiError;
+            if (!res.ok) throw {code: res.status, ...json} as ApiError;
+            return json;
+        });
+    }
+
+    upload = <T = any>(url: string, file: File | Blob): Promise<T> =>
+        this.send(url, file).then(res => this.parse(res) as Promise<T>)
+            .catch(e => { notifySession(e); throw e; });
+
+    /** Same request, but the answer is a file (import_docx/pdf): a JSON error body is still turned into an ApiError. */
+    uploadBlob = (url: string, file: File | Blob): Promise<Blob> =>
+        this.send(url, file).then(res => res.ok ? res.blob() : this.parse(res).then(() => {
+            throw {code: res.status, error: 'Máy chủ lỗi (' + res.status + ')'} as ApiError;
+        })).catch(e => { notifySession(e); throw e; });
 
     post = <T = any>(url: string, data?: unknown) => this._call<T>(url, 'POST', data);
     put = <T = any>(url: string, data?: unknown) => this._call<T>(url, 'PUT', data);

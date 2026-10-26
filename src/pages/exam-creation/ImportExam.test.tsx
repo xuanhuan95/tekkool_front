@@ -1,4 +1,4 @@
-import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {fireEvent, render, screen} from '@testing-library/react';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
@@ -75,6 +75,27 @@ describe('ImportExam: feedback', () => {
         await loadFile();
         fireEvent.click(saveButton());
         await vi.waitFor(() => expect(notify.success).toHaveBeenCalledWith(expect.stringContaining('Đã thêm 2 khối')));
+    });
+
+    it('images go through image/upload before save; a dropped connection can be retried', async () => {
+        const IMG = 'data:image/png;base64,iVBORw0KGgo=';
+        const withImg = examOf({...mc('Q1', 'Q1A'), data: {...mc('Q1', 'Q1A').data, question: `<p>x<img src="${IMG}"></p>`}});
+        const sent = mockPost();
+        renderScreen();
+        const up = vi.spyOn(Api, 'upload').mockResolvedValueOnce({exams: [withImg], warnings: []});
+        fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['x'], 'de.docx')]}});
+        await screen.findByText(/Đọc được 1 đề/);
+
+        up.mockRejectedValueOnce(new TypeError('fetch'));
+        fireEvent.click(saveButton());
+        await vi.waitFor(() => expect(notify.error).toHaveBeenCalledWith('Lưu thất bại: Đề thử 1', expect.stringContaining('kết nối')));
+        expect(sent).toHaveLength(0);
+
+        up.mockResolvedValueOnce({path: 'image/view/abc'});
+        fireEvent.click(saveButton());
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        expect(JSON.stringify(sent[0])).toContain('src=\\"/api/image/view/abc\\"');
+        expect(JSON.stringify(sent[0])).not.toContain('data:image');
     });
 
     it('a failed save names the exam that stopped it', async () => {
@@ -239,5 +260,45 @@ describe('ImportExam: payload decides which slot a question goes into', () => {
         fireEvent.click(saveButton());
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         expect(sent[0].sections[0].questions[0].data).toMatchObject({explanation: '<p>Vì 1+1=2</p>', max_score: 0.25});
+    });
+});
+
+describe('ImportExam: bản gốc PDF (SPT-70)', () => {
+    const desktop = (on: boolean) => vi.stubGlobal('matchMedia', (q: string) =>
+        ({matches: on, media: q, addEventListener: () => {}, removeEventListener: () => {}}));
+    beforeEach(() => {
+        mockPost();
+        URL.createObjectURL = vi.fn(() => 'blob:pdf-1');
+        URL.revokeObjectURL = vi.fn();
+    });
+    afterEach(() => vi.unstubAllGlobals());
+
+    it('desktop: asks for the PDF next to the parse and shows it in an iframe; revoked on unmount', async () => {
+        desktop(true);
+        vi.spyOn(Api, 'uploadBlob').mockResolvedValue(new Blob(['%PDF']));
+        const {unmount} = renderScreen();
+        await loadFile();
+        await vi.waitFor(() => expect(document.querySelector('iframe')?.getAttribute('src')).toBe('blob:pdf-1'));
+        expect(Api.uploadBlob).toHaveBeenCalledWith('import_docx/pdf', expect.any(File));
+        unmount();
+        expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:pdf-1');
+    });
+
+    it('PDF fails (503): says there is no source, import still works', async () => {
+        desktop(true);
+        vi.spyOn(Api, 'uploadBlob').mockRejectedValue({code: 503, error: 'x'});
+        renderScreen();
+        await loadFile();
+        await screen.findByText('Không có bản gốc cho file này.');
+        expect(saveButton().disabled).toBe(false);
+    });
+
+    it('phone: no PDF call, no pane', async () => {
+        desktop(false);
+        const blob = vi.spyOn(Api, 'uploadBlob');
+        renderScreen();
+        await loadFile();
+        expect(blob).not.toHaveBeenCalled();
+        expect(document.querySelector('iframe')).toBeNull();
     });
 });

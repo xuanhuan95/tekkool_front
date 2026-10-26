@@ -43,6 +43,7 @@ export function useSubjectExams(subjectId: string, folders: Folder[]) {
     return {
         data: results.some(r => !r.data) ? undefined : results.flatMap(r => r.data as ExamSummary[]),
         isError: results.some(r => r.isError),
+        error: results.find(r => r.isError)?.error,
         isFetching: results.some(r => r.isFetching),
         refetch: () => results.forEach(r => r.refetch()),
     };

@@ -4,7 +4,7 @@ import {Link} from 'react-router-dom';
 import {Badge, EmptyState, ErrorState, FilterChip, PageTitle, SegmentedControl, SkeletonCard, buttonClass} from '../../components/ui';
 import {useMySubmissions} from '../../queries/submissions';
 import type {Submission} from '../../types/submission';
-import {formatMinutes, formatScore, formatTimeDate, withSubject} from '../../lib/format';
+import {errorText, formatMinutes, formatScore, formatTimeDate, withSubject} from '../../lib/format';
 import {summarize} from './submissionView';
 import './results.css';
 
@@ -59,7 +59,7 @@ export default function HistoryPage() {
     return <div className='vt-res'>
         <PageTitle>Lịch sử làm bài</PageTitle>
         {isPending ? <><SkeletonCard label='Đang tải lịch sử'/><SkeletonCard/></>
-            : error ? <ErrorState title='Chưa tải được lịch sử' description='Kiểm tra mạng rồi thử lại.'
+            : error ? <ErrorState title='Chưa tải được lịch sử' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                                   onRetry={() => refetch()} retrying={isFetching}/>
             : list.length === 0
                 ? <EmptyState title='Chưa có bài nào' description='Làm một đề thi thử để xem kết quả ở đây.'

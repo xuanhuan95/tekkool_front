@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 
-import Api, {setToken} from '../services/api';
+import Api, {setSessionErrorHandler, setToken} from '../services/api';
 import type {Auth, User} from '../types/user';
 
 type AuthState = {
@@ -66,3 +66,23 @@ export const useAuthStore = create<AuthState>((set) => ({
         window.location.href = '/';
     },
 }));
+
+export const SESSION_EXPIRED_KEY = 'sessionExpired';
+export const SESSION_EXPIRED_MESSAGE = 'Phiên đăng nhập đã hết, vui lòng đăng nhập lại.';
+
+// BE lost the session (restart, lock, login elsewhere) but FE still holds the token: every call
+// fails with 400. Only for a logged-in user — an anonymous visitor's dead token is renewed by
+// loginWithRetry. Reload at '/' like signOut: init() then finds no token, so no redirect loop.
+// Do NOT clear `user` here: App would swap to <Login/> first, which reads and clears the notice flag
+// before the reload, so the reloaded page shows nothing (QC). `expiring` stops later in-flight failures firing it twice.
+let expiring = false;
+export function watchSessionExpiry(): void {
+    expiring = false;
+    setSessionErrorHandler(() => {
+        if (expiring || !useAuthStore.getState().user) return;
+        expiring = true;
+        setToken(null);
+        try { window.sessionStorage.setItem(SESSION_EXPIRED_KEY, '1'); } catch (e) { /* private mode: message is lost, redirect still works */ }
+        window.location.href = '/';
+    });
+}

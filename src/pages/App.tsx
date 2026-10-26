@@ -4,7 +4,7 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {Toaster} from 'react-hot-toast';
 
 import Loading from '../components/Loading';
-import {useAuthStore} from '../stores/authStore';
+import {useAuthStore, watchSessionExpiry} from '../stores/authStore';
 
 import AuthenticateView from './AuthenticateView';
 import AnonymousView from './AnonymousView';
@@ -45,7 +45,7 @@ export default function App() {
     const init = useAuthStore(s => s.init);
     const {pathname} = useLocation();
 
-    useEffect(() => { init(); }, [init]);
+    useEffect(() => { watchSessionExpiry(); init(); }, [init]);
 
     // Component catalogue: no data, so no login needed (designers, probe).
     if (pathname === '/design-system') return <DesignSystem/>;
