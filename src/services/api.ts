@@ -70,11 +70,16 @@ class BaseApi {
         body.append('file', file);
 
         return fetch(apiUrl, {method: 'POST', body})
-            .then(res => res.json())
-            .then(json => {
+            // a proxy 413/502 may answer with HTML: keep the status as `code`, like _call
+            .then(res => res.text().then(body => {
+                let json: any;
+                try { json = JSON.parse(body); } catch (e) {
+                    throw {code: res.status, error: 'Máy chủ lỗi (' + res.status + ')'} as ApiError;
+                }
                 if (json.code && json.code !== 200) throw json as ApiError;
+                if (!res.ok) throw {code: res.status, ...json} as ApiError;
                 return json as T;
-            });
+            }));
     };
 
     post = <T = any>(url: string, data?: unknown) => this._call<T>(url, 'POST', data);

@@ -8,6 +8,8 @@ import renderHTML from '../../components/SafeHtml';
 import {Badge, Button, Card, Modal, PageTitle, ProgressBar, Select, Table, TextField, buttonClass, cx, notify}
     from '../../components/ui';
 import type {Column} from '../../components/ui';
+import {uploadImages} from './imageUpload';
+import type {ImageCache} from './imageUpload';
 import {useFolders} from '../../queries/exams';
 import {bankKeys, useBankStock, useBanks} from '../../queries/questionBank';
 import Api from '../../services/api';
@@ -217,6 +219,8 @@ export default function ImportExam() {
     const [progress, setProgress] = useState(0);
     const [duplicates, setDuplicates] = useState<Record<string, DuplicateInfo>>({});
     const [checking, setChecking] = useState(false);
+    // images already uploaded (data URI → path): a retry after a dropped connection skips them
+    const images = useRef<ImageCache>(new Map());
 
     const chosen = exams.filter(e => picked[e.id]);
     // Q15: imported exams are saved as Nháp even with errors — only the bank path (?bank=) keeps its block.
@@ -271,12 +275,12 @@ export default function ImportExam() {
         try {
             const merged: Record<string, DuplicateInfo> = {};
             for (const e of chosen) {
-                const r = await Api.post<{trung?: Record<string, DuplicateInfo>}>('question_bank/check_trung', {...e, bank: bankId});
+                const r = await Api.post<{trung?: Record<string, DuplicateInfo>}>('question_bank/check_trung', {...await uploadImages(e, images.current), bank: bankId});
                 Object.assign(merged, r.trung || {});
             }
             setDuplicates(merged);
-        } catch {
-            notify.error('Không đo được trùng lặp. Vẫn lưu được bình thường.');
+        } catch (e) {
+            notify.error('Không đo được trùng lặp (' + errorText(e, 'lỗi không rõ') + '). Vẫn lưu được bình thường.');
         } finally {
             setChecking(false);
         }
@@ -290,7 +294,9 @@ export default function ImportExam() {
         let done = 0;
         try {
             // ponytail: sequential on purpose — 20 exams x 12 questions in parallel chokes a 2-core server.
-            for (const e of chosen) {
+            for (const source of chosen) {
+                // base64 images → image/upload first, so the exam sent is text only (nginx caps the body at 2MB)
+                const e = await uploadImages(source, images.current);
                 if (toBank) {
                     const r = await Api.post<{saved: number}>('question_bank/save', {...e, bank: bankId});
                     added += r.saved;

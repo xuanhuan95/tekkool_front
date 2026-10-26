@@ -77,6 +77,27 @@ describe('ImportExam: feedback', () => {
         await vi.waitFor(() => expect(notify.success).toHaveBeenCalledWith(expect.stringContaining('Đã thêm 2 khối')));
     });
 
+    it('images go through image/upload before save; a dropped connection can be retried', async () => {
+        const IMG = 'data:image/png;base64,iVBORw0KGgo=';
+        const withImg = examOf({...mc('Q1', 'Q1A'), data: {...mc('Q1', 'Q1A').data, question: `<p>x<img src="${IMG}"></p>`}});
+        const sent = mockPost();
+        renderScreen();
+        const up = vi.spyOn(Api, 'upload').mockResolvedValueOnce({exams: [withImg], warnings: []});
+        fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['x'], 'de.docx')]}});
+        await screen.findByText(/Đọc được 1 đề/);
+
+        up.mockRejectedValueOnce(new TypeError('fetch'));
+        fireEvent.click(saveButton());
+        await vi.waitFor(() => expect(notify.error).toHaveBeenCalledWith('Lưu thất bại: Đề thử 1', expect.stringContaining('kết nối')));
+        expect(sent).toHaveLength(0);
+
+        up.mockResolvedValueOnce({path: 'image/view/abc'});
+        fireEvent.click(saveButton());
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        expect(JSON.stringify(sent[0])).toContain('src=\\"/api/image/view/abc\\"');
+        expect(JSON.stringify(sent[0])).not.toContain('data:image');
+    });
+
     it('a failed save names the exam that stopped it', async () => {
         mockPost({'question_bank/save': () => { throw {error: 'Ngân hàng đầy'}; }});
         renderScreen();
