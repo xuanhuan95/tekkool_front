@@ -41,7 +41,7 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
             return;
         }
 
-        w.document.write('<html><head><title>Tekkool</title>');
+        w.document.write('<html><head><title>viettestpro</title>');
         w.document.write('</head><body>');
         w.document.write('<link rel="stylesheet" href="/static/print.css">');
         w.document.write('<link rel="stylesheet" href="/static/fix.css">');

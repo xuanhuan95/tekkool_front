@@ -61,6 +61,13 @@ npx vitest run                                      # chạy test (npx vitest = 
 Trước khi báo xong một task: `tsc`, `vitest`, `vite build` đều phải sạch — CI (GitHub Actions) chạy đúng 3 lệnh này
 trên mọi PR.
 
+## Tên app và icon (SPT-74)
+
+Tên app là **viettestpro** (chữ thường): `<title>` trong `index.html`, `name`/`short_name` trong `public/manifest.json`, tiêu đề các thanh đầu trang.
+Icon "vt" (phương án D): `public/icon.svg` là bản đầy đủ có ngôi sao (nguồn của `icon-192.png`, `icon-512.png`, `apple-touch-icon.png`);
+`public/favicon.svg` và `favicon.ico` (16/32/48) là bản nhỏ không sao, viền dày. Chữ "vt" đã đổi sang path (outline từ Patrick Hand) nên không cần tải font.
+`theme_color` / `background_color` = `#f5f6ee` (nền giấy). Muốn đổi icon: sửa SVG rồi xuất lại các PNG/ICO từ SVG (dùng resvg), đừng sửa PNG bằng tay.
+
 ## Deploy
 
 Merge PR vào `main` → GitHub Actions tự test và deploy lên server (`.github/workflows/deploy.yml`).

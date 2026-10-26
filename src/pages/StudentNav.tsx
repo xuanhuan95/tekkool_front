@@ -56,7 +56,7 @@ export default function StudentNav({user}: {user?: {name?: string; email?: strin
     return <nav className='tk-nav'>
         <div className='tk-nav-inner'>
             <Link to='/' className='tk-brand'>
-                <Icon name='graduation cap'/> Thi thử SPT
+                <Icon name='graduation cap'/> viettestpro
             </Link>
 
 
