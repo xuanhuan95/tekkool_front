@@ -1,7 +1,7 @@
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {keepPreviousData, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import Api from '../services/api';
-import type {BankCapacity, BankStats, BankSummary, StructureSlot} from '../types/exam';
+import type {BankBlocksPage, BankCapacity, BankStats, BankSummary, StructureSlot} from '../types/exam';
 
 export const bankKeys = {
     all: ['question_bank'] as const,
@@ -95,5 +95,28 @@ export function useBankStock(bankId: string | null) {
         queryFn: () => Api.post<BankCapacity>('question_bank/capacity', {bank: bankId}),
         enabled: !!bankId,
         retry: false,
+    });
+}
+
+export const BLOCKS_PER_PAGE = 20;
+
+/** SPT-73: one page of a bank's blocks. The previous page stays on screen while the next loads (no flicker on filter/page). */
+export function useBankBlocks(bank: string, page: number, blockType: string, q: string) {
+    const qs = new URLSearchParams({bank, page: String(page), per_page: String(BLOCKS_PER_PAGE)});
+    if (blockType) qs.set('block_type', blockType);
+    if (q) qs.set('q', q);
+    return useQuery({
+        queryKey: [...bankKeys.all, 'blocks', bank, page, blockType, q],
+        queryFn: () => Api.get<BankBlocksPage>('question_bank/blocks?' + qs.toString()),
+        placeholderData: keepPreviousData,
+    });
+}
+
+export function useDeleteBlock() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => Api.post('question_bank/delete_block', {id}),
+        // 404 = already gone (other tab / second click) → same end state, so refresh either way.
+        onSettled: () => qc.invalidateQueries({queryKey: bankKeys.all}),
     });
 }
