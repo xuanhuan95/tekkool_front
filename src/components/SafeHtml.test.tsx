@@ -37,4 +37,11 @@ describe('SafeHtml', () => {
     it('a broken formula does not throw', () => {
         expect(() => show('<span data-latex="\\frac{"></span>')).not.toThrow();
     });
+
+    it('caps every image to its container, even when Word wrote width="1500"', () => {
+        const img = show('<p><img src="data:image/png;base64,UE5H" width="1500" height="900" style="color:red"></p>').querySelector('img')!;
+        expect(img.style.maxWidth).toBe('100%');
+        expect(img.style.height).toBe('auto');
+        expect(img.style.color).toBe('red');   // the author's own style survives
+    });
 });

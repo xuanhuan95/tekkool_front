@@ -19,7 +19,8 @@ function Img(props: Record<string, unknown>) {
     if (broken) return <span className='vt-img-broken' role='img' aria-label='Không tải được hình'>
         <span aria-hidden>🖼</span> Không tải được hình…
     </span>;
-    return <img alt='' {...props} onError={() => setBroken(true)}/>;
+    // every rendered image (student exam, review, bank view, import preview) is capped to its container, whatever width Word wrote
+    return <img alt='' {...props} style={{...(props.style as object), maxWidth: '100%', height: 'auto'}} onError={() => setBroken(true)}/>;
 }
 
 export default function renderHTML(html?: string | null) {

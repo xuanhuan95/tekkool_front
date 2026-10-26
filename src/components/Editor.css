@@ -15,6 +15,8 @@
 
 .tt-editor .ProseMirror { padding: 8px 11px; outline: none; min-height: 2.2em; }
 .tt-editor .ProseMirror p { margin: 0 0 .3em; }
+/* Word images carry width="1500": without this one wide image stretches the whole page (QC SPT-72) */
+.tt-editor .ProseMirror img { max-width: 100%; height: auto; }
 .tt-editor .ProseMirror p:last-child { margin-bottom: 0; }
 
 /* Placeholder: Tiptap puts data-placeholder on the first empty node */
