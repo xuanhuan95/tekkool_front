@@ -73,11 +73,15 @@ export const SESSION_EXPIRED_MESSAGE = 'Phiên đăng nhập đã hết, vui lò
 // BE lost the session (restart, lock, login elsewhere) but FE still holds the token: every call
 // fails with 400. Only for a logged-in user — an anonymous visitor's dead token is renewed by
 // loginWithRetry. Reload at '/' like signOut: init() then finds no token, so no redirect loop.
+// Do NOT clear `user` here: App would swap to <Login/> first, which reads and clears the notice flag
+// before the reload, so the reloaded page shows nothing (QC). `expiring` stops later in-flight failures firing it twice.
+let expiring = false;
 export function watchSessionExpiry(): void {
+    expiring = false;
     setSessionErrorHandler(() => {
-        if (!useAuthStore.getState().user) return;
+        if (expiring || !useAuthStore.getState().user) return;
+        expiring = true;
         setToken(null);
-        useAuthStore.setState({user: null});   // later in-flight calls must not fire this twice
         try { window.sessionStorage.setItem(SESSION_EXPIRED_KEY, '1'); } catch (e) { /* private mode: message is lost, redirect still works */ }
         window.location.href = '/';
     });
