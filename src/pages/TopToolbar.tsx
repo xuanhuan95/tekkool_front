@@ -19,7 +19,7 @@ export default function TopToolbar() {
     return <Menu id='topMenu' color='blue' inverted>
         <Menu.Item>
             <Link to='/'>
-                <Icon name='home'/> Thi thử SPT
+                <Icon name='home'/> viettestpro
             </Link>
         </Menu.Item>
 

@@ -106,7 +106,7 @@ export default function SubjectBrowser() {
 
     /* ---------- Home page: subject list ---------- */
     if (!subject) return <div className='tk'><div className='tk-wrap'>
-        <h1 className='tk-title'>Thi thử SPT</h1>
+        <h1 className='tk-title'>viettestpro</h1>
 
         {!subjects.length
             ? <div className='tk-empty'>
