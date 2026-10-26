@@ -48,7 +48,7 @@ như cũ; đơn `CANCELLED` dừng hỏi ngay. Admin: trạng thái hiển thị
 
 ## Giáo viên
 
-Các màn giáo viên đã reskin theo design D (SPT-57), chạy trong `TeacherShell` (menu 3 mục: Môn & đề · Ngân hàng câu hỏi · Chấm bài; không còn màn Tổng quan, vào thẳng Môn & đề — SPT-67) và bọc `DesktopOnly` — dưới 1024px chỉ hiện "Màn này cần màn hình máy tính" kèm đường về. Các màn còn lại vẫn giao diện cũ (Semantic UI), reskin sprint sau. `AuthenticateView` nhận ra màn mới bằng `TEACHER_D`.
+Các màn giáo viên đã reskin theo design D (SPT-57), chạy trong `TeacherShell` (menu 3 mục: Môn & đề · Ngân hàng câu hỏi · Chấm bài; không còn màn Tổng quan, vào thẳng Môn & đề — SPT-67). Import đề (`/import-exam`) và Tạo đề từ ngân hàng (`/create-from-bank`) dùng được trên điện thoại (SPT-72): dưới 1024px một cột, ẩn khung "Văn bản gốc trong file Word", thanh nút lưu nằm trên thanh menu dưới. Các màn còn lại vẫn giao diện cũ (Semantic UI), reskin sprint sau. `AuthenticateView` nhận ra màn mới bằng `TEACHER_D`.
 
 | Route | Màn | File |
 |---|---|---|

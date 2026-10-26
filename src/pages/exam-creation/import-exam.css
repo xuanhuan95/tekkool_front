@@ -68,3 +68,17 @@
 .vt-imp-explain { margin-top: 10px; border-top: 1px dashed var(--vt-line-option); padding-top: 8px; font-size: 14px; }
 .vt-imp-explain summary { cursor: pointer; color: var(--vt-muted); font-weight: 600; }
 .vt-imp-explain > div { margin-top: 6px; }
+
+/* Phone/tablet (SPT-72): one column, no Word-source pane, save bar stays inside the viewport. */
+@media (max-width: 1023.98px) {
+    .vt-imp-split { grid-template-columns: minmax(0, 1fr); }
+    .vt-imp-source { display: none; }
+    /* sits above the 68px bottom nav (.vt-bottomnav) */
+    .vt-imp-bar { bottom: calc(68px + env(safe-area-inset-bottom)); padding: 10px 16px; border-bottom: 2px solid var(--vt-ink); }
+    .vt-imp-bar > * { min-width: 0; }
+    .vt-imp-bar-hint { flex-basis: 100%; }
+    .vt-imp { padding-bottom: 200px; }
+    .vt-imp-exam-min { width: 100px; }
+    .vt-imp-q-type { width: 100%; }
+    .vt-imp-words { max-width: none; }
+}

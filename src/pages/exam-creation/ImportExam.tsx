@@ -5,7 +5,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Editor} from '../../components/Editor';
 import renderHTML from '../../components/SafeHtml';
-import {Badge, Button, Card, DesktopOnly, Modal, PageTitle, ProgressBar, Select, Table, TextField, buttonClass, cx, notify}
+import {Badge, Button, Card, Modal, PageTitle, ProgressBar, Select, Table, TextField, buttonClass, cx, notify}
     from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useFolders} from '../../queries/exams';
@@ -163,7 +163,7 @@ function ExamBody({exam, edit, duplicates}: {exam: ImportedExam; edit: Edit; dup
                 })}
             </div>)}
         </div>
-        <div className='vt-imp-col'>
+        <div className='vt-imp-col vt-imp-source'>
             <div className='vt-imp-col-head'>Văn bản gốc trong file Word</div>
             <SourceView lines={exam.source}/>
         </div>
@@ -332,141 +332,139 @@ export default function ImportExam() {
         : folderId ? <>tạo trong môn <b>{folder?.name || '…'}</b></> : null;
     const direct = (label: string) => `${label} ${chosen.length} đề`;
 
-    return <DesktopOnly backTo='/question-bank'>
-        <div className='vt-imp'>
-            <input type='file' accept='.docx' ref={fileRef} onChange={upload} hidden/>
+    return <div className='vt-imp'>
+        <input type='file' accept='.docx' ref={fileRef} onChange={upload} hidden/>
 
-            <div className='vt-imp-head'>
+        <div className='vt-imp-head'>
+            <div>
+                <PageTitle>Nhập đề từ file Word</PageTitle>
+                <p>Xem trước rồi mới lưu — chưa ghi vào hệ thống{context && <> · {context}</>}</p>
+            </div>
+            {(exams.length > 0 || problem) &&
+                <Button variant='secondary' disabled={busy} onClick={pickFile}>Chọn file khác</Button>}
+        </div>
+
+        {!exams.length && !reading && !problem && <Card className='vt-imp-drop'>
+            <h2>Chưa chọn file</h2>
+            <p>File .docx, tối đa 10 MB. Một file có thể chứa nhiều đề.</p>
+            <Button variant='primary' onClick={pickFile}>Chọn file .docx</Button>
+        </Card>}
+
+        {reading && <Card className='vt-imp-drop' aria-live='polite'>
+            <h2>Đang đọc file {fileName}…</h2>
+            <ProgressBar value={1} max={3} label='Đang đọc file'/>
+        </Card>}
+
+        {problem && <Card className='vt-imp-drop vt-imp-error' role='alert'>
+            <p>{problem}</p>
+            <Button variant='secondary' onClick={pickFile}>Chọn file khác</Button>
+        </Card>}
+
+        {stock && total > 0 && <Card className='vt-imp-bank'>
+            <div className='vt-imp-bank-head'>
                 <div>
-                    <PageTitle>Nhập đề từ file Word</PageTitle>
-                    <p>Xem trước rồi mới lưu — chưa ghi vào hệ thống{context && <> · {context}</>}</p>
+                    <b>{bankInfo ? bankInfo.name : 'Ngân hàng câu hỏi'}: {total} khối</b>
+                    <p>{drawable > 0
+                        ? <>Đủ rút {drawable} đề không trùng khối{stock.bottleneck && <> · nghẽn ở <b>{blockLabel(stock.bottleneck[0])}</b></>}</>
+                        : 'Chưa đủ khối để rút một đề hoàn chỉnh — nhập thêm đề bên dưới.'}</p>
                 </div>
-                {(exams.length > 0 || problem) &&
-                    <Button variant='secondary' disabled={busy} onClick={pickFile}>Chọn file khác</Button>}
+                {drawable > 0
+                    ? <Link to={'/draw-exam/bank/' + bankId} className={buttonClass({variant: 'secondary'})}>Rút thử một đề</Link>
+                    : <Button variant='secondary' disabled>Rút thử một đề</Button>}
+            </div>
+            <div className='vt-imp-chips'>
+                {Object.keys(slots).map(t => {
+                    const have = per[t] || 0, drawn = Math.floor(have / slots[t]);
+                    return <Badge key={t} tone={drawn < 1 ? 'err' : drawn < 4 ? 'sun' : 'ok'}>
+                        {blockLabel(t)}: {have} khối · rút được {drawn}
+                    </Badge>;
+                })}
+            </div>
+        </Card>}
+
+        {warnings.length > 0 && <div className='vt-imp-notice' role='status'>
+            <b>Cần kiểm tra lại {warnings.length} chỗ</b>
+            <ul>{warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
+        </div>}
+
+        {exams.length > 0 && <Card>
+            <div className='vt-imp-listhead'>
+                <label className='vt-imp-check'>
+                    <input type='checkbox' checked={chosen.length === exams.length}
+                           ref={el => { if (el) el.indeterminate = chosen.length > 0 && chosen.length < exams.length; }}
+                           onChange={toggleAll}/>
+                    Đọc được {exams.length} đề — đã chọn {chosen.length}
+                </label>
             </div>
 
-            {!exams.length && !reading && !problem && <Card className='vt-imp-drop'>
-                <h2>Chưa chọn file</h2>
-                <p>File .docx, tối đa 10 MB. Một file có thể chứa nhiều đề.</p>
-                <Button variant='primary' onClick={pickFile}>Chọn file .docx</Button>
-            </Card>}
-
-            {reading && <Card className='vt-imp-drop' aria-live='polite'>
-                <h2>Đang đọc file {fileName}…</h2>
-                <ProgressBar value={1} max={3} label='Đang đọc file'/>
-            </Card>}
-
-            {problem && <Card className='vt-imp-drop vt-imp-error' role='alert'>
-                <p>{problem}</p>
-                <Button variant='secondary' onClick={pickFile}>Chọn file khác</Button>
-            </Card>}
-
-            {stock && total > 0 && <Card className='vt-imp-bank'>
-                <div className='vt-imp-bank-head'>
-                    <div>
-                        <b>{bankInfo ? bankInfo.name : 'Ngân hàng câu hỏi'}: {total} khối</b>
-                        <p>{drawable > 0
-                            ? <>Đủ rút {drawable} đề không trùng khối{stock.bottleneck && <> · nghẽn ở <b>{blockLabel(stock.bottleneck[0])}</b></>}</>
-                            : 'Chưa đủ khối để rút một đề hoàn chỉnh — nhập thêm đề bên dưới.'}</p>
+            {exams.map(exam => {
+                const open = openId === exam.id;
+                const missing = missingKeys(exam);
+                const wrongTf = badTrueFalse(exam);
+                const dupCount = exam.sections.reduce((n, s) => n + toUnits(s.questions)
+                    .filter(u => u.questions.some(q => duplicates[q.id])).length, 0);
+                return <div key={exam.id} className='vt-imp-exam'>
+                    <div className='vt-imp-exam-row'>
+                        <input type='checkbox' className='vt-imp-check' checked={!!picked[exam.id]}
+                               aria-label={'Chọn ' + exam.name}
+                               onChange={() => setPicked(p => ({...p, [exam.id]: !p[exam.id]}))}/>
+                        <TextField label='Tên đề' className='vt-imp-exam-name' value={exam.name}
+                                   onChange={ev => patchExam(exam.id)(e => ({...e, name: ev.target.value}))}/>
+                        <TextField label='Phút' type='number' min={0} className='vt-imp-exam-min'
+                                   value={exam.duration === undefined ? 45 : exam.duration}
+                                   onChange={ev => patchExam(exam.id)(e => ({...e, duration: parseInt(ev.target.value, 10) || 0}))}/>
+                        <span className='vt-imp-exam-meta'>
+                            {countQuestions(exam)} câu
+                            {missing > 0 && <Badge tone='err'>{missing} câu thiếu đáp án</Badge>}
+                            {wrongTf > 0 && <Badge tone='sun'>{wrongTf} câu Đúng/Sai chưa đủ 4 ý</Badge>}
+                            {/* a collapsed exam hides its chips — count them here to know which to open */}
+                            {dupCount > 0 && <Badge tone='sun'>{dupCount} câu trùng</Badge>}
+                        </span>
+                        <Button variant='ghost' size='sm' onClick={() => setInfoId(exam.id)}>Thông tin đề</Button>
+                        <Button variant='secondary' size='sm' aria-expanded={open}
+                                onClick={() => setOpenId(open ? null : exam.id)}>{open ? 'Thu gọn' : 'Xem & sửa'}</Button>
                     </div>
-                    {drawable > 0
-                        ? <Link to={'/draw-exam/bank/' + bankId} className={buttonClass({variant: 'secondary'})}>Rút thử một đề</Link>
-                        : <Button variant='secondary' disabled>Rút thử một đề</Button>}
-                </div>
-                <div className='vt-imp-chips'>
-                    {Object.keys(slots).map(t => {
-                        const have = per[t] || 0, drawn = Math.floor(have / slots[t]);
-                        return <Badge key={t} tone={drawn < 1 ? 'err' : drawn < 4 ? 'sun' : 'ok'}>
-                            {blockLabel(t)}: {have} khối · rút được {drawn}
-                        </Badge>;
-                    })}
-                </div>
-            </Card>}
+                    {open && <ExamBody exam={exam} edit={patchExam(exam.id)} duplicates={duplicates}/>}
+                </div>;
+            })}
+        </Card>}
 
-            {warnings.length > 0 && <div className='vt-imp-notice' role='status'>
-                <b>Cần kiểm tra lại {warnings.length} chỗ</b>
-                <ul>{warnings.map((w, i) => <li key={i}>{w}</li>)}</ul>
-            </div>}
+        {exams.length > 0 && <Card className='vt-imp-bar' role='region' aria-label='Lưu đề'>
+            {bankId
+                ? <>
+                    <Button variant='primary' loading={saving} loadingText={`Đang lưu ${progress + 1}/${chosen.length}…`}
+                            disabled={!chosen.length || !!blocker || checking} onClick={() => save(true)}>
+                        {direct('Lưu')} vào ngân hàng
+                    </Button>
+                    <Button variant='secondary' disabled={!chosen.length || !!blocker || busy} onClick={() => save(false)}>
+                        {direct('Tạo thẳng')}
+                    </Button>
+                    <Button variant='secondary' loading={checking} disabled={!chosen.length || busy} onClick={checkDuplicates}>
+                        Kiểm tra trùng lặp
+                    </Button>
+                </>
+                : <Button variant='primary' loading={saving} loadingText={`Đang lưu ${progress + 1}/${chosen.length}…`}
+                          disabled={!chosen.length || !!blocker || !folderId} onClick={() => save(false)}>
+                    {`Tạo ${chosen.length} đề nháp`}
+                </Button>}
+            {!bankId && !params.get('folder') &&
+                <Select label='Môn học' value={pickedFolder} onChange={ev => setPickedFolder(ev.target.value)}
+                        placeholder='Chọn môn' options={(folders || []).filter(f => !f.parent && !f.hidden).map(f => ({value: f.id, label: f.name}))}/>}
+            <span className={cx('vt-imp-bar-hint', blocker && 'err')} role={blocker ? 'alert' : undefined}>
+                {blocker
+                    ? blocker + ' — sửa ngay trong đề, hoặc sửa file Word rồi nhập lại.'
+                    : problems && !bankId
+                        ? problems + ' — vẫn tạo được đề nháp; phải sửa xong mới xuất bản được.'
+                    : saving ? 'Lưu lần lượt từng đề, đừng đóng trang.'
+                    : !bankId && !folderId
+                        ? <>Chọn môn học để tạo đề. Muốn lưu vào ngân hàng thì vào <Link to='/question-bank'>Ngân hàng câu hỏi</Link> chọn một ngân hàng rồi bấm “Nhập đề”.</>
+                    : Object.keys(duplicates).length
+                        ? `Có ${Object.keys(duplicates).length} câu trùng với ngân hàng — xem chip trên từng câu rồi tự quyết.`
+                    : bankId ? 'Vào ngân hàng: cắt thành khối để sau này rút đề ngẫu nhiên.' : ''}
+            </span>
+        </Card>}
 
-            {exams.length > 0 && <Card>
-                <div className='vt-imp-listhead'>
-                    <label className='vt-imp-check'>
-                        <input type='checkbox' checked={chosen.length === exams.length}
-                               ref={el => { if (el) el.indeterminate = chosen.length > 0 && chosen.length < exams.length; }}
-                               onChange={toggleAll}/>
-                        Đọc được {exams.length} đề — đã chọn {chosen.length}
-                    </label>
-                </div>
-
-                {exams.map(exam => {
-                    const open = openId === exam.id;
-                    const missing = missingKeys(exam);
-                    const wrongTf = badTrueFalse(exam);
-                    const dupCount = exam.sections.reduce((n, s) => n + toUnits(s.questions)
-                        .filter(u => u.questions.some(q => duplicates[q.id])).length, 0);
-                    return <div key={exam.id} className='vt-imp-exam'>
-                        <div className='vt-imp-exam-row'>
-                            <input type='checkbox' className='vt-imp-check' checked={!!picked[exam.id]}
-                                   aria-label={'Chọn ' + exam.name}
-                                   onChange={() => setPicked(p => ({...p, [exam.id]: !p[exam.id]}))}/>
-                            <TextField label='Tên đề' className='vt-imp-exam-name' value={exam.name}
-                                       onChange={ev => patchExam(exam.id)(e => ({...e, name: ev.target.value}))}/>
-                            <TextField label='Phút' type='number' min={0} className='vt-imp-exam-min'
-                                       value={exam.duration === undefined ? 45 : exam.duration}
-                                       onChange={ev => patchExam(exam.id)(e => ({...e, duration: parseInt(ev.target.value, 10) || 0}))}/>
-                            <span className='vt-imp-exam-meta'>
-                                {countQuestions(exam)} câu
-                                {missing > 0 && <Badge tone='err'>{missing} câu thiếu đáp án</Badge>}
-                                {wrongTf > 0 && <Badge tone='sun'>{wrongTf} câu Đúng/Sai chưa đủ 4 ý</Badge>}
-                                {/* a collapsed exam hides its chips — count them here to know which to open */}
-                                {dupCount > 0 && <Badge tone='sun'>{dupCount} câu trùng</Badge>}
-                            </span>
-                            <Button variant='ghost' size='sm' onClick={() => setInfoId(exam.id)}>Thông tin đề</Button>
-                            <Button variant='secondary' size='sm' aria-expanded={open}
-                                    onClick={() => setOpenId(open ? null : exam.id)}>{open ? 'Thu gọn' : 'Xem & sửa'}</Button>
-                        </div>
-                        {open && <ExamBody exam={exam} edit={patchExam(exam.id)} duplicates={duplicates}/>}
-                    </div>;
-                })}
-            </Card>}
-
-            {exams.length > 0 && <Card className='vt-imp-bar' role='region' aria-label='Lưu đề'>
-                {bankId
-                    ? <>
-                        <Button variant='primary' loading={saving} loadingText={`Đang lưu ${progress + 1}/${chosen.length}…`}
-                                disabled={!chosen.length || !!blocker || checking} onClick={() => save(true)}>
-                            {direct('Lưu')} vào ngân hàng
-                        </Button>
-                        <Button variant='secondary' disabled={!chosen.length || !!blocker || busy} onClick={() => save(false)}>
-                            {direct('Tạo thẳng')}
-                        </Button>
-                        <Button variant='secondary' loading={checking} disabled={!chosen.length || busy} onClick={checkDuplicates}>
-                            Kiểm tra trùng lặp
-                        </Button>
-                    </>
-                    : <Button variant='primary' loading={saving} loadingText={`Đang lưu ${progress + 1}/${chosen.length}…`}
-                              disabled={!chosen.length || !!blocker || !folderId} onClick={() => save(false)}>
-                        {`Tạo ${chosen.length} đề nháp`}
-                    </Button>}
-                {!bankId && !params.get('folder') &&
-                    <Select label='Môn học' value={pickedFolder} onChange={ev => setPickedFolder(ev.target.value)}
-                            placeholder='Chọn môn' options={(folders || []).filter(f => !f.parent && !f.hidden).map(f => ({value: f.id, label: f.name}))}/>}
-                <span className={cx('vt-imp-bar-hint', blocker && 'err')} role={blocker ? 'alert' : undefined}>
-                    {blocker
-                        ? blocker + ' — sửa ngay trong đề, hoặc sửa file Word rồi nhập lại.'
-                        : problems && !bankId
-                            ? problems + ' — vẫn tạo được đề nháp; phải sửa xong mới xuất bản được.'
-                        : saving ? 'Lưu lần lượt từng đề, đừng đóng trang.'
-                        : !bankId && !folderId
-                            ? <>Chọn môn học để tạo đề. Muốn lưu vào ngân hàng thì vào <Link to='/question-bank'>Ngân hàng câu hỏi</Link> chọn một ngân hàng rồi bấm “Nhập đề”.</>
-                        : Object.keys(duplicates).length
-                            ? `Có ${Object.keys(duplicates).length} câu trùng với ngân hàng — xem chip trên từng câu rồi tự quyết.`
-                        : bankId ? 'Vào ngân hàng: cắt thành khối để sau này rút đề ngẫu nhiên.' : ''}
-                </span>
-            </Card>}
-
-            <ExamInfoModal exam={exams.find(e => e.id === infoId)} onClose={() => setInfoId(null)}
-                           onJump={x => infoId && jumpTo(infoId, x)}/>
-        </div>
-    </DesktopOnly>;
+        <ExamInfoModal exam={exams.find(e => e.id === infoId)} onClose={() => setInfoId(null)}
+                       onJump={x => infoId && jumpTo(infoId, x)}/>
+    </div>;
 }

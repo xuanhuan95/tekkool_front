@@ -1,11 +1,9 @@
 import type {ReactNode} from 'react';
-import {Link} from 'react-router-dom';
 
 import Avatar from '../Avatar';
 import Badge from '../Badge';
-import Button, {buttonClass} from '../Button';
+import Button from '../Button';
 import StatPill from '../StatPill';
-import {EmptyState} from '../States';
 import {cx} from '../cx';
 import {useAuthStore} from '../../../stores/authStore';
 import BottomNav from './BottomNav';
@@ -86,20 +84,6 @@ export function TeacherLayout({children, name, pending, accountTo = '/profile'}:
         <main className='vt-main vt-main--student'>{children}</main>
         <BottomNav items={TEACHER_NAV} className='vt-only-mobile'/>
     </div>;
-}
-
-/**
- * GV screens that only work on a computer (import, create from bank): under 1024px show a note
- * instead of squeezing them (spec §1). ponytail: CSS switch, so the screen still mounts on phones.
- */
-export function DesktopOnly({children, backTo = '/'}: {children: ReactNode; backTo?: string}) {
-    return <>
-        <div className='vt-only-mobile'>
-            <EmptyState title='Màn này cần màn hình máy tính (từ 1024px)'
-                        action={<Link to={backTo} className={buttonClass({variant: 'ghost'})}>Về Môn &amp; đề</Link>}/>
-        </div>
-        <div className='vt-only-web'>{children}</div>
-    </>;
 }
 
 export interface AdminLayoutProps {
