@@ -13,7 +13,7 @@ Backend: repo `tekkool_back` (Flask, API dạng `/api/<module>/<hàm>`, token qu
 | | |
 |---|---|
 | UI | React 18 + TypeScript (strict), Vite 6 |
-| Gọi API | `src/services/api.ts` (fetch, token, lỗi có `code`) + `@tanstack/react-query` (hook trong `src/queries/`) |
+| Gọi API | `src/services/api.ts` (fetch, token, lỗi có `code`; phiên hết hạn → xem dưới) + `@tanstack/react-query` (hook trong `src/queries/`) |
 | State client | zustand (`src/stores/`) — chỉ state của client, dữ liệu server để react-query giữ |
 | Router | react-router-dom 6 |
 | Nội dung đề | DOMPurify + html-react-parser (`SafeHtml`), KaTeX cho công thức, TipTap cho ô soạn thảo |
@@ -76,3 +76,11 @@ Cài đặt và rollback: [docs/ci-cd.md](docs/ci-cd.md) (bản đầy đủ ở
 ## Tài liệu
 
 Mục lục ở [docs/README.md](docs/README.md): design system, component, bản đồ route, luồng màn làm bài.
+
+## Phiên đăng nhập hết hạn (SPT-71)
+
+Khi BE trả 400 `Session does not exist` / `Token is not valid` / `Token is required` cho người **đã đăng nhập**,
+`api.ts` (`_call` và `upload`) gọi handler do `authStore` đăng ký: xoá token, đặt cờ `sessionStorage.sessionExpired`,
+tải lại `/`. `init()` lúc này không còn token nên không lặp; màn Đăng nhập đọc cờ một lần và hiện
+"Phiên đăng nhập đã hết, vui lòng đăng nhập lại.". Người chưa đăng nhập (đăng nhập thử lại bằng `loginWithRetry`) không bị chuyển trang.
+Màn tải dữ liệu hiển thị lý do thật bằng `errorText(error, …)`, không che thành "kiểm tra mạng".

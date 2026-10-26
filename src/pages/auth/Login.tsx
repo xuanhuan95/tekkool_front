@@ -3,7 +3,7 @@ import type {FormEvent} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 
 import Api from '../../services/api';
-import {useAuthStore} from '../../stores/authStore';
+import {SESSION_EXPIRED_KEY, SESSION_EXPIRED_MESSAGE, useAuthStore} from '../../stores/authStore';
 import {Button, PasswordField, TextField} from '../../components/ui';
 import {IconAlert} from '../../components/ui/icons';
 import {homeFor, loginErrorMessage, loginWithRetry, LOCKED_MESSAGE} from './authLogic';
@@ -18,7 +18,14 @@ export default function Login() {
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [err, setErr] = useState<string | null>(null);
+    // One-shot notice left by authStore when the session died (read once, then cleared).
+    const [err, setErr] = useState<string | null>(() => {
+        try {
+            const expired = window.sessionStorage.getItem(SESSION_EXPIRED_KEY);
+            window.sessionStorage.removeItem(SESSION_EXPIRED_KEY);
+            return expired ? SESSION_EXPIRED_MESSAGE : null;
+        } catch (e) { return null; }
+    });
     const [busy, setBusy] = useState(false);
     const [forgot, setForgot] = useState(false);
 
