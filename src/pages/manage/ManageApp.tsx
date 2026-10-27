@@ -7,6 +7,7 @@ import AdminSubjects from './AdminSubjects';
 import Revenue from './Revenue';
 import Teachers from './Teachers';
 import Transactions from './Transactions';
+import StudentDetail from './StudentDetail';
 import Users from './Users';
 import './manage.css';
 
@@ -32,6 +33,7 @@ export default function ManageApp() {
             <Route path='/manage/packages' element={<AdminPackages/>}/>
             <Route path='/manage/revenue' element={<Revenue/>}/>
             <Route path='/manage/users' element={<Users/>}/>
+            <Route path='/manage/users/:id' element={<StudentDetail/>}/>
             <Route path='/manage/transactions' element={<Transactions/>}/>
             <Route path='*' element={<Navigate to='/manage/teachers' replace/>}/>
         </Routes>

@@ -100,7 +100,6 @@ export default function AdminSubjects() {
         <div className='vt-mg-head'>
             <div>
                 <PageTitle>Môn học</PageTitle>
-                <p className='vt-muted'>Chỉ Admin tạo, đổi tên, ẩn/hiện môn. Giáo viên chỉ chọn môn có sẵn khi soạn đề.</p>
             </div>
             <Button variant='primary' onClick={() => setEditing('new')}>+ Môn mới</Button>
         </div>

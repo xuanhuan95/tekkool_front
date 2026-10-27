@@ -22,6 +22,8 @@ export {Tabs, SegmentedControl} from './Tabs';
 export {default as Table} from './Table';
 export type {Column} from './Table';
 export {default as Modal, ConfirmDialog} from './Modal';
+export {default as IconButton} from './IconButton';
+export type {IconButtonProps} from './IconButton';
 export {ToastCard, notify} from './toast';
 export {EmptyState, ErrorState, Skeleton, SkeletonCard} from './States';
 export {default as ProgressBar} from './ProgressBar';

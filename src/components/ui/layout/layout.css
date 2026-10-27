@@ -28,7 +28,6 @@ a.vt-logo, a.vt-logo:hover { color: var(--vt-ink); }
 .vt-header-right { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .vt-header--mobile .vt-header-right { gap: 6px; flex-wrap: nowrap; }
 .vt-header-right .vt-avatar { margin-left: 4px; }
-.vt-header-name { font-size: 14px; font-weight: 600; }
 
 /* Web menu */
 .vt-topnav { display: flex; flex-wrap: wrap; gap: 6px; flex-grow: 1; }

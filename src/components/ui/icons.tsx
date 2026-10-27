@@ -59,3 +59,14 @@ export const Spinner = ({size = 16}: P) =>
          strokeWidth={2.6} strokeLinecap='round' aria-hidden='true' focusable='false'>
         <circle cx='12' cy='12' r='9' strokeOpacity='0.25'/><path d='M21 12a9 9 0 0 0-9-9'/>
     </svg>;
+
+/* Admin action icons (SPT-77), paths from design AD-*.dc.html. */
+export const IconLogout = ({size = 18}: P) =>
+    <Line size={size}><path d='M10 4H5v16h5'/><path d='M15 8l4 4-4 4M19 12H9'/></Line>;
+export const IconArrowRight = ({size = 18}: P) => <Line size={size}><path d='M5 12h14M13 6l6 6-6 6'/></Line>;
+export const IconLock = ({size = 18, color}: P) =>
+    <Line size={size} color={color}><rect x='5' y='11' width='14' height='9' rx='2'/><path d='M8 11V8a4 4 0 018 0v3'/></Line>;
+export const IconUnlock = ({size = 18, color}: P) =>
+    <Line size={size} color={color}><rect x='5' y='11' width='14' height='9' rx='2'/><path d='M8 11V8a4 4 0 017.5-2'/></Line>;
+export const IconKey = ({size = 18}: P) => <Line size={size}><circle cx='8' cy='15' r='4'/><path d='M11 12l8-8M16 7l3 3'/></Line>;
+

@@ -270,7 +270,6 @@ export default function CreateFromBank() {
     return <div className='vt-cfb'>
         <Link to='/question-bank' className={buttonClass({variant: 'ghost'})}>← Ngân hàng câu hỏi</Link>
         <PageTitle>Tạo đề từ ngân hàng</PageTitle>
-        <p className='vt-cfb-lead'>Mỗi lượt làm, học sinh nhận một đề rút ngẫu nhiên theo cấu trúc dưới đây, không lặp khối đã gặp.</p>
         {body}
     </div>;
 }

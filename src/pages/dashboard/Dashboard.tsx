@@ -60,7 +60,7 @@ function TeacherHome() {
         <div className='vt-th-head'>
             <div>
                 <PageTitle>Môn & đề</PageTitle>
-                <p>{subjects.length} môn{hiddenCount > 0 && ` · ${hiddenCount} môn đang ẩn`}. Danh sách môn do Admin quản lý — cô chọn môn có sẵn để soạn đề. Cần thêm môn, báo Admin.</p>
+                <p>{subjects.length} môn{hiddenCount > 0 && ` · ${hiddenCount} môn đang ẩn`}</p>
             </div>
             <TextField label='Tìm đề, tìm môn' placeholder='Tìm đề, tìm môn' value={q} onChange={e => setQ(e.target.value)}/>
         </div>

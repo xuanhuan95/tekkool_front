@@ -489,3 +489,25 @@ a.vt-avatar { position: relative; }
 .vt-titlechip--diligent { background: var(--vt-action); color: var(--vt-ink); border-color: var(--vt-turn-icon); }
 .vt-titlechip--warrior { background: var(--vt-sun-soft); color: var(--vt-sun-ink); border-color: var(--vt-sun); }
 .vt-titlechip--conqueror { background: var(--vt-title-bg); color: var(--vt-title-ink); border-color: var(--vt-title-icon); }
+
+/* ---------- Icon button + tooltip (SPT-77) ---------- */
+.vt-iconbtn {
+    position: relative; box-sizing: border-box; flex: none; width: 44px; height: 44px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: none; border: 2px solid transparent; border-radius: var(--vt-r-btn);
+    color: var(--vt-ink); cursor: pointer; text-decoration: none;
+}
+.vt-iconbtn--outline { background: var(--vt-card); border-color: var(--vt-ink); }
+.vt-iconbtn:hover, .vt-iconbtn:focus-visible { background: var(--vt-paper); border-color: var(--vt-ink); outline: none; }
+.vt-iconbtn:focus-visible { box-shadow: var(--vt-focus); }
+.vt-iconbtn:disabled { opacity: .45; cursor: not-allowed; }
+.vt-iconbtn--danger { color: var(--vt-err); }
+/* Name shown on hover and keyboard focus; `title` stays as the touch/long-press fallback. */
+.vt-tip:hover::after, .vt-tip:focus-visible::after {
+    content: attr(data-tip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 4px;
+    background: var(--vt-ink); color: #fff; font: 600 12px var(--vt-font, Inter, sans-serif);
+    padding: 4px 8px; border-radius: 6px; white-space: nowrap; z-index: 30; pointer-events: none;
+}
+.vt-tip--end:hover::after, .vt-tip--end:focus-visible::after { left: auto; right: 0; transform: none; }
+.vt-tip--below:hover::after, .vt-tip--below:focus-visible::after { bottom: auto; top: 100%; margin: 4px 0 0; }
+

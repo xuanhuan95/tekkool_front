@@ -1,7 +1,10 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
-import {fireEvent, screen, waitFor, within} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor, within} from '@testing-library/react';
+import {MemoryRouter, Route, Routes} from 'react-router-dom';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import Transactions, {timelineText} from './Transactions';
+import StudentDetail from './StudentDetail';
 import Users from './Users';
 import {mockApi, renderAt} from './testutil';
 
@@ -20,34 +23,44 @@ const DETAIL = {...U(), turns: {bought: 15, used: 8, remaining: 7},
         items: [{name: 'Gói 10 lượt', turns: 10, quantity: 1}]}],
     order_counts: {paid: 1, pending: 0, failed: 0}, submissions: {count: 8, exams: 6, last_at: null}};
 
-describe('Users (AD-NguoiDung)', () => {
-    it('lists students by default with counts and pagination', async () => {
+describe('Users = Học sinh (AD-NguoiDung)', () => {
+    it('lists students only: total line, no role column, arrow link to the detail screen, no lock in the row', async () => {
         const api = mockApi({'admin_users/list': LIST});
         renderAt(<Users/>, '/manage/users');
         const table = within(await screen.findByRole('table'));
         expect(table.getByText('Minh Anh')).toBeTruthy();
-        expect(screen.getByText('1.284 học sinh · 6 giáo viên · 1 admin')).toBeTruthy();
+        expect(screen.getByText('Tổng 1.284 học sinh')).toBeTruthy();
         expect(screen.getByText('Hiển thị 1–20 / 1.284 học sinh')).toBeTruthy();
         expect(api.get).toHaveBeenCalledWith('admin_users/list?group=student&page=1&limit=20');
-        // Admin accounts have no lock button
-        expect(screen.queryByRole('button', {name: 'Khoá Quản trị viên'})).toBeNull();
-        expect(screen.getByRole('button', {name: 'Mở khoá Đỗ Minh Khoa'})).toBeTruthy();
+        expect(table.queryByText('Vai trò')).toBeNull();
+        expect(screen.queryByRole('tab')).toBeNull();
+        expect(screen.queryByRole('button', {name: /Khoá/})).toBeNull();
+        const link = screen.getByRole('link', {name: 'Xem chi tiết Minh Anh'});
+        expect(link.getAttribute('href')).toBe('/manage/users/u1');
+        expect(link.getAttribute('data-tip')).toBe('Xem chi tiết Minh Anh');
         fireEvent.click(screen.getByRole('button', {name: 'Sau →'}));
         await waitFor(() => expect(api.get).toHaveBeenLastCalledWith('admin_users/list?group=student&page=2&limit=20'));
     });
 
-    it('role tabs filter', async () => {
-        const api = mockApi({'admin_users/list': LIST});
+    it('error state', async () => {
+        mockApi({'admin_users/list': new Error('Chỉ Admin mới được làm thao tác này')});
         renderAt(<Users/>, '/manage/users');
-        await screen.findByRole('table');
-        fireEvent.click(screen.getByRole('tab', {name: 'Giáo viên'}));
-        await waitFor(() => expect(api.get).toHaveBeenLastCalledWith('admin_users/list?group=teacher&page=1&limit=20'));
+        expect(await screen.findByText('Không tải được danh sách học sinh')).toBeTruthy();
     });
+});
 
-    it('detail shows turns, orders; reset password shows the temp password once', async () => {
-        const api = mockApi({'admin_users/list': LIST, 'admin_users/detail/': DETAIL},
+const renderDetail = () => render(
+    <QueryClientProvider client={new QueryClient({defaultOptions: {queries: {retry: false}}})}>
+        <MemoryRouter initialEntries={['/manage/users/u1']}>
+            <Routes><Route path='/manage/users/:id' element={<StudentDetail/>}/></Routes>
+        </MemoryRouter>
+    </QueryClientProvider>);
+
+describe('StudentDetail (AD-HocSinhChiTiet)', () => {
+    it('shows turns and orders; reset password shows the temp password once', async () => {
+        const api = mockApi({'admin_users/detail/': DETAIL},
             {'admin_users/reset_password/': {...U(), temp_password: 'Kp7wQm3Zxa', generated: true}});
-        renderAt(<Users/>, '/manage/users?id=u1');
+        renderDetail();
         const aside = within(await screen.findByRole('complementary', {name: 'Chi tiết học sinh'}));
         expect(aside.getByText('15')).toBeTruthy();
         expect(aside.getByText('đã dùng')).toBeTruthy();
@@ -59,19 +72,13 @@ describe('Users (AD-NguoiDung)', () => {
         expect(within(await screen.findByRole('dialog', {name: 'Mật khẩu tạm'})).getByText('Kp7wQm3Zxa')).toBeTruthy();
     });
 
-    it('lock from the table asks first', async () => {
-        const api = mockApi({'admin_users/list': LIST}, {'admin_users/lock/': U({locked: true})});
-        renderAt(<Users/>, '/manage/users');
-        fireEvent.click(await screen.findByRole('button', {name: 'Khoá Minh Anh'}));
+    it('lock lives here and asks first', async () => {
+        const api = mockApi({'admin_users/detail/': DETAIL}, {'admin_users/lock/': U({locked: true})});
+        renderDetail();
+        fireEvent.click(await screen.findByRole('button', {name: 'Khoá tài khoản'}));
         expect(api.post).not.toHaveBeenCalled();
         fireEvent.click(within(screen.getByRole('dialog', {name: 'Khoá tài khoản?'})).getByRole('button', {name: 'Khoá'}));
         await waitFor(() => expect(api.post).toHaveBeenCalledWith('admin_users/lock/u1'));
-    });
-
-    it('error state', async () => {
-        mockApi({'admin_users/list': new Error('Chỉ Admin mới được làm thao tác này')});
-        renderAt(<Users/>, '/manage/users');
-        expect(await screen.findByText('Không tải được người dùng')).toBeTruthy();
     });
 });
 

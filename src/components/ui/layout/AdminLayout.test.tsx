@@ -12,7 +12,10 @@ describe('AdminLayout', () => {
         const signOut = vi.fn();
         useAuthStore.setState({signOut});
         renderAt(<AdminLayout name='Admin A'><p>nội dung</p></AdminLayout>);
-        fireEvent.click(screen.getByRole('button', {name: 'Đăng xuất'}));
+        const out = screen.getByRole('button', {name: 'Đăng xuất'});
+        expect(out.getAttribute('data-tip')).toBe('Đăng xuất');   // icon-only: tooltip names it
+        expect(screen.queryByText('Admin A')).toBeNull();          // no name text in the header (SPT-77)
+        fireEvent.click(out);
         expect(signOut).toHaveBeenCalledTimes(1);
     });
 });

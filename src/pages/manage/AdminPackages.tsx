@@ -203,7 +203,6 @@ export default function AdminPackages() {
         <div className='vt-mg-head'>
             <div>
                 <PageTitle>Quản lý gói</PageTitle>
-                <p className='vt-muted'>Tên, số lượt và giá do Admin cấu hình. Học sinh thanh toán qua SePay, lượt được cộng tự động.</p>
             </div>
             <Button variant='primary' onClick={() => setEditing('new')}>+ Gói mới</Button>
         </div>
