@@ -1,8 +1,8 @@
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
 
-import {Avatar, Button, Card, CardTitle, ErrorState, PageColumns, PageTitle, Skeleton, SkeletonCard, Table, Tabs,
-    buttonClass} from '../../components/ui';
+import {Avatar, Card, CardTitle, ErrorState, IconButton, PageColumns, PageTitle, Skeleton, SkeletonCard, Table, Tabs,
+    buttonClass, icons} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useRevenueSummary, useTransactions} from '../../queries/manage';
 import type {Period, RevenueSummary, Transaction} from '../../queries/manage';
@@ -183,8 +183,8 @@ export default function Revenue() {
             </div>
             <div className='vt-mg-actions'>
                 {period !== 'all' && <>
-                    <Button size='sm' aria-label='Kỳ trước' onClick={() => setAnchor(a => shiftAnchor(period, a, -1))}>‹</Button>
-                    <Button size='sm' aria-label='Kỳ sau' disabled={!canNext} onClick={() => setAnchor(a => shiftAnchor(period, a, 1))}>›</Button>
+                    <IconButton variant='outline' label='Kỳ trước' icon={<icons.IconBack/>} onClick={() => setAnchor(a => shiftAnchor(period, a, -1))}/>
+                    <IconButton variant='outline' label='Kỳ sau' icon={<icons.IconChevronRight/>} disabled={!canNext} onClick={() => setAnchor(a => shiftAnchor(period, a, 1))}/>
                 </>}
                 <Tabs aria-label='Khoảng thời gian' items={PERIODS} value={period} onChange={pickPeriod}/>
             </div>

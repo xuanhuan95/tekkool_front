@@ -69,4 +69,5 @@ export const IconLock = ({size = 18, color}: P) =>
 export const IconUnlock = ({size = 18, color}: P) =>
     <Line size={size} color={color}><rect x='5' y='11' width='14' height='9' rx='2'/><path d='M8 11V8a4 4 0 017.5-2'/></Line>;
 export const IconKey = ({size = 18}: P) => <Line size={size}><circle cx='8' cy='15' r='4'/><path d='M11 12l8-8M16 7l3 3'/></Line>;
-
+export const IconChevronRight = ({size = 18}: P) => <Line size={size} w={2.4}><path d='M9 6l6 6-6 6'/></Line>;
+export const IconArrowUp = ({size = 18}: P) => <Line size={size} w={2.2}><path d='M12 19V5M6 11l6-6 6 6'/></Line>;

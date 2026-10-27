@@ -80,3 +80,4 @@ Các màn giáo viên đã reskin theo design D (SPT-57), chạy trong `TeacherS
 Ẩn menu theo vai trò chỉ là trải nghiệm; quyền thật do backend kiểm.
 
 SPT-77: các câu giải thích dưới tiêu đề đã bỏ ở Giáo viên, Môn học, Gói, Giao dịch (Admin) và Môn & đề, Ngân hàng, Nội dung ngân hàng, Tạo đề từ ngân hàng, Nhập đề (Giáo viên); dòng số liệu được giữ.
+Mọi nút chỉ có icon trong `pages/manage/*` (xem chi tiết, khoá/mở khoá, đặt lại mật khẩu, kỳ trước/sau ở Doanh thu, đưa gói lên/xuống) dùng `IconButton` — tên hiện khi hover và focus.
