@@ -29,7 +29,7 @@ Settings → Secrets and variables → Actions (cách lấy giá trị: xem bả
 
 - **Secrets:** `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` (cùng giá trị với repo backend).
 - **Variables:** `DEPLOY_HOST` (`161.118.222.140`), `DEPLOY_USER` (`ubuntu`), `DEPLOY_PATH` (`/opt/tekkool`, có thể bỏ trống),
-  `DEPLOY_ENV_FILE` (`.env.prod` hoặc `.env` — bắt buộc), `SITE_URL` (`https://entclinic.cloud`).
+  `DEPLOY_ENV_FILE` (`.env.prod` hoặc `.env` — bắt buộc), `SITE_URL` (`https://viettestpro.vn`).
 - **Quyền:** cần quyền **Admin** repo (thấy tab Settings); không có thì nhờ chủ repo `xuanhuan95` cấp (Settings → Collaborators and teams) hoặc tự thêm.
 - Bảo vệ nhánh `main` có thể không bật được trên repo private gói Free → quy ước **chỉ merge qua PR có CI ✓**.
 
