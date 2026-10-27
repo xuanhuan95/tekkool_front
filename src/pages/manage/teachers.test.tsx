@@ -64,17 +64,23 @@ describe('ManageApp guard', () => {
 });
 
 describe('Teachers (AD-GiaoVien)', () => {
-    it('lists teachers with subjects, exam count and status', async () => {
-        mockApi({'admin/teachers': page([T(), T({id: 'u2', name: 'Thầy Vinh', status: 'never_logged_in', exam_count: 0}),
-            T({id: 'u3', name: 'Cô Hương', status: 'locked', locked: true})])});
+    it('lists teachers with subjects and status, icon actions, totals line; no exam-count column', async () => {
+        const items = [T(), T({id: 'u2', name: 'Thầy Vinh', status: 'never_logged_in', exam_count: 0}),
+            T({id: 'u3', name: 'Cô Hương', status: 'locked', locked: true})];
+        // stats line asks for 1-row pages: total, and locked only
+        mockApi({'admin/teachers': (path: string) => !path.includes('limit=1&') && !path.endsWith('limit=1') ? page(items)
+            : page([], path.includes('status=locked') ? 1 : 6)});
         renderAt(<Teachers/>);
         await screen.findByText('Cô Thu Hà');
         const table = within(screen.getByRole('table'));
         expect(table.getAllByText('Tin học').length).toBe(3);
         expect(table.getByText('Chưa đăng nhập')).toBeTruthy();
         expect(table.getByText('Đã khoá')).toBeTruthy();
-        expect(screen.getByRole('button', {name: 'Mở khoá Cô Hương'})).toBeTruthy();
+        expect(screen.getByRole('button', {name: 'Mở khoá tài khoản Cô Hương'}).getAttribute('data-tip')).toBe('Mở khoá tài khoản Cô Hương');
+        expect(screen.getByRole('button', {name: 'Đặt lại mật khẩu cho Cô Thu Hà'})).toBeTruthy();
+        expect(table.queryByText('Số đề')).toBeNull();
         expect(table.getAllByText('02/09/2026').length).toBe(3);
+        expect(await screen.findByText('Tổng 6 · Hoạt động 5 · Đã khoá 1')).toBeTruthy();
     });
 
     it('filters go to the API', async () => {
@@ -88,7 +94,7 @@ describe('Teachers (AD-GiaoVien)', () => {
     it('locks after confirmation', async () => {
         const api = mockApi({'admin/teachers': page([T()])}, {'admin/lock_teacher/': T({locked: true, status: 'locked'})});
         renderAt(<Teachers/>);
-        fireEvent.click(await screen.findByRole('button', {name: 'Khoá Cô Thu Hà'}));
+        fireEvent.click(await screen.findByRole('button', {name: 'Khoá tài khoản Cô Thu Hà'}));
         const dlg = screen.getByRole('dialog', {name: 'Khoá giáo viên?'});
         fireEvent.click(within(dlg).getByRole('button', {name: 'Khoá'}));
         await waitFor(() => expect(api.post).toHaveBeenCalledWith('admin/lock_teacher/u1'));

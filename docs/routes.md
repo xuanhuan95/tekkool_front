@@ -68,8 +68,9 @@ Các màn giáo viên đã reskin theo design D (SPT-57), chạy trong `TeacherS
 
 | Route | Màn | File | Artboard | API |
 |---|---|---|---|---|
-| `/manage/teachers` | Giáo viên: tạo, khoá/mở, đặt lại mật khẩu | `pages/manage/Teachers.tsx` | AD-GiaoVien, AD-TaoGiaoVien | `admin/teachers`, `admin/create_teacher`, `admin/lock_teacher/<id>`, `admin/unlock_teacher/<id>`, `admin_users/reset_password/<id>` |
-| `/manage/users` (`?group=&id=`) | Người dùng + chi tiết | `pages/manage/Users.tsx` | AD-NguoiDung | `admin_users/list`, `admin_users/detail/<id>`, `admin_users/lock|unlock/<id>`, `admin_users/reset_password/<id>` |
+| `/manage/teachers` | Giáo viên (SPT-77): bỏ cột Số đề; Thao tác là icon có tooltip (khoá/mở khoá, đặt lại mật khẩu; chưa có "Sửa" vì BE chưa có API sửa giáo viên); số liệu "Tổng · Hoạt động · Đã khoá" lấy từ 2 lời gọi `admin/teachers?limit=1` (tổng, và `status=locked`), Hoạt động = Tổng − Đã khoá. Tạo, khoá/mở, đặt lại mật khẩu | `pages/manage/Teachers.tsx` | AD-GiaoVien, AD-TaoGiaoVien | `admin/teachers`, `admin/create_teacher`, `admin/lock_teacher/<id>`, `admin/unlock_teacher/<id>`, `admin_users/reset_password/<id>` |
+| `/manage/users` (`?q=&status=&page=`) | **Học sinh** (SPT-77): chỉ học sinh (`group=student`), không cột Vai trò, không lọc giáo viên; dòng có icon mũi tên → chi tiết; số liệu chỉ "Tổng N học sinh" | `pages/manage/Users.tsx` | AD-NguoiDung | `admin_users/list?group=student` |
+| `/manage/users/:id` | Chi tiết học sinh (khoá/mở khoá, đặt lại mật khẩu chuyển về đây). Chưa có danh hiệu và số sao vì `admin_users/detail` chưa trả | `pages/manage/StudentDetail.tsx` | AD-HocSinhChiTiet | `admin_users/detail/<id>`, `admin_users/lock|unlock/<id>`, `admin_users/reset_password/<id>` |
 | `/manage/subjects` | Môn học: tạo, đổi tên, ẩn/hiện (không xoá). Chỉ Admin; giáo viên chỉ chọn môn có sẵn | `pages/manage/AdminSubjects.tsx` | SPT-65 | `folder/subjects`, `folder/create`, `folder/update` |
 | `/manage/packages` | Gói & giá, sắp xếp | `pages/manage/AdminPackages.tsx` | AD-Goi | `package/list?all=1`, `package/create`, `package/update/<id>`, `package/reorder`, `package/remove/<id>` |
 | `/manage/revenue` | Doanh thu | `pages/manage/Revenue.tsx` | AD-DoanhThu | `admin_revenue/summary`, `admin_revenue/transactions` |
@@ -77,3 +78,6 @@ Các màn giáo viên đã reskin theo design D (SPT-57), chạy trong `TeacherS
 | `/manage/*` khác | → `/manage/teachers` | `ManageApp.tsx` | | |
 
 Ẩn menu theo vai trò chỉ là trải nghiệm; quyền thật do backend kiểm.
+
+SPT-77: các câu giải thích dưới tiêu đề đã bỏ ở Giáo viên, Môn học, Gói, Giao dịch (Admin) và Môn & đề, Ngân hàng, Nội dung ngân hàng, Tạo đề từ ngân hàng, Nhập đề (Giáo viên); dòng số liệu được giữ.
+Mọi nút chỉ có icon trong `pages/manage/*` (xem chi tiết, khoá/mở khoá, đặt lại mật khẩu, kỳ trước/sau ở Doanh thu, đưa gói lên/xuống) dùng `IconButton` — tên hiện khi hover và focus.

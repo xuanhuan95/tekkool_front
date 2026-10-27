@@ -96,3 +96,7 @@
     border: 1.5px solid var(--vt-line-soft); border-radius: var(--vt-r-btn); padding: 10px 12px; white-space: pre-wrap; word-break: break-all; }
 .vt-mg-soon { font-size: 12px; color: var(--vt-muted); }
 .vt-mg-msg { font-size: 13px; color: var(--vt-muted); max-width: 360px; }
+
+/* SPT-77: student detail is one narrow card (design: max 480px); back link flush left */
+.vt-mg-detail { width: 100%; max-width: 480px; box-sizing: border-box; }
+.vt-mg-back { align-self: flex-start; }

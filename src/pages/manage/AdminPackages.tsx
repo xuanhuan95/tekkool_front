@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import type {FormEvent} from 'react';
 
-import {Badge, Button, Card, CardTitle, ConfirmDialog, EmptyState, ErrorState, PageColumns, PageTitle, SkeletonCard,
+import {Badge, IconButton, Button, Card, CardTitle, ConfirmDialog, EmptyState, ErrorState, PageColumns, PageTitle, SkeletonCard,
     Switch, Table, TextArea, TextField, buttonClass, icons, notify} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useAdminPackages, usePackageMutations} from '../../queries/manage';
@@ -163,10 +163,10 @@ export default function AdminPackages() {
         {key: 'price', header: 'Giá', align: 'right', render: p => <span className='vt-num'>{formatMoney(p.price)}</span>},
         {key: 'order', header: 'Thứ tự', render: (p, i) => <span className='vt-mg-order'>
             <span className='vt-num' style={{minWidth: 20}}>{p.active ? p.order : '—'}</span>
-            <Button size='sm' iconOnly aria-label={'Đưa ' + p.name + ' lên'} disabled={i === 0 || reorder.isPending}
-                    onClick={() => move(i, -1)}>↑</Button>
-            <Button size='sm' iconOnly aria-label={'Đưa ' + p.name + ' xuống'} disabled={i === list.length - 1 || reorder.isPending}
-                    onClick={() => move(i, 1)}>↓</Button>
+            <IconButton variant='outline' label={'Đưa ' + p.name + ' lên'} icon={<icons.IconArrowUp/>} disabled={i === 0 || reorder.isPending}
+                        onClick={() => move(i, -1)}/>
+            <IconButton variant='outline' label={'Đưa ' + p.name + ' xuống'} icon={<icons.IconArrowDown size={18}/>} disabled={i === list.length - 1 || reorder.isPending}
+                        onClick={() => move(i, 1)}/>
         </span>},
         {key: 'active', header: 'Trạng thái', render: p => p.active
             ? <Badge tone='ok'>Đang bán</Badge> : <Badge tone='draft'>Ngừng bán</Badge>},
@@ -203,7 +203,6 @@ export default function AdminPackages() {
         <div className='vt-mg-head'>
             <div>
                 <PageTitle>Quản lý gói</PageTitle>
-                <p className='vt-muted'>Tên, số lượt và giá do Admin cấu hình. Học sinh thanh toán qua SePay, lượt được cộng tự động.</p>
             </div>
             <Button variant='primary' onClick={() => setEditing('new')}>+ Gói mới</Button>
         </div>

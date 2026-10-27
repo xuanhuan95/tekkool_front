@@ -84,7 +84,7 @@ Viền: `2px solid #1c1917`. Không dùng bo đều (trừ hình tròn và viên
 - **Mobile (HS)**: artboard 390×844 cố định. Nền giấy chấm (trừ màn làm bài). Header dính trên cùng: logo "viettestpro" Patrick Hand 26px trái; phải: ô sao + ô lượt (cỡ nhỏ 14px) + avatar; đường gợn dưới. Nội dung giữa `flex-grow: 1; overflow-y: auto; padding: 14px 20px`. Thanh điều hướng dưới (`background: #ffffff; border-top: 2px solid #1c1917`), 4 mục Patrick Hand 18px: Trang chủ · Đề thi · Xếp hạng · Tôi; mục đang chọn nền `#d0e9fd` bo nhãn nhỏ.
 - **Web (HS web, GV, Admin)**: PAGE fluid (`width: 100%; min-height: 960px`), nội dung `max-width: 1280px; margin: 0 auto; padding: 32px 24px`. Header dính: logo Patrick Hand 30px · menu Patrick Hand 20px (mục chọn nền `#d0e9fd`) · bên phải ô thống kê + avatar · đường gợn full ngang. Bố cục 2 cột: chính `flex: 999 1 560px; min-width: 0`, phụ `flex: 1 1 300px; max-width: 380px`, cả hàng `flex-wrap: wrap`.
 - **Menu GV**: Tổng quan · Môn & đề · Ngân hàng câu hỏi · Chấm bài (giáo viên chỉ soạn đề và chấm bài). Ô thống kê GV: "3 bài chờ chấm" (vàng), avatar. Nhãn vai trò "Giáo viên" (nhãn danh hiệu tím).
-- **Menu Admin**: Giáo viên · Người dùng · Gói thi · Doanh thu · Giao dịch (Admin quản lý gói và giá). Nhãn vai trò "Admin".
+- **Menu Admin**: Giáo viên · Học sinh · Gói thi · Doanh thu · Giao dịch (Admin quản lý gói và giá). Nhãn vai trò "Admin".
 - Khoảng cách bội 4: 4/8/12/16/20/24/32. Vùng bấm ≥ 44px.
 
 ## 7. Nội dung mẫu (dùng thống nhất, không bịa số liệu thật)

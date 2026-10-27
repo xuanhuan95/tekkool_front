@@ -1,12 +1,12 @@
 import {useState} from 'react';
 import type {FormEvent} from 'react';
 
-import {Avatar, Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, FilterChip, Modal, PageTitle, Select, SkeletonCard,
-    Table, TextField, notify} from '../../components/ui';
+import {Avatar, Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, FilterChip, IconButton, Modal, PageTitle, Select, Skeleton,
+    SkeletonCard, Table, TextField, icons, notify} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useCreateTeacher, useLockTeacher, useResetPassword, useTeachers} from '../../queries/manage';
 import type {Teacher} from '../../queries/manage';
-import {errorText, formatDate} from '../../lib/format';
+import {errorText, formatDate, groupDigits} from '../../lib/format';
 import {AccountBadge, Pager, SUBJECTS, TempPasswordDialog, generateTempPassword, isValidTempPassword,
     useDebounced} from './shared';
 
@@ -98,6 +98,9 @@ export default function Teachers() {
     const [page, setPage] = useState(1);
     const query = useDebounced(q.trim());
     const {data, error, refetch, isFetching} = useTeachers({q: query, subject, status, page, limit: LIMIT});
+    // Stats line: totals ignore the filters (two 1-row queries; BE has no counts for teachers). Active = everyone not locked.
+    const all = useTeachers({limit: 1}).data?.total;
+    const locked = useTeachers({status: 'locked', limit: 1}).data?.total;
     const lock = useLockTeacher();
     const reset = useResetPassword();
 
@@ -130,14 +133,13 @@ export default function Teachers() {
         {key: 'subjects', header: 'Môn phụ trách', render: t => t.subjects.length
             ? <span className='vt-mg-tags'>{t.subjects.map(s => <Badge key={s} tone='draft'>{s}</Badge>)}</span>
             : <span className='vt-muted'>—</span>},
-        {key: 'exam_count', header: 'Số đề', align: 'right', render: t => <span className='vt-num'>{t.exam_count}</span>},
         {key: 'created_at', header: 'Ngày tạo', emphasis: 'muted', render: t => <span className='vt-num'>{formatDate(t.created_at)}</span>},
         {key: 'status', header: 'Trạng thái', render: t => <AccountBadge status={t.status}/>},
         {key: 'actions', header: 'Thao tác', sticky: true, render: t => <span className='vt-mg-actions'>
-            <Button size='sm' variant='ghost' className={t.locked ? undefined : 'vt-btn-danger-text'} onClick={() => setConfirmLock(t)}
-                    aria-label={(t.locked ? 'Mở khoá ' : 'Khoá ') + t.name}>{t.locked ? 'Mở khoá' : 'Khoá'}</Button>
-            <Button size='sm' variant='ghost' onClick={() => setConfirmReset(t)}
-                    aria-label={'Đặt lại mật khẩu cho ' + t.name}>Đặt lại mật khẩu</Button>
+            <IconButton label={(t.locked ? 'Mở khoá tài khoản ' : 'Khoá tài khoản ') + t.name} tipEnd
+                        className={t.locked ? undefined : 'vt-iconbtn--danger'} onClick={() => setConfirmLock(t)}
+                        icon={t.locked ? <icons.IconUnlock/> : <icons.IconLock/>}/>
+            <IconButton label={'Đặt lại mật khẩu cho ' + t.name} tipEnd onClick={() => setConfirmReset(t)} icon={<icons.IconKey/>}/>
         </span>},
     ];
 
@@ -147,7 +149,9 @@ export default function Teachers() {
         <div className='vt-mg-head'>
             <div>
                 <PageTitle>Tài khoản giáo viên</PageTitle>
-                <p className='vt-muted'>Chỉ Admin tạo được tài khoản giáo viên. Giáo viên không tự đăng ký.</p>
+                <p className='vt-muted vt-num'>{all !== undefined && locked !== undefined
+                    ? `Tổng ${groupDigits(all)} · Hoạt động ${groupDigits(all - locked)} · Đã khoá ${groupDigits(locked)}`
+                    : <Skeleton width={220} height={14}/>}</p>
             </div>
             <Button variant='primary' onClick={() => setCreating(true)}>+ Tạo giáo viên</Button>
         </div>
@@ -173,12 +177,10 @@ export default function Teachers() {
                     ? <EmptyState bare title='Chưa có giáo viên nào' description='Tạo tài khoản đầu tiên để giáo viên bắt đầu soạn đề.'
                                   action={<Button variant='primary' onClick={() => setCreating(true)}>+ Tạo giáo viên</Button>}/>
                     : <Table bare caption='Danh sách giáo viên' columns={columns} rows={data.items} rowKey={t => t.id}
-                             minWidth={920} empty='Không có giáo viên khớp bộ lọc'/>}
+                             minWidth={760} empty='Không có giáo viên khớp bộ lọc'/>}
         </Card>
-        {data && (data.items.length > 0 || filtered) && <>
-                        <Pager page={data.page} limit={data.limit} total={data.total} unit='giáo viên' onPage={setPage}/>
-                        <p className='vt-muted vt-mg-small'>Khoá tài khoản không xoá đề giáo viên đã tạo; giáo viên bị đăng xuất ngay.</p>
-                    </>}
+        {data && (data.items.length > 0 || filtered) &&
+            <Pager page={data.page} limit={data.limit} total={data.total} unit='giáo viên' onPage={setPage}/>}
 
         <CreateTeacherDialog open={creating} onClose={() => setCreating(false)}
                              onCreated={(t, pw) => { notify.success('Đã tạo tài khoản', t.name); setShown({name: t.name, email: t.email, password: pw}); }}/>

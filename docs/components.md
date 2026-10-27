@@ -65,7 +65,8 @@ const columns: Column<Pkg>[] = [
 | Component | Props chính | Dùng khi |
 |---|---|---|
 | `StudentLayout` | `name`, `turns`, `stars`, `title`, `navMobile`, `navWeb`, `accountTo` | Khung mọi màn HS (đã dùng trong `pages/student/StudentShell.tsx`): header dính + bottom nav (điện thoại) / menu trên (web) |
-| `AdminLayout` | `name`, `nav` | Khung `/manage/*`; menu: Giáo viên · Người dùng · Môn học · Gói thi · Doanh thu · Giao dịch; header có nút **Đăng xuất** (gọi `useAuthStore.signOut`), xuống dòng dưới menu ở 390px |
+| `AdminLayout` | `name`, `nav` | Khung `/manage/*`; menu: Giáo viên · Học sinh · Môn học · Gói thi · Doanh thu · Giao dịch; header (SPT-77) chỉ có nhãn Admin + avatar + **nút đăng xuất dạng icon có viền** (`IconButton`, tooltip "Đăng xuất"; không còn chữ "Quản trị viên"), xuống dòng dưới menu ở 390px |
+| `IconButton` | `label` (bắt buộc: `aria-label` + `title` + tooltip hiện khi hover **và** focus bàn phím), `icon`, `variant` outline·ghost, `to` (thành link), `tipEnd`, `tipBelow` | Nút icon 44×44 dùng chung (SPT-77): đăng xuất Admin, thao tác trong bảng (xem chi tiết, khoá/mở khoá, đặt lại mật khẩu). Sau này áp cho header GV/HS. Icon mới ở `icons.tsx`: `IconLogout`, `IconArrowRight`, `IconLock`, `IconUnlock`, `IconKey` |
 | `WebLayout` | `nav`, `navLabel`, `right` | Khung web chung |
 | `HeaderSticky`, `StudentStats`, `BottomNav` | `variant`, `nav`, `right` ; `turns`, `stars`, `title` ; `items` | Thành phần của các layout trên |
 | `PageColumns` | `main`, `side` | Bố cục 2 cột web (cột phụ ≤ 380px), xuống 1 cột trên điện thoại |

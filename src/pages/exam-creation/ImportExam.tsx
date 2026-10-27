@@ -342,8 +342,8 @@ export default function ImportExam() {
 
     const pickFile = () => fileRef.current?.click();
     const context = bankId
-        ? <>lưu vào ngân hàng <b>{bankInfo?.name || '…'}</b></>
-        : folderId ? <>tạo trong môn <b>{folder?.name || '…'}</b></> : null;
+        ? <>Lưu vào ngân hàng <b>{bankInfo?.name || '…'}</b></>
+        : folderId ? <>Tạo trong môn <b>{folder?.name || '…'}</b></> : null;
     const direct = (label: string) => `${label} ${chosen.length} đề`;
 
     return <div className='vt-imp'>
@@ -352,7 +352,7 @@ export default function ImportExam() {
         <div className='vt-imp-head'>
             <div>
                 <PageTitle>Nhập đề từ file Word</PageTitle>
-                <p>Xem trước rồi mới lưu — chưa ghi vào hệ thống{context && <> · {context}</>}</p>
+                {context && <p>{context}</p>}
             </div>
             {(exams.length > 0 || problem) &&
                 <Button variant='secondary' disabled={busy} onClick={pickFile}>Chọn file khác</Button>}

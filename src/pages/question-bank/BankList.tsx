@@ -24,7 +24,6 @@ export default function BankList() {
         <div className='vt-qb-head'>
             <div>
                 <PageTitle>Ngân hàng câu hỏi</PageTitle>
-                <p>Nhập đề Word vào ngân hàng của môn, rồi tạo đề hoặc để mỗi học sinh rút một đề khác nhau.</p>
             </div>
             {banks && banks.length > 0 && openCreate}
         </div>

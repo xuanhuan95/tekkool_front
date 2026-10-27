@@ -184,7 +184,6 @@ export default function Transactions() {
         <div className='vt-mg-head'>
             <div>
                 <PageTitle>Giao dịch &amp; đối soát</PageTitle>
-                <p className='vt-muted'>Đơn mua gói thanh toán qua SePay. Hệ thống cộng lượt khi webhook báo nhận đủ tiền.</p>
             </div>
             <Tabs aria-label='Giao dịch hoặc đối soát' idPrefix='tx' value={tab}
                   items={[{value: 'list', label: 'Giao dịch'}, {value: 'reconcile', label: 'Đối soát'}]}

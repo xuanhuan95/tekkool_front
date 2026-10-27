@@ -107,7 +107,7 @@ export default function BankBlocks() {
         <div className='vt-qb-head'>
             <div>
                 <PageTitle>{bank ? bank.name : 'Nội dung ngân hàng'}</PageTitle>
-                <p>{data ? `${data.total} khối${type || q ? ' khớp bộ lọc' : ''}` : 'Đang tải…'}. Xoá là xoá cả khối; muốn sửa, sửa file Word rồi nhập lại.</p>
+                <p>{data ? `${data.total} khối${type || q ? ' khớp bộ lọc' : ''}` : 'Đang tải…'}</p>
             </div>
         </div>
 

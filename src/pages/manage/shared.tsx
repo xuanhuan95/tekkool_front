@@ -1,10 +1,11 @@
 import {useEffect, useState} from 'react';
 import {NavLink} from 'react-router-dom';
 
-import {Badge, Button, Modal, notify} from '../../components/ui';
+import {Badge, Button, ConfirmDialog, Modal, notify} from '../../components/ui';
 import type {BadgeTone} from '../../components/ui';
-import type {AccountStatus, Role, TxStatus} from '../../queries/manage';
-import {groupDigits} from '../../lib/format';
+import {useLockUser, useResetPassword} from '../../queries/manage';
+import type {AccountStatus, AdminUser, Role, TxStatus} from '../../queries/manage';
+import {errorText, groupDigits} from '../../lib/format';
 
 /** The 12 SPT subjects (design-system.md §7). */
 export const SUBJECTS = ['Toán', 'Ngữ văn', 'Tiếng Anh', 'Vật lí', 'Hóa học', 'Sinh học', 'Lịch sử', 'Địa lí',
@@ -143,4 +144,43 @@ export function PackagesSubNav() {
         <NavLink to='/manage/packages'>Quản lý gói</NavLink>
         <NavLink to='/manage/revenue'>Doanh thu</NavLink>
     </nav>;
+}
+
+/** Lock / unlock + reset password, with confirmations. Shared by the table and the side panel. */
+export function useAccountActions() {
+    const lock = useLockUser();
+    const reset = useResetPassword();
+    const [confirmLock, setConfirmLock] = useState<AdminUser | null>(null);
+    const [confirmReset, setConfirmReset] = useState<AdminUser | null>(null);
+    const [shown, setShown] = useState<{name: string; email: string; password: string} | null>(null);
+
+    const dialogs = <>
+        <ConfirmDialog open={!!confirmLock} tone={confirmLock?.locked ? 'primary' : 'danger'} loading={lock.isPending}
+                       title={confirmLock?.locked ? 'Mở khoá tài khoản?' : 'Khoá tài khoản?'}
+                       message={confirmLock?.locked
+                           ? `${confirmLock?.name} đăng nhập lại được bằng mật khẩu cũ.`
+                           : `${confirmLock?.name} bị đăng xuất ngay và không đăng nhập được. Lượt, đơn và bài làm giữ nguyên.`}
+                       confirmLabel={confirmLock?.locked ? 'Mở khoá' : 'Khoá'}
+                       onCancel={() => setConfirmLock(null)}
+                       onConfirm={() => {
+                           const u = confirmLock!;
+                           lock.mutate({userId: u.id, lock: !u.locked}, {
+                               onSuccess: () => { notify.success(u.locked ? 'Đã mở khoá' : 'Đã khoá tài khoản', u.name); setConfirmLock(null); },
+                               onError: e => { notify.error('Không thực hiện được', errorText(e, 'Thử lại sau.')); setConfirmLock(null); },
+                           });
+                       }}/>
+        <ConfirmDialog open={!!confirmReset} loading={reset.isPending} title='Đặt lại mật khẩu?'
+                       message={`Hệ thống tạo mật khẩu tạm mới cho ${confirmReset?.name}. Mọi phiên đăng nhập của họ bị đăng xuất; lần đăng nhập tới phải đổi mật khẩu.`}
+                       confirmLabel='Đặt lại' onCancel={() => setConfirmReset(null)}
+                       onConfirm={() => {
+                           const u = confirmReset!;
+                           reset.mutate(u.id, {
+                               onSuccess: r => { setConfirmReset(null); setShown({name: u.name, email: u.email, password: r.temp_password}); },
+                               onError: e => { notify.error('Không đặt lại được mật khẩu', errorText(e, 'Thử lại sau.')); setConfirmReset(null); },
+                           });
+                       }}/>
+        <TempPasswordDialog open={!!shown} name={shown?.name} email={shown?.email} password={shown?.password || ''}
+                            onClose={() => setShown(null)}/>
+    </>;
+    return {askLock: setConfirmLock, askReset: setConfirmReset, dialogs};
 }
