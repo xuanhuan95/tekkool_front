@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Kiem tra site sau deploy — cung tieu chi deploy.sh: / = 200, /api/session/init = 200,
 # /admin = 404. Thu lai vi container vua Started chua chac phuc vu ngay. [SPT-67]
-#   bash .github/scripts/health_check.sh https://entclinic.cloud
+#   bash .github/scripts/health_check.sh https://viettestpro.vn
 # CHECK_API=0: bo kiem /api (deploy frontend chi doi / va /admin).
 # File giong het o tekkool_back va tekkool_front.
 set -u

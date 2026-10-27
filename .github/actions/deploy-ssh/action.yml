@@ -25,7 +25,7 @@ inputs:
     description: vars.DEPLOY_ENV_FILE (.env hoac .env.prod) — bat buoc
     required: true
   site_url:
-    description: vars.SITE_URL (vd https://entclinic.cloud)
+    description: vars.SITE_URL (vd https://viettestpro.vn)
     required: true
 runs:
   using: composite
