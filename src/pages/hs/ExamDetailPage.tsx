@@ -46,7 +46,7 @@ function StartBlock({examId, name}: {examId: string; name: string}) {
 
     if (resuming) return <>
         <div className='hs-note' role='note'><IconTicket size={18}/>
-            <span><b>Bạn đang làm dở đề này</b> ({minutesLeft(cont!.remaining_sec)}). Làm tiếp không tốn thêm lượt.</span></div>
+            <span><b>Bạn đang làm dở đề này</b> ({minutesLeft(cont!.remaining_sec)}).</span></div>
         <div className='hs-start-bar'>
             <Button variant='primary' size='lg' block onClick={() => navigate(hsPath.take(examId, false))}>Làm tiếp →</Button>
         </div>

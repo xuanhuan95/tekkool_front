@@ -10,13 +10,13 @@ import type {SubjectSummary} from '../../types/student';
 import type {Submission} from '../../types/submission';
 import {useMediaQuery, DESKTOP} from '../useMediaQuery';
 import {ContinueCard, LoadError, PageHead, TitleCard, greetName, hsPath, titleHint} from '../hs/common';
-import {formatDayMonth, formatPoints, formatScore, minutesLeft, plainText, score10} from '../../lib/format';
+import {formatDayMonth, formatPoints, formatScore, plainText, score10} from '../../lib/format';
 
 /** Subjects shown on the phone home before "Xem cả N môn" (design: 6). */
 const MOBILE_SUBJECTS = 6;
 
 function subjectMeta(s: SubjectSummary): string {
-    return s.exams + ' đề · ' + (s.done > 0 ? 'đã làm ' + s.done : 'chưa làm');
+    return s.exams + ' đề';
 }
 
 function SubjectGrid({subjects}: {subjects: SubjectSummary[]}) {
@@ -31,7 +31,7 @@ function SubjectsSection({web}: {web: boolean}) {
     const q = useSubjects();
     const head = (count?: number) => web
         ? <div className='hs-col2'><h2 className='hs-h2'>Chọn môn</h2>
-            <span className='hs-meta'>{count != null ? count + ' môn thi SPT · ' : ''}mỗi lần làm đề trừ 1 lượt</span></div>
+            {count != null && <span className='hs-meta'>{count} môn thi SPT</span>}</div>
         : <div className='hs-row'><h2 className='hs-h2'>Chọn môn</h2>
             {count != null && count > MOBILE_SUBJECTS && <Link to={hsPath.exams()} className='vt-link'>Xem cả {count} môn</Link>}</div>;
 
@@ -60,7 +60,7 @@ function TurnsCard({web}: {web: boolean}) {
         <div className='hs-col2'>
             <span className='hs-meta'>{web ? 'Lượt thi của bạn' : 'Lượt thi còn lại'}</span>
             <span className='hs-big vt-num'>{n} lượt</span>
-            <span className='hs-meta'>Không hết hạn{web && w.data.bought ? ` · đã mua ${w.data.bought}, đã dùng ${w.data.used}` : ''}</span>
+            {web && w.data.bought > 0 && <span className='hs-meta'>Đã mua {w.data.bought}, đã dùng {w.data.used}</span>}
         </div>
         {buy}
     </Card>;
@@ -95,7 +95,6 @@ function WeekTop() {
             <span>{me.rank != null ? 'Bạn: hạng ' + me.rank : 'Bạn: chưa có điểm tuần này'}</span>
             <b>{formatPoints(me.points)}</b>
         </div>}
-        <span className='hs-meta'>10 điểm mỗi đề hoàn thành + điểm bài (lần tốt nhất).</span>
     </Card>;
 }
 
@@ -141,11 +140,8 @@ export default function StudentHome() {
         <TitleBlock web={false}/>
     </div>;
 
-    const sub = cont
-        ? `Bài ${cont.subject || plainText(cont.exam_name)} đang làm dở ${minutesLeft(cont.remaining_sec)}. Làm tiếp hay chọn đề môn khác?`
-        : 'Hôm nay mình luyện tiếp nhé. Chọn môn để bắt đầu.';
     return <div className='hs-page'>
-        <PageHead title={hello} sub={sub}/>
+        <PageHead title={hello}/>
         <PageColumns
             main={<>
                 {cont && <ContinueCard cont={cont} web/>}

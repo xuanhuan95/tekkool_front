@@ -4,11 +4,11 @@ import {Link} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 
 import Api from '../../services/api';
-import {Avatar, Button, Card, Modal, PasswordField, SkeletonCard, Switch, TextField, TitleChip, notify} from '../../components/ui';
+import {Avatar, Button, Card, Modal, PasswordField, SkeletonCard, TextField, TitleChip, notify} from '../../components/ui';
 import {IconCrown, IconEdit} from '../../components/ui/icons';
 import {useAuthStore} from '../../stores/authStore';
 import {useWallet} from '../../queries/wallet';
-import {PROFILE_KEY, useMeProfile, useRankingPrivacy} from '../../queries/student';
+import {PROFILE_KEY, useMeProfile} from '../../queries/student';
 import type {MeProfile} from '../../types/student';
 import {LoadError, PageHead, hsPath, titleHint} from './common';
 import {errorText} from '../../lib/format';
@@ -49,7 +49,7 @@ function RenameDialog({open, current, onClose}: {open: boolean; current: string;
                   </>}>
         <form id='hs-rename' className='hs-form' onSubmit={submit} noValidate>
             <TextField label='Tên hiển thị' value={name} autoComplete='name' maxLength={60} error={err}
-                       hint='Tên này hiện trên bảng xếp hạng (trừ khi bạn ẩn tên).'
+                       hint='Tên này hiện trên bảng xếp hạng.'
                        onChange={e => { setName(e.target.value); setErr(undefined); }}/>
         </form>
     </Modal>;
@@ -105,22 +105,7 @@ function PasswordDialog({open, onClose}: {open: boolean; onClose: () => void}) {
     </Modal>;
 }
 
-function PrivacySwitch({hidden}: {hidden: boolean}) {
-    const m = useRankingPrivacy();
-    // Optimistic: show the new state while saving; on error it falls back to the server value.
-    const shownHidden = m.isPending && m.variables !== undefined ? m.variables : hidden;
-    return <div className='hs-setting' style={{cursor: 'default'}}>
-        <Switch checked={!shownHidden} disabled={m.isPending}
-                label={<span className='hs-setting-main'><span>Hiện tên trên bảng xếp hạng</span>
-                    <span className='hs-meta'>Tắt để hiện là “Học sinh ẩn danh”</span></span>}
-                onChange={show => m.mutate(!show, {
-                    onSuccess: r => notify.success(r.hide_ranking_name ? 'Đã ẩn tên khỏi bảng xếp hạng' : 'Tên bạn đã hiện trên bảng xếp hạng'),
-                    onError: e => notify.error('Không lưu được', errorText(e, 'Thử lại sau.')),
-                })}/>
-    </div>;
-}
-
-/** HS-TaiKhoan: profile, title, turns, links, ranking privacy, rename, change password, sign out. */
+/** HS-TaiKhoan: profile, title, turns, links, rename, change password, sign out (sign-out lives here, not in the header). */
 export default function AccountPage() {
     const authUser = useAuthStore(s => s.user);
     const signOut = useAuthStore(s => s.signOut);
@@ -158,7 +143,6 @@ export default function AccountPage() {
                     <span className='hs-meta'>Lượt thi còn lại</span>
                     <span className='hs-big vt-num'>{wallet.data ? wallet.data.remaining + ' lượt' : wallet.isError ? '—' : '…'}</span>
                 </div>
-                <span className='hs-meta'>Không hết hạn</span>
             </div>
             <nav aria-label='Gói và lịch sử' className='hs-row' style={{justifyContent: 'flex-start', gap: 16}}>
                 <Link to={hsPath.packages} className='vt-link'>Gói thi</Link>
@@ -172,7 +156,6 @@ export default function AccountPage() {
             {profile.isPending ? <SkeletonCard label='Đang tải cài đặt'/>
                 : profile.isError ? <LoadError error={profile.error} onRetry={() => profile.refetch()} what='cài đặt tài khoản'/>
                 : <Card flush className='hs-settings'>
-                    <PrivacySwitch hidden={profile.data.hide_ranking_name}/>
                     <button type='button' className='hs-setting' onClick={() => setDialog('rename')}>
                         <span className='hs-setting-main'><span>Đổi tên hiển thị</span><span className='hs-meta'>{name}</span></span>
                         <IconEdit/>

@@ -9,6 +9,7 @@ import {formatDecimal, formatScore} from '../../lib/format';
 import {loadError} from './ResultPage';
 import {buildReview, filterReview, reviewBadge, summarize} from './submissionView';
 import type {ReviewFilter, ReviewItem} from './submissionView';
+import {AnswerImageThumbs} from './AnswerImages';
 import './results.css';
 
 const FILTERS: Array<{value: ReviewFilter; label: string}> = [
@@ -29,8 +30,8 @@ function ChoiceBody({item}: {item: ReviewItem}) {
             return <div key={o.key} className={cls}>
                 <span className='vt-rv-letter' aria-hidden='true'>{o.key}</span>
                 <span className='vt-rv-optbody'><span className='vt-sr-only'>{o.key}. </span>{renderHTML(o.html)}</span>
-                {o.chosen && <span className='vt-rv-tag'>Bạn chọn</span>}
-                {o.correct && <span className='vt-rv-tag'>{o.chosen ? ' · ' : ''}Đáp án đúng</span>}
+                {/* colour carries it on screen (design); the words stay for screen readers */}
+                {(o.chosen || o.correct) && <span className='vt-sr-only'>{[o.chosen && 'Bạn chọn', o.correct && 'Đáp án đúng'].filter(Boolean).join(' · ')}</span>}
             </div>;
         })}
         {!item.options.some(o => o.chosen) && <span className='vt-rv-hint'>Bạn chưa chọn đáp án.</span>}
@@ -57,6 +58,10 @@ function TextBody({item}: {item: ReviewItem}) {
         <span className='vt-rv-label'>Bài làm của bạn</span>
         {empty ? <span className='vt-rv-hint'>(bỏ trống)</span>
             : <div className='vt-rv-answer'>{item.kind === 'essay' ? renderHTML(item.answer) : item.answer}</div>}
+        {item.images.length > 0 && <>
+            <span className='vt-rv-label'>Ảnh bài làm · {item.images.length} ảnh</span>
+            <AnswerImageThumbs ids={item.images}/>
+        </>}
         {item.kind === 'short' && item.correctText && item.status !== 'correct' &&
             <span className='vt-rv-label'>Đáp án đúng: <b className='vt-rv-ok'>{item.correctText.split('|').join(' hoặc ')}</b></span>}
         {item.kind === 'essay' && item.status === 'pending' &&

@@ -119,12 +119,12 @@ describe('QuestionBlock — trả lời ngắn, tự luận, đánh dấu', () =
         expect(on).toHaveBeenCalledWith('2,5');
     });
 
-    it('essay: textarea + word count + teacher note; toolbar only with onTool', () => {
+    it('essay: textarea + word count (no teacher note, SPT-82); toolbar only with onTool', () => {
         const on = vi.fn(), tool = vi.fn();
         render(<QuestionBlock kind='essay' number={23} title='Câu 23 · 1,5 điểm' prompt='Tìm kích thước'
                               value='Gọi x là cạnh' onChange={on} onTool={tool}/>);
         expect(screen.getByText('4 chữ')).toBeInTheDocument();
-        expect(screen.getByText(/Giáo viên sẽ chấm phần này/)).toBeInTheDocument();
+        expect(screen.queryByText(/Giáo viên sẽ chấm/)).toBeNull();
         fireEvent.change(screen.getByLabelText('Bài làm của bạn'), {target: {value: 'abc'}});
         expect(on).toHaveBeenCalledWith('abc');
         fireEvent.click(screen.getByRole('button', {name: 'Chèn công thức'}));
@@ -140,10 +140,12 @@ describe('QuestionBlock — trả lời ngắn, tự luận, đánh dấu', () =
         const on = vi.fn();
         const {rerender} = render(<QuestionBlock kind='short' number={18} prompt='x' value='' onChange={() => {}}
                                                  flagged={false} onToggleFlag={on}/>);
-        fireEvent.click(screen.getByRole('button', {name: 'Xem lại sau'}));
+        const flag = screen.getByRole('button', {name: 'Xem lại sau'});
+        expect(flag).toHaveAttribute('data-tip', 'Xem lại sau');   // icon only: tooltip names it
+        fireEvent.click(flag);
         expect(on).toHaveBeenCalledTimes(1);
         rerender(<QuestionBlock kind='short' number={18} prompt='x' value='' onChange={() => {}} flagged onToggleFlag={on}/>);
-        expect(screen.getByRole('button', {name: 'Đã đánh dấu'})).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', {name: 'Bỏ đánh dấu xem lại'})).toHaveAttribute('aria-pressed', 'true');
     });
 });
 
@@ -208,10 +210,10 @@ describe('ExamHeader / ExamEnd', () => {
         expect(screen.getByRole('timer')).toHaveClass('vt-timer--warn');
     });
 
-    it('end block: "Hết đề", summary, submit blocked while submitting', () => {
+    it('end block: summary (no "Hết đề" title), submit blocked while submitting', () => {
         const submit = vi.fn();
         render(<ExamEnd answered={11} total={23} flagged={2} savedAt='20:41' submitting onSubmit={submit}/>);
-        expect(screen.getByText('Hết đề')).toBeInTheDocument();
+        expect(screen.queryByText('Hết đề')).toBeNull();
         expect(screen.getByText(/2 câu đánh dấu/)).toBeInTheDocument();
         expect(screen.getByText('Đã lưu tự động lúc 20:41')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', {name: 'Nộp bài'}));

@@ -1,7 +1,5 @@
-import {useEffect, useRef, useState} from "react";
-import type {ReactNode} from "react";
+import {Suspense, lazy, useEffect, useRef, useState} from "react";
 import {useEditor, EditorContent} from '@tiptap/react';
-import type {Editor as TiptapEditor} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import type {Node as PMNode} from '@tiptap/pm/model';
 import type {EditorView} from '@tiptap/pm/view';
@@ -9,11 +7,17 @@ import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
 import CheckItem from './CheckItem';
+import EditorToolbar from './EditorToolbar';
+import type {EditorVariant} from './EditorToolbar';
+import ImageDialog from './ImageDialog';
 import {Superscript, Subscript, Image, MathInline} from './RichExtras';
 import {measure, WORD} from './textLimit';
 import type {Unit} from './textLimit';
 
 import './Editor.css';
+
+// MathLive is big: only downloaded when a student opens Σ.
+const MathDialog = lazy(() => import('./MathDialog'));
 
 // Plain text of a ProseMirror doc. Each block is a boundary ('\n').
 // NFC is mandatory — 'ệ' typed on macOS is e + 2 combining marks (NFD), so
@@ -29,68 +33,6 @@ const docSize = (doc: PMNode, unit: Unit): number => measure(docText(doc), unit)
 // now, so students can write past the limit freely.
 type Limit = {max: number; unit: Unit};
 
-// Toolbar button. active = that format is on for the current selection.
-type BtnProps = {
-    onClick: () => void;
-    title: string;
-    children: ReactNode;
-    /** Omitted = action button (no on/off state). */
-    active?: boolean;
-};
-
-function Btn({onClick, active, title, children}: BtnProps) {
-    return <button type='button' title={title}
-                   className={'tt-btn' + (active ? ' active' : '')}
-                   onMouseDown={e => e.preventDefault()}
-                   onClick={onClick}>{children}</button>
-}
-
-type ToolbarProps = {
-    editor: TiptapEditor | null;
-    type?: string;
-    onToAnswerButton?: (selected: string) => void;
-};
-
-function Toolbar({editor, type, onToAnswerButton}: ToolbarProps) {
-    if (!editor) return null;
-    // ponytail: setTextAlign always SETS, never clears -> clicking align-left to
-    // fix a paragraph accidentally right-aligned would store text-align:left, and
-    // the junk stays in the HTML. Toggle like Bold: when active, clicking again
-    // unsets it and returns the paragraph to no style.
-    const align = (a: string) => editor.chain().focus()[
-        editor.isActive({textAlign: a}) ? 'unsetTextAlign' : 'setTextAlign'](a).run();
-
-    // Select a passage -> replace it with a blank, the passage becomes the answer.
-    const toAnswer = () => {
-        const {from, to} = editor.state.selection;
-        const selected = editor.state.doc.textBetween(from, to, ' ');
-        if (!selected) return;
-        editor.chain().focus().insertContent(
-            type === 'ErrorIdentify' ? {type: 'checkItem'} : '__________'
-        ).run();
-        onToAnswerButton && onToAnswerButton(selected);
-    };
-
-    return <div className='tt-toolbar'>
-        <Btn title='Bold' active={editor.isActive('bold')}
-             onClick={() => editor.chain().focus().toggleBold().run()}><b>B</b></Btn>
-        <Btn title='Italic' active={editor.isActive('italic')}
-             onClick={() => editor.chain().focus().toggleItalic().run()}><i>I</i></Btn>
-        <Btn title='Underline' active={editor.isActive('underline')}
-             onClick={() => editor.chain().focus().toggleUnderline().run()}><u>U</u></Btn>
-        <Btn title='Căn trái' active={editor.isActive({textAlign: 'left'})}
-             onClick={() => align('left')}><i className='align left icon'/></Btn>
-        <Btn title='Căn giữa' active={editor.isActive({textAlign: 'center'})}
-             onClick={() => align('center')}><i className='align center icon'/></Btn>
-        <Btn title='Căn phải' active={editor.isActive({textAlign: 'right'})}
-             onClick={() => align('right')}><i className='align right icon'/></Btn>
-        {onToAnswerButton &&
-            <Btn title='Chuyển vùng chọn thành đáp án' onClick={toAnswer}>
-                <i className='angle double down icon'/>
-            </Btn>}
-    </div>
-}
-
 export type EditorProps = {
     text?: string;
     placeholder?: string;
@@ -103,6 +45,8 @@ export type EditorProps = {
     onBlur?: () => void;
     disableReturn?: boolean;
     disableStyle?: boolean;
+    /** student: toolbar with Σ (formula keyboard), no images. teacher (default): image insert, no Σ. disableStyle hides the toolbar. */
+    variant?: EditorVariant;
     /** Shim for legacy code: NOT a React ref, see the useEffect below. */
     refMedium?: {current: any};
     maxChars?: number;
@@ -113,6 +57,7 @@ export function Editor(props: EditorProps) {
     const {
         text, placeholder, type, onChange, onToAnswerButton,
         onPaste, onKeyUp, onBlur, disableReturn, disableStyle, refMedium, maxChars, maxWords,
+        variant = 'teacher',
     } = props;
 
     const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -125,6 +70,11 @@ export function Editor(props: EditorProps) {
     const limit = useRef<Limit>({max, unit});
     limit.current = {max, unit};
 
+    // Σ dialog state (student): pos != null = editing the formula node at that position.
+    const [math, setMath] = useState<{pos: number | null; latex: string} | null>(null);
+    const [imageOpen, setImageOpen] = useState(false);
+    const editMath = useRef((pos: number, latex: string) => setMath({pos, latex}));
+
     const editor = useEditor({
         extensions: [
             StarterKit.configure({heading: false, codeBlock: false, blockquote: false}),
@@ -136,7 +86,8 @@ export function Editor(props: EditorProps) {
             ...(disableStyle ? [] : [TextAlign.configure({types: ['paragraph']})]),
             Placeholder.configure({placeholder: placeholder || ''}),
             CheckItem,
-            Superscript, Subscript, Image, MathInline,
+            Superscript, Subscript, Image,
+            variant === 'student' ? MathInline.configure({onEdit: (pos, latex) => editMath.current(pos, latex)}) : MathInline,
         ],
         content: text || '',
         editorProps: {
@@ -194,12 +145,25 @@ export function Editor(props: EditorProps) {
     }, []);
 
     return <div className='tt-editor' onKeyUp={onKeyUp}>
-        {!disableStyle && <Toolbar editor={editor} type={type} onToAnswerButton={onToAnswerButton}/>}
+        {!disableStyle && <EditorToolbar editor={editor} variant={variant} type={type} onToAnswerButton={onToAnswerButton}
+                                         onSigma={() => setMath({pos: null, latex: ''})} onImage={() => setImageOpen(true)}/>}
         <EditorContent editor={editor}/>
         {/* Always gray: going over the word count is no longer an error, so no alarm. */}
         {max > 0 &&
             <div className='tt-charcount' style={{color: '#767676'}}>
                 {size} / {max} {unit === WORD ? 'từ' : 'ký tự'}
             </div>}
+        {math && <Suspense fallback={null}>
+            <MathDialog open latex={math.latex} onCancel={() => setMath(null)}
+                        onDone={latex => {
+                            if (editor && latex.trim()) {
+                                if (math.pos === null) editor.chain().focus().insertContent({type: 'math', attrs: {latex}}).run();
+                                else editor.view.dispatch(editor.state.tr.setNodeMarkup(math.pos, undefined, {latex}));
+                            }
+                            setMath(null);
+                        }}/>
+        </Suspense>}
+        {imageOpen && <ImageDialog open onClose={() => setImageOpen(false)}
+                                   onInsert={src => editor?.chain().focus().insertContent({type: 'image', attrs: {src}}).run()}/>}
     </div>
 }

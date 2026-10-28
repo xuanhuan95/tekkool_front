@@ -65,7 +65,6 @@ export type MeProfile = {
     name: string;
     email: string;
     group: string | null;
-    hide_ranking_name: boolean;
     /** SPT-64: null = no tier reached (or not a student). */
     title?: StudentTitle | null;
     /** SPT-64: next tier hint, present even when `title` is null (students only). */
@@ -77,8 +76,6 @@ export type BoardEntry = {
     /** null only for the viewer's own row when they have nothing on this board yet. */
     rank: number | null;
     is_me: boolean;
-    hidden: boolean;
-    /** "Học sinh ẩn danh" for hidden people (except yourself). */
     name: string;
     points: number;
     exams?: number;

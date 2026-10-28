@@ -1,7 +1,7 @@
 import {useState} from 'react';
-import {Link, useNavigate, useParams} from 'react-router-dom';
+import {useNavigate, useParams} from 'react-router-dom';
 
-import {Button, ErrorState, Skeleton, StatusBadge, WaveLine, buttonClass, icons} from '../../components/ui';
+import {Button, ErrorState, IconButton, Skeleton, StatusBadge, WaveLine, icons} from '../../components/ui';
 import Api from '../../services/api';
 import {usePackages} from '../../queries/payment';
 import {useWallet} from '../../queries/wallet';
@@ -77,7 +77,6 @@ export default function Payment() {
                     {pkg.featured && <StatusBadge status='popular'/>}
                 </div>
                 <div className='vt-pay-row'><span>Số lượt</span><b className='vt-num'>+{pkg.turns} lượt</b></div>
-                <div className='vt-pay-row'><span>Hạn dùng</span><b>Không hết hạn</b></div>
                 <div className='vt-pay-row'><span>Giá gói</span><b className='vt-num'>{formatMoney(pkg.price)}</b></div>
                 <div className='vt-pay-total'><span>Tổng cộng</span><b>{formatMoney(pkg.price)}</b></div>
             </section>
@@ -89,8 +88,8 @@ export default function Payment() {
                     </svg>
                 </span>
                 <div>
-                    <b>Thanh toán qua SePay</b>
-                    <p className='vt-muted'>Chuyển khoản ngân hàng hoặc quét mã QR. Bạn sẽ được chuyển sang trang SePay để hoàn tất.</p>
+                    <b>Chuyển khoản hoặc quét mã QR</b>
+                    <p className='vt-muted'>Mở ứng dụng ngân hàng, quét mã QR hoặc chuyển khoản theo nội dung hiển thị.</p>
                 </div>
             </section>
 
@@ -106,7 +105,7 @@ export default function Payment() {
     return <div className='vt-paper vt-shell vt-pay-full'>
         <header className='vt-pay-bar'>
             <div className='vt-pay-bar-row'>
-                <Link to='/packages' aria-label='Quay lại chọn gói' className={buttonClass({iconOnly: true})}><icons.IconBack/></Link>
+                <IconButton variant='outline' tipBelow to='/packages' label='Quay lại chọn gói' icon={<icons.IconBack/>}/>
                 <span className='vt-pay-bar-title'>Thanh toán</span>
             </div>
             <WaveLine variant='mobile'/>
@@ -116,7 +115,7 @@ export default function Payment() {
             {body}
         </main>
         {pkg && <footer className='vt-pay-foot'>
-            <Button variant='primary' block loading={redirecting} loadingText='Đang chuyển sang SePay…' onClick={pay}>
+            <Button variant='primary' block loading={redirecting} loadingText='Đang chuyển sang trang thanh toán…' onClick={pay}>
                 Thanh toán {formatMoney(pkg.price)}
             </Button>
             <Button variant='secondary' block disabled={redirecting} onClick={() => navigate('/packages')}>Huỷ</Button>

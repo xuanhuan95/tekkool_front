@@ -3,6 +3,7 @@ import type {ReactNode, RefObject} from 'react';
 import {createPortal} from 'react-dom';
 
 import Button from './Button';
+import IconButton from './IconButton';
 import {IconClose} from './icons';
 import {cx} from './cx';
 
@@ -76,7 +77,7 @@ export default function Modal({open, onClose, title, children, footer, size = 's
                 <div className='vt-modal-head'>
                     <h2 id={titleId} className='vt-modal-title'>{title}</h2>
                     {showClose && onClose &&
-                        <Button variant='secondary' iconOnly aria-label='Đóng' onClick={onClose}><IconClose/></Button>}
+                        <IconButton variant='outline' tipEnd label='Đóng' icon={<IconClose/>} onClick={onClose}/>}
                 </div>
                 {children !== undefined && <div className='vt-modal-body'>{children}</div>}
                 {footer && <div className='vt-modal-footer'>{footer}</div>}

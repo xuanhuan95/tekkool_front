@@ -4,6 +4,7 @@ import {QuestionBlock} from '../../components/ui';
 import renderHTML from '../../components/SafeHtml';
 import {Editor} from '../../components/Editor';
 import {formatDecimal} from '../../lib/format';
+import AnswerImages from './AnswerImages';
 import {choiceKey, choiceWrites, textValue, trueFalseValue, trueFalseWrites} from './paper';
 import type {PaperQuestion, RawAnswers} from './paper';
 
@@ -29,6 +30,8 @@ function QuestionView({question: q, answers, flagged, disabled, onToggleFlag, on
         disabled,
         onToggleFlag: () => onToggleFlag(q.number),
         prompt: <>{renderHTML(q.prompt)}</>,
+        title: q.showPoints && q.maxScore !== null
+            ? <>Câu {q.number} <small className='vt-q-pts'>{formatDecimal(q.maxScore)}đ</small></> : undefined,
     };
     const id = q.questionIds[0];
 
@@ -55,9 +58,11 @@ function QuestionView({question: q, answers, flagged, disabled, onToggleFlag, on
                           value={raw} onChange={() => {}}
                           editor={disabled
                               ? <div className='tt-editor'><div className='ProseMirror'>{renderHTML(raw)}</div></div>
-                              : <Editor text={raw} placeholder='Viết bài làm của bạn…' disableStyle
+                              : <Editor text={raw} placeholder='Viết bài làm của bạn…' variant='student'
                                         maxChars={q.maxChars} maxWords={q.maxWords}
-                                        onChange={html => onWrite({[id]: html}, textDelayMs)}/>}/>;
+                                        onChange={html => onWrite({[id]: html}, textDelayMs)}/>}
+                          extra={<AnswerImages questionId={id} initial={(q.raw as {markedImages?: string[]}).markedImages || []}
+                                               disabled={disabled}/>}/>;
 }
 
 export default memo(QuestionView);

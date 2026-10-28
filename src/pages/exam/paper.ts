@@ -29,6 +29,8 @@ export type PaperQuestion = {
     statements: PaperStatement[];
     /** Max score when the paper says it (data.max_score); BE weights are not sent. */
     maxScore: number | null;
+    /** The part's questions have different scores → show this one's points next to its number (not in the part heading). */
+    showPoints?: boolean;
     maxChars?: number;
     maxWords?: number;
     /** Raw question + its predecessor in the section, for the shared reading text (Passage). */
@@ -59,13 +61,6 @@ export type RawAnswers = Record<string, string>;
 const KIND_LABEL: Record<QuestionKind, string> = {
     choice: 'Trắc nghiệm', truefalse: 'Đúng / Sai', short: 'Trả lời ngắn', essay: 'Tự luận',
 };
-const KIND_HINT: Record<QuestionKind, string> = {
-    choice: 'chọn 1 đáp án',
-    truefalse: 'đúng 1 ý 0,1đ · 2 ý 0,25đ · 3 ý 0,5đ · 4 ý 1đ',
-    short: 'chỉ ghi kết quả',
-    essay: 'trình bày lời giải',
-};
-
 export function kindOf(type: string): QuestionKind {
     if (type === 'MultipleChoice' || type === 'ErrorIdentify') return 'choice';
     if (type === 'TrueFalse') return 'truefalse';
@@ -95,14 +90,12 @@ function partTitle(section: TestSection, index: number, kind: QuestionKind): str
     return `Phần ${roman(index + 1)} · ${name || KIND_LABEL[kind]}`;
 }
 
+/** Design (SPT-82): the part heading carries only "0,25đ/câu" — no range, no how-to hint; essays show their points on the question. */
 function partNote(questions: PaperQuestion[], kind: QuestionKind): string {
-    if (!questions.length) return '';
-    const from = questions[0].number, to = questions[questions.length - 1].number;
-    const range = from === to ? `Câu ${from}` : `Câu ${from}–${to}`;
+    if (!questions.length || kind === 'essay') return '';
     const scores = questions.map(q => q.maxScore);
     const same = scores[0] !== null && scores.every(s => s === scores[0]);
-    const points = same ? `${formatDecimal(scores[0] as number)} điểm/câu` : null;
-    return [range, points, KIND_HINT[kind]].filter(Boolean).join(' · ');
+    return same ? `${formatDecimal(scores[0] as number)}đ/câu` : '';
 }
 
 /** Build the numbered paper. Numbering is continuous across parts (Câu 1…23). */
@@ -169,6 +162,8 @@ export function buildPaper(exam: TestExam): Paper {
         }
         if (!questions.length) return;
         const kind = questions[0].kind;
+        // Teacher sets points per question (Q3): equal → one "0,25đ/câu" in the heading; different → each question shows its own.
+        if (kind !== 'essay' && !partNote(questions, kind)) questions.forEach(q => { q.showPoints = q.maxScore !== null; });
         parts.push({
             id: 'phan-' + (parts.length + 1),
             title: partTitle(section, parts.length, kind),

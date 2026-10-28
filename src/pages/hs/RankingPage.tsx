@@ -2,14 +2,13 @@ import {useState} from 'react';
 import {Link} from 'react-router-dom';
 
 import {Button, Card, EmptyState, FilterChip, Medal, PageColumns, SkeletonCard, Tabs, TitleChip, buttonClass} from '../../components/ui';
-import {IconEye, IconEyeOff} from '../../components/ui/icons';
 import {useAuthStore} from '../../stores/authStore';
-import {useBoard, useMeProfile, useSubjects} from '../../queries/student';
+import {useBoard, useSubjects} from '../../queries/student';
 import type {BoardKind} from '../../queries/student';
 import type {Board, BoardEntry} from '../../types/student';
 import {LoadError, PageHead, hsPath} from './common';
 import {formatPoints} from '../../lib/format';
-import {boardIntro, meCard, rowName, rowSubline, rowTitle} from './ranking';
+import {meCard, rowName, rowSubline, rowTitle} from './ranking';
 
 const KINDS: {value: BoardKind; label: string}[] = [
     {value: 'week', label: 'Tuần này'}, {value: 'achievements', label: 'Thành tích'},
@@ -24,7 +23,6 @@ function RankCell({rank}: {rank: number | null}) {
 function Row({e, kind}: {e: BoardEntry; kind: BoardKind}) {
     return <li className={'hs-board-row' + (e.is_me ? ' hs-board-row--me' : '')} aria-current={e.is_me ? 'true' : undefined}>
         <RankCell rank={e.rank}/>
-        {e.hidden && !e.is_me && <IconEyeOff size={18}/>}
         <span className='hs-board-name'>
             <b>{rowName(e)}{e.is_me && ' (Bạn)'}</b>
             {rowTitle(e)
@@ -46,16 +44,6 @@ function MeCard({board, kind}: {board: Board; kind: BoardKind}) {
     </section>;
 }
 
-function PrivacyNote() {
-    const p = useMeProfile();
-    if (!p.data) return null;
-    const hidden = p.data.hide_ranking_name;
-    return <div className='vt-card vt-card--md hs-row' style={{padding: '10px 14px', justifyContent: 'flex-start', flexWrap: 'nowrap', fontSize: 13}}>
-        {hidden ? <IconEyeOff size={18}/> : <IconEye size={18}/>}
-        <span>{hidden ? 'Bạn đang ẩn tên với người khác' : 'Bạn đang hiện trên bảng'} · đổi trong <Link to={hsPath.me} className='vt-link'>Tài khoản</Link></span>
-    </div>;
-}
-
 function BoardPanel({kind, folder}: {kind: BoardKind; folder: string | null}) {
     const [limit, setLimit] = useState(PAGE);
     const q = useBoard(kind, folder, limit);
@@ -63,7 +51,6 @@ function BoardPanel({kind, folder}: {kind: BoardKind; folder: string | null}) {
     if (q.isError) return <LoadError error={q.error} onRetry={() => q.refetch()} what='bảng xếp hạng'/>;
     const b = q.data;
     return <>
-        <p className='hs-meta'>{boardIntro(b, kind)}</p>
         <MeCard board={b} kind={kind}/>
         {b.entries.length === 0
             ? <EmptyState title={kind === 'week' ? 'Tuần này chưa có ai trên bảng' : 'Chưa có thành tích nào'}
@@ -82,7 +69,7 @@ function BoardPanel({kind, folder}: {kind: BoardKind; folder: string | null}) {
     </>;
 }
 
-/** HS-XepHang: week board (default) / achievements, subject filter, pinned "Bạn" row, anonymous rows. */
+/** HS-XepHang: week board (default) / achievements, subject filter, pinned "Bạn" row. */
 export default function RankingPage() {
     const [kind, setKind] = useState<BoardKind>('week');
     const [folder, setFolder] = useState<string | null>(null);
@@ -102,6 +89,6 @@ export default function RankingPage() {
         <PageHead title='Bảng xếp hạng'/>
         <Tabs aria-label='Loại bảng' idPrefix='hs-rank' items={KINDS} value={kind} onChange={setKind}/>
         {filters}
-        <PageColumns main={board} side={<PrivacyNote/>}/>
+        <PageColumns main={board}/>
     </div>;
 }

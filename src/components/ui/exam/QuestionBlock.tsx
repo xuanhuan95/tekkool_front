@@ -2,7 +2,8 @@ import {isValidElement, useId, useRef} from 'react';
 import type {KeyboardEvent, ReactNode} from 'react';
 
 import Button from '../Button';
-import {IconClip, IconEdit, IconFlag, IconFlagFilled, IconImage} from '../icons';
+import IconButton from '../IconButton';
+import {IconClip, IconFlag, IconFlagFilled, IconImage} from '../icons';
 import {cx} from '../cx';
 import {countTrueFalse, countWords} from './types';
 import type {TrueFalseValue} from './types';
@@ -63,6 +64,8 @@ export interface EssayQuestionProps extends BaseProps {
     onTool?: (tool: EssayTool) => void;
     /** "Đính kèm ảnh bài làm" button. Hidden when not given. */
     onAttach?: () => void;
+    /** Anything under the answer box: the "Ảnh bài làm" area (SPT-83). */
+    extra?: ReactNode;
 }
 
 export type QuestionBlockProps = ChoiceQuestionProps | TrueFalseQuestionProps | ShortQuestionProps | EssayQuestionProps;
@@ -142,7 +145,7 @@ const TOOLS: Array<{tool: EssayTool; label: string; body: ReactNode}> = [
     {tool: 'image', label: 'Chèn ảnh', body: <IconImage/>},
 ];
 
-function EssayAnswer({value, onChange, disabled, editor, onTool, onAttach}: EssayQuestionProps) {
+function EssayAnswer({value, onChange, disabled, editor, onTool, onAttach, extra}: EssayQuestionProps) {
     const id = useId();
     const words = countWords(value);
     return <div className='vt-essay'>
@@ -156,8 +159,8 @@ function EssayAnswer({value, onChange, disabled, editor, onTool, onAttach}: Essa
                       aria-describedby={id + '-count'} onChange={e => onChange(e.target.value)}/>
             <div id={id + '-count'} className='vt-essay-count'>{words} chữ</div>
         </div>}
+        {extra}
         <div className='vt-essay-foot'>
-            <div className='vt-essay-note'><IconEdit/> Giáo viên sẽ chấm phần này</div>
             {onAttach && <Button variant='secondary' icon={<IconClip/>} disabled={disabled} onClick={onAttach}>
                 Đính kèm ảnh bài làm</Button>}
         </div>
@@ -183,10 +186,9 @@ export default function QuestionBlock(props: QuestionBlockProps) {
                 {sub && <span className='vt-q-sub'>{sub}</span>}
             </span>
             {onToggleFlag &&
-                <Button variant='secondary' className='vt-flag' aria-pressed={!!flagged} disabled={disabled}
-                        icon={flagged ? <IconFlagFilled/> : <IconFlag/>} onClick={onToggleFlag}>
-                    {flagged ? 'Đã đánh dấu' : 'Xem lại sau'}
-                </Button>}
+                <IconButton variant='outline' tipEnd className='vt-flag' aria-pressed={!!flagged} disabled={disabled}
+                            label={flagged ? 'Bỏ đánh dấu xem lại' : 'Xem lại sau'}
+                            icon={flagged ? <IconFlagFilled size={18}/> : <IconFlag size={18}/>} onClick={onToggleFlag}/>}
         </div>
         {isValidElement(prompt) ? <div className='vt-q-prompt'>{prompt}</div> : <p className='vt-q-prompt'>{prompt}</p>}
         {props.kind === 'choice' && <ChoiceAnswer {...props}/>}

@@ -17,7 +17,7 @@ describe('StudentHome (phone)', () => {
             'payment/wallet': {bought: 10, used: 3, remaining: 7},
             'exam/in_progress': {attempt: {exam_id: 'e3', exam_name: 'Đề thi thử SPT số 3', subject: 'Toán', remaining_sec: 2280, answered: 10, total: 23}},
             'exam/my_submissions': [],
-            'me/profile': {id: 'me', name: 'Nguyễn Minh Anh', email: 'a@b.vn', group: 'student', hide_ranking_name: false,
+            'me/profile': {id: 'me', name: 'Nguyễn Minh Anh', email: 'a@b.vn', group: 'student',
                 title: {key: 'warrior', name: 'Chiến binh', next: {name: 'Người chinh phục', hint: 'Lọt top 3 bảng xếp hạng tuần để lên Người chinh phục'}}},
         }));
         renderAt('/', [['/', <StudentHome/>]]);

@@ -182,10 +182,11 @@
 .vt-q-prompt img { max-width: 100%; height: auto; }
 .vt-q-note { font-size: 13px; color: var(--vt-muted); }
 
-.vt-flag.vt-btn { font-size: 13px; padding: 6px 11px; min-height: 44px; gap: 6px; border-color: var(--vt-line-option); flex-shrink: 0; }
-.vt-flag.vt-btn[aria-pressed='true'] { background: var(--vt-sun-soft); border-color: var(--vt-sun); }
-.vt-flag.vt-btn:hover { background: var(--vt-paper); }
-.vt-flag.vt-btn[aria-pressed='true']:hover { background: var(--vt-sun-soft); }
+/* flag = icon button (tooltip "Xem lại sau"); marked = sun fill */
+.vt-flag.vt-iconbtn { border-color: var(--vt-line-option); }
+.vt-flag.vt-iconbtn[aria-pressed='true'] { background: var(--vt-sun-soft); border-color: var(--vt-sun); }
+.vt-flag.vt-iconbtn:hover { background: var(--vt-paper); border-color: var(--vt-ink); }
+.vt-flag.vt-iconbtn[aria-pressed='true']:hover { background: var(--vt-sun-soft); }
 
 /* Multiple choice */
 .vt-options { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
@@ -253,7 +254,7 @@
     background: var(--vt-card);
     display: flex; flex-direction: column; overflow: hidden;
 }
-.vt-essay-box:focus-within { box-shadow: 0 0 0 3px var(--vt-action); }
+.vt-essay-box:focus-within { box-shadow: inset 0 0 0 1.5px var(--vt-ink); }
 .vt-essay-tools { display: flex; gap: 2px; padding: 0 6px; border-bottom: 1.5px solid var(--vt-line-soft); }
 .vt-essay-tool {
     font-family: var(--vt-font); width: 44px; height: 44px;
@@ -403,3 +404,5 @@
 /* Exam page while loading / on error */
 .vt-exam-status { display: flex; flex-direction: column; gap: 14px; padding-top: 24px; max-width: 560px; }
 
+
+.vt-q-pts { font-family: var(--vt-font); font-size: 13px; font-weight: 600; color: var(--vt-muted); }

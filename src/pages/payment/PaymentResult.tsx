@@ -87,7 +87,7 @@ export default function PaymentResult() {
                      strokeLinecap='round'><path d='M7 7l10 10M17 7L7 17'/></svg>
             </span>
             <h1 className='vt-pay-state-title'>Thanh toán chưa thành công</h1>
-            <p className='vt-muted'>Giao dịch chưa hoàn tất trên SePay. Nếu tài khoản đã bị trừ tiền, hãy liên hệ hỗ trợ
+            <p className='vt-muted'>Giao dịch chưa hoàn tất. Nếu tài khoản đã bị trừ tiền, hãy liên hệ hỗ trợ
                 kèm mã đơn <b className='vt-pay-ink vt-num'>{inv}</b>.</p>
             <div className='vt-pay-2btn'>
                 <Button variant='primary' onClick={() => navigate(packageId ? '/payment/' + packageId : '/packages')}>Thử lại</Button>
@@ -114,10 +114,9 @@ export default function PaymentResult() {
                 </svg>
             </span>
             <h1 className='vt-pay-state-title'>Đang xác nhận thanh toán…</h1>
-            <p className='vt-muted'>Hệ thống đang kiểm tra với SePay. Thường mất dưới 1 phút. Đừng đóng trang này.</p>
+            <p className='vt-muted'>Hệ thống đang chờ ngân hàng xác nhận. Thường mất dưới 1 phút. Đừng đóng trang này.</p>
             <ProgressBar value={Math.min(seconds, POLL_TOTAL_SECONDS)} max={POLL_TOTAL_SECONDS}
                          label={`Đã chờ ${seconds} giây`} className='vt-pay-wide'/>
-            <span className='vt-muted vt-pay-small'>Đã chờ {seconds} giây</span>
             <OrderBox inv={inv} payment={payment}/>
         </section>;
     }
@@ -130,7 +129,7 @@ export default function PaymentResult() {
         <main className='vt-pay-main vt-pay-main--center'>
             {card}
             {waiting && <>
-                <Button variant='secondary' block onClick={restart} icon={<RefreshIcon/>}>Kiểm tra lại</Button>
+                {view === 'timeout' && <Button variant='secondary' block onClick={restart} icon={<RefreshIcon/>}>Kiểm tra lại</Button>}
                 <Link to='/billing' className={buttonClass({variant: 'ghost'}) + ' vt-pay-center'}>Xem lịch sử mua gói</Link>
             </>}
         </main>

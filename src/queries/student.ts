@@ -1,4 +1,4 @@
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import Api from '../services/api';
 import type {ExamSummary, Folder} from '../types/exam';
@@ -78,17 +78,5 @@ export function useMeProfile() {
         queryKey: PROFILE_KEY,
         queryFn: () => Api.get<MeProfile>('me/profile'),
         retry: retryFlaky,
-    });
-}
-
-/** POST me/ranking_privacy {hide}. Boards are refetched: your own name shows either way, others' views change. */
-export function useRankingPrivacy() {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: (hide: boolean) => Api.post<{hide_ranking_name: boolean}>('me/ranking_privacy', {hide}),
-        onSuccess: r => {
-            qc.setQueryData<MeProfile>(PROFILE_KEY, p => p && {...p, hide_ranking_name: r.hide_ranking_name});
-            qc.invalidateQueries({queryKey: ['ranking']});
-        },
     });
 }
