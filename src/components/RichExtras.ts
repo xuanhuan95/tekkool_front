@@ -47,7 +47,7 @@ export const MathInline = Node.create<{onEdit: ((pos: number, latex: string) => 
     group: 'inline',
     inline: true,
     atom: true,
-    // onEdit (student editor only): clicking a formula reopens the formula keyboard on it.
+    // onEdit: clicking a formula reopens the formula keyboard on it.
     addOptions() { return {onEdit: null}; },
     addAttributes() {
         return {latex: {default: '', parseHTML: el => el.getAttribute('data-latex') || '',

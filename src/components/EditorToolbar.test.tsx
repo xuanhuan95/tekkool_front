@@ -19,13 +19,13 @@ vi.mock('mathlive', () => {
 });
 
 describe('Editor toolbar variants (DS-Editor)', () => {
-    it('student: Σ, no image button; teacher (default): image button, no Σ; disableStyle: no toolbar', () => {
+    it('student: Σ, no image button; teacher (default): Σ and image button; disableStyle: no toolbar', () => {
         const {rerender} = render(<Editor variant='student'/>);
         expect(screen.getByRole('button', {name: 'Chèn công thức'})).toBeInTheDocument();
         expect(screen.queryByRole('button', {name: 'Chèn ảnh'})).toBeNull();
         rerender(<Editor/>);
         expect(screen.getByRole('button', {name: 'Chèn ảnh'})).toBeInTheDocument();
-        expect(screen.queryByRole('button', {name: 'Chèn công thức'})).toBeNull();
+        expect(screen.getByRole('button', {name: 'Chèn công thức'})).toBeInTheDocument();
         rerender(<Editor disableStyle/>);
         expect(screen.queryByRole('toolbar')).toBeNull();
     });
@@ -58,5 +58,24 @@ describe('Editor toolbar variants (DS-Editor)', () => {
         expect(dlg).not.toBeInTheDocument();
         await waitFor(() => expect(onChange).toHaveBeenCalled(), {timeout: 3000});
         expect(onChange.mock.calls[onChange.mock.calls.length - 1][0]).toContain('data-latex="\\sqrt{#@}"');
+    });
+
+    it('teacher: Σ inserts a new formula as span[data-latex]', async () => {
+        const onChange = vi.fn();
+        render(<Editor onChange={onChange}/>);
+        fireEvent.click(screen.getByRole('button', {name: 'Chèn công thức'}));
+        const dlg = await screen.findByRole('dialog', {name: 'Công thức'});
+        await waitFor(() => expect(dlg.querySelector('.tt-math-field')!.childElementCount).toBe(1));
+        fireEvent.click(screen.getByRole('button', {name: 'Căn bậc hai'}));
+        await waitFor(() => expect(insert).toHaveBeenCalledWith('\\sqrt{#@}'));
+        await act(async () => { fireEvent.click(screen.getByRole('button', {name: 'Xong'})); });
+        await waitFor(() => expect(onChange).toHaveBeenCalled(), {timeout: 3000});
+        expect(onChange.mock.calls[onChange.mock.calls.length - 1][0]).toContain('data-latex="\\sqrt{#@}"');
+    });
+
+    it('teacher: clicking a formula imported from Word reopens the keyboard on it', async () => {
+        const {container} = render(<Editor text='<p>Cho <span data-latex="x^2"></span></p>'/>);
+        fireEvent.click(container.querySelector('span[data-latex]')!);
+        await screen.findByRole('dialog', {name: 'Công thức'});
     });
 });

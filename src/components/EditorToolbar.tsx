@@ -2,7 +2,7 @@ import {useState} from 'react';
 import type {ReactNode} from 'react';
 import type {Editor as TiptapEditor} from '@tiptap/react';
 
-/** Which toolbar: student answer box (Σ, no images) or teacher/question editor (images, no Σ). Design DS-Editor. */
+/** Which toolbar: student answer box (Σ, no images) or teacher/question editor (Σ and images). Design DS-Editor. */
 export type EditorVariant = 'student' | 'teacher';
 
 const Ico = ({children}: {children: ReactNode}) =>
@@ -61,7 +61,7 @@ export default function EditorToolbar({editor, variant, type, onToAnswerButton, 
             <Btn label='In đậm' active={editor.isActive('bold')} onClick={() => run().toggleBold().run()}><b>B</b></Btn>
             <Btn label='In nghiêng' active={editor.isActive('italic')} onClick={() => run().toggleItalic().run()}><i>I</i></Btn>
             <Btn label='Gạch chân' active={editor.isActive('underline')} onClick={() => run().toggleUnderline().run()}><u>U</u></Btn>
-            {variant === 'student' && onSigma &&
+            {onSigma &&
                 <Btn label='Chèn công thức' onClick={onSigma}><span className='tt-sigma' aria-hidden='true'>Σ</span></Btn>}
             {variant === 'teacher' && onImage &&
                 <Btn label='Chèn ảnh' onClick={onImage}>
