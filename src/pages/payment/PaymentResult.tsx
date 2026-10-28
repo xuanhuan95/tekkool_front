@@ -41,7 +41,14 @@ export default function PaymentResult() {
     const packageId = payment?.items?.[0]?.target_id;
 
     let card;
-    if (view === 'error') {
+    if (view === 'notfound') {
+        card = <section role='alert' className='vt-card vt-card--error vt-pay-state'>
+            <span className='vt-pay-ring vt-pay-ring--err' aria-hidden='true'>!</span>
+            <h1 className='vt-pay-state-title'>Không tìm thấy đơn thanh toán này</h1>
+            <p className='vt-muted'>Đơn không tồn tại hoặc không thuộc tài khoản của bạn. Hãy kiểm tra lại mã đơn.</p>
+            <Link to='/packages' className={buttonClass({variant: 'primary'})}>Về trang Gói thi</Link>
+        </section>;
+    } else if (view === 'error') {
         // Money may already be gone: never strand the student. Always show the order code + history.
         card = <section role='alert' className='vt-card vt-card--error vt-pay-state'>
             <span className='vt-pay-ring vt-pay-ring--err' aria-hidden='true'>!</span>

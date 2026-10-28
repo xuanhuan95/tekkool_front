@@ -82,7 +82,10 @@ describe('format', () => {
         expect(paymentView({status: 'PAID'}, null, false)).toBe('paid');
         expect(paymentView({status: 'CANCELLED'}, null, false)).toBe('cancelled');
         expect(paymentView({status: 'FAILED'}, null, false)).toBe('failed');
-        expect(paymentView({status: 'PAID'}, {code: 403}, false)).toBe('error');
+        expect(paymentView({status: 'PAID'}, {code: 403}, false)).toBe('notfound');
+        expect(paymentView(null, {code: 404}, false)).toBe('notfound');
+        expect(paymentView(null, {code: 500}, false)).toBe('error');
+        expect(paymentView(null, new TypeError('network'), false)).toBe('error');
     });
 
     it('error text', () => {
@@ -227,10 +230,19 @@ describe('PaymentResult (HS-ThanhToanCho / Xong)', () => {
         await screen.findByText('Đã cộng 10 lượt');
     });
 
-    it('cancel 403 (not my order) shows the lookup error, page does not crash', async () => {
+    it.each([403, 404])('status %i (not my order / unknown) shows only the not-found card', async code => {
+        mockGet({'payment/status/': () => { throw {code, error: 'Not your payment'}; }});
+        wrap(<PaymentResult/>, '/payment/result?inv=TK9');
+        await screen.findByText('Không tìm thấy đơn thanh toán này');
+        expect(screen.queryByText(/lượt sẽ được cộng/)).toBeNull();
+        expect(screen.queryByText(/Not your payment/)).toBeNull();
+        expect(screen.getByRole('link', {name: 'Về trang Gói thi'}).getAttribute('href')).toBe('/packages');
+    });
+
+    it('cancel 403 (not my order) shows the not-found card, page does not crash', async () => {
         vi.spyOn(Api, 'post').mockRejectedValue({code: 403, error: 'Không có quyền'});
         wrap(<PaymentResult/>, '/payment/result?inv=TK9&result=cancel');
-        await screen.findByText('Không tra cứu được đơn');
+        await screen.findByText('Không tìm thấy đơn thanh toán này');
     });
 
     it('CANCELLED from payment/status (no ?result) stops polling', async () => {
