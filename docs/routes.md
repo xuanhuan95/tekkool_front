@@ -32,7 +32,7 @@ Artboard design: `design/screens/<Tên>.dc.html` (mobile 390px; `HS-Web-*` là b
 | `/me` | Tài khoản | `pages/hs/AccountPage.tsx` | HS-TaiKhoan | `me/profile` (`title`, `title_next`), `me/ranking_privacy`, `me/update`, `me/change_password`, `payment/wallet` |
 | `/packages` | Gói thi | `pages/pay/Packages.tsx` | HS-Goi | `package/list`, `payment/wallet` |
 | `/payment/:packageId` | Xác nhận thanh toán → chuyển SePay | `pages/payment/Payment.tsx` | HS-ThanhToan | `package/list`, `payment/checkout` (form POST sang SePay theo đúng thứ tự trường BE trả) |
-| `/payment/result?inv=[&result=cancel\|error]` | Chờ xác nhận / thành công / thất bại / đã huỷ | `pages/payment/PaymentResult.tsx` | HS-ThanhToanCho, HS-ThanhToanXong | `payment/status/<inv>` (hỏi lại định kỳ), `payment/cancel/<inv>` (khi có `result`), `payment/wallet` |
+| `/payment/result?inv=[&result=cancel\|error]` | Chờ xác nhận / thành công / thất bại / đã huỷ / không tìm thấy đơn (403, 404: đơn người khác hoặc không tồn tại, SPT-61) | `pages/payment/PaymentResult.tsx` | HS-ThanhToanCho, HS-ThanhToanXong | `payment/status/<inv>` (hỏi lại định kỳ), `payment/cancel/<inv>` (khi có `result`), `payment/wallet` |
 | `/billing` | Lịch sử mua gói (CANCELLED = nhãn xám "Đã huỷ") | `pages/pay/PurchaseHistory.tsx` | HS-LichSuMua | `payment/history` |
 | `/my-exams`, `/my-exams/:id` | Đường dẫn cũ | — | — | HS được chuyển sang `/history`, `/result/:id` |
 

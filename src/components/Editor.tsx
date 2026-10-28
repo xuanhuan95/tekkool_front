@@ -16,7 +16,7 @@ import type {Unit} from './textLimit';
 
 import './Editor.css';
 
-// MathLive is big: only downloaded when a student opens Σ.
+// MathLive is big: only downloaded when Σ is opened.
 const MathDialog = lazy(() => import('./MathDialog'));
 
 // Plain text of a ProseMirror doc. Each block is a boundary ('\n').
@@ -45,7 +45,7 @@ export type EditorProps = {
     onBlur?: () => void;
     disableReturn?: boolean;
     disableStyle?: boolean;
-    /** student: toolbar with Σ (formula keyboard), no images. teacher (default): image insert, no Σ. disableStyle hides the toolbar. */
+    /** student: toolbar with Σ (formula keyboard), no images. teacher (default): Σ and image insert. disableStyle hides the toolbar. */
     variant?: EditorVariant;
     /** Shim for legacy code: NOT a React ref, see the useEffect below. */
     refMedium?: {current: any};
@@ -80,7 +80,7 @@ export function Editor(props: EditorProps) {
     const limit = useRef<Limit>({max, unit});
     limit.current = {max, unit};
 
-    // Σ dialog state (student): pos != null = editing the formula node at that position.
+    // Σ dialog state: pos != null = editing the formula node at that position.
     const [math, setMath] = useState<{pos: number | null; latex: string} | null>(null);
     const [imageOpen, setImageOpen] = useState(false);
     const editMath = useRef((pos: number, latex: string) => setMath({pos, latex}));
@@ -97,7 +97,7 @@ export function Editor(props: EditorProps) {
             Placeholder.configure({placeholder: placeholder || ''}),
             CheckItem,
             Superscript, Subscript, Image,
-            variant === 'student' ? MathInline.configure({onEdit: (pos, latex) => editMath.current(pos, latex)}) : MathInline,
+            MathInline.configure({onEdit: (pos, latex) => editMath.current(pos, latex)}),
         ],
         content: text || '',
         editorProps: {
