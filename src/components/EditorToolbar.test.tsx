@@ -1,10 +1,11 @@
-import {describe, expect, it, vi} from 'vitest';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 
 import {Editor} from './Editor';
 
 // MathLive needs a real browser (shadow DOM, layout): the dialog test drives a fake field instead.
 const insert = vi.fn();
+beforeEach(() => insert.mockClear());
 vi.mock('mathlive', () => {
     // the dialog appends the element to the page, so the fake is a real <div> with the few methods we use
     function MathfieldElement() {
@@ -47,12 +48,15 @@ describe('Editor toolbar variants (DS-Editor)', () => {
         render(<Editor variant='student' onChange={onChange}/>);
         fireEvent.click(screen.getByRole('button', {name: 'Chèn công thức'}));
         const dlg = await screen.findByRole('dialog', {name: 'Công thức'});
+        // The dialog shows at once, the MathLive field mounts only after the lazy import resolves (slow on CI):
+        // a key pressed before that finds no field and inserts nothing — wait for the field first.
+        await waitFor(() => expect(dlg.querySelector('.tt-math-field')!.childElementCount).toBe(1));
         fireEvent.click(screen.getByRole('button', {name: 'Căn bậc hai'}));
         await waitFor(() => expect(insert).toHaveBeenCalledWith('\\sqrt{#@}'));
         // the fake field holds what was inserted
         await act(async () => { fireEvent.click(screen.getByRole('button', {name: 'Xong'})); });
         expect(dlg).not.toBeInTheDocument();
-        await waitFor(() => expect(onChange).toHaveBeenCalled(), {timeout: 1500});
+        await waitFor(() => expect(onChange).toHaveBeenCalled(), {timeout: 3000});
         expect(onChange.mock.calls[onChange.mock.calls.length - 1][0]).toContain('data-latex="\\sqrt{#@}"');
     });
 });
