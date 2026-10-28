@@ -30,10 +30,12 @@ function OrderBox({inv, payment}: {inv: string | null; payment: Payment | null})
 export default function PaymentResult() {
     const navigate = useNavigate();
     const [params] = useSearchParams();
-    const inv = params.get('inv');
+    const rawInv = params.get('inv');
+    // Junk in the URL reads as 404 and never reaches the API.
+    const inv = rawInv && /^[\w-]{1,64}$/.test(rawInv) ? rawInv : null;
     const result = params.get('result');
     const {payment, error, seconds, timedOut, restart} = usePaymentStatus(inv, result === 'cancel' || result === 'error');
-    const view = paymentView(payment, error, timedOut);
+    const view = inv ? paymentView(payment, error, timedOut) : 'notfound';
     const paid = view === 'paid';
     const {data: wallet} = useWallet(paid);
     const waiting = view === 'waiting' || view === 'timeout';
@@ -44,8 +46,7 @@ export default function PaymentResult() {
     if (view === 'notfound') {
         card = <section role='alert' className='vt-card vt-card--error vt-pay-state'>
             <span className='vt-pay-ring vt-pay-ring--err' aria-hidden='true'>!</span>
-            <h1 className='vt-pay-state-title'>Không tìm thấy đơn thanh toán này</h1>
-            <p className='vt-muted'>Đơn không tồn tại hoặc không thuộc tài khoản của bạn. Hãy kiểm tra lại mã đơn.</p>
+            <h1 className='vt-pay-state-title'>Không tìm thấy đơn hàng này.</h1>
             <Link to='/packages' className={buttonClass({variant: 'primary'})}>Về trang Gói thi</Link>
         </section>;
     } else if (view === 'error') {
