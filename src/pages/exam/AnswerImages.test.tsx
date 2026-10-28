@@ -2,7 +2,7 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 
 import Api from '../../services/api';
-import AnswerImages, {answerImageUrl} from './AnswerImages';
+import AnswerImages, {AnswerImageThumbs, answerImageUrl} from './AnswerImages';
 
 const file = (size = 1000, type = 'image/jpeg') => new File([new Uint8Array(size)], 'bai.jpg', {type});
 const pick = (input: Element, f: File) => fireEvent.change(input, {target: {files: [f]}});
@@ -52,5 +52,19 @@ describe('AnswerImages (HS-LamBai-TuLuan, SPT-83)', () => {
         rerender(<AnswerImages questionId='q1' initial={['b']} disabled/>);
         expect(screen.queryByRole('button', {name: /Xoá ảnh/})).toBeNull();
         expect(screen.queryByRole('button', {name: /Chụp ảnh/})).toBeNull();
+    });
+
+    it('review (SPT-84): teacher notes are listed per photo as plain text; opening a photo gives the viewer without edit tools', () => {
+        const marks = [{id: 'n1', image_id: 'b', type: 'text' as const, x: 5, y: 5, text: 'Thiếu <i>đơn vị</i>'},
+                       {id: 'c1', image_id: 'a', type: 'check' as const, x: 5, y: 5}];
+        render(<AnswerImageThumbs ids={['a', 'b']} marks={marks}/>);
+        expect(screen.getByText('Ghi chú của giáo viên trên ảnh')).toBeInTheDocument();
+        const line = screen.getByText('Ảnh 2').closest('li')!;
+        expect(line).toHaveTextContent('Ảnh 2 · Thiếu <i>đơn vị</i>');
+        expect(line.querySelector('i')).toBeNull();
+        fireEvent.click(screen.getByRole('button', {name: 'Xem ảnh 2'}));
+        expect(screen.getByRole('button', {name: 'Xoay ảnh'})).toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: /Đặt dấu/})).toBeNull();
+        expect(screen.getByText('Ảnh 2 / 2')).toBeInTheDocument();
     });
 });

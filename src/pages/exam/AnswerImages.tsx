@@ -6,23 +6,30 @@ import {IconClose} from '../../components/ui/icons';
 import {imageProblem} from '../../components/ImageDialog';
 import {errorText} from '../../lib/format';
 import Api from '../../services/api';
-import {API_URL} from '../../settings';
+import {answerImageUrl} from './answerImageUrl';
 import {DESKTOP, useMediaQuery} from '../useMediaQuery';
+import ImageMarker from '../my/ImageMarker';
+import {marksOf} from '../my/imageMarks';
+import type {ServerMark} from '../my/imageMarks';
 import '../hs/hs.css';
 
 export const MAX_ANSWER_IMAGES = 3;
 
-/** Handwriting photos are private: <img> carries the session token (BE: the student, the exam's teacher, Admin only). */
-export const answerImageUrl = (id: string) => API_URL + 'answer_image/view/' + id + '?token=' + (window.token || '');
+export {answerImageUrl};
 
 const Ico = ({children}: {children: React.ReactNode}) =>
     <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'
          strokeLinecap='round' strokeLinejoin='round' aria-hidden='true' focusable='false'>{children}</svg>;
 
-/** Thumbnails row; tap = full-size viewer. `onRemove` only while the student can still edit. */
-export function AnswerImageThumbs({ids, onRemove, busyId}: {ids: string[]; onRemove?: (id: string) => void; busyId?: string | null}) {
+/**
+ * Thumbnails row; tap = full-size viewer. `onRemove` only while the student can still edit.
+ * `marks` (SPT-84, review screens): the viewer then shows the teacher's marks and the notes are listed under the row.
+ */
+export function AnswerImageThumbs({ids, onRemove, busyId, marks}: {ids: string[]; onRemove?: (id: string) => void; busyId?: string | null; marks?: ServerMark[]}) {
     const [big, setBig] = useState<string | null>(null);
     if (!ids.length) return null;
+    const notes = (marks || []).filter(m => m.type === 'text' && m.text && ids.includes(m.image_id))
+        .sort((a, b) => ids.indexOf(a.image_id) - ids.indexOf(b.image_id));
     return <>
         <ul className='hs-aimgs' aria-label='Ảnh bài làm đã đính kèm'>
             {ids.map((id, i) => <li key={id} className='hs-aimg'>
@@ -33,8 +40,15 @@ export function AnswerImageThumbs({ids, onRemove, busyId}: {ids: string[]; onRem
                                      data-tip='Xoá ảnh' disabled={busyId === id} onClick={() => onRemove(id)}><IconClose size={14}/></button>}
             </li>)}
         </ul>
+        {marks && notes.length > 0 && <>
+            <p className='mk-notes-title'>Ghi chú của giáo viên trên ảnh</p>
+            <ul className='mk-notes'>{notes.map(m => <li key={m.id} className='mk-note-line'><b>Ảnh {ids.indexOf(m.image_id) + 1}</b> · {m.text}</li>)}</ul>
+        </>}
         <Modal open={!!big} onClose={() => setBig(null)} title='Ảnh bài làm' size='md' showClose>
-            {big && <img className='hs-aimg-big' src={answerImageUrl(big)} alt='Ảnh bài làm phóng to'/>}
+            {big && (marks
+                ? <ImageMarker ids={ids} startIndex={ids.indexOf(big)} noFullscreen
+                               marks={Object.fromEntries(ids.map(i => [i, marksOf(marks, i)]))}/>
+                : <img className='hs-aimg-big' src={answerImageUrl(big)} alt='Ảnh bài làm phóng to'/>)}
         </Modal>
     </>;
 }

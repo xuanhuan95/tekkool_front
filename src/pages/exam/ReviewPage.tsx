@@ -60,7 +60,7 @@ function TextBody({item}: {item: ReviewItem}) {
             : <div className='vt-rv-answer'>{item.kind === 'essay' ? renderHTML(item.answer) : item.answer}</div>}
         {item.images.length > 0 && <>
             <span className='vt-rv-label'>Ảnh bài làm · {item.images.length} ảnh</span>
-            <AnswerImageThumbs ids={item.images}/>
+            <AnswerImageThumbs ids={item.images} marks={item.marks}/>
         </>}
         {item.kind === 'short' && item.correctText && item.status !== 'correct' &&
             <span className='vt-rv-label'>Đáp án đúng: <b className='vt-rv-ok'>{item.correctText.split('|').join(' hoặc ')}</b></span>}
