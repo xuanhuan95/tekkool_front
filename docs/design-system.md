@@ -116,3 +116,15 @@ Viền: `2px solid #1c1917`. Không dùng bo đều (trừ hình tròn và viên
 - **Danh hiệu:** `TitleChip` — newbie xám, diligent xanh `#D0E9FD`, warrior vàng `#FFFBDB/#7A4B00`, conqueror tím `#E5DCFB/#4A347F`.
 - **Ngày giờ, điểm, tiền:** luôn qua `src/lib/format.ts` (giờ Việt Nam, dấu phẩy thập phân, `99.000đ`).
 - Danh sách component và cách dùng: [components.md](components.md). Trang xem trực tiếp: `/dev/ui` (chỉ khi chạy dev).
+
+## Giao diện Học sinh theo canvas v29 (SPT-82)
+
+- **Header HS** không có nút đăng xuất; đăng xuất nằm ở màn Tài khoản. Header GV dùng `IconButton` đăng xuất (icon có viền, tooltip).
+- **Bỏ tính năng ẩn tên khỏi bảng xếp hạng** (anh Thịnh 27/10): không còn công tắc ở Tài khoản, ghi chú ở Xếp hạng, nhãn "Học sinh ẩn danh"; FE không gọi `me/ranking_privacy`.
+- **Bỏ các dòng giải thích** theo canvas: "Không hết hạn", "Giáo viên sẽ chấm phần này", "Hết đề", quy tắc +10 điểm ở Top tuần và đầu bảng xếp hạng, dòng "Đã chờ N giây", chữ SePay (thay bằng "ngân hàng"); `Kiểm tra lại` chỉ còn ở trạng thái hết thời gian chờ (cần để bấm kiểm tra tiếp).
+- **Thẻ môn** chỉ tên + số đề. **Tiêu đề phần câu** chỉ "0,25đ/câu" (không còn dải "Câu 1–12" hay hướng dẫn; phần tự luận không có dòng này).
+- **"Xem lại sau"** là icon cờ có tooltip (`IconButton`, `aria-pressed`). Mọi nút icon (đóng Modal, thoát bài thi, quay lại thanh toán, avatar → Tài khoản) có tên hiện khi hover/focus.
+- **Top 1–3** bảng xếp hạng nổi bật: huy chương 36px viền mực + bóng cứng. **Huy hiệu danh hiệu** mọi bậc cùng màu tím nhạt, chữ thuần (không vương miện).
+- **Focus ô nhập** chỉ đậm viền (`inset 0 0 0 1.5px` mực), không còn vòng xanh, không xô lệch bố cục — áp cho toàn app.
+- Xem lại bài: nhãn "Bạn chọn"/"Đáp án đúng" chuyển thành chữ chỉ dành cho trình đọc màn hình (màu đã nói đủ trên màn).
+- Chưa có (BE chưa trả): số sao trong header/Tài khoản, tiến độ danh hiệu theo sao.

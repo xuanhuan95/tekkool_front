@@ -51,12 +51,11 @@ describe('buildPaper', () => {
             'Phần I · Trắc nghiệm', 'PHẦN II. Đúng sai', 'Phần III · Trả lời ngắn', 'Phần IV · Tự luận']);
     });
 
-    it('notes the question range, points when known and the SPT Đúng/Sai ladder', () => {
-        expect(paper.parts[0].note).toBe('Câu 1–2 · chọn 1 đáp án');
-        expect(paper.parts[1].note).toContain('Câu 3–4');
-        expect(paper.parts[1].note).toContain('4 ý 1đ');
-        expect(paper.parts[2].note).toBe('Câu 5–6 · 0,25 điểm/câu · chỉ ghi kết quả');
-        expect(paper.parts[3].note).toBe('Câu 7 · 1,5 điểm/câu · trình bày lời giải');
+    it('part note is only "points/câu" when every question has the same score; none for essays', () => {
+        expect(paper.parts[0].note).toBe('');
+        expect(paper.parts[1].note).toBe('');
+        expect(paper.parts[2].note).toBe('0,25đ/câu');
+        expect(paper.parts[3].note).toBe('');
         expect(paper.questions[6].maxScore).toBe(1.5);
     });
 

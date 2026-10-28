@@ -29,8 +29,8 @@ function ChoiceBody({item}: {item: ReviewItem}) {
             return <div key={o.key} className={cls}>
                 <span className='vt-rv-letter' aria-hidden='true'>{o.key}</span>
                 <span className='vt-rv-optbody'><span className='vt-sr-only'>{o.key}. </span>{renderHTML(o.html)}</span>
-                {o.chosen && <span className='vt-rv-tag'>Bạn chọn</span>}
-                {o.correct && <span className='vt-rv-tag'>{o.chosen ? ' · ' : ''}Đáp án đúng</span>}
+                {/* colour carries it on screen (design); the words stay for screen readers */}
+                {(o.chosen || o.correct) && <span className='vt-sr-only'>{[o.chosen && 'Bạn chọn', o.correct && 'Đáp án đúng'].filter(Boolean).join(' · ')}</span>}
             </div>;
         })}
         {!item.options.some(o => o.chosen) && <span className='vt-rv-hint'>Bạn chưa chọn đáp án.</span>}

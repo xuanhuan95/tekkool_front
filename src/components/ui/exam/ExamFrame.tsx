@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 
 import Button from '../Button';
+import IconButton from '../IconButton';
 import Card from '../Card';
 import ProgressBar from '../ProgressBar';
 import {IconAlert, IconBack, IconSaved} from '../icons';
@@ -33,8 +34,8 @@ export function ExamHeader({title, secondsLeft, answered, total, onExit, onSubmi
         <header className='vt-exam-header'>
             <div className='vt-exam-header-grid'>
                 <div className='vt-exam-lead'>
-                    <Button variant='secondary' iconOnly className='vt-exam-exit' aria-label='Thoát bài thi'
-                            onClick={onExit}><IconBack/></Button>
+                    <IconButton variant='outline' tipBelow className='vt-exam-exit' label='Thoát bài thi'
+                                onClick={onExit} icon={<IconBack/>}/>
                     <div className='vt-exam-brand'>
                         <span className='vt-exam-brand-logo' aria-hidden='true'>viettestpro</span>
                         <span className='vt-exam-brand-title'>{title}</span>
@@ -121,7 +122,6 @@ export function ExamEnd({answered, total, flagged = 0, savedAt, saveError, savin
                          disabled}: ExamEndProps) {
     return <Card as='section' aria-label='Nộp bài' className='vt-exam-end'>
         <div className='vt-exam-end-info'>
-            <span className='vt-exam-end-title'>Hết đề</span>
             <span className='vt-exam-end-summary'>
                 Bạn đã làm <span className='vt-num'>{answered} / {total}</span> câu
                 {flagged > 0 && <> · {flagged} câu đánh dấu</>}

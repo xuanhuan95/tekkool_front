@@ -17,13 +17,13 @@ export const TITLE_TONE: Record<TitleTier, string> = {
 
 export interface TitleChipProps {
     title: {key: string; name: string};
-    /** Crown icon before the name (default on). */
+    /** Crown icon before the name (default off — design chips are text only). */
     icon?: boolean;
     className?: string;
 }
 
 /** Student title chip ("Học sinh chăm"): small-chip radius, 12px 600, tier colour. */
-export default function TitleChip({title, icon = true, className}: TitleChipProps) {
+export default function TitleChip({title, icon = false, className}: TitleChipProps) {
     const tone = TITLE_TONE[title.key as TitleTier] || TITLE_TONE.newbie;
     return <span className={cx('vt-badge', 'vt-titlechip', tone, className)} data-tier={title.key}>
         {icon && <IconCrown size={12} color='currentColor'/>}{title.name}

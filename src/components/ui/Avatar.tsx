@@ -27,7 +27,8 @@ export default function Avatar({name, initials, size = 40, to, className}: Avata
     const text = initials || initialsOf(name);
     const cls = cx('vt-avatar', size === 36 && 'vt-avatar--36', className);
     return to
-        ? <Link to={to} className={cls} aria-label={'Tài khoản của ' + (name || 'bạn')}>
+        ? <Link to={to} className={cx(cls, 'vt-tip vt-tip--end vt-tip--below')} aria-label={'Tài khoản của ' + (name || 'bạn')}
+                title={'Tài khoản của ' + (name || 'bạn')} data-tip={'Tài khoản của ' + (name || 'bạn')}>
             <span aria-hidden='true'>{text}</span></Link>
         : <span className={cls} aria-hidden='true' title={name || undefined}>{text}</span>;
 }

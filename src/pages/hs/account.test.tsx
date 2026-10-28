@@ -27,7 +27,7 @@ describe('account logic', () => {
 });
 
 describe('AccountPage', () => {
-    const profile = {id: 'me', name: 'Nguyễn Minh Anh', email: 'a@b.vn', group: 'student', hide_ranking_name: false,
+    const profile = {id: 'me', name: 'Nguyễn Minh Anh', email: 'a@b.vn', group: 'student',
         title: {key: 'newbie', name: 'Người mới', next: {name: 'Học sinh chăm', hint: 'Còn 4 bài nữa trong tháng này để lên Học sinh chăm'}},
         title_next: {name: 'Học sinh chăm', hint: 'Còn 4 bài nữa trong tháng này để lên Học sinh chăm'}};
     beforeEach(() => {
@@ -60,14 +60,12 @@ describe('AccountPage', () => {
         expect(document.querySelector('[data-tier]')).toBeNull();
     });
 
-    it('privacy switch posts hide=true when turning "show my name" off', async () => {
-        post.mockResolvedValue({hide_ranking_name: true});
+    it('no ranking-privacy switch any more (SPT-82); sign-out is on this screen', async () => {
         renderAt('/me', [['/me', <AccountPage/>]]);
-        const sw = await screen.findByRole('switch');
-        expect(sw).toHaveAttribute('aria-checked', 'true');
-        fireEvent.click(sw);
-        await waitFor(() => expect(post).toHaveBeenCalledWith('me/ranking_privacy', {hide: true}));
-        await waitFor(() => expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'false'));
+        await screen.findByRole('button', {name: /Đổi tên hiển thị/});
+        expect(screen.queryByRole('switch')).toBeNull();
+        expect(post).not.toHaveBeenCalledWith('me/ranking_privacy', expect.anything());
+        expect(screen.getByRole('button', {name: 'Đăng xuất'})).toBeInTheDocument();
     });
 
     it('rename updates the header user', async () => {

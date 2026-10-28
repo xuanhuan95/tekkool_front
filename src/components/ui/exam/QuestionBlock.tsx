@@ -2,7 +2,8 @@ import {isValidElement, useId, useRef} from 'react';
 import type {KeyboardEvent, ReactNode} from 'react';
 
 import Button from '../Button';
-import {IconClip, IconEdit, IconFlag, IconFlagFilled, IconImage} from '../icons';
+import IconButton from '../IconButton';
+import {IconClip, IconFlag, IconFlagFilled, IconImage} from '../icons';
 import {cx} from '../cx';
 import {countTrueFalse, countWords} from './types';
 import type {TrueFalseValue} from './types';
@@ -157,7 +158,6 @@ function EssayAnswer({value, onChange, disabled, editor, onTool, onAttach}: Essa
             <div id={id + '-count'} className='vt-essay-count'>{words} chữ</div>
         </div>}
         <div className='vt-essay-foot'>
-            <div className='vt-essay-note'><IconEdit/> Giáo viên sẽ chấm phần này</div>
             {onAttach && <Button variant='secondary' icon={<IconClip/>} disabled={disabled} onClick={onAttach}>
                 Đính kèm ảnh bài làm</Button>}
         </div>
@@ -183,10 +183,9 @@ export default function QuestionBlock(props: QuestionBlockProps) {
                 {sub && <span className='vt-q-sub'>{sub}</span>}
             </span>
             {onToggleFlag &&
-                <Button variant='secondary' className='vt-flag' aria-pressed={!!flagged} disabled={disabled}
-                        icon={flagged ? <IconFlagFilled/> : <IconFlag/>} onClick={onToggleFlag}>
-                    {flagged ? 'Đã đánh dấu' : 'Xem lại sau'}
-                </Button>}
+                <IconButton variant='outline' tipEnd className='vt-flag' aria-pressed={!!flagged} disabled={disabled}
+                            label={flagged ? 'Bỏ đánh dấu xem lại' : 'Xem lại sau'}
+                            icon={flagged ? <IconFlagFilled size={18}/> : <IconFlag size={18}/>} onClick={onToggleFlag}/>}
         </div>
         {isValidElement(prompt) ? <div className='vt-q-prompt'>{prompt}</div> : <p className='vt-q-prompt'>{prompt}</p>}
         {props.kind === 'choice' && <ChoiceAnswer {...props}/>}

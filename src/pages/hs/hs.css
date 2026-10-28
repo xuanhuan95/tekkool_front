@@ -54,6 +54,7 @@ a.hs-subject:hover { color: var(--vt-ink); background: var(--vt-paper); }
 /* Subject chips (HS-DeThi) — horizontal scroll on phones */
 .hs-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; margin: 0 -2px; scrollbar-width: none; }
 .hs-chips::-webkit-scrollbar { display: none; }
+.hs-chips > .vt-chip { white-space: nowrap; flex-shrink: 0; }   /* FilterChip rows scroll sideways on phones, labels never wrap */
 @media (min-width: 1024px) { .hs-chips { flex-wrap: wrap; overflow: visible; } }
 .hs-chip {
     font-family: inherit; font-size: 14px; font-weight: 600; white-space: nowrap; color: var(--vt-ink);

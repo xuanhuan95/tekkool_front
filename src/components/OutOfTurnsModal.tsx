@@ -19,7 +19,7 @@ export default function OutOfTurnsModal({open, onClose}: {open?: boolean; onClos
                   </>}>
         <div className='vt-out-body'>
             <span className='vt-out-icon' aria-hidden='true'><icons.IconTicket size={28}/></span>
-            <p>Mua thêm gói để tiếp tục. Lượt không hết hạn.</p>
+            <p>Mua thêm gói để tiếp tục.</p>
         </div>
     </Modal>;
 }

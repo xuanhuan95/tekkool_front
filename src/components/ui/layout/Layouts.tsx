@@ -2,7 +2,6 @@ import type {ReactNode} from 'react';
 
 import Avatar from '../Avatar';
 import Badge from '../Badge';
-import Button from '../Button';
 import IconButton from '../IconButton';
 import {IconLogout} from '../icons';
 import StatPill from '../StatPill';
@@ -76,7 +75,7 @@ export interface TeacherLayoutProps {
  */
 export function TeacherLayout({children, name, pending, accountTo = '/profile'}: TeacherLayoutProps) {
     const signOut = useAuthStore(s => s.signOut);
-    const logout = <Button variant='ghost' size='sm' onClick={() => signOut()}>Đăng xuất</Button>;
+    const logout = <IconButton variant='outline' tipEnd tipBelow label='Đăng xuất' icon={<IconLogout/>} onClick={() => signOut()}/>;
     const grading = pending ? <StatPill kind='grading' to='/to-grade'>{pending + ' bài chờ chấm'}</StatPill> : null;
     return <div className='vt-paper vt-shell'>
         <HeaderSticky variant='mobile' className='vt-only-mobile'

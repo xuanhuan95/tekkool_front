@@ -27,7 +27,7 @@ export default function Packages() {
             <div className='vt-pay-head-text'>
                 <PageTitle>Gói thi</PageTitle>
                 {wallet && <span className='vt-muted'>
-                    Bạn còn <b className='vt-pay-ink'>{wallet.remaining} lượt</b> · lượt không hết hạn
+                    Bạn còn <b className='vt-pay-ink'>{wallet.remaining} lượt</b>
                 </span>}
             </div>
             <Link to='/billing' className={buttonClass({variant: 'ghost'})}>Lịch sử mua gói</Link>

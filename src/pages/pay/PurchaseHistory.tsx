@@ -44,7 +44,7 @@ export default function PurchaseHistory() {
             : !orders
                 ? <div className='vt-pay-list'><SkeletonCard label='Đang tải lịch sử'/></div>
                 : !orders.length
-                    ? <EmptyState title='Chưa mua gói nào' description='Mua gói để có lượt làm đề thi thử. Lượt không hết hạn.'
+                    ? <EmptyState title='Chưa mua gói nào' description='Mua gói để có lượt làm đề thi thử.'
                                   action={<Link to='/packages' className={buttonClass({variant: 'primary'})}>Xem gói thi</Link>}/>
                     : <>
                         <ul className='vt-pay-list' aria-label='Đơn mua gói'>
