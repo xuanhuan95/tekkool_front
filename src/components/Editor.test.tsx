@@ -1,5 +1,5 @@
-import {describe, it, expect} from 'vitest';
-import {render, act} from '@testing-library/react';
+import {describe, it, expect, vi} from 'vitest';
+import {render, act, fireEvent} from '@testing-library/react';
 import {Editor} from './Editor';
 
 // The word limit NO LONGER blocks typing (requirement 10/2025): students may
@@ -96,5 +96,46 @@ describe('Editor — imported string vs editor-saved HTML', () => {
         expect(out).toContain('<strong>tập</strong>');
         expect(out).toContain('<sup>2</sup>');
         expect(out).toContain('<br');
+    });
+});
+
+describe('Editor — onChange is flushed, never lost to the 500 ms debounce (SPT-92)', () => {
+    const typed = (onChange: (h: string) => void) => {
+        const ref: {current: any} = {current: null};
+        const r = render(<Editor refMedium={ref} onChange={onChange}/>);
+        act(() => { ref.current.editor.commands.insertContent('xin chào'); });
+        return {ref, r};
+    };
+
+    it('blur right after typing reports the text at once', () => {
+        vi.useFakeTimers();
+        const onChange = vi.fn();
+        const {ref} = typed(onChange);
+        expect(onChange).not.toHaveBeenCalled();
+        act(() => { fireEvent.blur(ref.current.editor.view.dom); });
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(onChange.mock.calls[0][0]).toContain('xin chào');
+        act(() => { vi.advanceTimersByTime(1000); });
+        expect(onChange).toHaveBeenCalledTimes(1); // the pending timer was cancelled, no double call
+        vi.useRealTimers();
+    });
+
+    it('leaving the page right after typing still reports the text', () => {
+        vi.useFakeTimers();
+        const onChange = vi.fn();
+        const {r} = typed(onChange);
+        r.unmount();
+        expect(onChange).toHaveBeenCalledTimes(1);
+        expect(onChange.mock.calls[0][0]).toContain('xin chào');
+        vi.useRealTimers();
+    });
+
+    it('without a flush trigger the debounce still fires after 500 ms', () => {
+        vi.useFakeTimers();
+        const onChange = vi.fn();
+        typed(onChange);
+        act(() => { vi.advanceTimersByTime(500); });
+        expect(onChange).toHaveBeenCalledTimes(1);
+        vi.useRealTimers();
     });
 });
