@@ -57,6 +57,8 @@ describe('buildPaper', () => {
         expect(paper.parts[2].note).toBe('0,25đ/câu');
         expect(paper.parts[3].note).toBe('');
         expect(paper.questions[6].maxScore).toBe(1.5);
+        // equal scores → heading only; none of those questions shows its own points
+        expect(paper.questions.some(q => q.showPoints)).toBe(false);
     });
 
     it('a lone TrueFalse without passage stays a one-statement question', () => {
@@ -120,4 +122,19 @@ it('imported labels ("Câu 1.", "a)") are not shown twice (QC B3)', () => {
     expect(p.questions[0].prompt).toBe('<p>Cho hàm số f</p>');
     expect(p.questions[0].statements.map(s => s.html)).toEqual(['<p>ý a</p>', '<p>ý b</p>', '<p>ý c</p>', '<p>ý d</p>']);
     expect(p.questions[1].prompt).toBe('<p><b></b>Tính</p>');
+});
+
+describe('points per question (Q3: the teacher sets them)', () => {
+    const mc = (id: string, score: number) => ({id, type: 'MultipleChoice',
+        data: {question: `<p>${id}</p>`, answers: [{id: id + 'A', value: '1'}, {id: id + 'B', value: '2'}], max_score: score}});
+    const exam = (...qs: ReturnType<typeof mc>[]) => ({id: 'E', sections: [{id: 'S', name: 'Phần I', questions: qs}]}) as never;
+
+    it('same score → "0,25đ/câu" in the heading; different scores → no heading note, each question shows its own points', () => {
+        const same = buildPaper(exam(mc('a', 0.25), mc('b', 0.25)));
+        expect(same.parts[0].note).toBe('0,25đ/câu');
+        expect(same.questions.some(q => q.showPoints)).toBe(false);
+        const mixed = buildPaper(exam(mc('a', 0.25), mc('b', 0.5)));
+        expect(mixed.parts[0].note).toBe('');
+        expect(mixed.questions.map(q => q.showPoints)).toEqual([true, true]);
+    });
 });

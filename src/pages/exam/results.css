@@ -101,3 +101,5 @@
                  padding: 10px 12px; overflow-wrap: anywhere; }
 .vt-rv-solbody img { max-width: 100%; height: auto; }
 .vt-hist-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.vt-score-done { margin: 0; font-size: 16px; line-height: 1.5; }

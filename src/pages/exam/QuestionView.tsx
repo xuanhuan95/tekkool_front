@@ -29,6 +29,8 @@ function QuestionView({question: q, answers, flagged, disabled, onToggleFlag, on
         disabled,
         onToggleFlag: () => onToggleFlag(q.number),
         prompt: <>{renderHTML(q.prompt)}</>,
+        title: q.showPoints && q.maxScore !== null
+            ? <>Câu {q.number} <small className='vt-q-pts'>{formatDecimal(q.maxScore)}đ</small></> : undefined,
     };
     const id = q.questionIds[0];
 

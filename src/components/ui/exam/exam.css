@@ -404,3 +404,5 @@
 /* Exam page while loading / on error */
 .vt-exam-status { display: flex; flex-direction: column; gap: 14px; padding-top: 24px; max-width: 560px; }
 
+
+.vt-q-pts { font-family: var(--vt-font); font-size: 13px; font-weight: 600; color: var(--vt-muted); }

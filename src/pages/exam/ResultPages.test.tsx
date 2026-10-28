@@ -49,32 +49,37 @@ const page = (path: string) => render(
 beforeEach(() => vi.restoreAllMocks());
 
 describe('ResultPage', () => {
-    it('provisional score /10, pending essay points, table by part, +rank points', async () => {
+    it('essay still pending (Q20): congratulation text only — no provisional score, parts table or ranking points', async () => {
         const get = vi.spyOn(Api, 'get').mockResolvedValue(DETAIL);
         page('/result/SUB1');
         await screen.findByText('Toán — Đề 3');
         expect(get).toHaveBeenCalledWith('exam/submission/SUB1');
         expect(screen.getByText('Chờ chấm tự luận')).toBeTruthy();
-        expect(screen.getAllByText('5,75').length).toBeGreaterThan(0);
-        expect(screen.getByText('Tạm tính · chờ chấm 1,5đ tự luận')).toBeTruthy();
-        const table = screen.getByRole('table');
-        expect(within(table).getByText('1 / 2')).toBeTruthy();
-        expect(within(table).getByText('2 / 4 ý')).toBeTruthy();
-        expect(within(table).getByText('Chờ chấm')).toBeTruthy();
-        expect(screen.getByText(/\+15,8 điểm xếp hạng tuần/)).toBeTruthy();
+        expect(screen.getByText('Chúc mừng bạn đã hoàn thành bài thi của mình. Bài thi của bạn sẽ được giáo viên phụ trách chấm điểm')).toBeTruthy();
+        expect(screen.queryByText('5,75')).toBeNull();
+        expect(screen.queryByText(/Tạm tính/)).toBeNull();
+        expect(screen.queryByRole('table')).toBeNull();
+        expect(screen.queryByText(/điểm xếp hạng tuần/)).toBeNull();
         expect(screen.getByText('82 phút')).toBeTruthy();
         expect(screen.getByText('/ 90 phút')).toBeTruthy();
         expect(screen.getByText(/Môn Toán/)).toBeTruthy();
         expect(screen.getByRole('link', {name: 'Xem lại bài'})).toHaveAttribute('href', '/review/SUB1');
     });
 
-    it('ranking line uses BE ranking_contribution; 0 explains why; absent → hidden', async () => {
-        vi.spyOn(Api, 'get').mockResolvedValue({...DETAIL, ranking_contribution: 0});
+    it('graded: table by part and the ranking line from BE ranking_contribution; 0 explains why; absent → hidden', async () => {
+        const graded = {...DETAIL, pending_count: 0, status: 'GRADED', score: 7.25, graded_max_score: 10,
+            phan: DETAIL.phan!.map(p => ({...p, pending: 0}))};
+        vi.spyOn(Api, 'get').mockResolvedValue({...graded, ranking_contribution: 17.3});
+        const first = page('/result/SUB1');
+        await screen.findByText(/\+17,3 điểm xếp hạng tuần/);
+        expect(screen.getByRole('table')).toBeTruthy();
+        first.unmount();
+        vi.spyOn(Api, 'get').mockResolvedValue({...graded, ranking_contribution: 0});
         const {unmount} = page('/result/SUB1');
         await screen.findByText(/\+0,0 điểm xếp hạng tuần/);
         expect(screen.getByText(/Lần này không cộng thêm/)).toBeTruthy();
         unmount();
-        vi.spyOn(Api, 'get').mockResolvedValue({...DETAIL, ranking_contribution: undefined});
+        vi.spyOn(Api, 'get').mockResolvedValue({...graded, ranking_contribution: undefined});
         page('/result/SUB1');
         await screen.findByText('Toán — Đề 3');
         expect(screen.queryByText(/điểm xếp hạng tuần/)).toBeNull();

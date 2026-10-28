@@ -29,6 +29,8 @@ export type PaperQuestion = {
     statements: PaperStatement[];
     /** Max score when the paper says it (data.max_score); BE weights are not sent. */
     maxScore: number | null;
+    /** The part's questions have different scores → show this one's points next to its number (not in the part heading). */
+    showPoints?: boolean;
     maxChars?: number;
     maxWords?: number;
     /** Raw question + its predecessor in the section, for the shared reading text (Passage). */
@@ -160,6 +162,8 @@ export function buildPaper(exam: TestExam): Paper {
         }
         if (!questions.length) return;
         const kind = questions[0].kind;
+        // Teacher sets points per question (Q3): equal → one "0,25đ/câu" in the heading; different → each question shows its own.
+        if (kind !== 'essay' && !partNote(questions, kind)) questions.forEach(q => { q.showPoints = q.maxScore !== null; });
         parts.push({
             id: 'phan-' + (parts.length + 1),
             title: partTitle(section, parts.length, kind),
