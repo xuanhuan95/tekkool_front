@@ -1,0 +1,79 @@
+/* Chấm trên ảnh (SPT-84): trình xem ảnh bài làm + dấu ✓ / ✗ / ghi chữ. Artboard CA-* ở design/screens/spt84. */
+.mk { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.mk--split { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; }
+.mk-main { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.mk-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.mk-title { font-family: var(--vt-font-hand); font-weight: 700; font-size: 22px; }
+.mk-nav { display: flex; align-items: center; gap: 6px; }
+.mk-count { font-size: 13px; font-weight: 600; }
+.mk-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mk-sep { width: 1.5px; height: 28px; background: var(--vt-dot); margin: 0 4px; }
+.mk-tool--on, .mk-tool--on:hover { background: var(--vt-action); border-color: var(--vt-ink); }
+
+.mk-view { background: var(--vt-track); border-radius: 14px; padding: 10px; overflow: auto; max-height: 78vh; }
+.mk-stage {
+    --mk-h: 66vh; position: relative; margin: 0 auto;
+    width: min(calc(100% * var(--mk-z, 1)), calc(var(--mk-h) * var(--mk-r, 1.33) * var(--mk-z, 1)));
+    aspect-ratio: var(--mk-r, 1.33); background: var(--vt-card);
+    border: 2px solid var(--vt-ink); border-radius: 13px 9px 14px 8px / 8px 14px 9px 13px; overflow: hidden;
+    touch-action: pan-x pan-y pinch-zoom; user-select: none;
+}
+.mk-stage[data-tool='check'], .mk-stage[data-tool='cross'], .mk-stage[data-tool='text'] { cursor: crosshair; }
+.mk-rot { position: absolute; left: 50%; top: 50%; }
+.mk-rot img { display: block; width: 100%; height: 100%; object-fit: fill; pointer-events: none; }
+.mk-img--wait { visibility: hidden; }
+.mk-ph { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    padding: 16px; text-align: center; background: var(--vt-track); color: var(--vt-muted); font-size: 14px; }
+.mk-ph--err { background: var(--vt-err-bg); color: var(--vt-ink); }
+.mk-ph b { color: var(--vt-err); font-size: 16px; }
+
+.mk-dot { position: absolute; transform: translate(-50%, -50%); padding: 0; border: 0; background: none; cursor: pointer; display: inline-flex; max-width: 46%; }
+.mk-dot::before { content: ''; position: absolute; inset: -8px; }
+.mk-dot--check, .mk-dot--cross, .mk-cluster {
+    width: 30px; height: 30px; border-radius: 999px; background: var(--vt-card); align-items: center; justify-content: center;
+}
+.mk-dot--check { border: 2px solid var(--vt-ok-icon); color: var(--vt-ok-icon); }
+.mk-dot--cross { border: 2px solid var(--vt-err); color: var(--vt-err); }
+.mk-chip { display: block; max-width: 100%; padding: 3px 9px; border: 2px solid var(--vt-sun); border-radius: var(--vt-r-chip); background: var(--vt-sun-soft);
+    color: var(--vt-ink); font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mk-cluster { position: absolute; transform: translate(-50%, -50%); padding: 0; border: 2px solid var(--vt-ink); cursor: pointer;
+    display: inline-flex; font: 700 14px var(--vt-font); color: var(--vt-ink); }
+.mk-cluster::before { content: ''; position: absolute; inset: -8px; }
+.mk-dot:focus-visible, .mk-cluster:focus-visible, .mk-thumb:focus-visible, .mk-bar:focus-visible, .mk-row-main:focus-visible { outline: none; box-shadow: var(--vt-focus); }
+
+.mk-hint, .mk-notebar { margin: 0; font-size: 13px; color: var(--vt-muted); }
+.mk-notebar { padding: 8px 12px; border: 2px solid var(--vt-sun); border-radius: var(--vt-r-chip); background: var(--vt-sun-soft); color: var(--vt-ink); font-size: 14px; overflow-wrap: anywhere; }
+.mk-thumbs { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.mk-thumb { position: relative; width: 64px; height: 64px; padding: 0; border: 2px solid var(--vt-line-option); border-radius: 13px 9px 14px 8px / 8px 14px 9px 13px; overflow: hidden; background: var(--vt-paper); cursor: pointer; }
+.mk-thumb--on { border-color: var(--vt-ink); }
+.mk-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mk-thumb-n { position: absolute; left: 4px; bottom: 4px; min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--vt-ink); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+
+.mk-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.mk-list-title { margin: 0 0 6px; font-family: var(--vt-font-hand); font-size: 19px; }
+.mk-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.mk-row { display: flex; align-items: center; gap: 6px; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-chip); background: var(--vt-card); padding-right: 4px; }
+.mk-row-main { flex: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 4px 8px; border: 0; background: none; text-align: left; cursor: pointer; font: inherit; color: inherit; }
+.mk-row-name { overflow-wrap: anywhere; font-size: 14px; }
+.mk-glyph { width: 26px; height: 26px; flex-shrink: 0; border-radius: 999px; border: 2px solid; display: inline-flex; align-items: center; justify-content: center; background: var(--vt-card); }
+.mk-glyph--check { color: var(--vt-ok-icon); } .mk-glyph--cross { color: var(--vt-err); } .mk-glyph--text { color: var(--vt-sun-ink); border-color: var(--vt-sun); background: var(--vt-sun-soft); }
+.mk-empty { margin: 0; font-size: 13px; color: var(--vt-muted); }
+
+.mk-bar { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 48px; padding: 8px 14px; border: 2px solid var(--vt-ink); border-radius: var(--vt-r-btn);
+    background: var(--vt-card); cursor: pointer; font: 600 14px var(--vt-font); color: var(--vt-ink); }
+.mk-note-field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; }
+.mk-note-field textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 2px solid var(--vt-ink); border-radius: var(--vt-r-btn); font: 400 16px var(--vt-font); resize: vertical; }
+.mk-note-field textarea:focus-visible { outline: none; box-shadow: var(--vt-focus); }
+.mk-note-count { align-self: flex-end; font-size: 12px; font-weight: 400; color: var(--vt-muted); }
+
+/* full screen: the same component pinned over the page (Esc or the button leaves) */
+.mk--full { position: fixed; inset: 0; z-index: 900; background: var(--vt-paper); padding: 12px 16px; overflow: auto; }
+.mk--full .mk-view { max-height: none; }
+
+/* student review: teacher's notes under the thumbnails */
+.mk-notes { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.mk-notes b { font-family: var(--vt-font-hand); font-size: 17px; }
+.mk-notes-title { font-weight: 700; font-size: 14px; margin: 8px 0 0; }
+.mk-note-line { overflow-wrap: anywhere; }
+
+@media (max-width: 1023px) { .mk--split { display: flex; } }

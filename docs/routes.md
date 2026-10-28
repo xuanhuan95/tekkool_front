@@ -26,7 +26,7 @@ Artboard design: `design/screens/<Tên>.dc.html` (mobile 390px; `HS-Web-*` là b
 | `/exams/:examId` | Chi tiết đề, bắt đầu / làm tiếp | `pages/hs/ExamDetailPage.tsx` | HS-ChiTietDe, HS-HetLuot | `exam/fetch/<id>` (`parts` = cấu trúc đề), `payment/wallet`, `exam/in_progress` |
 | `/do-exam/:examId` (`?lam_lai=1`) | Phòng thi cả đề | `pages/exam/TakeExam.tsx`, `ExamRoom.tsx` | HS-LamBai*, HS-DanhSachCau, HS-XacNhanNop, HS-Web-LamBai | `exam/during_test/<id>`, `exam/save_answer/<qid>`, `exam/submit/<id>` — xem [lam-bai.md](lam-bai.md) |
 | `/result/:id` | Kết quả | `pages/exam/ResultPage.tsx` | HS-KetQua | `exam/submission/<id>` (không cache; `ranking_contribution`) |
-| `/review/:id` | Xem lại bài & lời giải | `pages/exam/ReviewPage.tsx` | HS-XemLai | `exam/submission/<id>` |
+| `/review/:id` | Xem lại bài & lời giải. Câu tự luận có ảnh: bấm ảnh mở trình xem có dấu chấm của giáo viên (chỉ xem), ghi chú liệt kê dưới ảnh (SPT-84, [cham-tren-anh.md](cham-tren-anh.md)) | `pages/exam/ReviewPage.tsx` | HS-XemLai, CA-Web-HS-XemLai, CA-Mobile-HS-XemLai, CA-Mobile-HS-XemAnh | `exam/submission/<id>` |
 | `/history` | Lịch sử làm bài (lọc chờ chấm, môn) | `pages/exam/HistoryPage.tsx` | HS-LichSu | `exam/my_submissions` |
 | `/ranking` | Xếp hạng tuần / thành tích | `pages/hs/RankingPage.tsx` | HS-XepHang | `ranking/week`, `ranking/achievements` (mỗi dòng có `title`), `folder/subjects`, `me/profile` |
 | `/me` | Tài khoản | `pages/hs/AccountPage.tsx` | HS-TaiKhoan | `me/profile` (`title`, `title_next`), `me/ranking_privacy`, `me/update`, `me/change_password`, `payment/wallet` |
@@ -59,7 +59,7 @@ Các màn giáo viên đã reskin theo design D (SPT-57), chạy trong `TeacherS
 | `/question-bank` | Ngân hàng câu hỏi | `pages/question-bank/BankList.tsx` (`question_bank/{list,subjects,create,remove,capacity}`) |
 | `/question-bank/:bankId` | Nội dung một ngân hàng (SPT-73): lọc theo dạng khối, ô tìm (chờ 350ms), 20 khối/trang, hiện ngữ liệu, đáp án (đáp án đúng tô xanh), Đúng/Sai từng ý, lời giải, KaTeX và ảnh; **không** hiện đề nguồn. Nút **Xoá** mỗi khối luôn xoá cả khối: hộp xác nhận "Xoá câu này?" (1 câu) / "Xoá văn bản này và N câu đi kèm?" (N = `count`) / "Xoá câu đúng/sai này (4 ý)?"; 404 khi xoá = đã xoá, tải lại. Đề đã rút từ khối không bị ảnh hưởng (BE chỉ gỡ khỏi ngân hàng). Vào từ nút **Xem nội dung** ở thẻ ngân hàng | `pages/question-bank/BankBlocks.tsx` (`question_bank/{blocks,delete_block}`, hook `useBankBlocks`/`useDeleteBlock`) |
 | `/to-grade`, `/to-grade/:examId` | Bài chờ chấm | `pages/my/ToGrade.tsx` (`exam/pending`) |
-| `/my-exams/:id` | Chấm một bài | `pages/my/SubmissionDetail.tsx` (`exam/submission`, `exam/grade`) |
+| `/my-exams/:id` | Chấm một bài. Câu tự luận có ảnh: chấm trên ảnh (✓ / ✗ / ghi chữ, zoom, xoay), danh sách dấu cạnh ô điểm; dấu lưu cùng "Lưu điểm" (SPT-84, [cham-tren-anh.md](cham-tren-anh.md)) | `pages/my/SubmissionDetail.tsx`, `pages/my/ImageMarker.tsx` (`exam/submission`, `exam/grade` kèm `marks`) |
 | `/do-exam/:examId` | Giáo viên làm thử đề của mình (không tốn lượt, không có đồng hồ server) | `pages/exam/TakeExam.tsx` |
 
 ## Admin — `/manage/*`

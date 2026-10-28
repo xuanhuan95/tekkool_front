@@ -10,6 +10,9 @@ import {useAuthStore} from '../../stores/authStore';
 import type {SubmissionAnswer, SubmissionDetail as Sub} from '../../types/submission';
 import {fmtDate, fmtDuration, round, ScoreLabel} from './fmt';
 import {AnswerImageThumbs} from '../exam/AnswerImages';
+import ImageMarker from './ImageMarker';
+import {marksOf, markProblem, toPayload} from './imageMarks';
+import type {Mark} from './imageMarks';
 
 /** Scores/comments the teacher is typing, keyed by `question_id`. */
 type Draft = Record<string, string>;
@@ -34,6 +37,9 @@ export default function SubmissionDetail() {
     const [teacherComment, setTeacherComment] = useState('');
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [saveError, setSaveError] = useState<string | null>(null);
+    /** Marks of the images the teacher touched (SPT-84), keyed by image id. Untouched images keep the server's list. */
+    const [markDraft, setMarkDraft] = useState<Record<string, Mark[]>>({});
 
     useEffect(() => {
         Api.get<Sub>('exam/submission/' + id)
@@ -56,20 +62,26 @@ export default function SubmissionDetail() {
         comments[a.question_id] !== undefined ? comments[a.question_id] : (a.comment || '');
 
     const save = async () => {
+        const problem = Object.values(markDraft).map(markProblem).find(Boolean);
+        if (problem) return setSaveError(problem);
         setSaving(true);
         setSaved(false);
+        setSaveError(null);
         try {
             // Take back the version the BE returns: total score and status are computed by the BE,
-            // not guessed on the FE.
+            // not guessed on the FE. Marks ride along only when the teacher touched some (BE: absent = untouched).
             const fresh = await Api.post<Sub>('exam/grade/' + id, {
                 scores, comments, teacher_comment: teacherComment,
+                ...(Object.keys(markDraft).length ? {marks: toPayload(markDraft)} : {}),
             });
             setSub(fresh);
             setScores({});
             setComments({});
+            setMarkDraft({});
             setSaved(true);
         } catch (e: any) {
-            alert((e && (e.error || e.message)) || 'Lưu điểm thất bại');
+            // Keep everything on screen (scores, comments, marks) so pressing "Lưu điểm" again is the retry.
+            setSaveError((e && (e.error || e.message)) || 'Lưu điểm thất bại');
         }
         setSaving(false);
     };
@@ -90,6 +102,30 @@ export default function SubmissionDetail() {
         const showPassage = a.passage && !(prev && prev.passage_id === a.passage_id);
 
         const choices = a.answers || [];
+        // Essay with photos: the grader works ON the photo (SPT-84); the score box moves next to it.
+        const withMarks = !choices.length && !!a.images?.length;
+        const marksByImage = Object.fromEntries((a.images || []).map(i => [i, markDraft[i] ?? marksOf(a.marks, i)]));
+        const gradeForm = <Form className='sub-grade'>
+            <Form.Group inline>
+                <Form.Field>
+                    <Input size='small' type='number' step='0.25' min={0} max={a.max_score}
+                           label={'/ ' + a.max_score} labelPosition='right'
+                           placeholder='điểm'
+                           value={scoreOf(a)}
+                           onChange={(_e, {value}) => {
+                               setScores(s => ({...s, [a.question_id]: value}));
+                               setSaved(false);
+                           }}/>
+                </Form.Field>
+            </Form.Group>
+            <TextArea rows={2} placeholder='Nhận xét cho câu này…'
+                      value={commentOf(a)}
+                      onChange={(_e, {value}) => {
+                          setComments(c => ({...c, [a.question_id]: String(value ?? '')}));
+                          setSaved(false);
+                      }}/>
+        </Form>;
+
 
         return <Segment key={a.question_id} className='sub-answer'>
             {showPassage &&
@@ -137,9 +173,13 @@ export default function SubmissionDetail() {
                 <div className={'sub-given' + (wrong ? ' wrong' : '')}>
                     {a.answer ? renderHTML(a.answer) : <i className='text-muted'>(bỏ trống)</i>}
                 </div>
-                {!!a.images?.length && <>
-                    <div className='sub-label'>Ảnh bài làm · {a.images.length} ảnh</div>
-                    <AnswerImageThumbs ids={a.images}/>
+                {withMarks && <>
+                    <div className='sub-label'>Ảnh bài làm · {a.images!.length} ảnh</div>
+                    {grading
+                        ? <ImageMarker ids={a.images!} marks={marksByImage} side={gradeForm}
+                                       summary={<>Câu {idx + 1} · {scoreOf(a) === '' ? '—' : scoreOf(a)} / {round(a.max_score)}</>}
+                                       onChange={(imageId, list) => { setMarkDraft(d => ({...d, [imageId]: list})); setSaved(false); }}/>
+                        : <AnswerImageThumbs ids={a.images!} marks={a.marks || []}/>}
                 </>}
             </div>}
 
@@ -151,27 +191,7 @@ export default function SubmissionDetail() {
                 <div className='sub-correct'>{renderHTML(String(a.correct))}</div>
             </div>}
 
-            {grading &&
-            <Form className='sub-grade'>
-                <Form.Group inline>
-                    <Form.Field>
-                        <Input size='small' type='number' step='0.25' min={0} max={a.max_score}
-                               label={'/ ' + a.max_score} labelPosition='right'
-                               placeholder='điểm'
-                               value={scoreOf(a)}
-                               onChange={(_e, {value}) => {
-                                   setScores(s => ({...s, [a.question_id]: value}));
-                                   setSaved(false);
-                               }}/>
-                    </Form.Field>
-                </Form.Group>
-                <TextArea rows={2} placeholder='Nhận xét cho câu này…'
-                          value={commentOf(a)}
-                          onChange={(_e, {value}) => {
-                              setComments(c => ({...c, [a.question_id]: String(value ?? '')}));
-                              setSaved(false);
-                          }}/>
-            </Form>}
+            {grading && !withMarks && gradeForm}
 
             {!grading && a.comment &&
             <Message size='tiny' info className='sub-comment'>
@@ -212,6 +232,11 @@ export default function SubmissionDetail() {
                           }}/>
             </Form>
 
+            {saveError && <Message negative role='alert' className='margin-top'>
+                <Message.Header>Chưa lưu được</Message.Header>
+                <p>{saveError}</p>
+                <p>Điểm, nhận xét và dấu trên ảnh vẫn còn ở đây. Bấm “Lưu điểm” để thử lại.</p>
+            </Message>}
             <Button primary className='margin-top' onClick={save}
                     loading={saving} disabled={saving}>
                 <Icon name='save'/> Lưu điểm

@@ -1,3 +1,5 @@
+import type {ServerMark} from '../pages/my/imageMarks';
+
 /** Submission data returned by BE. Field names match `Submission.to_dict` on BE. */
 export type Submission = {
     id: string;
@@ -84,6 +86,8 @@ export type SubmissionAnswer = {
     passage_id?: string | null;
     /** SPT-38/83: handwriting photos of an essay, taken at submit (`answer_image/view/<id>`). */
     images?: string[];
+    /** SPT-84: teacher's marks on `images`. Students get `[]` until the attempt is graded. */
+    marks?: ServerMark[];
 };
 
 export type AnswerChoice = {
