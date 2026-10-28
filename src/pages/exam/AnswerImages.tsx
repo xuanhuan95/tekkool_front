@@ -1,7 +1,7 @@
 import {useRef, useState} from 'react';
 import type {ChangeEvent} from 'react';
 
-import {Button, Modal} from '../../components/ui';
+import {Button, IconButton, Modal} from '../../components/ui';
 import {IconClose} from '../../components/ui/icons';
 import {imageProblem} from '../../components/ImageDialog';
 import {errorText} from '../../lib/format';
@@ -36,8 +36,8 @@ export function AnswerImageThumbs({ids, onRemove, busyId, marks}: {ids: string[]
                 <button type='button' className='hs-aimg-open' aria-label={`Xem ảnh ${i + 1}`} onClick={() => setBig(id)}>
                     <img src={answerImageUrl(id)} alt={`Ảnh bài làm ${i + 1}`}/>
                 </button>
-                {onRemove && <button type='button' className='hs-aimg-x vt-tip vt-tip--end' aria-label={`Xoá ảnh ${i + 1}`} title='Xoá ảnh'
-                                     data-tip='Xoá ảnh' disabled={busyId === id} onClick={() => onRemove(id)}><IconClose size={14}/></button>}
+                {onRemove && <IconButton variant='outline' tipEnd className='hs-aimg-x' label={`Xoá ảnh ${i + 1}`}
+                                         icon={<IconClose size={14}/>} disabled={busyId === id} onClick={() => onRemove(id)}/>}
             </li>)}
         </ul>
         {marks && notes.length > 0 && <>

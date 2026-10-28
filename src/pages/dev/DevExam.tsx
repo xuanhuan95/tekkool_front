@@ -134,7 +134,7 @@ export default function DevExam() {
             <QuestionBlock kind='essay' {...common(23)} title='Câu 23 · 1,5 điểm'
                            prompt='Bác An có 120 m lưới để rào một mảnh vườn hình chữ nhật sát bờ sông (cạnh giáp bờ sông không cần rào). Tìm kích thước mảnh vườn để diện tích lớn nhất.'
                            value={(answers[23] as string) || ''} onChange={set(23)}
-                           onTool={() => {}} onAttach={() => {}}/>
+                           onAttach={() => {}}/>
         </ExamSection>
 
         <ExamEnd answered={answered} total={TOTAL} flagged={flags.size} savedAt='20:41'

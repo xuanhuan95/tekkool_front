@@ -28,10 +28,9 @@ export function greetName(name?: string | null): string {
     return w.length >= 3 ? w.slice(-2).join(' ') : w.join(' ');
 }
 
-export function PageHead({title, sub, as: Tag = 'h1'}: {title: ReactNode; sub?: ReactNode; as?: 'h1' | 'h2'}) {
+export function PageHead({title, as: Tag = 'h1'}: {title: ReactNode; as?: 'h1' | 'h2'}) {
     return <div className='hs-head'>
         <Tag className='hs-head-title'>{title}</Tag>
-        {sub && <p className='hs-head-sub'>{sub}</p>}
     </div>;
 }
 

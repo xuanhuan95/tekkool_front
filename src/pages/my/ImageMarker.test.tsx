@@ -44,7 +44,7 @@ describe('ImageMarker — teacher (SPT-84)', () => {
         render(<Harness spy={spy}/>);
         const stage = box();
         expect(screen.getByRole('button', {name: 'Đặt dấu sai (✗)'})).toBeDisabled();
-        expect(screen.getByText('Đang tải ảnh…')).toBeInTheDocument();
+        expect(screen.getByRole('status', {name: 'Đang tải ảnh'})).toBeInTheDocument();
         loadImage();
         clickAt(stage, 0.5, 0.5);
         expect(spy).not.toHaveBeenCalled();
@@ -114,7 +114,7 @@ describe('ImageMarker — teacher (SPT-84)', () => {
         expect(screen.getByRole('button', {name: 'Đặt dấu đúng (✓)'})).toBeDisabled();
         fireEvent.click(screen.getByRole('button', {name: 'Thử lại'}));
         expect((document.querySelector('.mk-stage img') as HTMLImageElement).src).toContain('retry=1');
-        expect(screen.getByText('Đang tải ảnh…')).toBeInTheDocument();
+        expect(screen.getByRole('status', {name: 'Đang tải ảnh'})).toBeInTheDocument();
     });
 
     it('next/previous photo shows that photo\'s own marks', async () => {

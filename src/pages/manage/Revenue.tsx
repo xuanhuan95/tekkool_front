@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
 
-import {Avatar, Card, CardTitle, ErrorState, IconButton, PageColumns, PageTitle, Skeleton, SkeletonCard, Table, Tabs,
+import {Avatar, Card, CardTitle, ErrorState, IconButton, MetaChips, PageColumns, PageTitle, Skeleton, SkeletonCard, Table, Tabs,
     buttonClass, icons} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useRevenueSummary, useTransactions} from '../../queries/manage';
@@ -179,7 +179,7 @@ export default function Revenue() {
         <div className='vt-mg-head'>
             <div>
                 <PageTitle>Người mua &amp; doanh thu</PageTitle>
-                <p className='vt-muted'>{s ? periodTitle(s, today) : ' '}</p>
+                {s ? <MetaChips items={[periodTitle(s, today)]}/> : <Skeleton width={160} height={14}/>}
             </div>
             <div className='vt-mg-actions'>
                 {period !== 'all' && <>

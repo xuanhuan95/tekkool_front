@@ -497,8 +497,7 @@
 }
 
 .tk-field input:focus {
-    border-color: var(--tk-primary);
-    box-shadow: 0 0 0 3px rgba(47, 111, 228, .18);  /* blue of --tk-primary; written as rgba so a sed hex swap cannot catch it */
+    box-shadow: inset 0 0 0 1.5px var(--vt-ink, #1c1917);  /* rule 2: only a thicker border */
     outline: none;
 }
 

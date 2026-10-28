@@ -24,10 +24,6 @@
 .vt-cfb-slot-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .vt-cfb-kind { font-size: 13px; font-weight: 700; color: var(--vt-ink); }
 .vt-cfb-actions { display: flex; gap: 4px; }
-.vt-cfb-actions button, .vt-cfb-type button { width: 44px; height: 44px; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn);
-    background: var(--vt-card); font: inherit; font-size: 18px; cursor: pointer; }
-.vt-cfb-actions button:disabled, .vt-cfb-type button:disabled { opacity: .4; cursor: not-allowed; }
-.vt-cfb-actions .remove { color: var(--vt-err); }
 .vt-cfb-drop { padding: 14px; border: 2px dashed var(--vt-line-option); border-radius: var(--vt-r-btn); text-align: center; font-size: 14px; color: var(--vt-muted); }
 .vt-cfb-drop.over { border-color: #8cc8f5; background: #d0e9fd; }
 .vt-cfb-palette { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }

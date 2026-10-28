@@ -140,7 +140,7 @@ describe('HistoryPage', () => {
         ]);
         page('/history');
         await screen.findByText('Ngữ văn — Đề 2');
-        expect(screen.getByText('6,50')).toBeTruthy();
+        expect(screen.getByText('6,5')).toBeTruthy();
         expect(screen.getByText('tạm tính')).toBeTruthy();
         expect(screen.getAllByRole('link').map(a => a.getAttribute('href'))).toEqual(['/result/SUB1', '/result/SUB0']);
         fireEvent.click(screen.getByRole('radio', {name: 'Chờ chấm · 1'}));

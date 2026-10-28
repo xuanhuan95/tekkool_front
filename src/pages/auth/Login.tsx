@@ -53,7 +53,7 @@ export default function Login() {
     const locked = err === LOCKED_MESSAGE;
 
     return <AuthFrame tagline='Thi thử SPT – Đánh giá năng lực ĐH Sư phạm Hà Nội'
-                      title='Chào bạn quay lại!' subtitle='Đăng nhập để luyện tiếp đề thi.'
+                      title='Chào bạn quay lại!'
                       footer={<><span className='vt-muted'>Chưa có tài khoản?</span>
                           <Link to='/register' className='vt-link'>Đăng ký</Link></>}>
         <form className='vt-auth-form' onSubmit={submit} noValidate>

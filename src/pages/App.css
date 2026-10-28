@@ -118,7 +118,7 @@ body {
 }
 
 .txt-blue {
-    color: #2185d0 !important
+    color: var(--vt-ink, #1c1917) !important
 }
 
 .txt-orange {
@@ -174,7 +174,7 @@ body {
 #ExamCreation .exam-section-wrapper.active .segment {
     transition: box-shadow 200ms, background 200ms;
     box-shadow: rgb(204, 204, 204) 3px 3px 20px;
-    border-left: 3px solid #2185d0 !important;
+    border-left: 3px solid var(--vt-ink, #1c1917) !important;
 }
 
 #ExamCreation .ui.right.rail {
@@ -348,7 +348,7 @@ body {
 }
 
 .addExam > i.icon:hover {
-    color: #2185d0;
+    color: var(--vt-ink, #1c1917);
 }
 
 /* ------- Word exam import screen: review & edit before saving ------- */
@@ -783,7 +783,6 @@ body {
    glance you must see which folder is open. */
 .tk-folder.active {
     background: #f4f9fd !important;
-    box-shadow: 0 0 0 2px #2185d0 !important;
 }
 
 .tk-folder .extra .ui.button {
@@ -1068,67 +1067,6 @@ body {
     font-weight: 600;
 }
 .ui.basic.button:hover { color: var(--tk-primary-dark) !important; }
-
-/* ============================================================
-   Shared Loading (components/Loading.jsx)
-   Four bars rise and fall, a wave running left to right.
-   Only transform + opacity are animated -> the browser pushes it to the GPU and does not
-   recompute layout each frame. Animating a bar's `height` or `y` would be
-   the opposite: every frame is a re-layout, janky on weak devices.
-   ============================================================ */
-.tk-load {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 48px 16px;
-}
-
-/* Overlay: COVERS the existing content rather than replacing it, so the page frame
-   stays still while loading. Slightly translucent background so the text below is still faintly visible; the user
-   knows the old data is still there, just being refreshed. */
-.tk-load-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 20;
-    background: rgba(244, 246, 251, .72);
-    backdrop-filter: blur(2px);
-    /* Block click-through while loading: clicking on old data that is about to be replaced
-       is a source of bugs, not a feature. */
-    cursor: progress;
-}
-/* The overlay's parent must have position so `inset: 0` anchors correctly. */
-.tk-load-host { position: relative; min-height: 120px; }
-
-.tk-load-svg { display: block; margin: 0 auto; }
-.tk-load-svg rect {
-    fill: var(--tk-primary);
-    /* Transform origin at the BOTTOM of the bar: scaleY stretches from the foot up, foot stays put.
-       Without this line the bar shrinks toward its center, looking like flicker rather than rising. */
-    transform-origin: 50% 100%;
-    animation: tk-load-wave 1.1s cubic-bezier(.5, .05, .5, .95) infinite;
-}
-/* Phase offset of .1s per bar: the wave runs left to right. In phase, all four bars
-   pulse together, looking like one jerking block rather than a wave. */
-.tk-load-svg rect:nth-of-type(2) { animation-delay: .1s; }
-.tk-load-svg rect:nth-of-type(3) { animation-delay: .2s; }
-.tk-load-svg rect:nth-of-type(4) { animation-delay: .3s; }
-
-/* The bar reaches up then drops back to .45. 45% opacity when low so the wave stands out,
-   rather than four solid bars pulsing evenly. */
-@keyframes tk-load-wave {
-    0%, 60%, 100% { transform: scaleY(.45); opacity: .45; }
-    30%           { transform: scaleY(1);   opacity: 1; }
-}
-
-/* People turn on "reduce motion" in the OS usually because of dizziness or
-   vestibular disorders. Disable the rise/fall, keep the dim pulse so it's still clear it's loading. */
-@media (prefers-reduced-motion: reduce) {
-    .tk-load-svg rect {
-        animation: tk-load-pulse 1.6s ease-in-out infinite;
-        transform: scaleY(1);
-    }
-    @keyframes tk-load-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
-}
 
 /* Per-section score table on the "Đã nộp bài" (submitted) screen. That screen is text-center, so the table must
    left-align itself again, otherwise the score column jumps around with the section name length. */

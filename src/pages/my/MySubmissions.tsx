@@ -2,6 +2,7 @@ import {Component} from 'react';
 import Loading from '../../components/Loading';
 import {Link} from 'react-router-dom';
 import {Icon} from 'semantic-ui-react';
+import {ErrorState, MetaChips} from '../../components/ui';
 import Api from '../../services/api';
 import type {Submission} from '../../types/submission';
 import {fmtDate, fmtDuration, ScoreLabel} from './fmt';
@@ -12,7 +13,10 @@ type State = {subs: Submission[] | null; error: string | null};
 export default class MySubmissions extends Component<{}, State> {
     state: State = {subs: null, error: null};
 
-    componentDidMount = async () => {
+    componentDidMount = () => this.load();
+
+    load = async () => {
+        this.setState({error: null});
         try {
             this.setState({subs: await Api.get('exam/my_submissions')});
         } catch (e: any) {
@@ -24,11 +28,7 @@ export default class MySubmissions extends Component<{}, State> {
         let {subs, error} = this.state;
 
         if (error) return <div className='tk'><div className='tk-wrap'>
-            <div className='tk-empty'>
-                <Icon name='exclamation triangle'/>
-                <div className='tk-empty-title'>Có lỗi xảy ra</div>
-                <div>{error}</div>
-            </div>
+            <ErrorState title='Chưa tải được danh sách' description={error} onRetry={this.load}/>
         </div></div>;
 
         if (!subs) return <div className='tk'><div className='tk-wrap'>
@@ -37,9 +37,7 @@ export default class MySubmissions extends Component<{}, State> {
 
         return <div className='tk'><div className='tk-wrap'>
             <h1 className='tk-title'>Lịch sử làm bài</h1>
-            <p className='tk-sub'>
-                {subs.length ? subs.length + ' bài đã nộp' : 'Chưa có bài nào'}
-            </p>
+            <MetaChips items={[subs.length ? subs.length + ' bài đã nộp' : 'Chưa có bài nào']}/>
 
             {!subs.length
                 ? <div className='tk-empty'>

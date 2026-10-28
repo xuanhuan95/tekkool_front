@@ -1,6 +1,6 @@
 import {Link, useSearchParams} from 'react-router-dom';
 
-import {EmptyState, ErrorState, PageTitle, SkeletonCard, buttonClass, icons} from '../../components/ui';
+import {EmptyState, ErrorState, MetaChips, PageTitle, SkeletonCard, buttonClass, icons} from '../../components/ui';
 import {usePackages} from '../../queries/payment';
 import {useWallet} from '../../queries/wallet';
 import PackageCard from './PackageCard';
@@ -26,9 +26,7 @@ export default function Packages() {
         <div className='vt-pay-head'>
             <div className='vt-pay-head-text'>
                 <PageTitle>Gói thi</PageTitle>
-                {wallet && <span className='vt-muted'>
-                    Bạn còn <b className='vt-pay-ink'>{wallet.remaining} lượt</b>
-                </span>}
+                {wallet && <MetaChips items={[<>Bạn còn <b className='vt-pay-ink'>{wallet.remaining} lượt</b></>]}/>}
             </div>
             <Link to='/billing' className={buttonClass({variant: 'ghost'})}>Lịch sử mua gói</Link>
         </div>

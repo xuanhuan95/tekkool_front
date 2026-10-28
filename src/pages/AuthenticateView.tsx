@@ -42,7 +42,7 @@ function ToResult() {
     return <Navigate to={'/result/' + id} replace/>;
 }
 
-const TEACHER_D = /^\/(|(subject|create-exam|edit-exam|to-grade|my-exams|question-bank|import-exam|create-from-bank|draw-exam)(\/.*)?)$/;
+const TEACHER_D = /^\/(|(subject|create-exam|edit-exam|to-grade|my-exams|question-bank|import-exam|create-from-bank|draw-exam|profile)(\/.*)?)$/;
 
 function TeacherShell({children}: {children: ReactNode}) {
     const name = useAuthStore(s => s.user?.name);

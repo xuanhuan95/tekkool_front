@@ -18,7 +18,7 @@ import {errorText} from '../../lib/format';
 import {backendProblems, examTotal, publishProblems, reviewHints, withDefaultScores} from './examRules';
 import {useFolders} from '../../queries/exams';
 import {suggestedMinutes} from './CreateFromBank';
-import {Badge, Button, ConfirmDialog} from '../../components/ui';
+import {Badge, Button, ConfirmDialog, IconButton, icons} from '../../components/ui';
 
 const MAX_SHOWN = 6;
 
@@ -339,18 +339,22 @@ type CardProps = {
  */
 function SectionCard({section, index, questionIndex, subject, onRemove, onMouseOver, onMouseOut}: CardProps) {
     const [ref, setRef] = useState<HTMLElement | null>(null);
+    const [confirmRemove, setConfirmRemove] = useState(false);
 
     return <div className='exam-section-wrapper' ref={setRef}
                 onMouseOver={onMouseOver} onMouseOut={onMouseOut}>
         <Segment id={section.id} className='exam-section'>
             <Sticky context={ref}>
                 <Segment>Phần {index + 1}
-                    <Icon onClick={onRemove} name='close' color='grey'
-                          className='cursor' style={{float: 'right'}}/>
+                    <IconButton label={'Xoá phần ' + (index + 1)} variant='outline' tipEnd style={{float: 'right'}}
+                                icon={<icons.IconClose size={18}/>} onClick={() => setConfirmRemove(true)}/>
                 </Segment>
             </Sticky>
 
             <Section section={section} questionIndex={questionIndex} subject={subject}/>
         </Segment>
+        <ConfirmDialog open={confirmRemove} tone='danger' title={'Xoá phần ' + (index + 1) + '?'} cancelLabel='Giữ lại' confirmLabel='Xoá phần'
+                       message='Mọi câu hỏi trong phần này sẽ bị xoá khỏi đề.'
+                       onCancel={() => setConfirmRemove(false)} onConfirm={() => { setConfirmRemove(false); onRemove(); }}/>
     </div>;
 }

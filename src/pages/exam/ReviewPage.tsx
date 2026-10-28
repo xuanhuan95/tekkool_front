@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import {Link, useParams} from 'react-router-dom';
 
-import {Badge, Card, EmptyState, ErrorState, PageTitle, SkeletonCard, Tabs, buttonClass} from '../../components/ui';
+import {Badge, Card, EmptyState, ErrorState, MetaChips, PageTitle, SkeletonCard, Tabs, buttonClass} from '../../components/ui';
 import type {BadgeTone} from '../../components/ui';
 import renderHTML from '../../components/SafeHtml';
 import {useSubmission} from '../../queries/submissions';
@@ -115,8 +115,7 @@ export default function ReviewPage() {
         <div className='vt-res-head'>
             <Link to={'/result/' + data.id} className={buttonClass({variant: 'ghost', size: 'sm'}) + ' vt-res-back'}>← Kết quả</Link>
             <PageTitle>Xem lại bài</PageTitle>
-            <span className='vt-res-meta'>{data.exam_name || 'Bài thi'} · {sum.isProvisional ? 'tạm tính ' : ''}
-                {formatScore(sum.score10)} / 10</span>
+            <MetaChips items={[data.exam_name || 'Bài thi', (sum.isProvisional ? 'tạm tính ' : '') + formatScore(sum.score10) + ' / 10']}/>
         </div>
         <Tabs aria-label='Lọc câu' items={FILTERS} value={filter} onChange={setFilter} idPrefix='rv'/>
         <div role='tabpanel' id={'rv-panel-' + filter} aria-labelledby={'rv-tab-' + filter} className='vt-res'>

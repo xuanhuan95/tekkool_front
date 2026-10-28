@@ -77,7 +77,6 @@ export default function Profile() {
 
     return <div className='tk'><div className='tk-wrap tk-narrow'>
         <h1 className='tk-title'>Thông tin cá nhân</h1>
-        <p className='tk-sub'>Cập nhật tên hiển thị và mật khẩu đăng nhập.</p>
 
         <form className='tk-card' onSubmit={saveName}>
             <h3>Thông tin chung</h3>

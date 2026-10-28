@@ -84,7 +84,7 @@ describe('Shared part: options render identically', () => {
             const {container} = render(
                 <Comp question={q} section={section} setSectionState={touch}/>);
 
-            fireEvent.click(container.querySelector('i.remove.icon')!);
+            fireEvent.click(container.querySelector('button[aria-label^="Xoá đáp án"]')!);
 
             expect(q.data.answers.map((a: any) => a.id)).toEqual(['A2']);
             // Mutating data without calling setSectionState freezes the screen:
@@ -102,12 +102,12 @@ describe('7px offset of the remove icon — a fourth difference, easy to lose wh
     };
 
     it('MultipleChoice pushes the icon down 7px to line up with the answer box', () => {
-        const i = renderWithOption(MultipleChoice).querySelector('i.remove.icon') as HTMLElement;
+        const i = renderWithOption(MultipleChoice).querySelector('button[aria-label^="Xoá đáp án"]') as HTMLElement;
         expect(i.style.marginTop).toBe('7px');
     });
 
     it('ErrorIdentify does NOT push — its row is taller, pushing more would misalign', () => {
-        const i = renderWithOption(ErrorIdentify).querySelector('i.remove.icon') as HTMLElement;
+        const i = renderWithOption(ErrorIdentify).querySelector('button[aria-label^="Xoá đáp án"]') as HTMLElement;
         expect(i.style.marginTop).toBe('');
     });
 });

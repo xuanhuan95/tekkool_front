@@ -9,7 +9,6 @@ import {useAuthStore, watchSessionExpiry} from '../stores/authStore';
 import AuthenticateView from './AuthenticateView';
 import AnonymousView from './AnonymousView';
 import VisitorView from './VisitorView';
-import DesignSystem from './DesignSystem';
 
 import 'semantic-ui-css/semantic.min.css';
 import '../styles/tokens.css';
@@ -21,6 +20,8 @@ import './student.css';
 // Design-D component catalogue for review (SPT-54). DEV ONLY: in `vite build` import.meta.env.DEV is
 // the literal `false`, so this branch and the lazy chunk are dropped from the production bundle.
 const DevUi = import.meta.env.DEV ? lazy(() => import('./dev/DevUi')) : null;
+// Old Semantic catalogue: dev only too (it was reachable on production).
+const DesignSystem = import.meta.env.DEV ? lazy(() => import('./DesignSystem')) : null;
 
 /**
  * Create ONCE outside the component. Inside the function body every App re-render
@@ -48,7 +49,7 @@ export default function App() {
     useEffect(() => { watchSessionExpiry(); init(); }, [init]);
 
     // Component catalogue: no data, so no login needed (designers, probe).
-    if (pathname === '/design-system') return <DesignSystem/>;
+    if (DesignSystem && pathname === '/design-system') return <Suspense fallback={null}><DesignSystem/></Suspense>;
     if (DevUi && pathname.startsWith('/dev/ui')) return <Suspense fallback={<Loading/>}><DevUi/></Suspense>;
     if (!ready) return <Loading/>;
 

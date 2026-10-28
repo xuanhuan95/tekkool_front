@@ -50,7 +50,8 @@ Nguyên tắc: component **không tự gọi API, không đọc store** — nh�
 | `notify.success / .error`, `ToastCard` | `(title, description?)` | Toast design D trên `<Toaster position='bottom-right'/>` của react-hot-toast (góc dưới để không che thanh menu editor) |
 | `EmptyState` | `title`, `description`, `icon`, `action`, `bare` | Trạng thái rỗng |
 | `ErrorState` | `title`, `description`, `onRetry`, `retrying` | Lỗi + "Thử lại" |
-| `Skeleton`, `SkeletonCard` | `width`, `height`, `shape`; `label` | Đang tải — không dùng spinner giữa trang |
+| `Skeleton`, `SkeletonCard` | `width`, `height`, `shape`; `label` | Đang tải — không dùng spinner giữa trang. `components/Loading` (cả trang: lúc khởi động, chunk lười, màn GV cũ) cũng là khối xám, không còn hình sóng xoay (SPT-91) |
+| `MetaChips` | `items` (ReactNode, bỏ qua giá trị falsy), `className` | Dòng chip dữ liệu dưới tiêu đề trang (số bài, số môn…) thay cho câu giải thích — quy tắc 6 |
 
 ```tsx
 const columns: Column<Pkg>[] = [
@@ -66,7 +67,7 @@ const columns: Column<Pkg>[] = [
 |---|---|---|
 | `StudentLayout` | `name`, `turns`, `stars`, `title`, `navMobile`, `navWeb`, `accountTo` | Khung mọi màn HS (đã dùng trong `pages/student/StudentShell.tsx`): header dính + bottom nav (điện thoại) / menu trên (web) |
 | `AdminLayout` | `name`, `nav` | Khung `/manage/*`; menu: Giáo viên · Học sinh · Môn học · Gói thi · Doanh thu · Giao dịch; header (SPT-77) chỉ có nhãn Admin + avatar + **nút đăng xuất dạng icon có viền** (`IconButton`, tooltip "Đăng xuất"; không còn chữ "Quản trị viên"), xuống dòng dưới menu ở 390px |
-| `IconButton` | `label` (bắt buộc: `aria-label` + `title` + tooltip hiện khi hover **và** focus bàn phím), `icon`, `variant` outline·ghost, `to` (thành link), `tipEnd`, `tipBelow` | Nút icon 44×44 dùng chung (SPT-77): đăng xuất Admin, thao tác trong bảng (xem chi tiết, khoá/mở khoá, đặt lại mật khẩu). Sau này áp cho header GV/HS. Icon mới ở `icons.tsx`: `IconLogout`, `IconArrowRight`, `IconLock`, `IconUnlock`, `IconKey` |
+| `IconButton` | `label` (bắt buộc: `aria-label` + `title` + tooltip hiện khi hover **và** focus bàn phím), `icon`, `variant` outline·ghost, `to` (thành link), `tipEnd`, `tipBelow` | Nút icon 44×44 dùng chung (SPT-77): đăng xuất Admin, thao tác trong bảng (xem chi tiết, khoá/mở khoá, đặt lại mật khẩu). Sau này áp cho header GV/HS. Từ SPT-91 dùng cả cho ✕ xoá câu/phần/đáp án, ↑ ↓ trong `CreateFromBank`, xoá ảnh bài làm. Khoá/Mở khoá trong bảng giáo viên là nút chữ (`Button ghost` + `vt-btn-danger-text`, quy tắc 9). Icon mới ở `icons.tsx`: `IconLogout`, `IconArrowRight`, `IconLock`, `IconUnlock`, `IconKey` |
 | `WebLayout` | `nav`, `navLabel`, `right` | Khung web chung |
 | `HeaderSticky`, `StudentStats`, `BottomNav` | `variant`, `nav`, `right` ; `turns`, `stars`, `title` ; `items` | Thành phần của các layout trên |
 | `PageColumns` | `main`, `side` | Bố cục 2 cột web (cột phụ ≤ 380px), xuống 1 cột trên điện thoại |
@@ -124,3 +125,11 @@ Cách các component này được nối với API: [lam-bai.md](lam-bai.md).
 
 `pages/exam-creation/Section.tsx` map `question.type` → component: `MultipleChoice`, `FillBlank`, `ErrorIdentify`, `FreeAnswer`, `ShortAnswer`
 (`questions/ShortAnswer.tsx`, ghi đáp án vào `correctAnswer` — trường BE chấm trước). Loại câu không có trong map hiện thông báo "Chưa hỗ trợ sửa loại câu hỏi …", không làm trắng trang.
+
+## Quy tắc UI chung (SPT-91)
+
+Rà soát và kết quả: `ra-soat-quy-tac-ui.md`. Điểm cần nhớ khi viết màn mới:
+- Ô nhập focus chỉ dày viền (inset 1,5px); không `outline`, không halo. Luật chung ở cuối `ui.css` cũng ép cả Semantic `Input`/`Form`.
+- `formatScore` bỏ số 0 thừa, tối đa 2 chữ số, dấu phẩy: 8,5 · 10 · 7,75. Không in số JS thô.
+- Thanh công cụ Editor (`.tt-btn`) 44×44. `QuestionBlock` (tự luận) không còn thanh công cụ tự chế: truyền `editor`.
+- Xoá câu/phần trong trình soạn đề phải qua `ConfirmDialog` (focus vào "Giữ lại").

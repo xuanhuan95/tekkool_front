@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {Link, useSearchParams} from 'react-router-dom';
 
-import {Button, Card, CardTitle, DateField, ErrorState, FilterChip, PageColumns, PageTitle, Select, SkeletonCard, Table, Tabs,
+import {Button, Card, CardTitle, DateField, EmptyState, ErrorState, FilterChip, PageColumns, PageTitle, Select, SkeletonCard, Table, Tabs,
     TextField, buttonClass, icons} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useReconcile, useTransaction, useTransactions} from '../../queries/manage';
@@ -95,7 +95,6 @@ function ReconcileTab({onOpen}: {onOpen: (inv: string) => void}) {
     ];
 
     return <div className='vt-mg-stack'>
-        <p className='vt-muted'>Đơn cần xử lý tay. Chỉ đọc dữ liệu đã lưu, không đổi trạng thái đơn.</p>
         <div className='vt-chip-row' role='group' aria-label='Loại lệch'>
             <FilterChip selected={!type} onChange={() => setType('')}>Tất cả ({groupDigits(all.data?.total ?? 0)})</FilterChip>
             {(Object.keys(ANOMALY_LABEL) as AnomalyType[]).map(k =>
@@ -195,6 +194,6 @@ export default function Transactions() {
             </div>}
             side={inv ? <TxDetail inv={inv}/>
                 : <Card className='vt-mg-stack'><CardTitle>Chi tiết đơn</CardTitle>
-                    <p className='vt-muted'>Bấm mã đơn để xem dòng thời gian, dữ liệu SePay và cảnh báo lệch.</p></Card>}/>
+                    <EmptyState bare title='Chọn một mã đơn để xem chi tiết'/></Card>}/>
     </div>;
 }

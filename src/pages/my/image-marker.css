@@ -24,6 +24,7 @@
 .mk-img--wait { visibility: hidden; }
 .mk-ph { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
     padding: 16px; text-align: center; background: var(--vt-track); color: var(--vt-muted); font-size: 14px; }
+.mk-ph--load { background: #EFEFEC; }
 .mk-ph--err { background: var(--vt-err-bg); color: var(--vt-ink); }
 .mk-ph b { color: var(--vt-err); font-size: 16px; }
 
@@ -50,7 +51,7 @@
 .mk-thumb-n { position: absolute; left: 4px; bottom: 4px; min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--vt-ink); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
 
 .mk-side { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.mk-list-title { margin: 0 0 6px; font-family: var(--vt-font-hand); font-size: 19px; }
+.mk-list-title { margin: 0 0 6px; font-family: var(--vt-font-hand); font-weight: 700; font-size: 19px; }
 .mk-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .mk-row { display: flex; align-items: center; gap: 6px; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-chip); background: var(--vt-card); padding-right: 4px; }
 .mk-row-main { flex: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 4px 8px; border: 0; background: none; text-align: left; cursor: pointer; font: inherit; color: inherit; }
@@ -63,7 +64,7 @@
     background: var(--vt-card); cursor: pointer; font: 600 14px var(--vt-font); color: var(--vt-ink); }
 .mk-note-field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; }
 .mk-note-field textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 2px solid var(--vt-ink); border-radius: var(--vt-r-btn); font: 400 16px var(--vt-font); resize: vertical; }
-.mk-note-field textarea:focus-visible { outline: none; box-shadow: var(--vt-focus); }
+.mk-note-field textarea:focus-visible { outline: none; box-shadow: inset 0 0 0 1.5px var(--vt-ink); }
 .mk-note-count { align-self: flex-end; font-size: 12px; font-weight: 400; color: var(--vt-muted); }
 
 /* full screen: the same component pinned over the page (Esc or the button leaves) */
@@ -72,7 +73,7 @@
 
 /* student review: teacher's notes under the thumbnails */
 .mk-notes { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
-.mk-notes b { font-family: var(--vt-font-hand); font-size: 17px; }
+.mk-notes b { font-family: var(--vt-font-hand); font-weight: 700; font-size: 18px; }
 .mk-notes-title { font-weight: 700; font-size: 14px; margin: 8px 0 0; }
 .mk-note-line { overflow-wrap: anywhere; }
 

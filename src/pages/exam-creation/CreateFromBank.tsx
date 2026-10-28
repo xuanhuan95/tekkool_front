@@ -9,6 +9,7 @@ import {useBankCapacity, useBanks, useCreateFromBank} from '../../queries/questi
 import {useFolders} from '../../queries/exams';
 import type {StructureSlot} from '../../types/exam';
 import {BLOCK_LABELS, blockStyle, blockLabel} from './blockTypes';
+import {IconButton, icons} from '../../components/ui';
 import './create-from-bank.css';
 
 /** Structure slot with a stable key: reordering must not mix up the inputs between cards. */
@@ -207,10 +208,12 @@ export default function CreateFromBank() {
                                                onChange={e => setTitle(i, e.target.value)}/>
                                     </div>
                                     <div className='vt-cfb-actions'>
-                                        <button type='button' aria-label='Lên' disabled={i === 0} onClick={() => move(i, i - 1)}>↑</button>
-                                        <button type='button' aria-label='Xuống' disabled={i === structure.length - 1}
-                                                onClick={() => move(i, i + 2)}>↓</button>
-                                        <button type='button' aria-label='Xoá' className='remove' onClick={() => remove(i)}>×</button>
+                                        <IconButton variant='outline' label='Đưa lên' icon={<icons.IconArrowUp/>}
+                                                    disabled={i === 0} onClick={() => move(i, i - 1)}/>
+                                        <IconButton variant='outline' label='Đưa xuống' icon={<icons.IconArrowDown size={18}/>}
+                                                    disabled={i === structure.length - 1} onClick={() => move(i, i + 2)}/>
+                                        <IconButton variant='outline' label='Bỏ khối' tipEnd className='vt-iconbtn--danger'
+                                                    icon={<icons.IconClose size={18}/>} onClick={() => remove(i)}/>
                                     </div>
                                 </li>;
                             })}
@@ -240,8 +243,9 @@ export default function CreateFromBank() {
                                             {selected.length ? (used ? 'dùng ' + used + ' / ' : '') + 'có ' + have + ' khối' : '—'}
                                         </small>
                                     </div>
-                                    <button type='button' aria-label={'Thêm ' + blockLabel(t)} disabled={off}
-                                            onClick={() => addSlot(t)}>+</button>
+                                    <IconButton variant='outline' label={'Thêm ' + blockLabel(t)} tipEnd disabled={off}
+                                                icon={<span aria-hidden='true' style={{fontSize: 22, lineHeight: 1}}>+</span>}
+                                                onClick={() => addSlot(t)}/>
                                 </div>;
                             })}
                         </div>

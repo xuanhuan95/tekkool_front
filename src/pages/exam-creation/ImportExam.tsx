@@ -5,7 +5,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Editor} from '../../components/Editor';
 import renderHTML from '../../components/SafeHtml';
-import {Badge, Button, Card, Modal, PageTitle, ProgressBar, Select, Table, TextField, buttonClass, cx, notify}
+import {Badge, Button, Card, MetaChips, Modal, PageTitle, ProgressBar, Select, Table, TextField, buttonClass, cx, notify}
     from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {uploadImages} from './imageUpload';
@@ -13,7 +13,7 @@ import type {ImageCache} from './imageUpload';
 import {useFolders} from '../../queries/exams';
 import {bankKeys, useBankStock, useBanks} from '../../queries/questionBank';
 import Api from '../../services/api';
-import {errorText} from '../../lib/format';
+import {errorText, formatDecimal} from '../../lib/format';
 import {DESKTOP, useMediaQuery} from '../useMediaQuery';
 import {blockLabel} from './blockTypes';
 import {
@@ -52,9 +52,9 @@ function SourcePdf({pdf}: {pdf: PdfState}) {
 /** Duplicate rate: never red — a warning to read, not an error to fix (same-template questions measure 80–90%). */
 function DuplicateChip({info}: {info?: DuplicateInfo}) {
     if (!info) return null;
-    const matches = info.khop.map(k => (k.trong_file ? 'trong file này' : (k.khoi || k.id)) + ' — ' + (k.score * 100).toFixed(2) + '%').join('\n');
+    const matches = info.khop.map(k => (k.trong_file ? 'trong file này' : (k.khoi || k.id)) + ' — ' + formatDecimal(k.score * 100) + '%').join('\n');
     return <span className={cx('vt-imp-dup', info.score >= 0.95 ? 'high' : info.score >= 0.8 && 'mid')} title={'Trùng với:\n' + matches}>
-        Tỷ lệ trùng: {(info.score * 100).toFixed(2)}%
+        Tỷ lệ trùng: {formatDecimal(info.score * 100)}%
     </span>;
 }
 
@@ -352,7 +352,7 @@ export default function ImportExam() {
         <div className='vt-imp-head'>
             <div>
                 <PageTitle>Nhập đề từ file Word</PageTitle>
-                {context && <p>{context}</p>}
+                {context && <MetaChips items={[context]}/>}
             </div>
             {(exams.length > 0 || problem) &&
                 <Button variant='secondary' disabled={busy} onClick={pickFile}>Chọn file khác</Button>}
