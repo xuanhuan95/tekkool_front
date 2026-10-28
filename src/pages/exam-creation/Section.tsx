@@ -3,6 +3,7 @@ import {Fragment, useState} from 'react';
 import {Menu, Icon, Rail, Sticky} from 'semantic-ui-react';
 import MultipleChoice from './questions/MultipleChoice';
 import FillBlank from './questions/FillBlank';
+import ShortAnswer from './questions/ShortAnswer';
 import TrueFalseBlock from './TrueFalseBlock';
 import {scoreData, toUnits} from './examRules';
 import ScoreField from './ScoreField';
@@ -17,6 +18,7 @@ import {Editor} from "../../components/Editor";
 
 const questionTypes: Record<string, any> = {
     'FillBlank': FillBlank,
+    'ShortAnswer': ShortAnswer,
     'MultipleChoice': MultipleChoice,
     'ErrorIdentify': ErrorIdentify,
     'FreeAnswer': FreeAnswer,
@@ -138,7 +140,12 @@ export default function Section({section, subject}: Props) {
                         ? <TrueFalseBlock unit={unit} onPatch={patchData}
                                           onPassage={html => setPassage(passageId, html)}
                                           onAddStatement={() => addStatement(unit)}/>
-                        : <QuestionView question={question} section={section}
+                        : !QuestionView
+                            // Unknown type: say so instead of crashing the whole editor.
+                            ? <div role='alert' className='ui warning message'>
+                                Chưa hỗ trợ sửa loại câu hỏi "{question.type}". Câu này được giữ nguyên khi lưu.
+                            </div>
+                            : <QuestionView question={question} section={section}
                                         setSectionState={setSectionState}/>}
                     <ScoreField unit={unit} subject={subject} onChange={setScore}/>
                 </div>
