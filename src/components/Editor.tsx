@@ -61,6 +61,16 @@ export function Editor(props: EditorProps) {
     } = props;
 
     const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // The debounced call must never be lost (SPT-92): Save / blur / leaving the page flush it first.
+    const latest = useRef({onChange, html: null as string | null});
+    latest.current.onChange = onChange;
+    const flush = () => {
+        if (!timeout.current) return;
+        clearTimeout(timeout.current);
+        timeout.current = null;
+        const {html, onChange: cb} = latest.current;
+        if (html !== null && cb) cb(html);
+    };
     const [size, setSize] = useState(0);
     // maxWords wins if both are passed — an exam sets only one unit.
     const unit: Unit = maxWords && maxWords > 0 ? WORD : 'char';
@@ -107,9 +117,10 @@ export function Editor(props: EditorProps) {
             setSize(docSize(editor.state.doc, limit.current.unit));
             if (!onChange) return;
             if (timeout.current) clearTimeout(timeout.current);
-            timeout.current = setTimeout(() => onChange(editor.getHTML()), 500);
+            latest.current.html = editor.getHTML();
+            timeout.current = setTimeout(flush, 500);
         },
-        onBlur: () => onBlur && onBlur(),
+        onBlur: () => { flush(); if (onBlur) onBlur(); },
     });
 
     // Shim: old code passes a ref through the PROP refMedium (not a React ref)
@@ -140,9 +151,7 @@ export function Editor(props: EditorProps) {
         }
     }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    useEffect(() => () => {
-        if (timeout.current) clearTimeout(timeout.current);
-    }, []);
+    useEffect(() => flush, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     return <div className='tt-editor' onKeyUp={onKeyUp}>
         {!disableStyle && <EditorToolbar editor={editor} variant={variant} type={type} onToAnswerButton={onToAnswerButton}

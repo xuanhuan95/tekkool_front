@@ -115,3 +115,7 @@ Cách các component này được nối với API: [lam-bai.md](lam-bai.md).
 | `ImageDialog` | `open`, `onClose`, `onInsert(src)` | GV chèn ảnh vào câu hỏi: tải qua `image/upload` (SPT-69), chèn đường dẫn **tương đối** `/api/image/view/<id>`. `imageProblem(file)` dùng chung: ảnh ≤ 2 MB |
 | `pages/exam/AnswerImages.tsx` | `questionId`, `initial` (= `markedImages`), `disabled` | Khu "Ảnh bài làm" dưới ô tự luận: tối đa 3 ảnh, `n/3`, × xoá, bấm xem to. Mỗi ảnh tải **ngay** (`answer_image/upload/<câu>`, không đi theo autosave chữ); điện thoại: Chụp ảnh (`capture=environment`) + Chọn từ thư viện, máy tính: Tải ảnh lên. Ảnh riêng tư: `<img>` gắn `?token=` (`answerImageUrl`). Hết giờ/khoá: chỉ xem. `AnswerImageThumbs` dùng lại để xem ảnh ở Xem lại (HS) và Chi tiết bài nộp (GV) |
 
+
+## Editor: onChange không bị mất (SPT-92)
+
+`Editor` gộp các lần gõ liên tiếp thành một `onChange` sau 500 ms. Cuộc gọi đang chờ được **đẩy đi ngay** khi ô mất focus (bấm Lưu / Nộp bài / chuyển ô) và khi Editor bị gỡ (rời trang); trước đây gõ rồi Lưu ngay thì chữ vừa gõ chưa vào payload.
