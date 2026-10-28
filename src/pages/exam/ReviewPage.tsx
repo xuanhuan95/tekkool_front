@@ -9,6 +9,7 @@ import {formatDecimal, formatScore} from '../../lib/format';
 import {loadError} from './ResultPage';
 import {buildReview, filterReview, reviewBadge, summarize} from './submissionView';
 import type {ReviewFilter, ReviewItem} from './submissionView';
+import {AnswerImageThumbs} from './AnswerImages';
 import './results.css';
 
 const FILTERS: Array<{value: ReviewFilter; label: string}> = [
@@ -57,6 +58,10 @@ function TextBody({item}: {item: ReviewItem}) {
         <span className='vt-rv-label'>Bài làm của bạn</span>
         {empty ? <span className='vt-rv-hint'>(bỏ trống)</span>
             : <div className='vt-rv-answer'>{item.kind === 'essay' ? renderHTML(item.answer) : item.answer}</div>}
+        {item.images.length > 0 && <>
+            <span className='vt-rv-label'>Ảnh bài làm · {item.images.length} ảnh</span>
+            <AnswerImageThumbs ids={item.images}/>
+        </>}
         {item.kind === 'short' && item.correctText && item.status !== 'correct' &&
             <span className='vt-rv-label'>Đáp án đúng: <b className='vt-rv-ok'>{item.correctText.split('|').join(' hoặc ')}</b></span>}
         {item.kind === 'essay' && item.status === 'pending' &&

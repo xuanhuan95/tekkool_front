@@ -87,6 +87,8 @@ export type TestQuestion = {
         [key: string]: unknown;
     };
     markedAnswer?: string | null;
+    /** SPT-38/83: ids of the student's handwriting photos on an essay (`answer_image/view/<id>`). */
+    markedImages?: string[];
 };
 
 export type TestSection = {

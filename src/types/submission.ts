@@ -82,6 +82,8 @@ export type SubmissionAnswer = {
     /** Reading passage shared by the whole group of questions. */
     passage?: string | null;
     passage_id?: string | null;
+    /** SPT-38/83: handwriting photos of an essay, taken at submit (`answer_image/view/<id>`). */
+    images?: string[];
 };
 
 export type AnswerChoice = {

@@ -64,6 +64,8 @@ export interface EssayQuestionProps extends BaseProps {
     onTool?: (tool: EssayTool) => void;
     /** "Đính kèm ảnh bài làm" button. Hidden when not given. */
     onAttach?: () => void;
+    /** Anything under the answer box: the "Ảnh bài làm" area (SPT-83). */
+    extra?: ReactNode;
 }
 
 export type QuestionBlockProps = ChoiceQuestionProps | TrueFalseQuestionProps | ShortQuestionProps | EssayQuestionProps;
@@ -143,7 +145,7 @@ const TOOLS: Array<{tool: EssayTool; label: string; body: ReactNode}> = [
     {tool: 'image', label: 'Chèn ảnh', body: <IconImage/>},
 ];
 
-function EssayAnswer({value, onChange, disabled, editor, onTool, onAttach}: EssayQuestionProps) {
+function EssayAnswer({value, onChange, disabled, editor, onTool, onAttach, extra}: EssayQuestionProps) {
     const id = useId();
     const words = countWords(value);
     return <div className='vt-essay'>
@@ -157,6 +159,7 @@ function EssayAnswer({value, onChange, disabled, editor, onTool, onAttach}: Essa
                       aria-describedby={id + '-count'} onChange={e => onChange(e.target.value)}/>
             <div id={id + '-count'} className='vt-essay-count'>{words} chữ</div>
         </div>}
+        {extra}
         <div className='vt-essay-foot'>
             {onAttach && <Button variant='secondary' icon={<IconClip/>} disabled={disabled} onClick={onAttach}>
                 Đính kèm ảnh bài làm</Button>}

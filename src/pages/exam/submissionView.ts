@@ -69,6 +69,8 @@ export type ReviewItem = {
     statements: ReviewStatement[];
     /** Short / essay: the student's answer; empty string = not answered. */
     answer: string;
+    /** Essay: ids of the handwriting photos. */
+    images: string[];
     /** Short answer: accepted answers ('|' separated on BE). */
     correctText: string | null;
     comment: string | null;
@@ -128,7 +130,7 @@ export function buildReview(answers: SubmissionAnswer[]): ReviewItem[] {
                 prompt: group.length > 1 || a.passage ? stripQuestionLabel(a.passage) : '',
                 passage: null, score: Math.round(score * 10000) / 10000, maxScore,
                 status: okCount === statements.length ? 'correct' : okCount === 0 ? 'wrong' : 'partial',
-                options: [], statements, answer: '', correctText: null, comment: a.comment || null,
+                options: [], statements, answer: '', images: [], correctText: null, comment: a.comment || null,
                 explanation: joinExplanations(group),
             });
             lastPassage = a.passage_id;
@@ -152,6 +154,7 @@ export function buildReview(answers: SubmissionAnswer[]): ReviewItem[] {
             })) : [],
             statements: [],
             answer: a.answer || '',
+            images: kind === 'essay' ? a.images || [] : [],
             correctText: kind === 'short' ? (a.correct || null) : null,
             comment: a.comment || null,
             explanation: joinExplanations([a]),

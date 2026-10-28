@@ -9,6 +9,7 @@ import {numToChar} from '../../services/tools';
 import {useAuthStore} from '../../stores/authStore';
 import type {SubmissionAnswer, SubmissionDetail as Sub} from '../../types/submission';
 import {fmtDate, fmtDuration, round, ScoreLabel} from './fmt';
+import {AnswerImageThumbs} from '../exam/AnswerImages';
 
 /** Scores/comments the teacher is typing, keyed by `question_id`. */
 type Draft = Record<string, string>;
@@ -136,6 +137,10 @@ export default function SubmissionDetail() {
                 <div className={'sub-given' + (wrong ? ' wrong' : '')}>
                     {a.answer ? renderHTML(a.answer) : <i className='text-muted'>(bỏ trống)</i>}
                 </div>
+                {!!a.images?.length && <>
+                    <div className='sub-label'>Ảnh bài làm · {a.images.length} ảnh</div>
+                    <AnswerImageThumbs ids={a.images}/>
+                </>}
             </div>}
 
             {/* Correct answer as text: only needed when there is NO option list

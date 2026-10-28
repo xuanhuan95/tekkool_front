@@ -70,3 +70,10 @@ TakeExam ──GET exam/during_test/<id>[?lam_lai=1]──► BE
 ## Test
 
 `src/pages/exam/*.test.ts(x)`: dựng đề + gom Đ/S + ánh xạ đáp án (`paper.test.ts`), hàng đợi lưu (`answerSaver.test.ts`), cắt nhãn (`stripLabel.test.ts`), màn phòng thi với API giả — một lần during_test, `lam_lai`, 402, `da_nop`, đồng hồ, mất mạng, 409, nộp một lần (`TakeExam.test.tsx`), kết quả/xem lại/lịch sử (`ResultPages.test.tsx`, `submissionView.test.ts`).
+
+## Câu tự luận: Σ và ảnh bài làm (SPT-83)
+
+- Ô trả lời tự luận là `Editor variant='student'`: thanh công cụ gọn + **Σ** mở bàn phím công thức (MathLive, lazy). Công thức lưu `<span data-latex>`, giáo viên và học sinh xem bằng KaTeX.
+- **Ảnh bài làm** (tối đa 3 ảnh/câu, ≤ 2 MB): tải riêng, không qua autosave chữ. `exam/during_test` trả `markedImages` cho từng câu để F5 vẫn còn ảnh; sau khi nộp `exam/submission` trả `answers[].images`. Lỗi 409 (hết giờ / đủ 3 ảnh), 413 (ảnh quá lớn) hiện đúng câu tiếng Việt từ `error`.
+- Chưa làm (chờ anh chốt Q17–Q23): đánh dấu ✓/✗ trên ảnh khi chấm, bỏ trống tự động 0 điểm, xoay/phóng to nâng cao.
+
