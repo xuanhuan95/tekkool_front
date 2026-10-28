@@ -36,9 +36,12 @@ export function orderStatus(s?: string | null) {
 }
 
 /** Which card /payment/result shows. Driven by the status the SERVER returned, never by `?result=` (SPT-58). */
-export type PaymentView = 'error' | 'paid' | 'cancelled' | 'failed' | 'timeout' | 'waiting';
+export type PaymentView = 'notfound' | 'error' | 'paid' | 'cancelled' | 'failed' | 'timeout' | 'waiting';
 
 export function paymentView(payment: Pick<Payment, 'status'> | null, error: unknown, timedOut: boolean): PaymentView {
+    // 403 (someone else's order) and 404 look the same to the student: never reveal which.
+    const code = (error as {code?: number} | null)?.code;
+    if (code === 403 || code === 404) return 'notfound';
     if (error) return 'error';
     if (!payment || payment.status === 'PENDING') return timedOut ? 'timeout' : 'waiting';
     if (payment.status === 'PAID') return 'paid';

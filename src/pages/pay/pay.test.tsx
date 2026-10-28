@@ -82,7 +82,10 @@ describe('format', () => {
         expect(paymentView({status: 'PAID'}, null, false)).toBe('paid');
         expect(paymentView({status: 'CANCELLED'}, null, false)).toBe('cancelled');
         expect(paymentView({status: 'FAILED'}, null, false)).toBe('failed');
-        expect(paymentView({status: 'PAID'}, {code: 403}, false)).toBe('error');
+        expect(paymentView({status: 'PAID'}, {code: 403}, false)).toBe('notfound');
+        expect(paymentView(null, {code: 404}, false)).toBe('notfound');
+        expect(paymentView(null, {code: 500}, false)).toBe('error');
+        expect(paymentView(null, new TypeError('network'), false)).toBe('error');
     });
 
     it('error text', () => {
@@ -227,10 +230,43 @@ describe('PaymentResult (HS-ThanhToanCho / Xong)', () => {
         await screen.findByText('Đã cộng 10 lượt');
     });
 
-    it('cancel 403 (not my order) shows the lookup error, page does not crash', async () => {
+    it.each([403, 404])('status %i (not my order / unknown) shows only the not-found card', async code => {
+        mockGet({'payment/status/': () => { throw {code, error: 'Not your payment'}; }});
+        wrap(<PaymentResult/>, '/payment/result?inv=TK9');
+        await screen.findByText('Không tìm thấy đơn hàng này.');
+        expect(screen.queryByText(/lượt sẽ được cộng/)).toBeNull();
+        expect(screen.queryByText(/Not your payment/)).toBeNull();
+        expect(screen.getByRole('link', {name: 'Về trang Gói thi'}).getAttribute('href')).toBe('/packages');
+        expect(screen.queryByText('TK9')).toBeNull();
+        expect(screen.queryByRole('button', {name: 'Thử lại'})).toBeNull();
+        expect(screen.queryByRole('link', {name: 'Lịch sử mua gói'})).toBeNull();
+    });
+
+    it('network failure (TypeError) keeps the retry card, not "not found"', async () => {
+        mockGet({'payment/status/': () => { throw new TypeError('Failed to fetch'); }});
+        wrap(<PaymentResult/>, '/payment/result?inv=TK9');
+        await screen.findByText('Không tra cứu được đơn');
+        expect(screen.getByRole('button', {name: 'Thử lại'})).toBeTruthy();
+        expect(screen.queryByText('Không tìm thấy đơn hàng này.')).toBeNull();
+    });
+
+    it('leaving the page while polling stops the requests', async () => {
+        const get = mockGet({'payment/status/': {...PAID, status: 'PENDING'}});
+        vi.useFakeTimers({shouldAdvanceTime: true});
+        const {unmount} = wrap(<PaymentResult/>, '/payment/result?inv=TK9');
+        await screen.findByText('Đang xác nhận thanh toán…');
+        const before = get.mock.calls.length;
+        const err = vi.spyOn(console, 'error');
+        unmount();
+        await act(async () => { await vi.advanceTimersByTimeAsync(10000); });
+        expect(get.mock.calls.length).toBe(before);
+        expect(err).not.toHaveBeenCalled();
+    });
+
+    it('cancel 403 (not my order) shows the not-found card, page does not crash', async () => {
         vi.spyOn(Api, 'post').mockRejectedValue({code: 403, error: 'Không có quyền'});
         wrap(<PaymentResult/>, '/payment/result?inv=TK9&result=cancel');
-        await screen.findByText('Không tra cứu được đơn');
+        await screen.findByText('Không tìm thấy đơn hàng này.');
     });
 
     it('CANCELLED from payment/status (no ?result) stops polling', async () => {
@@ -243,12 +279,15 @@ describe('PaymentResult (HS-ThanhToanCho / Xong)', () => {
         expect(post).not.toHaveBeenCalled();
     });
 
-    it('missing ?inv is an error, no request', async () => {
-        const get = mockGet({});
-        wrap(<PaymentResult/>, '/payment/result');
-        await screen.findByText('Không tra cứu được đơn');
-        expect(get).not.toHaveBeenCalled();
-    });
+    it.each(['', '?inv=', '?inv=a%20b', '?inv=a%2Fb..', '?inv=' + 'x'.repeat(65)])(
+        'bad ?inv (%s) reads as not found, no request', async q => {
+            const get = mockGet({});
+            const post = vi.spyOn(Api, 'post');
+            wrap(<PaymentResult/>, '/payment/result' + q + (q ? '&result=cancel' : '?result=cancel'));
+            await screen.findByText('Không tìm thấy đơn hàng này.');
+            expect(get).not.toHaveBeenCalled();
+            expect(post).not.toHaveBeenCalled();
+        });
 });
 
 describe('OutOfTurnsModal (HS-HetLuot)', () => {
