@@ -513,6 +513,23 @@ a.vt-avatar { position: relative; }
 
 .vt-avatar.vt-tip { position: relative; }
 
+/* Tables inside question content (import v2, SPT-93): plain <table> without a class, from the teacher's HTML.
+   Thin ink border, padding, scrolls sideways inside its own box so a wide table never widens the page at 390px. */
+table:not([class]) { display: block; max-width: 100%; overflow-x: auto; margin: 8px 0; }
+table:not([class]) > :is(tbody, thead, tfoot) { display: table; width: max-content; min-width: 100%; border-collapse: collapse; }
+table:not([class]) :is(th, td) { border: 1.5px solid var(--vt-ink, #1c1917); padding: 6px 10px; vertical-align: top; min-width: 48px; max-width: 48ch;
+    text-align: left; word-break: normal; overflow-wrap: normal; }
+table:not([class]) th { font-weight: 600; background: var(--vt-paper, #f5f6ee); }
+table:not([class]) :is(th, td) > p { margin: 0; }
+.tt-editor .tableWrapper { overflow-x: auto; max-width: 100%; }
+.tt-editor table .selectedCell { background: var(--vt-action, #d0e9fd); }
+/* Print: no sideways scroll; the table fits the page and wraps at spaces only, never inside a number. */
+@media print {
+    table:not([class]) { display: table; overflow: visible; width: 100%; font-size: 90%; }
+    table:not([class]) > :is(tbody, thead, tfoot) { display: table-row-group; width: auto; min-width: 0; }
+    table:not([class]) :is(th, td) { max-width: none; white-space: normal; }
+}
+
 /* Semantic UI inputs still used on the old teacher screens (grading, exam editor): focus = a thicker border only,
    same as .vt-input (rule 2). Semantic recolours the border to light blue; force it back to ink. */
 .ui.input.focus > input, .ui.input > input:focus,

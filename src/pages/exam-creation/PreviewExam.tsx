@@ -22,6 +22,23 @@ type Props = {
     showAnswer?: boolean;
 };
 
+/**
+ * The print window loads only print.css/fix.css, so KaTeX (formulas, reaction arrows) would print as bare
+ * lines. Copy the KaTeX rules and @font-face (already resolved to /assets/… by the bundler) from this page.
+ */
+export function katexCss(): string {
+    const out: string[] = [];
+    for (const sheet of Array.from(document.styleSheets)) {
+        let rules: CSSRuleList;
+        try { rules = sheet.cssRules; } catch { continue; }
+        for (const r of Array.from(rules)) {
+            const text = r.cssText;
+            if (/\.katex/.test(text) || (r.constructor.name === 'CSSFontFaceRule' && /KaTeX/.test(text))) out.push(text);
+        }
+    }
+    return out.join('\n');
+}
+
 export default function PreviewExam({action, closeModal, showAnswer = false}: Props) {
     const exam = useExamDraftStore(s => s.exam);
     useExamDraftStore(s => s.version);   // re-render when the exam is mutated in place
@@ -45,6 +62,7 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
         w.document.write('</head><body>');
         w.document.write('<link rel="stylesheet" href="/static/print.css">');
         w.document.write('<link rel="stylesheet" href="/static/fix.css">');
+        w.document.write('<style>' + katexCss() + '</style>');
         w.document.write(testContent);
         w.document.write('</body></html>');
         w.document.write('<script>window.print()</script>');

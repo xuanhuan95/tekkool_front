@@ -139,3 +139,28 @@ describe('Editor — onChange is flushed, never lost to the 500 ms debounce (SPT
         vi.useRealTimers();
     });
 });
+
+describe('Editor — tables from Word import (SPT-93)', () => {
+    const TABLE = '<table><tr><th>Chất</th><th>Màu</th></tr><tr><td>Fe</td><td>xám</td></tr></table>';
+
+    it('open a question with a table → edit text in a cell → the table is still there', () => {
+        const ref: {current: any} = {current: null};
+        const r = render(<Editor refMedium={ref}/>);
+        act(() => { ref.current.medium.setContent(TABLE); });
+        const {editor} = ref.current;
+        let pos = -1;
+        editor.state.doc.descendants((n: any, p: number) => { if (n.isText && n.text === 'xám') pos = p + n.nodeSize; });
+        act(() => { editor.chain().setTextSelection(pos).insertContent(' đậm').run(); });
+        const html = ref.current.medium.getContent();
+        expect(html).toContain('<table');
+        expect(html.match(/<tr>/g)).toHaveLength(2);
+        expect(html).toContain('xám đậm');
+        expect(html).toContain('<th');
+        expect(r.container.querySelectorAll('table td').length).toBe(2);
+    });
+
+    it('no table button in the toolbar (teacher or student)', () => {
+        const r = render(<Editor variant='student'/>);
+        expect(r.queryByLabelText(/bảng/i)).toBeNull();
+    });
+});
