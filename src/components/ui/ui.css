@@ -510,3 +510,13 @@ a.vt-avatar { position: relative; }
 .vt-tip--below:hover::after, .vt-tip--below:focus-visible::after { bottom: auto; top: 100%; margin: 4px 0 0; }
 
 .vt-avatar.vt-tip { position: relative; }
+
+/* Tables inside question content (import v2, SPT-93): plain <table> without a class, from the teacher's HTML.
+   Thin ink border, padding, scrolls sideways inside its own box so a wide table never widens the page at 390px. */
+table:not([class]) { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 8px 0; }
+table:not([class]) :is(th, td) { border: 1.5px solid var(--vt-ink, #1c1917); padding: 6px 10px; vertical-align: top; min-width: 48px; text-align: left; }
+table:not([class]) th { font-weight: 600; background: var(--vt-paper, #f5f6ee); }
+table:not([class]) :is(th, td) > p { margin: 0; }
+.tt-editor .tableWrapper { overflow-x: auto; max-width: 100%; }
+.tt-editor table .selectedCell { background: var(--vt-action, #d0e9fd); }
+@media print { table:not([class]) { display: table; overflow: visible; } }

@@ -45,3 +45,12 @@ describe('SafeHtml', () => {
         expect(img.style.color).toBe('red');   // the author's own style survives
     });
 });
+
+describe('SafeHtml — tables and arrows (SPT-93)', () => {
+    it('keeps table/tr/th/td and draws a KaTeX arrow', () => {
+        const c = show('<table><tr><th>A</th><td>B <span data-latex="\\rightarrow"></span> C</td></tr></table>');
+        expect(c.querySelector('table th')?.textContent).toBe('A');
+        expect(c.querySelectorAll('table td').length).toBe(1);
+        expect(c.querySelector('td .katex')).not.toBeNull();
+    });
+});

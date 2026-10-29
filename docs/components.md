@@ -124,3 +124,10 @@ Cách các component này được nối với API: [lam-bai.md](lam-bai.md).
 
 `pages/exam-creation/Section.tsx` map `question.type` → component: `MultipleChoice`, `FillBlank`, `ErrorIdentify`, `FreeAnswer`, `ShortAnswer`
 (`questions/ShortAnswer.tsx`, ghi đáp án vào `correctAnswer` — trường BE chấm trước). Loại câu không có trong map hiện thông báo "Chưa hỗ trợ sửa loại câu hỏi …", không làm trắng trang.
+
+## Bảng trong nội dung câu hỏi (SPT-93)
+
+- `Editor` có extension bảng (`@tiptap/extension-table` + row/cell/header) cho mọi biến thể; **không có nút tạo bảng**. Giáo viên mở câu có bảng (từ import Word) sửa chữ trong ô, lưu thì bảng còn. Học sinh không có công cụ bảng.
+- Hiển thị: mọi `<table>` không có class (HTML của giáo viên) dùng luật cuối `ui.css`: viền mực 1,5px, padding 6×10, `th` đậm, cuộn ngang trong chính khung bảng (390px). Khi in thì bỏ cuộn. Bảng của app luôn có class (`vt-table`…) nên không bị ảnh hưởng.
+- Mũi tên phản ứng là `span[data-latex]` nên `renderHTML` vẽ bằng KaTeX như mọi công thức.
+- HTML Editor ghi ra có `<tbody>` và `<p>` trong ô (hợp đồng BE chỉ liệt kê table/tr/td/th): BE cần chấp nhận khi lưu.

@@ -6,6 +6,10 @@ import type {EditorView} from '@tiptap/pm/view';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
 import Placeholder from '@tiptap/extension-placeholder';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
 import CheckItem from './CheckItem';
 import EditorToolbar from './EditorToolbar';
 import type {EditorVariant} from './EditorToolbar';
@@ -97,6 +101,8 @@ export function Editor(props: EditorProps) {
             Placeholder.configure({placeholder: placeholder || ''}),
             CheckItem,
             Superscript, Subscript, Image,
+            // Tables come from Word import (SPT-93). No toolbar button: teachers edit the text inside cells, students never get a table.
+            Table, TableRow, TableHeader, TableCell,
             MathInline.configure({onEdit: (pos, latex) => editMath.current(pos, latex)}),
         ],
         content: text || '',
