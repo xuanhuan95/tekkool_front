@@ -93,7 +93,7 @@ export default function AdminSubjects() {
         ? <SubjectForm key={editing === 'new' ? 'new' : editing.id} subject={editing === 'new' ? null : editing} onDone={() => setEditing(null)}/>
         : <Card as='section' className='vt-mg-stack'>
             <CardTitle>Môn học</CardTitle>
-            <p className='vt-muted'>Bấm “Đổi tên” ở một môn, hoặc “+ Môn mới” để tạo môn. Môn không xoá được, chỉ ẩn.</p>
+            <EmptyState bare title='Chọn một môn để đổi tên'/>
         </Card>;
 
     return <div className='vt-mg-page'>

@@ -255,14 +255,6 @@
     display: flex; flex-direction: column; overflow: hidden;
 }
 .vt-essay-box:focus-within { box-shadow: inset 0 0 0 1.5px var(--vt-ink); }
-.vt-essay-tools { display: flex; gap: 2px; padding: 0 6px; border-bottom: 1.5px solid var(--vt-line-soft); }
-.vt-essay-tool {
-    font-family: var(--vt-font); width: 44px; height: 44px;
-    background: transparent; border: none; color: var(--vt-ink);
-    font-size: 16px; display: flex; align-items: center; justify-content: center;
-    cursor: pointer; border-radius: var(--vt-r-chip);
-}
-.vt-essay-tool:hover { background: var(--vt-paper); }
 .vt-essay-text {
     flex-grow: 1;
     font-family: var(--vt-font); font-size: 15px; line-height: 1.6; color: var(--vt-ink);
@@ -364,7 +356,6 @@
     border: var(--vt-border); border-radius: var(--vt-r-card-md); background: var(--vt-card);
     font-size: 15px; line-height: 1.6;
 }
-.vt-essay .tt-editor:focus-within { box-shadow: 0 0 0 3px var(--vt-action); }
 .vt-essay .tt-editor .ProseMirror { min-height: 200px; padding: 10px 14px; }
 
 /* "Lên đầu" floating button (phone) */

@@ -1,6 +1,6 @@
 import {Link, useNavigate, useParams} from 'react-router-dom';
 
-import {Badge, Button, Card, ErrorState, PageTitle, SkeletonCard, buttonClass} from '../../components/ui';
+import {Badge, Button, Card, ErrorState, MetaChips, PageTitle, SkeletonCard, buttonClass} from '../../components/ui';
 import {errorText} from '../../lib/format';
 import {useDrawExam, useDrawInfo} from '../../queries/questionBank';
 import {blockLabel} from './blockTypes';
@@ -40,7 +40,7 @@ export default function DrawExam() {
     return <div className='vt-draw'>
         {back}
         <PageTitle>Rút đề từ ngân hàng</PageTitle>
-        <p className='vt-cfb-lead'>{capacity.subject || subject || 'Tất cả môn'}</p>
+        <MetaChips items={[capacity.subject || subject || 'Tất cả môn']}/>
 
         {/* The only number that matters: how many times ONE student can retake without seeing an old block.
             The BE excludes blocks seen in earlier attempts, so this is a promise, not an estimate. */}

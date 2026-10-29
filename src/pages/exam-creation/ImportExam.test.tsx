@@ -122,7 +122,7 @@ describe('ImportExam: feedback', () => {
         fireEvent.click(screen.getByText(/Kiểm tra trùng lặp/));
         await screen.findByText('1 câu trùng');
         // the chip on the question itself stays readable and never blocks saving
-        expect(screen.getByText(/Tỷ lệ trùng: 97.00%/)).toBeTruthy();
+        expect(screen.getByText(/Tỷ lệ trùng: 97%/)).toBeTruthy();
         expect(saveButton().disabled).toBe(false);
     });
 

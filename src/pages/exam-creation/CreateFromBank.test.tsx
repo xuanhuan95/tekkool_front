@@ -45,7 +45,7 @@ it('saves parts and titles in order; an empty slot gets the suggested title by p
     addSlot('Viết bài văn');
     fireEvent.change(screen.getByLabelText('Tiêu đề phần 2'), {target: {value: 'Viết đoạn nghị luận'}});
     // Move Viết bài above Viết đoạn: a named part keeps its name, an empty one is renumbered.
-    fireEvent.click(screen.getAllByLabelText('Lên')[2]);
+    fireEvent.click(screen.getAllByLabelText('Đưa lên')[2]);
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: ' Đề thử '}});
     fireEvent.click(screen.getByText('Lưu đề'));
 

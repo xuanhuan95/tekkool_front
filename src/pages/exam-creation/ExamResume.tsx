@@ -43,7 +43,7 @@ export default function ExamResume({sections}: {sections: ResumeSection[]}) {
                         }
 
                         return <Menu.Item key={qi} className='cut-text margin-left'>
-                            <a className='txt-orange' href={'#' + q.id}>
+                            <a href={'#' + q.id}>
                                 {striptags(questionTitle)}
                             </a>
                         </Menu.Item>;

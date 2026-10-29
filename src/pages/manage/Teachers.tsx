@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import type {FormEvent} from 'react';
 
-import {Avatar, Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, FilterChip, IconButton, Modal, PageTitle, Select, Skeleton,
+import {Avatar, Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, FilterChip, IconButton, MetaChips, Modal, PageTitle, Select, Skeleton,
     SkeletonCard, Table, TextField, icons, notify} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useCreateTeacher, useLockTeacher, useResetPassword, useTeachers} from '../../queries/manage';
@@ -136,9 +136,9 @@ export default function Teachers() {
         {key: 'created_at', header: 'Ngày tạo', emphasis: 'muted', render: t => <span className='vt-num'>{formatDate(t.created_at)}</span>},
         {key: 'status', header: 'Trạng thái', render: t => <AccountBadge status={t.status}/>},
         {key: 'actions', header: 'Thao tác', sticky: true, render: t => <span className='vt-mg-actions'>
-            <IconButton label={(t.locked ? 'Mở khoá tài khoản ' : 'Khoá tài khoản ') + t.name} tipEnd
-                        className={t.locked ? undefined : 'vt-iconbtn--danger'} onClick={() => setConfirmLock(t)}
-                        icon={t.locked ? <icons.IconUnlock/> : <icons.IconLock/>}/>
+            <Button size='sm' variant='ghost' className={t.locked ? undefined : 'vt-btn-danger-text'}
+                    aria-label={(t.locked ? 'Mở khoá tài khoản ' : 'Khoá tài khoản ') + t.name}
+                    onClick={() => setConfirmLock(t)}>{t.locked ? 'Mở khoá' : 'Khoá'}</Button>
             <IconButton label={'Đặt lại mật khẩu cho ' + t.name} tipEnd onClick={() => setConfirmReset(t)} icon={<icons.IconKey/>}/>
         </span>},
     ];
@@ -149,9 +149,9 @@ export default function Teachers() {
         <div className='vt-mg-head'>
             <div>
                 <PageTitle>Tài khoản giáo viên</PageTitle>
-                <p className='vt-muted vt-num'>{all !== undefined && locked !== undefined
-                    ? `Tổng ${groupDigits(all)} · Hoạt động ${groupDigits(all - locked)} · Đã khoá ${groupDigits(locked)}`
-                    : <Skeleton width={220} height={14}/>}</p>
+                {all !== undefined && locked !== undefined
+                    ? <MetaChips className='vt-num' items={[`Tổng ${groupDigits(all)}`, `Hoạt động ${groupDigits(all - locked)}`, `Đã khoá ${groupDigits(locked)}`]}/>
+                    : <Skeleton width={220} height={14}/>}
             </div>
             <Button variant='primary' onClick={() => setCreating(true)}>+ Tạo giáo viên</Button>
         </div>

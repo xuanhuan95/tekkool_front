@@ -3,7 +3,7 @@ import type {KeyboardEvent, ReactNode} from 'react';
 
 import Button from '../Button';
 import IconButton from '../IconButton';
-import {IconClip, IconFlag, IconFlagFilled, IconImage} from '../icons';
+import {IconClip, IconFlag, IconFlagFilled} from '../icons';
 import {cx} from '../cx';
 import {countTrueFalse, countWords} from './types';
 import type {TrueFalseValue} from './types';
@@ -52,16 +52,12 @@ export interface ShortQuestionProps extends BaseProps {
     hint?: ReactNode;
 }
 
-export type EssayTool = 'bold' | 'italic' | 'formula' | 'image';
-
 export interface EssayQuestionProps extends BaseProps {
     kind: 'essay';
     value: string;
     onChange: (text: string) => void;
     /** Rich editor to use instead of the plain textarea (e.g. the TipTap Editor); it brings its own toolbar. */
     editor?: ReactNode;
-    /** Toolbar of the plain textarea (B, I, Σ, image). Hidden when not given. */
-    onTool?: (tool: EssayTool) => void;
     /** "Đính kèm ảnh bài làm" button. Hidden when not given. */
     onAttach?: () => void;
     /** Anything under the answer box: the "Ảnh bài làm" area (SPT-83). */
@@ -138,23 +134,12 @@ function ShortAnswer({value, onChange, disabled, label = 'Kết quả',
     </div>;
 }
 
-const TOOLS: Array<{tool: EssayTool; label: string; body: ReactNode}> = [
-    {tool: 'bold', label: 'In đậm', body: <b>B</b>},
-    {tool: 'italic', label: 'In nghiêng', body: <i style={{fontFamily: 'Georgia, serif', fontSize: 17}}>I</i>},
-    {tool: 'formula', label: 'Chèn công thức', body: <span style={{fontSize: 18}}>Σ</span>},
-    {tool: 'image', label: 'Chèn ảnh', body: <IconImage/>},
-];
-
-function EssayAnswer({value, onChange, disabled, editor, onTool, onAttach, extra}: EssayQuestionProps) {
+function EssayAnswer({value, onChange, disabled, editor, onAttach, extra}: EssayQuestionProps) {
     const id = useId();
     const words = countWords(value);
     return <div className='vt-essay'>
         <label htmlFor={editor ? undefined : id} className='vt-field-label'>Bài làm của bạn</label>
         {editor ?? <div className='vt-essay-box'>
-            {onTool && <div role='toolbar' aria-label='Định dạng' className='vt-essay-tools'>
-                {TOOLS.map(t => <button key={t.tool} type='button' className='vt-essay-tool' aria-label={t.label}
-                                        disabled={disabled} onClick={() => onTool(t.tool)}>{t.body}</button>)}
-            </div>}
             <textarea id={id} className='vt-essay-text' value={value} disabled={disabled}
                       aria-describedby={id + '-count'} onChange={e => onChange(e.target.value)}/>
             <div id={id + '-count'} className='vt-essay-count'>{words} chữ</div>

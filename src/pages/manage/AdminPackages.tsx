@@ -170,7 +170,7 @@ export default function AdminPackages() {
         </span>},
         {key: 'active', header: 'Trạng thái', render: p => p.active
             ? <Badge tone='ok'>Đang bán</Badge> : <Badge tone='draft'>Ngừng bán</Badge>},
-        {key: 'sold', header: 'Đã bán', align: 'right', render: p => <span className='vt-num'>{groupDigits(p.sold || 0)}</span>},
+        {key: 'sold', header: <span title='Số đơn thanh toán thành công'>Đã bán</span>, align: 'right', render: p => <span className='vt-num'>{groupDigits(p.sold || 0)}</span>},
         {key: 'actions', header: 'Thao tác', sticky: true, render: p => editing !== 'new' && editing?.id === p.id
             ? <span className='vt-muted'>Đang sửa</span>
             : <Button size='sm' variant='ghost' icon={<icons.IconEdit/>} aria-label={'Sửa ' + p.name}
@@ -188,14 +188,13 @@ export default function AdminPackages() {
                                   action={<Button variant='primary' onClick={() => setEditing('new')}>+ Gói mới</Button>}/>
                     : <Table caption='Danh sách gói' columns={columns} rows={list} rowKey={p => p.id} minWidth={760}
                              isHighlighted={p => editing !== 'new' && editing?.id === p.id}/>}
-        <p className='vt-muted vt-mg-small'>Đã bán = số đơn thanh toán thành công. Thứ tự nhỏ hiển thị trước trên trang “Gói thi” của học sinh.</p>
     </>;
 
     const side = editing
         ? <PackageForm key={editing === 'new' ? 'new' : editing.id} pkg={editing === 'new' ? null : editing} onDone={() => setEditing(null)}/>
         : <Card as='section' className='vt-mg-stack'>
             <CardTitle>Sửa gói</CardTitle>
-            <p className='vt-muted'>Bấm “Sửa” ở một gói, hoặc “+ Gói mới” để tạo gói.</p>
+            <EmptyState bare title='Chọn một gói để sửa'/>
         </Card>;
 
     return <div className='vt-mg-page'>

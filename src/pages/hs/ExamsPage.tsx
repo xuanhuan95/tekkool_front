@@ -55,7 +55,7 @@ export default function ExamsPage() {
     const [params, setParams] = useSearchParams();
     const [filter, setFilter] = useState<ExamFilter>('all');
     const subjects = useSubjects();
-    const head = <PageHead title='Đề thi' sub='Chọn môn, rồi chọn đề để xem chi tiết.'/>;
+    const head = <PageHead title='Đề thi'/>;
 
     if (subjects.isPending) return <div className='hs-page'>{head}
         <div className='hs-chips' aria-busy='true'>{[1, 2, 3, 4].map(i => <Skeleton key={i} width={90} height={44} shape='btn'/>)}</div>

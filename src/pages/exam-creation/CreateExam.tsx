@@ -18,7 +18,7 @@ import {errorText} from '../../lib/format';
 import {backendProblems, examTotal, publishProblems, reviewHints, withDefaultScores} from './examRules';
 import {useFolders} from '../../queries/exams';
 import {suggestedMinutes} from './CreateFromBank';
-import {Badge, Button, ConfirmDialog} from '../../components/ui';
+import {Badge, Button, ConfirmDialog, ErrorState, IconButton, icons} from '../../components/ui';
 
 const MAX_SHOWN = 6;
 
@@ -48,7 +48,10 @@ export default function CreateExam() {
     const movedToFolder = useRef(false);
 
     // Subject name decides the default score (Ngữ văn 0,3): from ?folder= when creating, from the exam's folder otherwise.
-    const folders = useFolders().data;
+    const foldersQ = useFolders();
+    const folders = foldersQ.data;
+    const [loadError, setLoadError] = useState<string | null>(null);
+    const [tries, setTries] = useState(0);
     const folderId = new URLSearchParams(location.search).get('folder') || (exam as {folder?: string} | null)?.folder;
     const subject = folders?.find(f => f.id === folderId)?.name ?? null;
 
@@ -61,18 +64,23 @@ export default function CreateExam() {
     useEffect(() => {
         let cancelled = false;
         setReady(false);
+        setLoadError(null);
         (async () => {
-            // With an examId = editing an exam, without = creating a new one.
-            const draft: Exam = examId
-                ? await Api.get<Exam>('exam/info/' + examId)
-                : Default.exam();
-            if (cancelled) return;
-            draft.user = user?.id;
-            setExam(draft);
-            setReady(true);
+            try {
+                // With an examId = editing an exam, without = creating a new one.
+                const draft: Exam = examId
+                    ? await Api.get<Exam>('exam/info/' + examId)
+                    : Default.exam();
+                if (cancelled) return;
+                draft.user = user?.id;
+                setExam(draft);
+                setReady(true);
+            } catch (e) {
+                if (!cancelled) setLoadError(errorText(e, 'Kiểm tra mạng rồi thử lại.'));
+            }
         })();
         return () => { cancelled = true; };
-    }, [examId, user, setExam]);
+    }, [examId, user, setExam, tries]);
 
     // ponytail: `save` reads the exam from the store at call time (getState) instead of
     // closing over it — otherwise the interval holds the first render's draft and auto-save
@@ -177,6 +185,10 @@ export default function CreateExam() {
     const onMouseOut = ({target}: React.MouseEvent) =>
         (target as HTMLElement).closest('.exam-section-wrapper')?.classList.remove('active');
 
+    if (loadError || foldersQ.isError) return <div className='margin'>
+        <ErrorState title={loadError ? 'Không tải được đề' : 'Không tải được danh sách môn'} description={loadError || errorText(foldersQ.error, 'Kiểm tra mạng rồi thử lại.')}
+                    onRetry={() => loadError ? setTries(t => t + 1) : foldersQ.refetch()}/>
+    </div>;
     if (!ready || !exam) return <Loading/>;
 
     const {sections} = exam;
@@ -339,18 +351,22 @@ type CardProps = {
  */
 function SectionCard({section, index, questionIndex, subject, onRemove, onMouseOver, onMouseOut}: CardProps) {
     const [ref, setRef] = useState<HTMLElement | null>(null);
+    const [confirmRemove, setConfirmRemove] = useState(false);
 
     return <div className='exam-section-wrapper' ref={setRef}
                 onMouseOver={onMouseOver} onMouseOut={onMouseOut}>
         <Segment id={section.id} className='exam-section'>
             <Sticky context={ref}>
                 <Segment>Phần {index + 1}
-                    <Icon onClick={onRemove} name='close' color='grey'
-                          className='cursor' style={{float: 'right'}}/>
+                    <IconButton label={'Xoá phần ' + (index + 1)} variant='outline' tipEnd style={{float: 'right'}}
+                                icon={<icons.IconClose size={18}/>} onClick={() => setConfirmRemove(true)}/>
                 </Segment>
             </Sticky>
 
             <Section section={section} questionIndex={questionIndex} subject={subject}/>
         </Segment>
+        <ConfirmDialog open={confirmRemove} tone='danger' title={'Xoá phần ' + (index + 1) + '?'} cancelLabel='Giữ lại' confirmLabel='Xoá phần'
+                       message='Mọi câu hỏi trong phần này sẽ bị xoá khỏi đề.'
+                       onCancel={() => setConfirmRemove(false)} onConfirm={() => { setConfirmRemove(false); onRemove(); }}/>
     </div>;
 }

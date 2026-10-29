@@ -3,7 +3,8 @@ import Loading from '../../components/Loading';
 import {Link} from 'react-router-dom';
 import withRouter from '../../withRouter';
 import type {RouterProps} from '../../withRouter';
-import {Header, Icon, Message, Segment, Table} from 'semantic-ui-react';
+import {Header, Icon, Segment, Table} from 'semantic-ui-react';
+import {ErrorState, MetaChips} from '../../components/ui';
 import Api from '../../services/api';
 import type {Submission} from '../../types/submission';
 import {fmtDate, fmtDuration, ScoreLabel} from './fmt';
@@ -24,7 +25,10 @@ class ToGrade extends Component<RouterProps, State> {
 
     all = () => !this.props.match.params.examId;
 
-    componentDidMount = async () => {
+    componentDidMount = () => this.load();
+
+    load = async () => {
+        this.setState({error: null});
         try {
             let url = this.all() ? 'exam/pending'
                                  : 'exam/to_grade/' + this.props.match.params.examId;
@@ -37,7 +41,7 @@ class ToGrade extends Component<RouterProps, State> {
     render() {
         let {subs, error} = this.state;
 
-        if (error) return <Message negative className='margin'>{error}</Message>;
+        if (error) return <div className='margin'><ErrorState title='Chưa tải được danh sách' description={error} onRetry={this.load}/></div>;
         if (!subs) return <Loading/>;
 
         if (!subs.length) return <Segment placeholder className='margin'>
@@ -54,11 +58,8 @@ class ToGrade extends Component<RouterProps, State> {
         return <div className='margin'>
             <Header as='h2'>
                 {all ? 'Bài chờ chấm' : 'Bài nộp: ' + (subs[0].exam_name || '(đề không tên)')}
-                <Header.Subheader>
-                    {subs.length} bài
-                    {!all && pending > 0 && ' · ' + pending + ' bài chờ chấm'}
-                </Header.Subheader>
             </Header>
+            <MetaChips items={[subs.length + ' bài', !all && pending > 0 && pending + ' bài chờ chấm']}/>
 
             <Table selectable>
                 <Table.Header>

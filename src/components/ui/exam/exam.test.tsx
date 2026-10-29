@@ -119,21 +119,14 @@ describe('QuestionBlock — trả lời ngắn, tự luận, đánh dấu', () =
         expect(on).toHaveBeenCalledWith('2,5');
     });
 
-    it('essay: textarea + word count (no teacher note, SPT-82); toolbar only with onTool', () => {
-        const on = vi.fn(), tool = vi.fn();
+    it('essay: textarea + word count (no teacher note, SPT-82)', () => {
+        const on = vi.fn();
         render(<QuestionBlock kind='essay' number={23} title='Câu 23 · 1,5 điểm' prompt='Tìm kích thước'
-                              value='Gọi x là cạnh' onChange={on} onTool={tool}/>);
+                              value='Gọi x là cạnh' onChange={on}/>);
         expect(screen.getByText('4 chữ')).toBeInTheDocument();
         expect(screen.queryByText(/Giáo viên sẽ chấm/)).toBeNull();
         fireEvent.change(screen.getByLabelText('Bài làm của bạn'), {target: {value: 'abc'}});
         expect(on).toHaveBeenCalledWith('abc');
-        fireEvent.click(screen.getByRole('button', {name: 'Chèn công thức'}));
-        expect(tool).toHaveBeenCalledWith('formula');
-    });
-
-    it('essay without onTool has no toolbar', () => {
-        render(<QuestionBlock kind='essay' number={23} prompt='x' value='' onChange={() => {}}/>);
-        expect(screen.queryByRole('toolbar')).toBeNull();
     });
 
     it('flag button toggles and shows its state', () => {

@@ -20,10 +20,10 @@ export function score10(score: number | null | undefined, max: number | null | u
     return Math.round(score / max * 1000) / 100;
 }
 
-/** Scores always with 2 decimals, like the design: 7,25 · 6,50 · 10,00. "—" when missing. */
+/** Scores with at most 2 decimals, trailing zeros dropped (rule 11): 7,75 · 8,5 · 10. "—" when missing. */
 export function formatScore(n: number | null | undefined): string {
     if (n == null || !Number.isFinite(n)) return '—';
-    return (Math.round(n * 100) / 100).toFixed(2).replace('.', ',');
+    return formatDecimal(n, 2);
 }
 
 /** Ranking points: 1 decimal — 86,5 · 71,0 · 17,3. */
