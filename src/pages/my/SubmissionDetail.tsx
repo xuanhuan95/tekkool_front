@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {useParams} from 'react-router-dom';
 import {Button, Form, Header, Icon, Input, Label, Message, Segment, TextArea} from 'semantic-ui-react';
+import {Card, ErrorState, MetaChips} from '../../components/ui';
 
 import Loading from '../../components/Loading';
 import renderHTML from '../../components/SafeHtml';
@@ -8,7 +9,8 @@ import Api from '../../services/api';
 import {numToChar} from '../../services/tools';
 import {useAuthStore} from '../../stores/authStore';
 import type {SubmissionAnswer, SubmissionDetail as Sub} from '../../types/submission';
-import {fmtDate, fmtDuration, round, ScoreLabel} from './fmt';
+import {fmtDate, fmtDuration, ScoreLabel} from './fmt';
+import {formatDecimal} from '../../lib/format';
 import {AnswerImageThumbs} from '../exam/AnswerImages';
 import ImageMarker from './ImageMarker';
 import {marksOf, markProblem, toPayload} from './imageMarks';
@@ -32,6 +34,7 @@ export default function SubmissionDetail() {
 
     const [sub, setSub] = useState<Sub | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [tries, setTries] = useState(0);
     const [scores, setScores] = useState<Draft>({});
     const [comments, setComments] = useState<Draft>({});
     const [teacherComment, setTeacherComment] = useState('');
@@ -42,10 +45,11 @@ export default function SubmissionDetail() {
     const [markDraft, setMarkDraft] = useState<Record<string, Mark[]>>({});
 
     useEffect(() => {
+        setError(null);
         Api.get<Sub>('exam/submission/' + id)
             .then(s => { setSub(s); setTeacherComment(s.teacher_comment || ''); })
             .catch((e: any) => setError((e && (e.error || e.message)) || 'Không xem được bài này'));
-    }, [id]);
+    }, [id, tries]);
 
     // Grading permission is decided by the BE (`can_grade` = exam owner). `user` is only to
     // make sure the session is alive — a casual visitor can never open this screen.
@@ -138,7 +142,7 @@ export default function SubmissionDetail() {
                 {!a.auto_graded && a.score === null &&
                 <Label size='tiny' color='yellow'>chờ chấm</Label>}
                 <span className='sub-answer-score'>
-                    {a.score === null ? '—' : round(a.score)} / {round(a.max_score)}
+                    {a.score === null ? '—' : formatDecimal(a.score)} / {formatDecimal(a.max_score)}
                 </span>
             </div>
 
@@ -177,7 +181,7 @@ export default function SubmissionDetail() {
                     <div className='sub-label'>Ảnh bài làm · {a.images!.length} ảnh</div>
                     {grading
                         ? <ImageMarker ids={a.images!} marks={marksByImage} side={gradeForm}
-                                       summary={<>Câu {idx + 1} · {scoreOf(a) === '' ? '—' : scoreOf(a)} / {round(a.max_score)}</>}
+                                       summary={<>Câu {idx + 1} · {scoreOf(a) === '' ? '—' : formatDecimal(Number(scoreOf(a)))} / {formatDecimal(a.max_score)}</>}
                                        onChange={(imageId, list) => { setMarkDraft(d => ({...d, [imageId]: list})); setSaved(false); }}/>
                         : <AnswerImageThumbs ids={a.images!} marks={a.marks || []}/>}
                 </>}
@@ -200,18 +204,15 @@ export default function SubmissionDetail() {
         </Segment>;
     };
 
-    if (error) return <Message negative className='margin'>{error}</Message>;
+    if (error) return <div className='margin'><ErrorState title='Chưa xem được bài này' description={error} onRetry={() => setTries(t => t + 1)}/></div>;
     if (!sub) return <Loading/>;
 
     return <div className='margin sub-detail'>
         <Header as='h2'>
             {sub.exam_name || '(đề không tên)'}
-            <Header.Subheader>
-                {sub.student ? sub.student + ' — ' : ''}
-                Nộp {fmtDate(sub.submitted_at)} · làm trong {fmtDuration(sub.duration_sec)}
-                {sub.auto_submitted && ' · hết giờ, hệ thống nộp thay'}
-            </Header.Subheader>
         </Header>
+        <MetaChips items={[sub.student, 'Nộp ' + fmtDate(sub.submitted_at), 'Làm trong ' + fmtDuration(sub.duration_sec),
+            sub.auto_submitted && 'Hết giờ, hệ thống nộp thay']}/>
 
         <Segment className='sub-summary'>
             <span>Tổng điểm</span>
@@ -232,11 +233,11 @@ export default function SubmissionDetail() {
                           }}/>
             </Form>
 
-            {saveError && <Message negative role='alert' className='margin-top'>
-                <Message.Header>Chưa lưu được</Message.Header>
+            {saveError && <Card tone='error' role='alert' className='margin-top'>
+                <b>Chưa lưu được</b>
                 <p>{saveError}</p>
                 <p>Điểm, nhận xét và dấu trên ảnh vẫn còn ở đây. Bấm “Lưu điểm” để thử lại.</p>
-            </Message>}
+            </Card>}
             <Button primary className='margin-top' onClick={save}
                     loading={saving} disabled={saving}>
                 <Icon name='save'/> Lưu điểm

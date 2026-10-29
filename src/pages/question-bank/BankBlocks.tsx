@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import {Link, useParams} from 'react-router-dom';
 
 import renderHTML from '../../components/SafeHtml';
-import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, PageTitle, Select, SkeletonCard, TextField, buttonClass, notify}
+import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, MetaChips, PageTitle, Select, SkeletonCard, TextField, buttonClass, notify}
     from '../../components/ui';
 import {errorText} from '../../lib/format';
 import {BLOCKS_PER_PAGE, useBankBlocks, useBanks, useDeleteBlock} from '../../queries/questionBank';
@@ -107,7 +107,7 @@ export default function BankBlocks() {
         <div className='vt-qb-head'>
             <div>
                 <PageTitle>{bank ? bank.name : 'Nội dung ngân hàng'}</PageTitle>
-                <p>{data ? `${data.total} khối${type || q ? ' khớp bộ lọc' : ''}` : 'Đang tải…'}</p>
+                <MetaChips items={[data && `${data.total} khối${type || q ? ' khớp bộ lọc' : ''}`]}/>
             </div>
         </div>
 

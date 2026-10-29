@@ -1,6 +1,6 @@
 import {Link} from 'react-router-dom';
 
-import {Badge, EmptyState, ErrorState, PageTitle, SkeletonCard, buttonClass, icons} from '../../components/ui';
+import {Badge, EmptyState, ErrorState, MetaChips, PageTitle, SkeletonCard, buttonClass, icons} from '../../components/ui';
 import {usePaymentHistory} from '../../queries/payment';
 import type {Payment} from '../../types/payment';
 import {errorText, formatDateTime, formatMoney} from '../../lib/format';
@@ -33,9 +33,7 @@ export default function PurchaseHistory() {
         </Link>
         <div className='vt-pay-head-text'>
             <PageTitle>Lịch sử mua gói</PageTitle>
-            {sum && sum.count > 0 && <span className='vt-muted'>
-                Đã mua {sum.count} gói · {sum.turns} lượt{sum.unknown ? ' (chưa gồm đơn cũ)' : ''}
-            </span>}
+            {sum && sum.count > 0 && <MetaChips items={[`Đã mua ${sum.count} gói`, `${sum.turns} lượt${sum.unknown ? ' (chưa gồm đơn cũ)' : ''}`]}/>}
         </div>
 
         {error

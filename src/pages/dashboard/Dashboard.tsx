@@ -3,7 +3,7 @@ import {Link, useNavigate, useParams} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 import striptags from 'striptags';
 
-import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, FilterChip, PageTitle, SkeletonCard, StatusBadge, Table,
+import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, FilterChip, MetaChips, PageTitle, SkeletonCard, StatusBadge, Table,
     TextField, buttonClass, notify} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {errorText} from '../../lib/format';
@@ -60,7 +60,7 @@ function TeacherHome() {
         <div className='vt-th-head'>
             <div>
                 <PageTitle>Môn & đề</PageTitle>
-                <p>{subjects.length} môn{hiddenCount > 0 && ` · ${hiddenCount} môn đang ẩn`}</p>
+                <MetaChips items={[subjects.length + ' môn', hiddenCount > 0 && hiddenCount + ' môn đang ẩn']}/>
             </div>
             <TextField label='Tìm đề, tìm môn' placeholder='Tìm đề, tìm môn' value={q} onChange={e => setQ(e.target.value)}/>
         </div>

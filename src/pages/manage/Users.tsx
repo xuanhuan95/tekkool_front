@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 
-import {Avatar, Card, ErrorState, IconButton, PageTitle, Select, Skeleton, SkeletonCard, Table, TextField, icons} from '../../components/ui';
+import {Avatar, Card, ErrorState, IconButton, MetaChips, PageTitle, Select, Skeleton, SkeletonCard, Table, TextField, icons} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useUsers} from '../../queries/manage';
 import type {AdminUser} from '../../queries/manage';
@@ -44,7 +44,7 @@ export default function Users() {
         <div className='vt-mg-head'>
             <div>
                 <PageTitle>Học sinh</PageTitle>
-                <p className='vt-muted vt-num'>{total !== undefined ? `Tổng ${groupDigits(total)} học sinh` : <Skeleton width={160} height={14}/>}</p>
+                {total !== undefined ? <MetaChips className='vt-num' items={[`Tổng ${groupDigits(total)} học sinh`]}/> : <Skeleton width={160} height={14}/>}
             </div>
         </div>
         <Card flush className='vt-table-card'>

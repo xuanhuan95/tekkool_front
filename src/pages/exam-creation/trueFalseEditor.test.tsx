@@ -1,5 +1,5 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 
 import Section from './Section';
 import Default from './Default';
@@ -69,7 +69,8 @@ describe('editor: a Đúng/Sai question is a block of 4 ý', () => {
     it('✕ removes the whole block, not one ý', () => {
         const {container} = start();
         addTrueFalse(container);
-        fireEvent.click(container.querySelector('i.close.icon')!);
+        fireEvent.click(screen.getByRole('button', {name: 'Xoá câu này'}));
+        fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', {name: 'Xoá câu'}));
         expect(questions()).toHaveLength(0);
     });
 

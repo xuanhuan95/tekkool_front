@@ -4,7 +4,8 @@ import BaseQuestion from './BaseQuestion';
 import type {BaseQuestionProps} from './BaseQuestion';
 
 import {setNestedValue} from "../../../tools";
-import {Form, Icon} from 'semantic-ui-react';
+import {Form} from 'semantic-ui-react';
+import {IconButton, icons} from '../../../components/ui';
 import MultipleChoiceAnswer from './MultipleChoiceAnswer';
 import {AnswerLabel} from "../../../components/AnswerLabel";
 import {Editor} from "../../../components/Editor";
@@ -173,13 +174,10 @@ export default class MultipleChoice extends BaseQuestion<ChoiceProps> {
 
                 // Detect if current answer is latest answer, use for deciding should we add new answer
                 return <div key={idx}>
-                    <Icon onClick={() => this.removeAnswer(answer.id)}
-                          style={{float: 'left', marginRight: '10px',
-                                 marginTop: iconOffset ? '7px' : undefined}}
-                          name='remove'
-                          color='grey'
-                          className='cursor'
-                    />
+                    <IconButton label={'Xoá đáp án ' + String.fromCharCode(65 + idx)} variant='outline'
+                                icon={<icons.IconClose size={18}/>} onClick={() => this.removeAnswer(answer.id)}
+                                style={{float: 'left', marginRight: '10px',
+                                        marginTop: iconOffset ? '7px' : undefined}}/>
 
                     <MultipleChoiceAnswer
                         value={answer.value}

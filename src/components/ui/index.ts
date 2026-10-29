@@ -11,7 +11,7 @@ import './exam/exam.css';
 export {default as Button, buttonClass} from './Button';
 export type {ButtonProps, ButtonVariant, ButtonSize} from './Button';
 export {default as Card, CardTitle, PageTitle} from './Card';
-export {default as Badge, StatusBadge, FilterChip, STATUS_BADGE} from './Badge';
+export {default as Badge, MetaChips, StatusBadge, FilterChip, STATUS_BADGE} from './Badge';
 export {default as TitleChip, TITLE_TONE} from './TitleChip';
 export type {TitleTier} from './TitleChip';
 export type {BadgeTone, Status} from './Badge';
@@ -39,7 +39,7 @@ export {STUDENT_NAV_MOBILE, STUDENT_NAV_WEB, ADMIN_NAV, TEACHER_NAV} from './lay
 export type {NavItem} from './layout/nav';
 
 export {default as QuestionBlock} from './exam/QuestionBlock';
-export type {QuestionBlockProps, ChoiceOption, TrueFalseStatement, EssayTool} from './exam/QuestionBlock';
+export type {QuestionBlockProps, ChoiceOption, TrueFalseStatement} from './exam/QuestionBlock';
 export {QuestionNumberStrip, QuestionGrid} from './exam/QuestionNav';
 export type {QuestionGridPart} from './exam/QuestionNav';
 export {ExamHeader, ExamSection, ExamEnd, ExamLayout, AutosaveNote, ExamBanner} from './exam/ExamFrame';

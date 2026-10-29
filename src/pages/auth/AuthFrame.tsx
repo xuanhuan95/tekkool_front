@@ -4,8 +4,8 @@ import Card from '../../components/ui/Card';
 import './auth.css';
 
 /** Shared frame of HS-DangNhap / HS-DangKy: big hand-drawn logo + wave, white card, footer link row. */
-export default function AuthFrame({tagline, title, subtitle, footer, children}: {
-    tagline?: string; title: string; subtitle: string; footer: ReactNode; children: ReactNode;
+export default function AuthFrame({tagline, title, footer, children}: {
+    tagline?: string; title: string; footer: ReactNode; children: ReactNode;
 }) {
     return <div className='vt-paper vt-auth'>
         <div className='vt-auth-col'>
@@ -20,7 +20,6 @@ export default function AuthFrame({tagline, title, subtitle, footer, children}: 
             <Card as='section' className='vt-auth-card' aria-labelledby='vt-auth-title'>
                 <div className='vt-auth-head'>
                     <h1 id='vt-auth-title' className='vt-auth-title'>{title}</h1>
-                    <p className='vt-muted'>{subtitle}</p>
                 </div>
                 {children}
             </Card>

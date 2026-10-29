@@ -217,7 +217,7 @@ export default function ImageMarker({ids, marks, onChange, side, summary, startI
                              onLoad={e => setLoaded({key, status: 'ok', ratio: e.currentTarget.naturalWidth / e.currentTarget.naturalHeight || 4 / 3})}
                              onError={() => setLoaded({key, status: 'error', ratio: 4 / 3})}/>
                     </div>
-                    {status === 'loading' && <div className='mk-ph' role='status'>Đang tải ảnh…</div>}
+                    {status === 'loading' && <div className='mk-ph mk-ph--load' role='status' aria-label='Đang tải ảnh'/>}
                     {status === 'error' && <div className='mk-ph mk-ph--err' role='alert'>
                         <b>Không tải được ảnh</b>
                         <span>Kiểm tra mạng rồi thử lại.{edit && ' Điểm và nhận xét vẫn chấm được.'}</span>

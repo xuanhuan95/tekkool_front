@@ -34,7 +34,7 @@
 :is(.vt-paper, .vt-plain, .vt-modal) a:not([class]):not(nav a), a.vt-link {
     color: var(--vt-ink); text-decoration: underline; text-underline-offset: 3px; font-weight: 600;
 }
-:is(.vt-paper, .vt-plain, .vt-modal) a:not([class]):not(nav a):hover, a.vt-link:hover { color: #000; text-decoration-thickness: 2px; }
+:is(.vt-paper, .vt-plain, .vt-modal) a:not([class]):not(nav a):hover, a.vt-link:hover { color: var(--vt-ink); text-decoration-thickness: 2px; }
 :is(.vt-paper, .vt-plain, .vt-modal) a:not(.vt-btn--danger):is(:hover, :focus, :focus-visible) { color: var(--vt-ink); }
 a.vt-card, a.vt-card:hover, a.vt-card:focus { color: var(--vt-ink); }
 
@@ -51,12 +51,14 @@ a.vt-card, a.vt-card:hover, a.vt-card:focus { color: var(--vt-ink); }
 }
 
 /* Keyboard focus: one visible ring for every D control. */
-:is(.vt-paper, .vt-plain, .vt-modal, .vt-ui) :is(a, button, input, select, textarea, [tabindex]):focus-visible,
-[class^='vt-']:focus-visible, [class*=' vt-']:focus-visible {
+/* Inputs are excluded: their focus is only a thicker border (.vt-input:focus-visible), never an outline (rule 2). */
+:is(.vt-paper, .vt-plain, .vt-modal, .vt-ui) :is(a, button, [tabindex], input:is([type=checkbox], [type=radio])):focus-visible,
+[class^='vt-']:focus-visible:not(select, textarea, input:not([type=checkbox], [type=radio])),
+[class*=' vt-']:focus-visible:not(select, textarea, input:not([type=checkbox], [type=radio])) {
     outline: 3px solid var(--vt-ink);
     outline-offset: 2px;
 }
-:is(.vt-paper, .vt-plain) :is(a, button, input, select, textarea):focus:not(:focus-visible) { outline: none; }
+:is(.vt-paper, .vt-plain) :is(a, button, input):focus:not(:focus-visible) { outline: none; }
 
 /* Grow the touch target to 44px without changing what is drawn (chips, tabs, strip cells are 36–40px tall). */
 .vt-hit { position: relative; }
@@ -527,3 +529,25 @@ table:not([class]) :is(th, td) > p { margin: 0; }
     table:not([class]) > :is(tbody, thead, tfoot) { display: table-row-group; width: auto; min-width: 0; }
     table:not([class]) :is(th, td) { max-width: none; white-space: normal; }
 }
+
+/* Semantic UI inputs still used on the old teacher screens (grading, exam editor): focus = a thicker border only,
+   same as .vt-input (rule 2). Semantic recolours the border to light blue; force it back to ink. */
+.ui.input.focus > input, .ui.input > input:focus,
+.ui.form .field:not(.error) :is(input, textarea, select):focus {
+    border-color: var(--vt-ink) !important;
+    box-shadow: inset 0 0 0 1.5px var(--vt-ink) !important;
+    outline: none !important;
+}
+
+/* <Loading/>: skeleton page (rule 10). */
+.vt-loading-page { max-width: 960px; margin: 0 auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 16px; box-sizing: border-box; }
+/* Native form controls outside .vt-input keep the same rule: only a thicker border. */
+:is(select, textarea, input:not([type=checkbox], [type=radio])):focus-visible:not(.vt-input, .vt-essay-text) {
+    outline: none; box-shadow: inset 0 0 0 1.5px var(--vt-ink);
+}
+
+/* Exam editor outline (Semantic menu): links are ink, underlined, 600, 44px hit area; hover keeps ink (rule 8). */
+.exam-resume a, .exam-resume a:hover, .exam-resume a:focus {
+    color: var(--vt-ink) !important; text-decoration: underline; text-underline-offset: 3px; font-weight: 600 !important;
+}
+.exam-resume a { display: flex; align-items: center; min-height: 44px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

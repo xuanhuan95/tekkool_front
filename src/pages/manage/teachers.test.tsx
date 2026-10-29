@@ -76,11 +76,12 @@ describe('Teachers (AD-GiaoVien)', () => {
         expect(table.getAllByText('Tin học').length).toBe(3);
         expect(table.getByText('Chưa đăng nhập')).toBeTruthy();
         expect(table.getByText('Đã khoá')).toBeTruthy();
-        expect(screen.getByRole('button', {name: 'Mở khoá tài khoản Cô Hương'}).getAttribute('data-tip')).toBe('Mở khoá tài khoản Cô Hương');
+        expect(screen.getByRole('button', {name: 'Mở khoá tài khoản Cô Hương'}).textContent).toBe('Mở khoá');
         expect(screen.getByRole('button', {name: 'Đặt lại mật khẩu cho Cô Thu Hà'})).toBeTruthy();
         expect(table.queryByText('Số đề')).toBeNull();
         expect(table.getAllByText('02/09/2026').length).toBe(3);
-        expect(await screen.findByText('Tổng 6 · Hoạt động 5 · Đã khoá 1')).toBeTruthy();
+        expect(await screen.findByText('Tổng 6')).toBeTruthy();
+        expect(screen.getByText('Hoạt động 5')).toBeTruthy();
     });
 
     it('filters go to the API', async () => {

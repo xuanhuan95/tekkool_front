@@ -3,7 +3,6 @@ import {Menu, Icon, Button, Label} from 'semantic-ui-react';
 
 import {useAuthStore} from '../stores/authStore';
 import {usePendingCount} from '../queries/submissions';
-import StudentNav from './StudentNav';
 
 export default function TopToolbar() {
     const user = useAuthStore(s => s.user);
@@ -12,9 +11,8 @@ export default function TopToolbar() {
 
     const {data: pending = 0} = usePendingCount(isTeacher);
 
-    // Students / visitors use a separate navigation bar. The teacher screen keeps the
-    // old menu as is — changing both at once means two things to verify.
-    if (!isTeacher) return <StudentNav user={user}/>;
+    // Only teachers still reach this old menu; students have StudentShell, admins ManageApp.
+    if (!isTeacher) return null;
 
     return <Menu id='topMenu' color='blue' inverted>
         <Menu.Item>
@@ -42,7 +40,7 @@ export default function TopToolbar() {
             </Menu.Item>
 
             <Menu.Item>
-                <Button onClick={logout}>Logout</Button>
+                <Button onClick={logout}>Đăng xuất</Button>
             </Menu.Item>
         </Menu>
      </Menu>;

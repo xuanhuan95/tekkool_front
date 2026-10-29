@@ -58,7 +58,7 @@ export default function Register() {
         }
     };
 
-    return <AuthFrame title='Tạo tài khoản' subtitle='Chỉ mất một phút để bắt đầu luyện đề.'
+    return <AuthFrame title='Tạo tài khoản'
                       footer={<><span className='vt-muted'>Đã có tài khoản?</span>
                           <Link to='/' className='vt-link'>Đăng nhập</Link></>}>
         <form className='vt-auth-form' onSubmit={submit} noValidate>

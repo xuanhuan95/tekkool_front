@@ -15,6 +15,13 @@ export default function Badge({tone = 'draft', className, ...rest}: BadgeProps) 
     return <span {...rest} className={cx('vt-badge', 'vt-badge--' + tone, className)}/>;
 }
 
+/** Data line under a page title (rule 6): short facts as chips, never an explanatory sentence. Falsy items are skipped. */
+export function MetaChips({items, className}: {items: Array<ReactNode | false | null | undefined>; className?: string}) {
+    const shown = items.filter(x => x !== false && x != null && x !== '');
+    if (!shown.length) return null;
+    return <div className={cx('vt-chip-row', className)}>{shown.map((x, i) => <Badge key={i}>{x}</Badge>)}</div>;
+}
+
 /** Statuses used across screens, with the wording from the design. */
 export const STATUS_BADGE = {
     graded: {tone: 'ok', label: 'Đã chấm'},

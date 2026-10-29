@@ -5,7 +5,7 @@ import {withSubject, errorText, formatDecimal, formatMinutes, formatTimeDate, fo
 describe('format', () => {
     it('score on 10 with Vietnamese comma', () => {
         expect(formatScore(score10(7.75, 10))).toBe('7,75');
-        expect(formatScore(score10(13, 20))).toBe('6,50');
+        expect(formatScore(score10(13, 20))).toBe('6,5');
         expect(formatScore(score10(1, 0))).toBe('—');
         expect(score10(null, 10)).toBeNull();
     });
@@ -50,7 +50,9 @@ describe('shared formats (exam screens)', () => {
         expect(formatMinutes(0)).toBe('—');
     });
     it('scores 2 decimals, points 1 decimal', () => {
-        expect(formatScore(6.5)).toBe('6,50');
+        expect(formatScore(6.5)).toBe('6,5');
+        expect(formatScore(10)).toBe('10');
+        expect(formatScore(8.504)).toBe('8,5');
         expect(formatPoints(10)).toBe('10,0');
     });
     it('errorText: server message, network TypeError, Error.message, fallback', () => {

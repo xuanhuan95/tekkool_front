@@ -1,5 +1,6 @@
 import {Label} from 'semantic-ui-react';
 import type {Submission} from '../../types/submission';
+import {formatDecimal} from '../../lib/format';
 
 /**
  * Shared formatting for the attempt / grading / invoice screens.
@@ -23,10 +24,6 @@ export function fmtDuration(sec?: number | null): string {
     return m < 60 ? m + ' phút' : Math.floor(m / 60) + 'h' + String(m % 60).padStart(2, '0');
 }
 
-export function fmtMoney(amount?: number | null): string {
-    return (amount || 0).toLocaleString('vi-VN') + ' đ';
-}
-
 /**
  * Score of one attempt.
  *
@@ -46,7 +43,7 @@ export function ScoreLabel({sub}: {sub: Submission}) {
     const color = ratio >= 0.8 ? 'green' : ratio >= 0.5 ? 'olive' : 'red';
 
     return <Label size='small' color={color}>
-        {round(sub.score)} / {round(sub.max_score)}
+        {formatDecimal(sub.score)} / {formatDecimal(sub.max_score)}
     </Label>;
 }
 

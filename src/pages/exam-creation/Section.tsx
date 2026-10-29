@@ -14,6 +14,7 @@ import type {Question, Section as SectionType} from './Default';
 import {useExamDraftStore} from '../../stores/examDraftStore';
 import type {SectionPatch} from '../../stores/examDraftStore';
 import {Editor} from "../../components/Editor";
+import {ConfirmDialog, IconButton, icons} from '../../components/ui';
 
 
 const questionTypes: Record<string, any> = {
@@ -33,6 +34,7 @@ type Props = {
 
 export default function Section({section, subject}: Props) {
     const [contextRef, setContextRef] = useState<HTMLElement | null>(null);
+    const [removing, setRemoving] = useState<Question[] | null>(null);
     const write = useExamDraftStore(s => s.setSectionState);
     const touch = useExamDraftStore(s => s.touch);
 
@@ -128,12 +130,9 @@ export default function Section({section, subject}: Props) {
                             onChange={(html: string) => setPassage(passageId, html)}/>
                 </div>}
 
-                <Icon
-                    onClick={() => removeUnit(unit)}
-                    name='close'
-                    className='cursor'
-                    style={{position: 'absolute', right: '5px', zIndex: '999'}}
-                />
+                <IconButton label='Xoá câu này' variant='outline' tipEnd icon={<icons.IconClose size={18}/>}
+                            onClick={() => setRemoving(unit)}
+                            style={{position: 'absolute', right: '5px', zIndex: 999}}/>
 
                 <div id={question.id} style={{marginBottom: '18px'}}>
                     {isTrueFalse
@@ -156,24 +155,24 @@ export default function Section({section, subject}: Props) {
             <Sticky context={contextRef}>
                 <Menu className='question-types' icon vertical>
                     {questionType ?
-                        <Menu.Item onClick={() => addQuestion(questionType)}>
+                        <Menu.Item title='Thêm câu hỏi' aria-label='Thêm câu hỏi' onClick={() => addQuestion(questionType)}>
                             <Icon name='plus'/>
                         </Menu.Item>
                         :
                         <Fragment>
-                            <Menu.Item onClick={() => addQuestion('MultipleChoice')}>
+                            <Menu.Item title='Thêm câu trắc nghiệm' aria-label='Thêm câu trắc nghiệm' onClick={() => addQuestion('MultipleChoice')}>
                                 <Icon name='selected radio'/>
                             </Menu.Item>
 
-                            <Menu.Item onClick={() => addQuestion('FillBlank')}>
+                            <Menu.Item title='Thêm câu điền khuyết' aria-label='Thêm câu điền khuyết' onClick={() => addQuestion('FillBlank')}>
                                 <Icon name='text cursor'/>
                             </Menu.Item>
 
-                            <Menu.Item onClick={() => addQuestion('TrueFalse')}>
+                            <Menu.Item title='Thêm câu đúng/sai' aria-label='Thêm câu đúng/sai' onClick={() => addQuestion('TrueFalse')}>
                                 <Icon name='checkmark'/>
                             </Menu.Item>
 
-                            <Menu.Item onClick={() => addQuestion('FreeAnswer')}>
+                            <Menu.Item title='Thêm câu tự luận' aria-label='Thêm câu tự luận' onClick={() => addQuestion('FreeAnswer')}>
                                 <Icon name='user'/>
                             </Menu.Item>
                         </Fragment>
@@ -181,5 +180,10 @@ export default function Section({section, subject}: Props) {
                 </Menu>
             </Sticky>
         </Rail>
+
+        <ConfirmDialog open={!!removing} tone='danger' title='Xoá câu này?' cancelLabel='Giữ lại' confirmLabel='Xoá câu'
+                       message='Câu hỏi và các đáp án đã soạn sẽ bị xoá khỏi đề.'
+                       onCancel={() => setRemoving(null)}
+                       onConfirm={() => { if (removing) removeUnit(removing); setRemoving(null); }}/>
     </div>;
 }

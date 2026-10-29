@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest';
-import {fmtDate, fmtDuration, fmtMoney, round} from './fmt';
+import {fmtDate, fmtDuration, round} from './fmt';
 
 describe('round', () => {
     it('trims float tails, does not show 2.9999999999999996', () => {
@@ -53,15 +53,5 @@ describe('fmtDuration', () => {
     it('missing shows a dash', () => {
         expect(fmtDuration(undefined)).toBe('—');
         expect(fmtDuration(0)).toBe('—');
-    });
-});
-
-describe('fmtMoney', () => {
-    it('thousands separator in Vietnamese style', () => {
-        expect(fmtMoney(50000)).toBe('50.000 đ');
-    });
-
-    it('no amount is 0, not "undefined đ"', () => {
-        expect(fmtMoney(undefined)).toBe('0 đ');
     });
 });

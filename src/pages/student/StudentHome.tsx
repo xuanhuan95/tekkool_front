@@ -133,7 +133,7 @@ export default function StudentHome() {
     const hello = 'Chào ' + (greetName(name) || 'bạn') + '!';
 
     if (!web) return <div className='hs-page'>
-        <PageHead title={hello} sub='Hôm nay mình luyện tiếp nhé.'/>
+        <PageHead title={hello}/>
         <TurnsCard web={false}/>
         {cont && <ContinueCard cont={cont}/>}
         <SubjectsSection web={false}/>

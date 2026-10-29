@@ -152,7 +152,7 @@ describe('PurchaseHistory (HS-LichSuMua)', () => {
         ]});
         wrap(<PurchaseHistory/>, '/billing');
         await screen.findByText('Mã đơn TK1');
-        expect(screen.getByText('Đã mua 1 gói · 5 lượt')).toBeTruthy();
+        expect(screen.getByText('Đã mua 1 gói')).toBeTruthy();
         expect(screen.getByText('Đang xử lý')).toBeTruthy();
         expect(screen.getByText('Thành công')).toBeTruthy();
         expect(screen.getByText('+5 lượt')).toBeTruthy();

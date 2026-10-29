@@ -1,7 +1,7 @@
 import {useRef, useState} from 'react';
 import type {ChangeEvent} from 'react';
 
-import {Button, Modal} from '../../components/ui';
+import {Button, IconButton, Modal} from '../../components/ui';
 import {IconClose} from '../../components/ui/icons';
 import {imageProblem} from '../../components/ImageDialog';
 import {errorText} from '../../lib/format';
@@ -36,8 +36,8 @@ export function AnswerImageThumbs({ids, onRemove, busyId, marks}: {ids: string[]
                 <button type='button' className='hs-aimg-open' aria-label={`Xem ảnh ${i + 1}`} onClick={() => setBig(id)}>
                     <img src={answerImageUrl(id)} alt={`Ảnh bài làm ${i + 1}`}/>
                 </button>
-                {onRemove && <button type='button' className='hs-aimg-x vt-tip vt-tip--end' aria-label={`Xoá ảnh ${i + 1}`} title='Xoá ảnh'
-                                     data-tip='Xoá ảnh' disabled={busyId === id} onClick={() => onRemove(id)}><IconClose size={14}/></button>}
+                {onRemove && <IconButton variant='outline' tipEnd className='hs-aimg-x' label={`Xoá ảnh ${i + 1}`}
+                                         icon={<IconClose size={14}/>} disabled={busyId === id} onClick={() => onRemove(id)}/>}
             </li>)}
         </ul>
         {marks && notes.length > 0 && <>
@@ -105,8 +105,8 @@ export default function AnswerImages({questionId, initial, disabled}: {questionI
         <AnswerImageThumbs ids={ids} busyId={removing} onRemove={disabled ? undefined : remove}/>
         {!disabled && <div className='hs-aimgs-actions'>
             {/* capture=environment opens the rear camera on phones; the library input has no capture so the OS offers the gallery */}
-            <input ref={camera} type='file' accept='image/*' capture='environment' hidden onChange={upload}/>
-            <input ref={library} type='file' accept='image/*' hidden onChange={upload}/>
+            <input ref={camera} type='file' accept='image/jpeg,image/png' capture='environment' hidden onChange={upload}/>
+            <input ref={library} type='file' accept='image/jpeg,image/png' hidden onChange={upload}/>
             {web
                 ? <Button variant='secondary' icon={<Ico><path d='M12 16V4M7 9l5-5 5 5M4 20h16'/></Ico>} loading={busy} loadingText='Đang tải lên…'
                           disabled={full} onClick={() => library.current?.click()}>Tải ảnh lên</Button>
