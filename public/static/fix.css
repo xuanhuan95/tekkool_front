@@ -14,3 +14,9 @@ body {
 p {
     margin: 0 0 0.5em;
 }
+/* Tables from import (SPT-93): thin ink border, small padding, fit the page, never cut at the edge. */
+table:not([class]) { border-collapse: collapse; width: 100%; max-width: 100%; margin: 6px 0; font-size: 90%; }
+table:not([class]) th, table:not([class]) td { border: 1px solid #1c1917; padding: 3px 6px; vertical-align: top; text-align: left; white-space: normal; word-break: normal; overflow-wrap: break-word; }
+table:not([class]) th { font-weight: 700; }
+table:not([class]) p { margin: 0; }
+tr { page-break-inside: avoid; }
