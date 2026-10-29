@@ -121,9 +121,6 @@ body {
     color: var(--vt-ink, #1c1917) !important
 }
 
-.txt-orange {
-    color: #f2711c !important
-}
 
 .cursor {
     cursor: pointer

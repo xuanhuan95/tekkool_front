@@ -5,7 +5,7 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Editor} from '../../components/Editor';
 import renderHTML from '../../components/SafeHtml';
-import {Badge, Button, Card, MetaChips, Modal, PageTitle, ProgressBar, Select, Table, TextField, buttonClass, cx, notify}
+import {Badge, Button, Card, ConfirmDialog, ErrorState, MetaChips, Modal, PageTitle, ProgressBar, Select, Table, TextField, buttonClass, cx, notify}
     from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {uploadImages} from './imageUpload';
@@ -64,6 +64,7 @@ type UnitCardProps = {
 };
 
 function UnitCard({unit, no, edit, showPassage, duplicates}: UnitCardProps) {
+    const [confirmRemove, setConfirmRemove] = useState(false);
     const first = unit.questions[0];
     const ids = unit.questions.map(q => q.id);
     const isTf = first.type === 'TrueFalse';
@@ -90,7 +91,11 @@ function UnitCard({unit, no, edit, showPassage, duplicates}: UnitCardProps) {
             </span>}
             <DuplicateChip info={dup}/>
             <Button variant='ghost' size='sm' className='vt-imp-remove' aria-label={'Xoá câu ' + no}
-                    onClick={() => edit(e => removeQuestions(e, ids))}>Xoá</Button>
+                    onClick={() => setConfirmRemove(true)}>Xoá</Button>
+            <ConfirmDialog open={confirmRemove} tone='danger' title={'Xoá câu ' + no + '?'} cancelLabel='Giữ lại' confirmLabel='Xoá câu'
+                           message='Câu bị xoá khỏi bản nhập này. Muốn lấy lại thì chọn file Word và nhập lại.'
+                           onCancel={() => setConfirmRemove(false)}
+                           onConfirm={() => { setConfirmRemove(false); edit(e => removeQuestions(e, ids)); }}/>
         </div>
 
         {isTf
@@ -191,8 +196,10 @@ export default function ImportExam() {
     const navigate = useNavigate();
     const qc = useQueryClient();
 
-    const {data: banks} = useBanks();
-    const {data: folders} = useFolders(!bankId);
+    const banksQ = useBanks();
+    const foldersQ = useFolders(!bankId);
+    const banks = banksQ.data;
+    const folders = foldersQ.data;
     const stock = useBankStock(bankId).data;
     const bankInfo = bankId ? banks?.find(b => b.id === bankId) : undefined;
     const folder = folderId ? folders?.find(f => f.id === folderId) : undefined;
@@ -369,10 +376,11 @@ export default function ImportExam() {
             <ProgressBar value={1} max={3} label='Đang đọc file'/>
         </Card>}
 
-        {problem && <Card className='vt-imp-drop vt-imp-error' role='alert'>
-            <p>{problem}</p>
-            <Button variant='secondary' onClick={pickFile}>Chọn file khác</Button>
-        </Card>}
+        {(foldersQ.isError || banksQ.isError) &&
+            <ErrorState title='Không tải được danh sách môn / ngân hàng' description={errorText(foldersQ.error || banksQ.error, 'Kiểm tra mạng rồi thử lại.')}
+                        onRetry={() => { if (foldersQ.isError) foldersQ.refetch(); if (banksQ.isError) banksQ.refetch(); }}/>}
+
+        {problem && <ErrorState title='Không đọc được file' description={problem} onRetry={pickFile}/>}
 
         {stock && total > 0 && <Card className='vt-imp-bank'>
             <div className='vt-imp-bank-head'>

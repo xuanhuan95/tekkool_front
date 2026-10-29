@@ -34,7 +34,7 @@
 :is(.vt-paper, .vt-plain, .vt-modal) a:not([class]):not(nav a), a.vt-link {
     color: var(--vt-ink); text-decoration: underline; text-underline-offset: 3px; font-weight: 600;
 }
-:is(.vt-paper, .vt-plain, .vt-modal) a:not([class]):not(nav a):hover, a.vt-link:hover { color: #000; text-decoration-thickness: 2px; }
+:is(.vt-paper, .vt-plain, .vt-modal) a:not([class]):not(nav a):hover, a.vt-link:hover { color: var(--vt-ink); text-decoration-thickness: 2px; }
 :is(.vt-paper, .vt-plain, .vt-modal) a:not(.vt-btn--danger):is(:hover, :focus, :focus-visible) { color: var(--vt-ink); }
 a.vt-card, a.vt-card:hover, a.vt-card:focus { color: var(--vt-ink); }
 
@@ -528,3 +528,9 @@ a.vt-avatar { position: relative; }
 :is(select, textarea, input:not([type=checkbox], [type=radio])):focus-visible:not(.vt-input, .vt-essay-text) {
     outline: none; box-shadow: inset 0 0 0 1.5px var(--vt-ink);
 }
+
+/* Exam editor outline (Semantic menu): links are ink, underlined, 600, 44px hit area; hover keeps ink (rule 8). */
+.exam-resume a, .exam-resume a:hover, .exam-resume a:focus {
+    color: var(--vt-ink) !important; text-decoration: underline; text-underline-offset: 3px; font-weight: 600 !important;
+}
+.exam-resume a { display: flex; align-items: center; min-height: 44px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

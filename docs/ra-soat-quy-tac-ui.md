@@ -174,7 +174,7 @@ Quyết định của PM: L-04 sửa lên 44×44 (chỉ CSS); L-13 giữ nút �
 | L-21 | Đã sửa | Component `MetaChips` (dòng chip dưới tiêu đề) ở 12 màn |
 | L-22–L-24 | Đã sửa | Patrick Hand ≥18px, đậm |
 | L-25 | Đã sửa | Xanh `#2185d0` đổi sang mực |
-| L-27, L-28 | L-27 đã sửa; L-28 để lại | L-28 (xoá câu trong bản nháp Import) chưa xử lý: PM không nêu; câu xoá vẫn còn trong file Word gốc, nhập lại được |
+| L-27, L-28 | Đã sửa | L-28 (vòng 2): xoá câu ở Nhập đề có `ConfirmDialog`, focus vào "Giữ lại" |
 | L-29 | Để lại | PM: thêm lại ngay được nên không cần xác nhận |
 | L-30 | Đã sửa | Bảng giáo viên: nút chữ đỏ "Khoá", "Mở khoá" thường (có `aria-label` đầy đủ). Hộp xác nhận giữ nguyên |
 | L-31 | Để lại | PM: dấu trên ảnh chưa lưu lên server, bỏ không lưu là hoàn tác |
@@ -189,3 +189,16 @@ Quyết định của PM: L-04 sửa lên 44×44 (chỉ CSS); L-13 giữ nút �
 | L-43 | Đã sửa | (phát sinh) nút "+" loại câu ở thanh phải trình soạn đề chỉ có icon: thêm `title` + `aria-label` |
 
 Ngoài bảng: `/design-system` chỉ còn khi chạy dev (`import.meta.env.DEV`). Còn lại CSS `.tk-cfb-*`/`.tk-folder` vì catalogue dev `DesignSystem.tsx` vẫn dùng; xoá cùng catalogue ở đợt reskin.
+
+### Vòng 2 (Apollo quét lại PR #20, 29/10/2026)
+
+| Dòng | Quy tắc | Trạng thái | Ghi chú |
+|---|---|---|---|
+| L-44 | 8 | Đã sửa | Dàn ý trong trình soạn đề (`ExamResume`): bỏ `.txt-orange`; link S1–S4 và Q1–Q23 màu mực, gạch chân, 600, cao ≥44px, hover/focus vẫn mực |
+| L-45 | 8 | Đã sửa | Hover link thường `#000` đổi về mực (`ui.css`) — sửa cho `/edit-exam`, `/to-grade` |
+| L-46 | 8 | Đã sửa | Tab con Admin (Quản lý gói · Doanh thu) và thanh dưới điện thoại: chữ mực cố định, không đổi màu khi hover; tab con cao 44px |
+| L-47 | 10 | Đã sửa | `/create-exam`, `/edit-exam`: `ErrorState` + "Thử lại" khi tải đề hoặc danh sách môn lỗi; `/import-exam`: khi tải môn/ngân hàng lỗi hoặc không đọc được file |
+| L-48 | 5 | Đã sửa | Input file ảnh bài làm: `accept='image/jpeg,image/png'` |
+| L-28 | 9 | Đã sửa | xem trên |
+
+Không sửa (PM chốt): thẻ bấm được (`a.hs-subject`) và nút dạng button không cần gạch chân; xoá phương án A/B/C/D không cần xác nhận.

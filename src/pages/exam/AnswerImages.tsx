@@ -105,8 +105,8 @@ export default function AnswerImages({questionId, initial, disabled}: {questionI
         <AnswerImageThumbs ids={ids} busyId={removing} onRemove={disabled ? undefined : remove}/>
         {!disabled && <div className='hs-aimgs-actions'>
             {/* capture=environment opens the rear camera on phones; the library input has no capture so the OS offers the gallery */}
-            <input ref={camera} type='file' accept='image/*' capture='environment' hidden onChange={upload}/>
-            <input ref={library} type='file' accept='image/*' hidden onChange={upload}/>
+            <input ref={camera} type='file' accept='image/jpeg,image/png' capture='environment' hidden onChange={upload}/>
+            <input ref={library} type='file' accept='image/jpeg,image/png' hidden onChange={upload}/>
             {web
                 ? <Button variant='secondary' icon={<Ico><path d='M12 16V4M7 9l5-5 5 5M4 20h16'/></Ico>} loading={busy} loadingText='Đang tải lên…'
                           disabled={full} onClick={() => library.current?.click()}>Tải ảnh lên</Button>
