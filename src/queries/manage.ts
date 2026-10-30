@@ -83,6 +83,7 @@ export interface Transaction {
     db_status: string;
     created_at: string | null;
     updated_at: string | null;
+    paid_at: string | null;
 }
 
 export interface TransactionList extends Paged<Transaction> {
@@ -92,17 +93,23 @@ export interface TransactionList extends Paged<Transaction> {
 export type TimelineEvent =
     {event: 'created' | 'reconciled'; at: string | null}
     | {event: 'sepay'; at: string | null; received: number | null}
-    | {event: 'credited'; at: string | null; turns: number};
+    | {event: 'credited'; at: string | null; turns: number}
+    | {event: 'ipn' | 'reconcile' | 'cancel'; at: string | null; source: string; result: string | null; message: string | null;
+       actor: {id: string; name: string; email: string} | null; status_before: string | null; status_after: string | null;
+       changed: boolean; amount: number | null; transaction_id: string | null};
 
 export interface TransactionDetail extends Transaction {
     turns: number;
+    ipn_count: number;
+    /** false → hide the "Đối soát lại" button. */
+    can_reconcile: boolean;
     timeline: TimelineEvent[];
     raw_ipn: Record<string, unknown> | null;
     anomalies: Array<{type: AnomalyType; message: string; related?: string[]}>;
 }
 
 export type AnomalyType = 'paid_not_credited' | 'paid_no_turns' | 'amount_mismatch' | 'duplicate_transaction'
-    | 'paid_without_ipn' | 'pending_stale';
+    | 'paid_without_ipn' | 'pending_stale' | 'double_payment';
 
 export interface Anomaly {
     type: AnomalyType;
@@ -115,6 +122,19 @@ export interface Anomaly {
     message: string;
     sepay_transaction_id?: string;
     related?: string[];
+    transaction_ids?: string[];
+}
+
+export type ReconcileResultKind = 'credited' | 'already_paid' | 'unchanged' | 'cancelled' | 'failed' | 'amount_mismatch'
+    | 'not_found_on_sepay' | 'sepay_error';
+
+export interface ReconcileResponse {
+    result: ReconcileResultKind;
+    message: string;
+    status_before: string;
+    status_after: string;
+    sepay: {order_status: string; amount: string; order_id: string} | null;
+    transaction: TransactionDetail;
 }
 
 export interface ReconcileList { items: Anomaly[]; total: number; counts: Partial<Record<AnomalyType, number>> }
@@ -251,6 +271,20 @@ export function useTransaction(inv: string | null) {
         queryKey: ['manage', 'transaction', inv],
         queryFn: () => Api.get<TransactionDetail>('admin_revenue/transaction/' + id(inv!)),
         enabled: !!inv,
+    });
+}
+
+/** SPT-87: ask SePay again. The response carries the fresh detail, so the cache is set from it (no second GET). */
+export function useReconcileOrder() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (inv: string) => Api.post<ReconcileResponse>('admin_revenue/reconcile_order/' + id(inv), {}),
+        onSuccess: (r, inv) => {
+            qc.setQueryData(['manage', 'transaction', inv], r.transaction);
+            qc.invalidateQueries({queryKey: ['manage', 'transactions']});
+            qc.invalidateQueries({queryKey: ['manage', 'reconcile']});
+            qc.invalidateQueries({queryKey: ['manage', 'revenue']});
+        },
     });
 }
 

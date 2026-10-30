@@ -94,6 +94,11 @@
 .vt-mg-raw summary { cursor: pointer; font-weight: 600; font-size: 14px; min-height: 32px; display: flex; align-items: center; }
 .vt-mg-raw pre { margin: 6px 0 0; max-height: 280px; overflow: auto; font-size: 12px; line-height: 1.5; background: var(--vt-paper);
     border: 1.5px solid var(--vt-line-soft); border-radius: var(--vt-r-btn); padding: 10px 12px; white-space: pre-wrap; word-break: break-all; }
+.vt-mg-result { padding: 10px 12px; font-size: 14px; border: 1.5px solid; border-radius: var(--vt-r-btn); }
+.vt-mg-result--ok { color: var(--vt-ok-ink); background: var(--vt-ok-bg); border-color: var(--vt-ok-ink); }
+.vt-mg-result--info { color: var(--vt-ink); background: var(--vt-paper); border-color: var(--vt-line-soft); }
+.vt-mg-result--warn { color: var(--vt-sun-ink); background: var(--vt-sun-soft); border-color: var(--vt-sun-ink); }
+.vt-mg-result--err { color: var(--vt-err); background: var(--vt-err-bg); border-color: var(--vt-err); }
 .vt-mg-soon { font-size: 12px; color: var(--vt-muted); }
 .vt-mg-msg { font-size: 13px; color: var(--vt-muted); max-width: 360px; }
 
