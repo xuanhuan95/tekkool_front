@@ -300,20 +300,31 @@ export function pasteRows(exam: ImportedExam, pasted: PastedAnswers): PasteRow[]
  */
 export function splitOptions(html: string): {stem: string; options: string[]} | null {
     const text = html.split(/<\/p>\s*<p[^>]*>|<br\s*\/?>/i).map(x => x.replace(/^\s*<p[^>]*>|<\/p>\s*$/gi, '')).join('\n');
-    const marks: Array<{at: number; end: number}> = [];
-    let from = 0;
-    for (const letter of 'ABCD') {
+    // The LAST A that is followed by B, C, D in order: "Cho dung dịch A. Chọn A. một B. …" has two "A.".
+    const find = (letter: string, from: number) => {
         const m = new RegExp('(?:^|\\n|\\s)' + letter + '\\.\\s*').exec(text.slice(from));
-        if (!m) return null;
-        marks.push({at: from + m.index, end: from + m.index + m[0].length});
-        from = marks[marks.length - 1].end;
+        return m ? {at: from + m.index, end: from + m.index + m[0].length} : null;
+    };
+    const as: Array<{at: number; end: number}> = [];
+    for (let m = find('A', 0); m; m = find('A', m.end)) as.push(m);
+    let marks: Array<{at: number; end: number}> | null = null;
+    for (const first of as.reverse()) {
+        const run = [first];
+        for (const letter of 'BCD') {
+            const m = find(letter, run[run.length - 1].end);
+            if (!m) break;
+            run.push(m);
+        }
+        if (run.length === 4) { marks = run; break; }
     }
+    if (!marks) return null;
+    const mk = marks;
     const piece = (a: number, b: number) => text.slice(a, b).replace(/\n/g, '<br>').replace(/^(<br>)+|(<br>)+$/g, '').trim();
     return {
-        stem: '<p>' + piece(0, marks[0].at) + '</p>',
-        options: marks.map((m, i) => '<p>' + piece(m.end, i + 1 < marks.length ? marks[i + 1].at : text.length) + '</p>'),
+        stem: '<p>' + piece(0, mk[0].at) + '</p>',
+        options: mk.map((m, i) => '<p>' + piece(m.end, i + 1 < mk.length ? mk[i + 1].at : text.length) + '</p>'),
     };
 }
 
 /** A question in its original type, kept when the teacher converts it so converting back brings everything back. */
-export type Stash = Record<string, {type: string; data: QuestionData}>;
+export type Stash = Record<string, {type: string; data: QuestionData; /** stem written by "tách A–D": while it is unchanged, converting back puts the A–D text back */ split?: string}>;

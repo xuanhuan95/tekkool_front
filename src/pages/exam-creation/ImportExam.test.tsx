@@ -490,3 +490,45 @@ describe('ImportExam: QC round (B1, B4, B5, B12)', () => {
         expect(pdf).not.toHaveBeenCalled();
     });
 });
+
+describe('ImportExam: follow-up (V2-2, V2-3, V2-4, V2-5)', () => {
+    it('V2-2: after tách A–D, converting back to Tự luận puts the A–D text back in the question', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(examOf({id: 'Q1', type: 'FreeAnswer', data: {question: '<p>Chất nào? A. HCl B. NaCl C. KCl D. H₂O</p>'}}));
+        fireEvent.click(screen.getByText('Đổi sang Trắc nghiệm và tách A–D'));
+        fireEvent.change(screen.getAllByLabelText('Loại câu')[0], {target: {value: 'FreeAnswer'}});
+        expect(screen.getByText(/A\. HCl B\. NaCl C\. KCl D\. H₂O/)).toBeTruthy();
+    });
+
+    it('V2-5: the wait for the PDF says a many-exam file can take much longer', async () => {
+        mockPost();
+        vi.spyOn(Api, 'uploadBlob').mockReturnValue(new Promise(() => {}));
+        renderScreen();
+        await loadFile();
+        fireEvent.click(screen.getByRole('tab', {name: 'Bản gốc'}));
+        expect(screen.getByText(/có thể lâu hơn nhiều/)).toBeTruthy();
+    });
+
+    it('V2-3: browser Back with a read file asks first; "Ở lại" keeps the work', async () => {
+        mockPost();
+        const push = vi.spyOn(history, 'pushState');
+        renderScreen();
+        await loadFile();
+        expect(push).toHaveBeenCalledTimes(1);          // the extra entry that Back will pop
+        window.dispatchEvent(new PopStateEvent('popstate'));
+        await screen.findByText('Rời trang này?');
+        fireEvent.click(screen.getByText('Ở lại'));
+        expect(push).toHaveBeenCalledTimes(2);          // armed again
+        expect(screen.getByText(/Đọc được 1 đề/)).toBeTruthy();
+    });
+
+    it('V2-4: OPTION_DUPLICATE has its own chip and a "Cách sửa" link, whatever letter the message names', async () => {
+        mockPost();
+        renderScreen();
+        const dup = issue({code: 'OPTION_DUPLICATE', question_id: 'Q1', message: 'Câu 1: hai phương án cùng chữ B'});
+        await loadFile(EXAM, [dup]);
+        expect(screen.getByText('Cách sửa').closest('a')!.getAttribute('href')).toBe('/import-exam/loi-thuong-gap?bank=B1#phuong-an-trung');
+        expect(screen.getByText('Có phương án trùng chữ cái')).toBeTruthy();
+    });
+});

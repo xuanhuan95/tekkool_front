@@ -64,6 +64,13 @@ export const GUIDE: GuideEntry[] = [
         steps: ['Xoá phụ lục, ghi chú “[CẦN … KIỂM TRA]”, mã phiếu khỏi file trước khi tải lên.', 'Để chúng ở một file riêng.'],
     },
     {
+        id: 'phuong-an-trung', title: 'Hai phương án trùng chữ cái',
+        symptom: 'Câu trắc nghiệm có hai phương án mang cùng một chữ cái (ví dụ A, B, B, D), hoặc một dòng của câu dẫn bị đọc thành phương án.',
+        cause: 'Trong file có hai đoạn cùng bắt đầu bằng một chữ cái “A.”, “B.”… ở đầu đoạn, thường do câu dẫn có một dòng bắt đầu bằng “A.” hoặc phương án bị gõ lặp.',
+        steps: ['Xem thông báo để biết câu nào và chữ cái nào bị trùng.', 'Đổi chữ cái của phương án gõ nhầm, hoặc nối dòng câu dẫn vào đoạn trên (không để “A.” ở đầu dòng).',
+            'Tải lại file, hoặc sửa nội dung từng phương án ngay trên màn Xem trước.'],
+    },
+    {
         id: 'cau-chum', title: 'Phần IV câu chùm không đọc được', soon: true,
         symptom: 'Phần có câu chùm (nhiều ý 1), 2), …) báo “không đọc được câu nào”.',
         cause: 'Dạng câu chùm chưa nhập tự động được; phần này không đưa vào đề, nội dung gốc vẫn xem được ở bản gốc.',
@@ -78,7 +85,7 @@ const ANCHOR: Record<string, string> = {
     TABLE_KEPT_FLAT: 'bang', RAW_LATEX: 'latex', UNREADABLE_FORMULA: 'latex',
     NO_ANSWERS: 'khong-dap-an', MISSING_ANSWER: 'khong-dap-an',
     ANSWER_CONFLICT: 'tron-cach', MIXED_MARKING: 'tron-cach', MULTI_MARK: 'tron-cach',
-    INTERNAL_NOTE: 'phu-luc', APPENDIX_SKIPPED: 'phu-luc', UNSUPPORTED_CLUSTER: 'cau-chum',
+    OPTION_DUPLICATE: 'phuong-an-trung', INTERNAL_NOTE: 'phu-luc', APPENDIX_SKIPPED: 'phu-luc', UNSUPPORTED_CLUSTER: 'cau-chum',
 };
 
 export const GUIDE_PATH = '/import-exam/loi-thuong-gap';
@@ -97,6 +104,6 @@ const LABEL: Record<string, string> = {
     NUMBER_GAP: 'Số câu nhảy', NUMBER_DUPLICATE: 'Trùng số câu', MC_AS_ESSAY: 'Có A. B. C. D. nhưng không phải trắc nghiệm',
     SECTION_TYPE_MIXED: 'Dạng câu lệch tiêu đề phần', IMAGE_BEFORE_QUESTION: 'Hình đứng trước câu kế', SWALLOWED_QUESTION: 'Có câu bị dính vào',
     ANSWER_CONFLICT: 'Đáp án mâu thuẫn', MULTI_MARK: 'Nhiều phương án được đánh dấu', EMPTY_CONTENT: 'Nội dung rỗng',
-    INTERNAL_NOTE: 'Còn ghi chú nội bộ', UNSUPPORTED_CLUSTER: 'Câu chùm chưa hỗ trợ',
+    INTERNAL_NOTE: 'Còn ghi chú nội bộ', OPTION_DUPLICATE: 'Có phương án trùng chữ cái', UNSUPPORTED_CLUSTER: 'Câu chùm chưa hỗ trợ',
 };
 export const issueLabel = (code: string) => LABEL[code] || 'Cần kiểm tra';
