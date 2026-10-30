@@ -49,7 +49,7 @@ type PdfState = {status: 'idle' | 'loading' | 'ready' | 'none'; url?: string};
 function SourcePdf({pdf, desktop}: {pdf: PdfState; desktop: boolean}) {
     if (pdf.status === 'loading') return <div className='vt-src-empty' aria-live='polite'>
         <Skeleton height={14} width='60%'/><Skeleton height={220} shape='card'/>
-        <p>Đang dựng bản gốc từ file Word… file nhiều đề có thể mất khoảng 15 giây.</p>
+        <p>Đang dựng bản gốc từ file Word… thường vài giây đến vài chục giây; file nhiều đề có thể lâu hơn nhiều, thậm chí không dựng được. Đề đã đọc vẫn dùng bình thường.</p>
     </div>;
     if (pdf.status === 'ready' && pdf.url) return <>
         <iframe className='vt-src-pdf' src={pdf.url} title='Bản gốc của file Word'/>
@@ -101,7 +101,9 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: Unit
             let next = setType(e, ids, type);
             if (ids.length === 1 && kept.type === type) {
                 const {answers, correctAnswerId, answer} = kept.data;
-                next = patchQuestion(next, first.id, q => ({...q, data: {...q.data, ...(answers && {answers}), ...(correctAnswerId && {correctAnswerId}), ...(answer !== undefined && {answer})}}));
+                // after "tách A–D" the A–D text goes back into the question, unless the teacher rewrote the stem meanwhile
+                const back = kept.split !== undefined && first.data.question === kept.split ? {question: kept.data.question} : {};
+                next = patchQuestion(next, first.id, q => ({...q, data: {...q.data, ...back, ...(answers && {answers}), ...(correctAnswerId && {correctAnswerId}), ...(answer !== undefined && {answer})}}));
             }
             return after ? after(next) : next;
         });
@@ -141,8 +143,8 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: Unit
         </div>
 
         {split && <Button variant='secondary' size='sm' className='vt-imp-split-btn'
-                          onClick={() => convert('MultipleChoice', e => patchData(e, first.id, {
-                              question: split.stem, answers: split.options.map((value, i) => ({id: first.id + '_' + 'ABCD'[i], value}))}))}>
+                          onClick={() => { convert('MultipleChoice', e => patchData(e, first.id, {
+                              question: split.stem, answers: split.options.map((value, i) => ({id: first.id + '_' + 'ABCD'[i], value}))})); stash.current[first.id].split = split.stem; }}>
             Đổi sang Trắc nghiệm và tách A–D
         </Button>}
         <ConfirmDialog open={splitTo !== null} title='Đổi dạng câu Đúng/Sai?' cancelLabel='Giữ nguyên' confirmLabel='Đổi và tách'
@@ -402,8 +404,15 @@ export default function ImportExam() {
     // Leaving with a file read loses every edit and confirmation: ask (reload/close tab, and in-app links).
     const [leaveTo, setLeaveTo] = useState<string | null>(null);
     const dirty = exams.length > 0 && !saving;
+    // Browser Back: with a read file, one extra history entry sits on top ("armed"). Back pops it → ask; "Ở lại" pushes it again.
+    // ponytail: no router blocker (BrowserRouter has none). Links leave with `replace` while armed, so no stray entry is left behind.
+    const armed = useRef(false);
+    const goTo = (to: string) => navigate(to, {replace: armed.current});
     useEffect(() => {
         if (!dirty) return;
+        if (!armed.current) { history.pushState(history.state, '', location.href); armed.current = true; }
+        const back = () => { armed.current = false; setLeaveTo('back'); };
+        window.addEventListener('popstate', back);
         const bye = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
         const click = (e: MouseEvent) => {
             const a = (e.target as Element).closest?.('a[href]') as HTMLAnchorElement | null;
@@ -413,7 +422,7 @@ export default function ImportExam() {
         };
         window.addEventListener('beforeunload', bye);
         document.addEventListener('click', click, true);
-        return () => { window.removeEventListener('beforeunload', bye); document.removeEventListener('click', click, true); };
+        return () => { window.removeEventListener('beforeunload', bye); window.removeEventListener('popstate', back); document.removeEventListener('click', click, true); };
     }, [dirty]);
     const upload = ({target}: ChangeEvent<HTMLInputElement>) => {
         const file = target.files && target.files[0];
@@ -482,11 +491,11 @@ export default function ImportExam() {
             } else if (folderId) {
                 qc.invalidateQueries({queryKey: ['exam']});
                 notify.success(`Đã tạo ${done} đề nháp. Sửa cho hết lỗi rồi bấm Xuất bản để học sinh thấy.`);
-                navigate('/subject/' + folderId);
+                goTo('/subject/' + folderId);
             } else {
                 qc.invalidateQueries({queryKey: ['exam']});
                 notify.success(`Đã tạo ${done} đề nháp. Vào Môn & đề để chọn môn và xuất bản.`);
-                navigate('/');
+                goTo('/');
             }
         } catch (err) {
             // keep what is already saved; the teacher sees which exam stopped it
@@ -533,7 +542,7 @@ export default function ImportExam() {
         {reading && <Card className='vt-imp-drop' aria-live='polite'>
             <h2>Đang đọc {fileName}…</h2>
             <Skeleton height={14} width='70%'/><Skeleton height={14} width='50%'/>
-            <p>Bản gốc dựng song song, file nhiều đề có thể mất khoảng 15 giây.</p>
+            <p>Bản gốc dựng song song, thường vài giây đến vài chục giây; file nhiều đề có thể lâu hơn nhiều.</p>
             <Button variant='secondary' onClick={cancelRead}>Huỷ</Button>
         </Card>}
 
@@ -655,7 +664,12 @@ export default function ImportExam() {
 
         <ConfirmDialog open={leaveTo !== null} tone='danger' title='Rời trang này?' cancelLabel='Ở lại' confirmLabel='Rời đi'
                        message='Đề đã đọc, các chỗ đã sửa và các cảnh báo đã xác nhận sẽ mất. Muốn làm tiếp thì phải chọn file và nhập lại.'
-                       onCancel={() => setLeaveTo(null)} onConfirm={() => { const to = leaveTo; setLeaveTo(null); setExams([]); if (to) setTimeout(() => navigate(to), 0); }}/>
+                       onCancel={() => { if (leaveTo === 'back' && !armed.current) { history.pushState(history.state, '', location.href); armed.current = true; } setLeaveTo(null); }}
+                       onConfirm={() => {
+                           const to = leaveTo; setLeaveTo(null); setExams([]);
+                           if (to === 'back') history.back();   // the armed entry is already popped: this goes to the previous page
+                           else if (to) setTimeout(() => goTo(to), 0);
+                       }}/>
 
         <ExamInfoModal exam={exams.find(e => e.id === infoId)} onClose={() => setInfoId(null)}
                        onJump={x => infoId && jumpTo(infoId, x)}/>

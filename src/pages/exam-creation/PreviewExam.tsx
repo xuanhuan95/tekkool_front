@@ -95,7 +95,7 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
 
         {exam.sections.map((s, idx) => {
             return <div className="section" style={{marginTop: '30px'}} key={s.id}>
-                <b>Part {idx + 1}: </b>
+                <b>Phần {idx + 1}: </b>
 
                 {renderHTML(s.name || '')}
 
@@ -111,7 +111,7 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
 
                         {q.type === 'FillBlank' &&
                         <div className='question FillBlank' style={pageNonBreak}>
-                            <span style={boldText}>Question {qIdx}:</span>
+                            <span style={boldText}>Câu {qIdx}:</span>
                             <br/>
                             <span style={marginLeft}>{renderHTML(q.data.question || '')}</span>
 
@@ -121,7 +121,7 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
 
                         {q.type === 'TrueFalse' &&
                         <div className='question TrueFalse' style={pageNonBreak}>
-                            <span style={boldText}>Question {qIdx}:</span>
+                            <span style={boldText}>Câu {qIdx}:</span>
                             <br/>
                             <span style={marginLeft}>{renderHTML(q.data.question)}</span>
                             <br/>
@@ -137,7 +137,7 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
                             multiple-choice question vanished from Preview and the printout. */}
                         {(q.type === 'MultipleChoice' || q.type === 'ErrorIdentify') &&
                         <div className={'question ' + q.type} style={pageNonBreak}>
-                            <span style={boldText}>Question {qIdx}:</span>
+                            <span style={boldText}>Câu {qIdx}:</span>
                             {striptags(q.data.question) ? renderHTML(q.data.question) : ''}
 
                             <Grid>
@@ -164,7 +164,7 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
 
                         {q.type === 'FreeAnswer' &&
                         <div className={'question FreeAnswer'} style={pageNonBreak}>
-                            <span style={boldText}>Question {qIdx}:</span>
+                            <span style={boldText}>Câu {qIdx}:</span>
 
                             {striptags(q.data.question) ? renderHTML(q.data.question) : ''}
 

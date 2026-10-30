@@ -194,3 +194,10 @@ describe('B5: tách A–D', () => {
         expect(splitOptions('<p>Viết đoạn văn.</p>')).toBeNull();
     });
 });
+
+describe('V2-1: tách A–D takes the real A–D run', () => {
+    it('"A." inside the stem does not become option A', () => {
+        expect(splitOptions('<p>Cho dung dịch A. Chọn A. một B. hai C. ba D. bốn</p>')).toEqual({
+            stem: '<p>Cho dung dịch A. Chọn</p>', options: ['<p>một</p>', '<p>hai</p>', '<p>ba</p>', '<p>bốn</p>']});
+    });
+});
