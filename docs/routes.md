@@ -74,7 +74,7 @@ Các màn giáo viên đã reskin theo design D (SPT-57), chạy trong `TeacherS
 | `/manage/subjects` | Môn học: tạo, đổi tên, ẩn/hiện (không xoá). Chỉ Admin; giáo viên chỉ chọn môn có sẵn | `pages/manage/AdminSubjects.tsx` | SPT-65 | `folder/subjects`, `folder/create`, `folder/update` |
 | `/manage/packages` | Gói & giá, sắp xếp | `pages/manage/AdminPackages.tsx` | AD-Goi | `package/list?all=1`, `package/create`, `package/update/<id>`, `package/reorder`, `package/remove/<id>` |
 | `/manage/revenue` | Doanh thu | `pages/manage/Revenue.tsx` | AD-DoanhThu | `admin_revenue/summary`, `admin_revenue/transactions` |
-| `/manage/transactions` (`?tab=reconcile&inv=…`) | Giao dịch & đối soát | `pages/manage/Transactions.tsx` | AD-GiaoDich | `admin_revenue/transactions`, `admin_revenue/transaction/<inv>`, `admin_revenue/reconcile` |
+| `/manage/transactions` (`?tab=reconcile&inv=…`) | Giao dịch & đối soát | `pages/manage/Transactions.tsx` | AD-GiaoDich | `admin_revenue/transactions`, `admin_revenue/transaction/<inv>`, `admin_revenue/reconcile`, `POST admin_revenue/reconcile_order/<inv>` (SPT-87: nút "Đối soát lại", hiện kết quả theo `result`, 429 đếm ngược `retry_after`, ẩn khi `can_reconcile=false`) |
 | `/manage/*` khác | → `/manage/teachers` | `ManageApp.tsx` | | |
 
 Ẩn menu theo vai trò chỉ là trải nghiệm; quyền thật do backend kiểm.
