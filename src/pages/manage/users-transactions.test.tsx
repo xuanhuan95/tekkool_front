@@ -88,13 +88,13 @@ const TX = (over: object = {}) => ({invoice_number: 'TK31', sepay_order_id: 'SP-
 const TXLIST = {items: [TX(), TX({invoice_number: 'TK30', status: 'mismatch', amount: 249000, received: 200000})],
     total: 2, page: 1, limit: 20,
     stats: {paid: {count: 44, amount: 4776000}, pending: {count: 1, amount: 59000}, failed: {count: 3, amount: 0}, mismatch: {count: 1, amount: 249000}}};
-const DETAILTX = {...TX({invoice_number: 'TK30', status: 'mismatch', amount: 249000, received: 200000}), turns: 0,
+const DETAILTX = {...TX({invoice_number: 'TK30', status: 'mismatch', amount: 249000, received: 200000}), turns: 0, ipn_count: 1, can_reconcile: true,
     timeline: [{event: 'created', at: '2026-10-21T12:55:00'}, {event: 'sepay', at: '2026-10-21T12:57:00', received: 200000}],
     raw_ipn: {notification_type: 'ORDER_PAID'},
     anomalies: [{type: 'amount_mismatch', message: 'nhận 200000 đ / đơn 249000 đ — thiếu 49000 đ, chưa cộng lượt'}]};
 
 describe('Transactions (AD-GiaoDich)', () => {
-    it('lists orders with stats; opens the detail timeline; re-reconcile is disabled', async () => {
+    it('lists orders with stats; opens the detail timeline; reconcile button is shown', async () => {
         mockApi({'admin_revenue/transactions': TXLIST, 'admin_revenue/transaction/': DETAILTX});
         renderAt(<Transactions/>, '/manage/transactions');
         await screen.findByText('44 đơn');
@@ -105,9 +105,56 @@ describe('Transactions (AD-GiaoDich)', () => {
         expect(aside.getByText('SePay báo về')).toBeTruthy();
         expect(aside.getByText(/thiếu 49\.000đ/)).toBeTruthy();
         expect(aside.getByRole('alert')).toHaveTextContent('Lệch số tiền');
-        const btn = aside.getByRole('button', {name: 'Đối soát lại'});
+        expect(aside.getByRole('button', {name: 'Đối soát lại'})).toBeEnabled();
+    });
+
+    const openTK30 = async (detail: object, post: unknown) => {
+        const api = mockApi({'admin_revenue/transactions': TXLIST, 'admin_revenue/transaction/': detail},
+            {'admin_revenue/reconcile_order/': post});
+        renderAt(<Transactions/>, '/manage/transactions');
+        await screen.findByText('44 đơn');
+        fireEvent.click(screen.getByRole('button', {name: 'Xem đơn TK30'}));
+        const aside = within(await screen.findByRole('complementary', {name: 'Chi tiết đơn'}));
+        return {api, aside};
+    };
+
+    it('reconcile: shows the BE message by result and redraws the order from the response', async () => {
+        const paid = {...DETAILTX, status: 'paid', can_reconcile: false, turns: 10, anomalies: [],
+            timeline: [...DETAILTX.timeline, {event: 'reconcile', at: '2026-10-21T13:00:00', source: 'admin_reconcile', result: 'credited',
+                message: 'đã cộng', actor: {id: 'a1', name: 'Quản trị', email: 'a@x.vn'}, status_before: 'PENDING', status_after: 'PAID',
+                changed: true, amount: 249000, transaction_id: null}]};
+        const {api, aside} = await openTK30(DETAILTX, {result: 'credited', message: 'SePay xác nhận đã nhận 249.000 đ. Đã cộng 10 lượt.',
+            status_before: 'PENDING', status_after: 'PAID', sepay: null, transaction: paid});
+        fireEvent.click(aside.getByRole('button', {name: 'Đối soát lại'}));
+        const box = await aside.findByRole('status');
+        expect(box).toHaveTextContent('SePay xác nhận đã nhận 249.000 đ. Đã cộng 10 lượt.');
+        expect(box.className).toContain('vt-mg-result--ok');
+        expect(api.post).toHaveBeenCalledWith('admin_revenue/reconcile_order/TK30', {});
+        expect(await aside.findByText('Admin đối soát lại')).toBeTruthy();
+        expect(aside.queryByRole('button', {name: /Đối soát lại/})).toBeNull();   // can_reconcile=false → hidden
+        expect(api.get.mock.calls.filter(c => String(c[0]).startsWith('admin_revenue/transaction/')).length).toBe(1);
+    });
+
+    it.each([['sepay_error', 'err'], ['not_found_on_sepay', 'warn'], ['already_paid', 'info']])('reconcile result %s → tone %s', async (result, tone) => {
+        const {aside} = await openTK30(DETAILTX, {result, message: 'msg ' + result, status_before: 'PENDING', status_after: 'PENDING',
+            sepay: null, transaction: DETAILTX});
+        fireEvent.click(aside.getByRole('button', {name: 'Đối soát lại'}));
+        expect((await aside.findByRole('status')).className).toContain('vt-mg-result--' + tone);
+    });
+
+    it('reconcile 429: message shown, button counts down retry_after and is disabled', async () => {
+        const {aside} = await openTK30(DETAILTX, () => { throw {code: 429, message: 'Đơn vừa được đối soát', retry_after: 5}; });
+        fireEvent.click(aside.getByRole('button', {name: 'Đối soát lại'}));
+        expect(await aside.findByText('Đơn vừa được đối soát')).toBeTruthy();
+        const btn = aside.getByRole('button', {name: /Đối soát lại \(5s\)/});
         expect(btn).toBeDisabled();
-        expect(aside.getByText(/Sắp có/)).toBeTruthy();
+    });
+
+    it('hides the button when can_reconcile is false; double_payment label', async () => {
+        const {aside} = await openTK30({...DETAILTX, can_reconcile: false}, {});
+        expect(aside.queryByRole('button', {name: /Đối soát lại/})).toBeNull();
+        expect(timelineText({event: 'cancel', at: null, source: 'cancel', result: null, message: 'x', actor: null, status_before: null,
+            status_after: null, changed: false, amount: null, transaction_id: null}, 1).title).toBe('Đơn bị huỷ');
     });
 
     it('filters go to the API', async () => {

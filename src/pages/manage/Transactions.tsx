@@ -1,11 +1,11 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {Link, useSearchParams} from 'react-router-dom';
 
 import {Button, Card, CardTitle, DateField, EmptyState, ErrorState, FilterChip, PageColumns, PageTitle, Select, SkeletonCard, Table, Tabs,
     TextField, buttonClass, icons} from '../../components/ui';
 import type {Column} from '../../components/ui';
-import {useReconcile, useTransaction, useTransactions} from '../../queries/manage';
-import type {Anomaly, AnomalyType, TimelineEvent, Transaction, TxStatus} from '../../queries/manage';
+import {useReconcile, useReconcileOrder, useTransaction, useTransactions} from '../../queries/manage';
+import type {Anomaly, AnomalyType, ReconcileResponse, ReconcileResultKind, TimelineEvent, Transaction, TxStatus} from '../../queries/manage';
 import {errorText, formatDateTime, formatMoney, formatShortDateTime, formatTime, groupDigits} from '../../lib/format';
 import {Pager, TX_STATUS, TxBadge, useDebounced} from './shared';
 
@@ -18,7 +18,19 @@ export const ANOMALY_LABEL: Record<AnomalyType, string> = {
     duplicate_transaction: 'Trùng mã giao dịch SePay',
     paid_without_ipn: 'Thành công nhưng thiếu dữ liệu SePay',
     pending_stale: 'Chờ webhook quá lâu',
+    double_payment: 'Đơn nhận 2 giao dịch — có thể cần hoàn tiền',
 };
+
+/** Result of "Đối soát lại" → colour of the message box (BE `message` is shown verbatim). */
+export const RECONCILE_TONE: Record<ReconcileResultKind, 'ok' | 'info' | 'warn' | 'err'> = {
+    credited: 'ok', already_paid: 'info', unchanged: 'info', cancelled: 'warn', failed: 'warn',
+    amount_mismatch: 'err', not_found_on_sepay: 'warn', sepay_error: 'err',
+};
+
+type LogEvent = Extract<TimelineEvent, {event: 'ipn' | 'reconcile' | 'cancel'}>;
+
+const logNote = (e: LogEvent) => [e.actor ? `${e.actor.name} bấm` : '', e.message || e.result || '',
+    e.changed && e.status_before && e.status_after ? `${e.status_before} → ${e.status_after}` : ''].filter(Boolean).join(' · ');
 
 /** One line of the order timeline (AD-GiaoDich aside). */
 export function timelineText(e: TimelineEvent, amount: number): {title: string; note: string} {
@@ -30,7 +42,43 @@ export function timelineText(e: TimelineEvent, amount: number): {title: string; 
                 : `${formatMoney(e.received)}${e.received === amount ? ', khớp số tiền đơn'
                     : e.received < amount ? `, thiếu ${formatMoney(amount - e.received)}` : `, thừa ${formatMoney(e.received - amount)}`}`};
         case 'credited': return {title: `Cộng ${e.turns} lượt`, note: 'đơn chuyển sang thành công'};
+        case 'ipn': return {title: 'SePay gửi webhook', note: logNote(e)};
+        case 'reconcile': return {title: e.source === 'auto_reconcile' ? 'Hệ thống hỏi SePay' : 'Admin đối soát lại', note: logNote(e)};
+        case 'cancel': return {title: 'Đơn bị huỷ', note: logNote(e)};
     }
+}
+
+/** "Đối soát lại" button + result box. 429 → the button counts down `retry_after` seconds. */
+function ReconcileAction({inv}: {inv: string}) {
+    const m = useReconcileOrder();
+    const [res, setRes] = useState<ReconcileResponse | null>(null);
+    const [wait, setWait] = useState(0);
+    useEffect(() => { setRes(null); setWait(0); m.reset(); }, [inv]);   // eslint-disable-line react-hooks/exhaustive-deps
+    useEffect(() => {
+        if (wait <= 0) return;
+        const t = setTimeout(() => setWait(w => w - 1), 1000);
+        return () => clearTimeout(t);
+    }, [wait]);
+
+    const run = () => {
+        if (m.isPending || wait > 0) return;
+        setRes(null);
+        m.mutate(inv, {
+            onSuccess: r => setRes(r),
+            onError: e => { const s = Number((e as {retry_after?: unknown}).retry_after); if ((e as {code?: number}).code === 429) setWait(s > 0 ? Math.ceil(s) : 6); },
+        });
+    };
+    const err = m.error && !m.isPending ? m.error : null;
+
+    return <div className='vt-mg-stack'>
+        <div className='vt-mg-actions'>
+            <Button size='sm' loading={m.isPending} loadingText='Đang hỏi SePay…' disabled={wait > 0} onClick={run}>
+                {wait > 0 ? `Đối soát lại (${wait}s)` : 'Đối soát lại'}</Button>
+            <span className='vt-mg-soon'>Hỏi lại SePay cho đơn này</span>
+        </div>
+        {res && <div role='status' className={'vt-mg-result vt-mg-result--' + RECONCILE_TONE[res.result]}>{res.message}</div>}
+        {err && <div role='alert' className='vt-mg-result vt-mg-result--err'>{errorText(err, 'Không đối soát được. Thử lại sau.')}</div>}
+    </div>;
 }
 
 function TxDetail({inv}: {inv: string}) {
@@ -48,6 +96,8 @@ function TxDetail({inv}: {inv: string}) {
             <dt>Mã giao dịch</dt><dd className='vt-num'>{t.sepay_transaction_id || '—'}</dd>
             <dt>Tiền nhận</dt><dd className='vt-num'>{t.received === null ? '—' : formatMoney(t.received)}</dd>
             <dt>Tạo lúc</dt><dd className='vt-num'>{formatDateTime(t.created_at)}</dd>
+            {t.paid_at && <><dt>Thanh toán lúc</dt><dd className='vt-num'>{formatDateTime(t.paid_at)}</dd></>}
+            <dt>Số lần SePay báo</dt><dd className='vt-num'>{t.ipn_count}</dd>
         </dl>
         <hr className='vt-mg-sep'/>
         <ol className='vt-mg-timeline' aria-label='Dòng thời gian'>
@@ -67,10 +117,7 @@ function TxDetail({inv}: {inv: string}) {
             <summary>Dữ liệu SePay lưu trên đơn</summary>
             <pre>{t.raw_ipn ? JSON.stringify(t.raw_ipn, null, 2) : 'Chưa có dữ liệu SePay.'}</pre>
         </details>
-        <div className='vt-mg-actions'>
-            <Button size='sm' disabled aria-describedby='soon-reconcile'>Đối soát lại</Button>
-            <span id='soon-reconcile' className='vt-mg-soon'>Sắp có — hỏi lại SePay cho đơn này</span>
-        </div>
+        {t.can_reconcile && <ReconcileAction inv={t.invoice_number}/>}
         {t.user && <Link to={'/manage/users?group=all&id=' + encodeURIComponent(t.user.id)} className={buttonClass({variant: 'ghost'})}>Xem học sinh</Link>}
     </Card>;
 }
