@@ -9,6 +9,7 @@ import ResultPage from './exam/ResultPage';
 import ReviewPage from './exam/ReviewPage';
 import HistoryPage from './exam/HistoryPage';
 import ImportExam from './exam-creation/ImportExam';
+import ImportGuide from './exam-creation/ImportGuide';
 import DrawExam from './exam-creation/DrawExam';
 import CreateFromBank from './exam-creation/CreateFromBank';
 import BankList from './question-bank/BankList';
@@ -80,6 +81,7 @@ export default function AuthenticateView() {
               <Route path='/edit-exam/:examId' element={<CreateExam/>}/>
               <Route path='/create-exam' element={<CreateExam/>}/>
               <Route path='/import-exam' element={<ImportExam/>}/>
+              <Route path='/import-exam/loi-thuong-gap' element={<ImportGuide/>}/>
               <Route path='/create-from-bank' element={<CreateFromBank/>}/>
               <Route path='/draw-exam' element={<DrawExam/>}/>
               <Route path='/draw-exam/:subject' element={<DrawExam/>}/>

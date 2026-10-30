@@ -39,10 +39,10 @@ const renderScreen = (path = '/import-exam?bank=B1') => render(
     </QueryClientProvider>
 );
 
-async function loadFile(exam: unknown = EXAM) {
-    vi.spyOn(Api, 'upload').mockResolvedValue({exams: [exam], warnings: []});
+async function loadFile(exam: unknown = EXAM, issues: unknown[] = []) {
+    vi.spyOn(Api, 'upload').mockResolvedValue({exams: [exam], issues});
     const input = document.querySelector('input[type=file]') as HTMLInputElement;
-    fireEvent.change(input, {target: {files: [new File(['x'], 'de.docx')]}});
+    fireEvent.change(input, {target: {files: [new File(['PK'], 'de.docx')]}});
     await screen.findByText(/Đọc được 1 đề/);
 }
 
@@ -82,8 +82,8 @@ describe('ImportExam: feedback', () => {
         const withImg = examOf({...mc('Q1', 'Q1A'), data: {...mc('Q1', 'Q1A').data, question: `<p>x<img src="${IMG}"></p>`}});
         const sent = mockPost();
         renderScreen();
-        const up = vi.spyOn(Api, 'upload').mockResolvedValueOnce({exams: [withImg], warnings: []});
-        fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['x'], 'de.docx')]}});
+        const up = vi.spyOn(Api, 'upload').mockResolvedValueOnce({exams: [withImg], issues: []});
+        fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['PK'], 'de.docx')]}});
         await screen.findByText(/Đọc được 1 đề/);
 
         up.mockRejectedValueOnce(new TypeError('fetch'));
@@ -289,16 +289,204 @@ describe('ImportExam: bản gốc PDF (SPT-70)', () => {
         vi.spyOn(Api, 'uploadBlob').mockRejectedValue({code: 503, error: 'x'});
         renderScreen();
         await loadFile();
-        await screen.findByText('Không có bản gốc cho file này.');
+        await screen.findByText('Không có bản gốc cho file này');
         expect(saveButton().disabled).toBe(false);
     });
 
-    it('phone: no PDF call, no pane', async () => {
+    it('phone: also asks for the PDF, but shows it only on the "Bản gốc" tab', async () => {
         desktop(false);
-        const blob = vi.spyOn(Api, 'uploadBlob');
+        const blob = vi.spyOn(Api, 'uploadBlob').mockResolvedValue(new Blob(['%PDF']));
         renderScreen();
         await loadFile();
-        expect(blob).not.toHaveBeenCalled();
+        await vi.waitFor(() => expect(blob).toHaveBeenCalledWith('import_docx/pdf', expect.any(File)));
         expect(document.querySelector('iframe')).toBeNull();
+        fireEvent.click(screen.getByRole('tab', {name: 'Bản gốc'}));
+        expect(document.querySelector('iframe')?.getAttribute('src')).toBe('blob:pdf-1');
+        expect(screen.getByText('Mở bản gốc toàn màn hình')).toBeTruthy();
+        fireEvent.click(screen.getByRole('tab', {name: 'Đã đọc'}));
+        expect(document.querySelector('iframe')).toBeNull();
+    });
+});
+
+// ── Nhập đề v2 (SPT-93): coded warnings, the save gate, paste answers ─────────────────
+const issue = (over: Record<string, unknown>) => ({
+    code: 'COUNT_MISMATCH', level: 'error', exam_id: 'E1', section_index: null, question_id: null, question_no: null,
+    message: 'Đề ghi 2 câu, hệ thống đọc được 1 câu', ...over,
+});
+const SEVERE = issue({});
+const LIGHT = issue({code: 'RAW_LATEX', level: 'warning', question_id: 'Q1', question_no: 1, message: 'Câu 1: có công thức gõ thô'});
+const seeButton = () => screen.getByText('Đã xem, cho phép lưu');
+
+describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
+    it('a Nhẹ warning is shown with its level in words and never blocks', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(EXAM, [LIGHT]);
+        expect(saveButton().disabled).toBe(false);
+        // once in the list, once as the chip on the question itself
+        expect(screen.getAllByText('Nhẹ')).toHaveLength(2);
+        expect(screen.getByText('Công thức gõ thô')).toBeTruthy();
+    });
+
+    it('a Nặng warning disables both buttons with a spoken reason, "Đã xem" lifts it', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(EXAM, [SEVERE, LIGHT]);
+        const draft = screen.getByText(/Tạo thẳng 1 đề/).closest('button')!;
+        expect(saveButton().disabled).toBe(true);
+        expect(draft.disabled).toBe(true);
+        expect(screen.getByRole('alert').textContent).toContain('Còn 1 cảnh báo nặng chưa xem');
+
+        fireEvent.click(seeButton());
+        expect(saveButton().disabled).toBe(false);
+        expect(draft.disabled).toBe(false);
+        expect(screen.getByText(/Đã xem 1 cảnh báo nặng. 1 cảnh báo nhẹ không chặn/)).toBeTruthy();
+    });
+
+    it('draft-only screen (no bank): the gate applies there too', async () => {
+        mockPost();
+        renderScreen('/import-exam?folder=F1');
+        await loadFile(EXAM, [SEVERE]);
+        const create = screen.getByText(/Tạo 1 đề nháp/).closest('button')!;
+        expect(create.disabled).toBe(true);
+        fireEvent.click(seeButton());
+        expect(create.disabled).toBe(false);
+    });
+
+    it('each Nặng warning needs its own confirmation', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(EXAM, [SEVERE, issue({code: 'EMPTY_SECTION', message: 'Phần IV: không đọc được câu nào'})]);
+        fireEvent.click(screen.getAllByText('Đã xem, cho phép lưu')[0]);
+        expect(saveButton().disabled).toBe(true);
+        fireEvent.click(seeButton());
+        expect(saveButton().disabled).toBe(false);
+    });
+
+    it('unticking the exam with the Nặng warning lifts the gate; "Cách sửa" opens the guide anchor in a new tab', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(EXAM, [SEVERE]);
+        const fix = screen.getByText('Cách sửa').closest('a')!;
+        // B4: the bank (or folder) travels with the link
+        expect(fix.getAttribute('href')).toBe('/import-exam/loi-thuong-gap?bank=B1#mat-cau');
+        expect(fix.getAttribute('target')).toBe('_blank');
+        fireEvent.click(screen.getByLabelText('Chọn Đề thử 1'));
+        expect(screen.queryByText(/cảnh báo nặng chưa xem/)).toBeNull();
+    });
+
+    it('"Đánh số lại" drops the number-jump warnings of that exam', async () => {
+        mockPost();
+        renderScreen();
+        const gap = issue({code: 'NUMBER_GAP', level: 'warning', question_id: 'Q1', message: 'sau câu 5 là câu 7'});
+        await loadFile(EXAM, [gap]);
+        expect(screen.getByText('sau câu 5 là câu 7')).toBeTruthy();
+        fireEvent.click(screen.getByText('Đánh số lại câu'));
+        fireEvent.click(screen.getByText('Đánh số lại', {selector: 'button'}));
+        expect(screen.queryByText('sau câu 5 là câu 7')).toBeNull();
+    });
+});
+
+describe('ImportExam: Dán đáp án nhanh', () => {
+    it('previews per question, applies only on confirm, and the applied key reaches the BE', async () => {
+        const sent = mockPost({
+            'import_docx/answers': () => ({answers: {Q1: {correctAnswerId: 'Q1B'}}, applied: 1,
+                issues: [{code: 'PASTE_OUT_OF_RANGE', level: 'warning', message: 'Câu 40: phần này chỉ có 1 câu'}]}),
+        });
+        renderScreen();
+        await loadFile(examOf(mc('Q1')));
+
+        fireEvent.click(screen.getByText('Dán đáp án nhanh'));
+        fireEvent.change(screen.getByLabelText('Chuỗi đáp án'), {target: {value: '1B 40B'}});
+        fireEvent.click(screen.getByText('Xem trước'));
+        await screen.findByText('Áp dụng 1 đáp án');
+        expect(screen.getByText('Thêm mới')).toBeTruthy();
+        expect(screen.getByText('Câu 40: phần này chỉ có 1 câu')).toBeTruthy();
+        // preview only: nothing written yet
+        expect(saveButton().disabled).toBe(true);
+
+        fireEvent.click(screen.getByText('Áp dụng 1 đáp án'));
+        expect(saveButton().disabled).toBe(false);
+        fireEvent.click(saveButton());
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        expect(sent[0].sections[0].questions[0].data.correctAnswerId).toBe('Q1B');
+    });
+
+    it('sends the question frame without images, in paper order', async () => {
+        const calls: any[] = [];
+        mockPost({'import_docx/answers': body => { calls.push(body); return {answers: {}, applied: 0, issues: []}; }});
+        renderScreen();
+        await loadFile(examOf(mc('Q1', 'Q1A'), tf('T1')));
+        fireEvent.click(screen.getByText('Dán đáp án nhanh'));
+        fireEvent.change(screen.getByLabelText('Chuỗi đáp án'), {target: {value: '1A'}});
+        fireEvent.click(screen.getByText('Xem trước'));
+        await vi.waitFor(() => expect(calls).toHaveLength(1));
+        expect(calls[0].text).toBe('1A');
+        expect(calls[0].questions).toEqual([
+            {id: 'Q1', type: 'MultipleChoice', answer_ids: ['Q1A', 'Q1B']},
+            {id: 'T1', type: 'TrueFalse', answer_ids: [], group: 'P'},
+        ]);
+    });
+});
+
+describe('ImportExam: QC round (B1, B4, B5, B12)', () => {
+    it('B1: a Đúng/Sai ý with no Đúng/Sai blocks the bank path with a spoken reason, then Dán đáp án lifts it', async () => {
+        mockPost();
+        renderScreen();
+        const unset = (id: string) => ({id, type: 'TrueFalse', data: {question: '<p>ý</p>', passage: '<p>d</p>', passageId: 'P'}});
+        await loadFile(examOf(unset('T1'), tf('T2'), tf('T3'), tf('T4')));
+        expect(saveButton().disabled).toBe(true);
+        expect(screen.getAllByText(/Còn 1 câu Đúng\/Sai chưa đặt Đúng\/Sai cho từng ý/).length).toBeGreaterThan(0);
+        expect(screen.getByText(/Chưa đặt Đúng\/Sai cho ý a/)).toBeTruthy();
+    });
+
+    it('B4: the upload page and the error link keep ?bank=', async () => {
+        renderScreen('/import-exam?bank=B1');
+        const link = screen.getByText('Lỗi thường gặp và cách sửa →').closest('a')!;
+        expect(link.getAttribute('href')).toBe('/import-exam/loi-thuong-gap?bank=B1');
+    });
+
+    it('B5: converting away and back restores the options and the key', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(examOf(mc('Q1', 'Q1B')));
+        const sel = () => screen.getAllByLabelText('Loại câu')[0];
+        fireEvent.change(sel(), {target: {value: 'FreeAnswer'}});
+        expect(screen.queryByLabelText(/Đáp án đúng của câu 1/)).toBeNull();
+        fireEvent.change(sel(), {target: {value: 'MultipleChoice'}});
+        expect((screen.getByLabelText('Đáp án đúng của câu 1: B') as HTMLInputElement).checked).toBe(true);
+    });
+
+    it('B5: a free-answer question that holds A–D can be split into options with one button', async () => {
+        const sent = mockPost();
+        renderScreen();
+        await loadFile(examOf({id: 'Q1', type: 'FreeAnswer', data: {question: '<p>Chất nào? A. HCl B. NaCl C. KCl D. H₂O</p>'}}));
+        fireEvent.click(screen.getByText('Đổi sang Trắc nghiệm và tách A–D'));
+        expect(screen.getByLabelText('Đáp án đúng của câu 1: D')).toBeTruthy();
+        fireEvent.click(screen.getByLabelText('Đáp án đúng của câu 1: B'));
+        fireEvent.click(saveButton());
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        expect(sent[0].sections[0].questions[0].data.answers).toHaveLength(4);
+    });
+
+    it('B5: turning a Đúng/Sai question into another type asks first, because it splits into 4', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(examOf(tf('T1'), tf('T2'), tf('T3'), tf('T4')));
+        fireEvent.change(screen.getAllByLabelText('Loại câu')[0], {target: {value: 'FillBlank'}});
+        expect(screen.getByText('Đổi dạng câu Đúng/Sai?')).toBeTruthy();
+        expect(screen.getByText('1 câu')).toBeTruthy();   // nothing changed yet
+        fireEvent.click(screen.getByText('Giữ nguyên'));
+        expect(screen.getByText('1 câu')).toBeTruthy();
+    });
+
+    it('B12: reading can be cancelled, and a non-zip file never reaches the BE', async () => {
+        const pdf = vi.spyOn(Api, 'uploadBlob');
+        const up = vi.spyOn(Api, 'upload');
+        renderScreen();
+        fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['hello'], 'x.docx')]}});
+        await screen.findByText('Không đọc được file');
+        expect(up).not.toHaveBeenCalled();
+        expect(pdf).not.toHaveBeenCalled();
     });
 });

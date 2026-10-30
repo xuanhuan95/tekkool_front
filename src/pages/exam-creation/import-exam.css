@@ -23,7 +23,7 @@
 .vt-imp-exam-name { flex: 1 1 240px; min-width: 0; }
 .vt-imp-exam-min { width: 120px; }
 .vt-imp-exam-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--vt-muted); }
-.vt-imp-split { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; margin-top: 12px; align-items: start; }
+.vt-imp-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; margin-top: 12px; align-items: start; }
 .vt-imp-col { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
 .vt-imp-col-head { font-family: var(--vt-font-hand); font-size: 20px; font-weight: 700; }
 .vt-imp-section { margin: 4px 0 0; font-size: 16px; font-weight: 700; padding-bottom: 6px; border-bottom: 1.5px solid var(--vt-line-option); }
@@ -62,14 +62,15 @@
 .vt-imp-explain > div { margin-top: 6px; }
 
 /* Right column = the Word file as PDF (SPT-70) */
-.vt-src-pdf { width: 100%; height: 70vh; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); background: var(--vt-paper); }
+.vt-imp-source { position: sticky; top: 72px; }
+.vt-src-pdf { width: 100%; height: 75vh; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); background: var(--vt-paper); }
 .vt-src-empty { padding: 12px; border: 1.5px dashed var(--vt-line-option); border-radius: var(--vt-r-btn); color: var(--vt-muted); font-size: 14px; }
 .vt-src-empty p { margin: 8px 0 0; }
 
 /* Phone/tablet (SPT-72): one column, no Word-source pane, save bar stays inside the viewport. */
 @media (max-width: 1023.98px) {
     .vt-imp-split { grid-template-columns: minmax(0, 1fr); }
-    .vt-imp-source { display: none; }
+    .vt-imp-source { position: static; }
     /* sits above the 68px bottom nav (.vt-bottomnav) */
     .vt-imp-bar { bottom: calc(68px + env(safe-area-inset-bottom)); padding: 10px 16px; border-bottom: 2px solid var(--vt-ink); }
     .vt-imp-bar > * { min-width: 0; }
@@ -79,3 +80,104 @@
     .vt-imp-q-type { width: 100%; }
     .vt-imp-words { max-width: none; }
 }
+
+/* Nhập đề v2 (SPT-93): steps, upload page, summary, warnings, guide. Tokens only. */
+.vt-imp-link { color: var(--vt-ink); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; min-height: 44px; display: inline-flex; align-items: center; }
+.vt-imp-link:hover { color: var(--vt-ink); }
+.vt-imp-h2 { margin: 0 0 12px; font-family: var(--vt-font-hand); font-weight: 700; font-size: 26px; line-height: 1.15; }
+.vt-imp-hint { font-size: 13px; color: var(--vt-muted); line-height: 1.5; }
+.vt-imp-steps { display: inline-flex; gap: 4px; margin: 0; padding: 4px; list-style: none; background: var(--vt-draft-bg); border-radius: 999px; align-self: flex-start; }
+.vt-imp-steps li { padding: 3px 14px; min-height: 36px; box-sizing: border-box; display: inline-flex; align-items: center; border: 2px solid transparent; border-radius: 999px;
+    font-family: var(--vt-font-hand); font-weight: 700; font-size: 18px; color: var(--vt-muted); }
+.vt-imp-steps li.on { background: var(--vt-card); border-color: var(--vt-ink); color: var(--vt-ink); }
+.vt-imp-num { width: 32px; height: 32px; flex-shrink: 0; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
+    border: 2px solid var(--vt-ink); border-radius: 999px; background: var(--vt-title-bg); font-family: var(--vt-font-hand); font-weight: 700; font-size: 20px; }
+
+.vt-imp-up { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.vt-imp-up-main { flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
+.vt-imp-up-side { flex: 1 1 340px; max-width: 420px; min-width: 0; display: flex; flex-direction: column; gap: 24px; }
+.vt-imp-up-side .vt-card { display: flex; flex-direction: column; gap: 12px; }
+.vt-imp-up-side .vt-imp-h2 { margin: 0; }
+.vt-imp-zone { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 40px 24px; text-align: center;
+    border: 2px dashed var(--vt-ink); border-radius: var(--vt-r-btn); background: var(--vt-paper); }
+.vt-imp-zone.over { background: var(--vt-title-bg); }
+.vt-imp-zone h2 { margin: 0; font-family: var(--vt-font-hand); font-weight: 700; font-size: 26px; }
+.vt-imp-ways { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 14px; }
+.vt-imp-way { flex: 1 1 200px; min-width: 0; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border: 2px solid var(--vt-ink); border-radius: var(--vt-r-btn); }
+.vt-imp-way .vt-imp-num { width: 28px; height: 28px; font-size: 18px; }
+.vt-imp-sample { padding: 10px 12px; background: var(--vt-paper); border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn);
+    font-family: 'Times New Roman', serif; font-size: 15px; line-height: 1.7; }
+.vt-imp-sample mark { background: var(--vt-sun); padding: 0 5px; }
+.vt-imp-dl { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 16px; box-sizing: border-box; font-weight: 600; color: var(--vt-ink);
+    text-decoration: none; background: var(--vt-card); border: 2px solid var(--vt-ink); border-radius: var(--vt-r-btn); }
+.vt-imp-dl:hover { background: var(--vt-paper); }
+.vt-imp-rules { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 14px; }
+.vt-imp-rules li { display: flex; gap: 12px; align-items: flex-start; }
+.vt-imp-rules li > div { display: flex; flex-direction: column; gap: 2px; }
+
+.vt-imp-body { display: flex; flex-direction: column; gap: 16px; margin-top: 12px; }
+.vt-imp-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.vt-imp-tile { display: flex; flex-direction: column; gap: 2px; padding: 10px 14px; background: var(--vt-card); border: 2px solid var(--vt-ink); border-radius: var(--vt-r-btn); }
+.vt-imp-tile-label { font-size: 12px; font-weight: 600; color: var(--vt-muted); }
+.vt-imp-tile-value { font-family: var(--vt-font-hand); font-weight: 700; font-size: 28px; line-height: 1.05; }
+.vt-imp-tile-value.ok { color: var(--vt-ok-ink); }
+.vt-imp-tile-value.sun { color: var(--vt-sun-ink); }
+.vt-imp-tile-value.err { color: var(--vt-err); }
+.vt-imp-tile-note { font-size: 13px; color: var(--vt-muted); }
+
+.vt-imp-issues ul { margin: 0; padding: 0; list-style: none; }
+.vt-imp-issues li { display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap; padding: 6px 0; border-top: 1.5px solid var(--vt-line-option); }
+.vt-imp-issue-text { flex: 1 1 260px; min-width: 0; font-size: 14px; line-height: 1.4; }
+.vt-imp-issue-acts { display: flex; align-items: center; gap: 4px 12px; flex-wrap: wrap; }
+.vt-imp-issues .vt-imp-h2 { font-size: 22px; margin-bottom: 4px; }
+
+.vt-imp-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.vt-imp-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
+.vt-imp-q.has-warn { background: var(--vt-sun-soft); border-color: var(--vt-sun); }
+.vt-imp-q.has-err { background: var(--vt-err-bg); border-color: var(--vt-err); }
+.vt-imp-missing { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 14px; font-size: 14px;
+    border: 2px dashed var(--vt-err); background: var(--vt-err-bg); border-radius: var(--vt-r-btn); }
+.vt-imp-paste-sum { margin: 12px 0 8px; font-size: 14px; }
+.vt-imp-paste-bad { margin: 8px 0 0; padding: 0; list-style: none; font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
+
+.vt-guide { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 24px; align-items: start; }
+.vt-guide-nav { position: sticky; top: 72px; display: flex; flex-direction: column; gap: 2px; }
+.vt-guide-nav .vt-imp-link { text-decoration: none; padding: 0 8px; }
+.vt-guide-nav .vt-imp-link.on { text-decoration: underline; }
+.vt-guide-list { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.vt-guide-item { scroll-margin-top: 72px; }
+.vt-guide-item h2 { margin: 0 0 8px; font-family: var(--vt-font-hand); font-weight: 700; font-size: 26px; }
+.vt-guide-item dt { margin-top: 10px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--vt-muted); }
+.vt-guide-item dd { margin: 2px 0 0; font-size: 15px; line-height: 1.6; }
+.vt-guide-item ol { margin: 0; padding-left: 20px; }
+.vt-guide-eg { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin-top: 14px; }
+.vt-guide-eg > div { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; padding: 10px 12px; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); }
+.vt-guide-eg code { font-family: 'Times New Roman', serif; font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
+.vt-guide-end { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+@media (max-width: 1023.98px) {
+    .vt-guide { grid-template-columns: minmax(0, 1fr); }
+    .vt-guide-nav { position: static; }
+    .vt-imp-tiles { grid-template-columns: repeat(2, 1fr); }
+    .vt-imp-steps { max-width: 100%; overflow-x: auto; }
+    .vt-imp-steps li { padding: 3px 10px; white-space: nowrap; }
+}
+
+.vt-imp-paste-rows { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.vt-imp-paste-rows li { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; padding: 8px 12px; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); }
+.vt-imp-paste-change { flex-basis: 100%; font-size: 14px; word-break: break-word; }
+/* 44px touch area around the 22px radio / checkbox; the control itself keeps its look (rule 8) */
+.vt-imp-hit { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; cursor: pointer; flex-shrink: 0; }
+.vt-imp-answer .vt-imp-hit input { margin-top: 0; }
+.vt-imp-remove { min-width: 44px; min-height: 44px; }
+.vt-imp-body .vt-pill { min-height: 44px; }
+.vt-imp-split-btn { align-self: flex-start; }
+
+@media (max-width: 1023.98px) {
+    /* Phone (B2): the save bar is one row of buttons + ONE line of hint, and the bank stock card steps aside. */
+    .vt-imp-bar { gap: 6px 8px; padding: 8px 12px; }
+    .vt-imp-bar-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-basis: 100%; font-size: 12px; }
+    .vt-imp-bank .vt-imp-chips { display: none; }
+    .vt-imp { padding-bottom: 150px; }
+}
+.vt-imp-hit input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--vt-action); }
