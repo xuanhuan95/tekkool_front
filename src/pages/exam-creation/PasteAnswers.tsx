@@ -1,7 +1,6 @@
 import {useState} from 'react';
 
-import {Badge, Button, Modal, Table, TextArea} from '../../components/ui';
-import type {Column} from '../../components/ui';
+import {Badge, Button, Modal, TextArea} from '../../components/ui';
 import Api from '../../services/api';
 import {errorText} from '../../lib/format';
 import {answerFrame, pasteRows} from './importRules';
@@ -37,14 +36,6 @@ export default function PasteAnswers({exam, open, onClose, onApply}: {
 
     const rows = reply ? pasteRows(exam, reply.answers) : [];
     const count = (s: PasteRow['status']) => rows.filter(r => r.status === s).length;
-    const columns: Column<PasteRow>[] = [
-        {key: 'no', header: 'Câu', render: r => 'Câu ' + r.no},
-        {key: 'type', header: 'Dạng', render: r => TYPE_NAME[r.type] || r.type},
-        {key: 'now', header: 'Hiện tại', render: r => r.now || 'Chưa có'},
-        {key: 'next', header: 'Sẽ thành', render: r => r.next},
-        {key: 'status', header: 'Kết quả', render: r => <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].text}</Badge>},
-    ];
-
     return <Modal open={open} onClose={close} title='Dán đáp án nhanh' size='md'
                   footer={<>
                       <Button variant='secondary' onClick={close}>Huỷ</Button>
@@ -62,7 +53,14 @@ export default function PasteAnswers({exam, open, onClose, onApply}: {
             <p className='vt-imp-paste-sum'>
                 <b>{count('new')}</b> thêm mới · <b>{count('change')}</b> đổi · <b>{count('same')}</b> giữ nguyên · <b>{reply.issues.length}</b> lỗi, sẽ bỏ qua
             </p>
-            {rows.length > 0 && <Table<PasteRow> caption='Xem trước đáp án' columns={columns} rows={rows} rowKey={r => String(r.no)} bare/>}
+            {/* One card per question: a table loses its last columns at 390px. */}
+            {rows.length > 0 && <ul className='vt-imp-paste-rows' aria-label='Xem trước đáp án'>
+                {rows.map(r => <li key={r.no}>
+                    <b>Câu {r.no}</b> <span className='vt-imp-hint'>{TYPE_NAME[r.type] || r.type}</span>
+                    <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].text}</Badge>
+                    <span className='vt-imp-paste-change'>{r.now || 'Chưa có'} → <b>{r.next}</b></span>
+                </li>)}
+            </ul>}
             {reply.issues.length > 0 && <ul className='vt-imp-paste-bad'>
                 {reply.issues.map((i, k) => <li key={k}><Badge tone='sun'>Bỏ qua</Badge> {i.message}</li>)}
             </ul>}

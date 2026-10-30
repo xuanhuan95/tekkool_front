@@ -160,5 +160,24 @@
     .vt-guide-nav { position: static; }
     .vt-imp-tiles { grid-template-columns: repeat(2, 1fr); }
     .vt-imp-steps { max-width: 100%; overflow-x: auto; }
-    .vt-imp-steps li { font-size: 16px; padding: 3px 10px; white-space: nowrap; }
+    .vt-imp-steps li { padding: 3px 10px; white-space: nowrap; }
 }
+
+.vt-imp-paste-rows { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.vt-imp-paste-rows li { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; padding: 8px 12px; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); }
+.vt-imp-paste-change { flex-basis: 100%; font-size: 14px; word-break: break-word; }
+/* 44px touch area around the 22px radio / checkbox; the control itself keeps its look (rule 8) */
+.vt-imp-hit { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; cursor: pointer; flex-shrink: 0; }
+.vt-imp-answer .vt-imp-hit input { margin-top: 0; }
+.vt-imp-remove { min-width: 44px; min-height: 44px; }
+.vt-imp-body .vt-pill { min-height: 44px; }
+.vt-imp-split-btn { align-self: flex-start; }
+
+@media (max-width: 1023.98px) {
+    /* Phone (B2): the save bar is one row of buttons + ONE line of hint, and the bank stock card steps aside. */
+    .vt-imp-bar { gap: 6px 8px; padding: 8px 12px; }
+    .vt-imp-bar-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-basis: 100%; font-size: 12px; }
+    .vt-imp-bank .vt-imp-chips { display: none; }
+    .vt-imp { padding-bottom: 150px; }
+}
+.vt-imp-hit input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--vt-action); }

@@ -1,20 +1,21 @@
 import {useEffect} from 'react';
-import {Link, useLocation} from 'react-router-dom';
+import {Link, useLocation, useSearchParams} from 'react-router-dom';
 
 import {Badge, Card, PageTitle, buttonClass, cx} from '../../components/ui';
-import {GUIDE} from './guideContent';
+import {GUIDE, ctxQuery} from './guideContent';
 import './import-exam.css';
 
 /** "Lỗi thường gặp" (IV2-LoiThuongGap): symptom → cause → how to fix the Word file, one anchor per entry. */
 export default function ImportGuide() {
     const {hash} = useLocation();
+    const back = '/import-exam' + ctxQuery(useSearchParams()[0]);   // keep ?bank= / ?folder=
     // The router does not scroll to #anchor by itself.
     useEffect(() => { if (hash) document.getElementById(hash.slice(1))?.scrollIntoView({block: 'start'}); }, [hash]);
 
     return <div className='vt-imp'>
         <div className='vt-imp-head'>
             <div>
-                <Link to='/import-exam' className='vt-imp-link'>← Nhập đề từ file Word</Link>
+                <Link to={back} className='vt-imp-link'>← Nhập đề từ file Word</Link>
                 <PageTitle>Lỗi thường gặp khi nhập đề</PageTitle>
             </div>
         </div>
@@ -41,7 +42,7 @@ export default function ImportGuide() {
                 </Card>)}
                 <Card className='vt-guide-end'>
                     <b>Đã sửa file xong?</b>
-                    <Link to='/import-exam' className={buttonClass({variant: 'primary'})}>Nhập lại file</Link>
+                    <Link to={back} className={buttonClass({variant: 'primary'})}>Nhập lại file</Link>
                 </Card>
             </div>
         </div>

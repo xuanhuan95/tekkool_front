@@ -42,7 +42,7 @@ const renderScreen = (path = '/import-exam?bank=B1') => render(
 async function loadFile(exam: unknown = EXAM, issues: unknown[] = []) {
     vi.spyOn(Api, 'upload').mockResolvedValue({exams: [exam], issues});
     const input = document.querySelector('input[type=file]') as HTMLInputElement;
-    fireEvent.change(input, {target: {files: [new File(['x'], 'de.docx')]}});
+    fireEvent.change(input, {target: {files: [new File(['PK'], 'de.docx')]}});
     await screen.findByText(/Đọc được 1 đề/);
 }
 
@@ -83,7 +83,7 @@ describe('ImportExam: feedback', () => {
         const sent = mockPost();
         renderScreen();
         const up = vi.spyOn(Api, 'upload').mockResolvedValueOnce({exams: [withImg], issues: []});
-        fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['x'], 'de.docx')]}});
+        fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['PK'], 'de.docx')]}});
         await screen.findByText(/Đọc được 1 đề/);
 
         up.mockRejectedValueOnce(new TypeError('fetch'));
@@ -368,7 +368,8 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
         renderScreen();
         await loadFile(EXAM, [SEVERE]);
         const fix = screen.getByText('Cách sửa').closest('a')!;
-        expect(fix.getAttribute('href')).toBe('/import-exam/loi-thuong-gap#mat-cau');
+        // B4: the bank (or folder) travels with the link
+        expect(fix.getAttribute('href')).toBe('/import-exam/loi-thuong-gap?bank=B1#mat-cau');
         expect(fix.getAttribute('target')).toBe('_blank');
         fireEvent.click(screen.getByLabelText('Chọn Đề thử 1'));
         expect(screen.queryByText(/cảnh báo nặng chưa xem/)).toBeNull();
@@ -425,5 +426,67 @@ describe('ImportExam: Dán đáp án nhanh', () => {
             {id: 'Q1', type: 'MultipleChoice', answer_ids: ['Q1A', 'Q1B']},
             {id: 'T1', type: 'TrueFalse', answer_ids: [], group: 'P'},
         ]);
+    });
+});
+
+describe('ImportExam: QC round (B1, B4, B5, B12)', () => {
+    it('B1: a Đúng/Sai ý with no Đúng/Sai blocks the bank path with a spoken reason, then Dán đáp án lifts it', async () => {
+        mockPost();
+        renderScreen();
+        const unset = (id: string) => ({id, type: 'TrueFalse', data: {question: '<p>ý</p>', passage: '<p>d</p>', passageId: 'P'}});
+        await loadFile(examOf(unset('T1'), tf('T2'), tf('T3'), tf('T4')));
+        expect(saveButton().disabled).toBe(true);
+        expect(screen.getAllByText(/Còn 1 câu Đúng\/Sai chưa đặt Đúng\/Sai cho từng ý/).length).toBeGreaterThan(0);
+        expect(screen.getByText(/Chưa đặt Đúng\/Sai cho ý a/)).toBeTruthy();
+    });
+
+    it('B4: the upload page and the error link keep ?bank=', async () => {
+        renderScreen('/import-exam?bank=B1');
+        const link = screen.getByText('Lỗi thường gặp và cách sửa →').closest('a')!;
+        expect(link.getAttribute('href')).toBe('/import-exam/loi-thuong-gap?bank=B1');
+    });
+
+    it('B5: converting away and back restores the options and the key', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(examOf(mc('Q1', 'Q1B')));
+        const sel = () => screen.getAllByLabelText('Loại câu')[0];
+        fireEvent.change(sel(), {target: {value: 'FreeAnswer'}});
+        expect(screen.queryByLabelText(/Đáp án đúng của câu 1/)).toBeNull();
+        fireEvent.change(sel(), {target: {value: 'MultipleChoice'}});
+        expect((screen.getByLabelText('Đáp án đúng của câu 1: B') as HTMLInputElement).checked).toBe(true);
+    });
+
+    it('B5: a free-answer question that holds A–D can be split into options with one button', async () => {
+        const sent = mockPost();
+        renderScreen();
+        await loadFile(examOf({id: 'Q1', type: 'FreeAnswer', data: {question: '<p>Chất nào? A. HCl B. NaCl C. KCl D. H₂O</p>'}}));
+        fireEvent.click(screen.getByText('Đổi sang Trắc nghiệm và tách A–D'));
+        expect(screen.getByLabelText('Đáp án đúng của câu 1: D')).toBeTruthy();
+        fireEvent.click(screen.getByLabelText('Đáp án đúng của câu 1: B'));
+        fireEvent.click(saveButton());
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        expect(sent[0].sections[0].questions[0].data.answers).toHaveLength(4);
+    });
+
+    it('B5: turning a Đúng/Sai question into another type asks first, because it splits into 4', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(examOf(tf('T1'), tf('T2'), tf('T3'), tf('T4')));
+        fireEvent.change(screen.getAllByLabelText('Loại câu')[0], {target: {value: 'FillBlank'}});
+        expect(screen.getByText('Đổi dạng câu Đúng/Sai?')).toBeTruthy();
+        expect(screen.getByText('1 câu')).toBeTruthy();   // nothing changed yet
+        fireEvent.click(screen.getByText('Giữ nguyên'));
+        expect(screen.getByText('1 câu')).toBeTruthy();
+    });
+
+    it('B12: reading can be cancelled, and a non-zip file never reaches the BE', async () => {
+        const pdf = vi.spyOn(Api, 'uploadBlob');
+        const up = vi.spyOn(Api, 'upload');
+        renderScreen();
+        fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['hello'], 'x.docx')]}});
+        await screen.findByText('Không đọc được file');
+        expect(up).not.toHaveBeenCalled();
+        expect(pdf).not.toHaveBeenCalled();
     });
 });

@@ -18,7 +18,7 @@ const WAYS: Array<[string, string, ReactNode]> = [
 ];
 
 /** Step 1 (IV2-TaiLen): drop zone + how to write the Word file. Never reads the file itself — hands it to `onFile`. */
-export default function ImportUpload({onFile, pick}: {onFile: (f: File) => void; pick: () => void}) {
+export default function ImportUpload({onFile, pick, ctx}: {onFile: (f: File) => void; pick: () => void; ctx: string}) {
     const [over, setOver] = useState(false);
     const drop = (e: DragEvent) => {
         e.preventDefault(); setOver(false);
@@ -63,7 +63,7 @@ export default function ImportUpload({onFile, pick}: {onFile: (f: File) => void;
                     {RULES.map(([t, d], i) => <li key={t}><span className='vt-imp-num'>{i + 1}</span>
                         <div><b>{t}</b><span className='vt-imp-hint'>{d}</span></div></li>)}
                 </ol>
-                <Link to={GUIDE_PATH} className='vt-imp-link'>Lỗi thường gặp và cách sửa →</Link>
+                <Link to={GUIDE_PATH + ctx} className='vt-imp-link'>Lỗi thường gặp và cách sửa →</Link>
             </Card>
         </div>
     </div>;

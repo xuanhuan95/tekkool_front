@@ -1,4 +1,5 @@
 import {useEffect, useRef, useState} from 'react';
+import type {MutableRefObject} from 'react';
 import type {ChangeEvent} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
@@ -17,13 +18,13 @@ import {errorText, formatDecimal} from '../../lib/format';
 import {DESKTOP, useMediaQuery} from '../useMediaQuery';
 import {blockLabel} from './blockTypes';
 import {
-    applyPasted, badTrueFalse, countQuestions, examIssues, examStats, fileProblem, importErrorText, isBadTrueFalse, isChoice,
-    isMissingKey, isSevere, issueKey, missingKeys, missingNumbers, numberedUnits, patchData, patchQuestion, removeQuestions, saveBlocker,
-    setAnswer, setPassage, setType, toUnits, unseenSevere, TRUE_FALSE_STATEMENTS,
-    type DuplicateInfo, type ImportIssue, type ImportedExam, type NumberedUnit, type PastedAnswers, type QuestionUnit,
+    plain as plainText, applyPasted, badTrueFalse, countQuestions, examIssues, examStats, fileProblem, importErrorText, isBadTrueFalse, isChoice,
+    isMissingKey, isSevere, issueKey, missingKeys, missingNumbers, missingTfStatements, numberedUnits, patchData, patchQuestion, removeQuestions,
+    saveBlocker, setAnswer, setPassage, setType, splitOptions, toUnits, unseenSevere, TRUE_FALSE_STATEMENTS,
+    type DuplicateInfo, type ImportIssue, type ImportedExam, type NumberedUnit, type PastedAnswers, type QuestionUnit, type Stash,
 } from './importRules';
 import {withDefaultScores} from './examRules';
-import {GUIDE_PATH, issueLabel} from './guideContent';
+import {GUIDE_PATH, ctxQuery, issueLabel} from './guideContent';
 import {IssueList, LevelBadge, SummaryBar} from './ImportIssues';
 import ImportUpload from './ImportUpload';
 import PasteAnswers from './PasteAnswers';
@@ -75,10 +76,13 @@ type UnitCardProps = {
     duplicates: Record<string, DuplicateInfo>;
     /** Coded warnings of THIS question (SPT-93). */
     issues: ImportIssue[];
+    /** Original data of questions the teacher converted, so converting back restores the options / answer. */
+    stash: MutableRefObject<Stash>;
 };
 
-function UnitCard({unit, no, edit, showPassage, duplicates, issues}: UnitCardProps) {
+function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: UnitCardProps) {
     const [confirmRemove, setConfirmRemove] = useState(false);
+    const [splitTo, setSplitTo] = useState<string | null>(null);
     const first = unit.questions[0];
     const ids = unit.questions.map(q => q.id);
     const isTf = first.type === 'TrueFalse';
@@ -87,6 +91,26 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues}: UnitCardPro
     const dup = unit.questions.map(q => duplicates[q.id]).filter(Boolean).sort((a, b) => b.score - a.score)[0];
 
     const severe = issues.some(isSevere);
+    const noTf = missingTfStatements(unit);
+    const split = !isChoice(first) && !isTf ? splitOptions(first.data.question || '') : null;
+
+    // Converting loses the old type's own data: keep it, and put it back when the teacher converts back.
+    const convert = (type: string, after?: (e: ImportedExam) => ImportedExam) => {
+        const kept = stash.current[first.id] || (stash.current[first.id] = {type: first.type, data: first.data});
+        edit(e => {
+            let next = setType(e, ids, type);
+            if (ids.length === 1 && kept.type === type) {
+                const {answers, correctAnswerId, answer} = kept.data;
+                next = patchQuestion(next, first.id, q => ({...q, data: {...q.data, ...(answers && {answers}), ...(correctAnswerId && {correctAnswerId}), ...(answer !== undefined && {answer})}}));
+            }
+            return after ? after(next) : next;
+        });
+    };
+    const changeType = (type: string) => {
+        if (type === first.type) return;
+        // 4 ý become 4 separate questions: ask first.
+        if (isTf && unit.questions.length > 1) setSplitTo(type); else convert(type);
+    };
 
     return <div id={'imp-' + first.id} className={cx('vt-imp-q', noKey && 'bad-key', badTf && 'bad-tf', issues.length > 0 && (severe ? 'has-err' : 'has-warn'))}>
         {showPassage && first.data.passage !== undefined && <div className='vt-imp-passage'>
@@ -99,9 +123,10 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues}: UnitCardPro
         <div className='vt-imp-q-head'>
             <b>Câu {no}</b>
             <Select label='Loại câu' className='vt-imp-q-type' value={first.type}
-                    onChange={ev => edit(e => setType(e, ids, ev.target.value))}
+                    onChange={ev => changeType(ev.target.value)}
                     options={QUESTION_TYPES}/>
             {noKey && <span className='vt-imp-flag err'>Chưa có đáp án đúng — chọn một phương án</span>}
+            {noTf.length > 0 && <span className='vt-imp-flag err'>Chưa đặt Đúng/Sai cho ý {noTf.join(', ')} — dùng “Dán đáp án nhanh” hoặc sửa file Word</span>}
             {badTf && <span className='vt-imp-flag warn'>
                 {unit.questions.length} ý — cần đủ {TRUE_FALSE_STATEMENTS} ý để chấm theo SPT
             </span>}
@@ -114,6 +139,15 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues}: UnitCardPro
                            onCancel={() => setConfirmRemove(false)}
                            onConfirm={() => { setConfirmRemove(false); edit(e => removeQuestions(e, ids)); }}/>
         </div>
+
+        {split && <Button variant='secondary' size='sm' className='vt-imp-split-btn'
+                          onClick={() => convert('MultipleChoice', e => patchData(e, first.id, {
+                              question: split.stem, answers: split.options.map((value, i) => ({id: first.id + '_' + 'ABCD'[i], value}))}))}>
+            Đổi sang Trắc nghiệm và tách A–D
+        </Button>}
+        <ConfirmDialog open={splitTo !== null} title='Đổi dạng câu Đúng/Sai?' cancelLabel='Giữ nguyên' confirmLabel='Đổi và tách'
+                       message={`Câu này có ${unit.questions.length} ý. Đổi dạng sẽ tách thành ${unit.questions.length} câu riêng, mất đề dẫn chung và đáp án Đúng/Sai của từng ý.`}
+                       onCancel={() => setSplitTo(null)} onConfirm={() => { const t = splitTo; setSplitTo(null); if (t) convert(t); }}/>
 
         {isTf
             ? unit.questions.map((q, i) => <div key={q.id} className='vt-imp-answer'>
@@ -143,9 +177,9 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues}: UnitCardPro
                 {isChoice(first) && (first.data.answers || []).map((a, i) => {
                     const on = first.data.correctAnswerId === a.id;
                     return <div key={a.id} className={cx('vt-imp-answer', on && 'on')}>
-                        <input type='radio' name={'ans-' + first.id} checked={on}
+                        <label className='vt-imp-hit'><input type='radio' name={'ans-' + first.id} checked={on}
                                aria-label={`Đáp án đúng của câu ${no}: ${String.fromCharCode(65 + i)}`}
-                               onChange={() => edit(e => patchData(e, first.id, {correctAnswerId: a.id}))}/>
+                               onChange={() => edit(e => patchData(e, first.id, {correctAnswerId: a.id}))}/></label>
                         <span className='vt-imp-answer-key'>{String.fromCharCode(65 + i)}.</span>
                         <div className='vt-imp-answer-body'>
                             <Editor text={a.value} disableReturn disableStyle
@@ -163,15 +197,16 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues}: UnitCardPro
 }
 
 type BodyProps = {
-    exam: ImportedExam; edit: Edit; duplicates: Record<string, DuplicateInfo>; pdf: PdfState; desktop: boolean;
+    ctx: string; exam: ImportedExam; edit: Edit; duplicates: Record<string, DuplicateInfo>; pdf: PdfState; desktop: boolean;
     issues: ImportIssue[]; seen: Record<string, boolean>; onSee: (i: ImportIssue) => void;
     renumbered: boolean; onRenumber: () => void;
 };
 
-function ExamBody({exam, edit, duplicates, pdf, desktop, issues, seen, onSee, renumbered, onRenumber}: BodyProps) {
+function ExamBody({ctx, exam, edit, duplicates, pdf, desktop, issues, seen, onSee, renumbered, onRenumber}: BodyProps) {
     const [tab, setTab] = useState<'doc' | 'src'>('doc');
     const [pasting, setPasting] = useState(false);
     const [renumbering, setRenumbering] = useState(false);
+    const stash = useRef<Stash>({});
     const numbered = numberedUnits(exam);
     const noOf = (qid: string) => numbered.find(x => x.unit.questions.some(q => q.id === qid))?.no;
     const gaps = renumbered ? [] : missingNumbers(exam);
@@ -188,7 +223,14 @@ function ExamBody({exam, edit, duplicates, pdf, desktop, issues, seen, onSee, re
         el.classList.add('flash');
         setTimeout(() => el.classList.remove('flash'), 1200);
     };
-    const jump = (i: ImportIssue) => i.question_id ? (noOf(i.question_id) ? 'câu ' + noOf(i.question_id) : null) : sectionEl(i) ? 'phần này' : null;
+    // "câu 21 (Phần II câu 1)": the BE messages count inside the section, the screen counts the whole exam.
+    const where = (qid: string) => {
+        const s = exam.sections.find(x => x.questions.some(q => q.id === qid));
+        const part = s && /^Phần\s+[IVX\d]+/i.exec(plainText(s.name));
+        const at = s ? toUnits(s.questions).findIndex(u => u.questions.some(q => q.id === qid)) + 1 : 0;
+        return part ? ` (${part[0]} câu ${at})` : '';
+    };
+    const jump = (i: ImportIssue) => i.question_id ? (noOf(i.question_id) ? 'câu ' + noOf(i.question_id) + where(i.question_id) : null) : sectionEl(i) ? 'phần này' : null;
     const go = (i: ImportIssue) => {
         setTab('doc');
         // After the tab switch the questions are in the DOM again.
@@ -201,7 +243,7 @@ function ExamBody({exam, edit, duplicates, pdf, desktop, issues, seen, onSee, re
     let no = 0;
     return <div className='vt-imp-body'>
         <SummaryBar exam={exam} issues={issues}/>
-        <IssueList issues={issues} seen={seen} onSee={onSee} jump={jump} onGo={go}/>
+        <IssueList issues={issues} seen={seen} onSee={onSee} jump={jump} onGo={go} ctx={ctx}/>
         {!desktop && <Tabs aria-label='Đã đọc hoặc bản gốc' block value={tab} onChange={setTab}
                            items={[{value: 'doc', label: 'Đã đọc'}, {value: 'src', label: 'Bản gốc'}]}/>}
         <div className='vt-imp-split'>
@@ -228,7 +270,7 @@ function ExamBody({exam, edit, duplicates, pdf, desktop, issues, seen, onSee, re
                                 <Badge tone='err'>Thiếu</Badge> <b>Câu {g.no}</b> có trong file Word nhưng hệ thống không đọc được.
                             </div>)}
                             <UnitCard unit={u} no={++no} edit={edit} showPassage={showPassage} duplicates={duplicates}
-                                      issues={mine}/>
+                                      issues={mine} stash={stash}/>
                         </div>;
                     })}
                 </div>)}
@@ -274,6 +316,7 @@ export default function ImportExam() {
     const folderId = params.get('folder') || pickedFolder || null;
     const navigate = useNavigate();
     const qc = useQueryClient();
+    const ctx = ctxQuery(params);   // ?bank= / ?folder= follows every link to the guide and back
 
     const banksQ = useBanks();
     const foldersQ = useFolders(!bankId);
@@ -327,6 +370,8 @@ export default function ImportExam() {
         setExams([]); setIssues([]); setSeen({}); setRenumbered({}); setDuplicates({});
         const bad = fileProblem(file);
         if (bad) { setProblem(bad); return; }
+        // A .docx is a zip ("PK"): anything else would only cost a 15 s PDF conversion that cannot work.
+        if (await file.slice(0, 2).text() !== 'PK') { setProblem(importErrorText('khong doc duoc file')); return; }
         setProblem(null); setReading(true);
         dropPdf();
         setPdf({status: 'loading'});
@@ -339,17 +384,37 @@ export default function ImportExam() {
         }, () => { if (mine === seq.current) setPdf({status: 'none'}); });
         try {
             const res = await Api.upload<{exams: ImportedExam[]; issues?: ImportIssue[]}>('import_docx/preview', file);
+            if (mine !== seq.current) return;   // cancelled while reading
             // Tick ALL by default: untick a few beats re-picking 20.
             setPicked(Object.fromEntries(res.exams.map(e => [e.id, true])));
             setOpenId(res.exams.length ? res.exams[0].id : null);
             setExams(res.exams);
             setIssues(res.issues || []);
         } catch (e) {
-            setProblem(importErrorText(errorText(e, 'không rõ nguyên nhân')));
+            if (mine === seq.current) setProblem(importErrorText(errorText(e, 'không rõ nguyên nhân')));
         } finally {
-            setReading(false);
+            if (mine === seq.current) setReading(false);
         }
     };
+    // The answer of a cancelled read is dropped by the `seq` check above.
+    const cancelRead = () => { seq.current++; dropPdf(); setReading(false); setPdf({status: 'idle'}); setFileName(''); };
+
+    // Leaving with a file read loses every edit and confirmation: ask (reload/close tab, and in-app links).
+    const [leaveTo, setLeaveTo] = useState<string | null>(null);
+    const dirty = exams.length > 0 && !saving;
+    useEffect(() => {
+        if (!dirty) return;
+        const bye = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
+        const click = (e: MouseEvent) => {
+            const a = (e.target as Element).closest?.('a[href]') as HTMLAnchorElement | null;
+            if (!a || a.target === '_blank' || a.origin !== location.origin || e.metaKey || e.ctrlKey) return;
+            e.preventDefault(); e.stopPropagation();
+            setLeaveTo(a.pathname + a.search + a.hash);
+        };
+        window.addEventListener('beforeunload', bye);
+        document.addEventListener('click', click, true);
+        return () => { window.removeEventListener('beforeunload', bye); document.removeEventListener('click', click, true); };
+    }, [dirty]);
     const upload = ({target}: ChangeEvent<HTMLInputElement>) => {
         const file = target.files && target.files[0];
         target.value = '';   // allow picking the very same file again
@@ -450,9 +515,9 @@ export default function ImportExam() {
             <div>
                 {!exams.length && !reading && <Link to={bankId ? '/question-bank' : '/'} className='vt-imp-link'>← {bankId ? 'Ngân hàng câu hỏi' : 'Môn & đề'}</Link>}
                 <PageTitle>Nhập đề từ file Word</PageTitle>
-                {context && <MetaChips items={[context]}/>}
+                <MetaChips items={[exams.length > 0 && fileName, context]}/>
             </div>
-            {(exams.length > 0 || problem) &&
+            {exams.length > 0 && !problem &&
                 <Button variant='secondary' disabled={busy} onClick={pickFile}>Chọn file khác</Button>}
         </div>
 
@@ -463,12 +528,13 @@ export default function ImportExam() {
             })}
         </ol>
 
-        {!exams.length && !reading && !problem && <ImportUpload onFile={readFile} pick={pickFile}/>}
+        {!exams.length && !reading && !problem && <ImportUpload onFile={readFile} pick={pickFile} ctx={ctx}/>}
 
         {reading && <Card className='vt-imp-drop' aria-live='polite'>
             <h2>Đang đọc {fileName}…</h2>
             <Skeleton height={14} width='70%'/><Skeleton height={14} width='50%'/>
             <p>Bản gốc dựng song song, file nhiều đề có thể mất khoảng 15 giây.</p>
+            <Button variant='secondary' onClick={cancelRead}>Huỷ</Button>
         </Card>}
 
         {(foldersQ.isError || banksQ.isError) &&
@@ -477,7 +543,7 @@ export default function ImportExam() {
 
         {problem && <ErrorState title={problem.startsWith('Chỉ nhận') ? 'Chưa đúng loại file' : problem.startsWith('File quá lớn') ? 'File quá lớn' : 'Không đọc được file'}
                                 retryLabel='Chọn file khác' onRetry={pickFile}
-                                description={<>{problem} <Link to={GUIDE_PATH} className='vt-imp-link'>Lỗi thường gặp</Link></>}/>}
+                                description={<>{problem.replace(/^Không đọc được file: /, '')} <Link to={GUIDE_PATH + ctx} className='vt-imp-link'>Lỗi thường gặp</Link></>}/>}
 
         {stock && total > 0 && <Card className='vt-imp-bank'>
             <div className='vt-imp-bank-head'>
@@ -521,9 +587,9 @@ export default function ImportExam() {
                     .filter(u => u.questions.some(q => duplicates[q.id])).length, 0);
                 return <div key={exam.id} className='vt-imp-exam'>
                     <div className='vt-imp-exam-row'>
-                        <input type='checkbox' className='vt-imp-check' checked={!!picked[exam.id]}
+                        <label className='vt-imp-hit'><input type='checkbox' checked={!!picked[exam.id]}
                                aria-label={'Chọn ' + exam.name}
-                               onChange={() => setPicked(p => ({...p, [exam.id]: !p[exam.id]}))}/>
+                               onChange={() => setPicked(p => ({...p, [exam.id]: !p[exam.id]}))}/></label>
                         <TextField label='Tên đề' className='vt-imp-exam-name' value={exam.name}
                                    onChange={ev => patchExam(exam.id)(e => ({...e, name: ev.target.value}))}/>
                         <TextField label='Phút' type='number' min={0} className='vt-imp-exam-min'
@@ -542,7 +608,7 @@ export default function ImportExam() {
                         <Button variant='secondary' size='sm' aria-expanded={open}
                                 onClick={() => setOpenId(open ? null : exam.id)}>{open ? 'Thu gọn' : 'Xem & sửa'}</Button>
                     </div>
-                    {open && <ExamBody exam={exam} edit={patchExam(exam.id)} duplicates={duplicates} pdf={pdf} desktop={desktop}
+                    {open && <ExamBody ctx={ctx} exam={exam} edit={patchExam(exam.id)} duplicates={duplicates} pdf={pdf} desktop={desktop}
                                        issues={mine} seen={seen} onSee={i => setSeen(m => ({...m, [issueKey(i)]: true}))}
                                        renumbered={!!renumbered[exam.id]} onRenumber={() => setRenumbered(m => ({...m, [exam.id]: true}))}/>}
                 </div>;
@@ -577,7 +643,7 @@ export default function ImportExam() {
                     ? blocker + ' — sửa ngay trong đề, hoặc sửa file Word rồi nhập lại.'
                     : problems && !bankId
                         ? problems + ' — vẫn tạo được đề nháp; phải sửa xong mới xuất bản được.'
-                    : sevenSeen > 0 && !saving ? `Đã xem ${sevenSeen} cảnh báo nặng. ${lightCount} cảnh báo nhẹ không chặn việc lưu.`
+                    : sevenSeen > 0 && !saving ? `Đã xem ${sevenSeen} cảnh báo nặng.${lightCount ? ` ${lightCount} cảnh báo nhẹ không chặn việc lưu.` : ''}`
                     : saving ? 'Lưu lần lượt từng đề, đừng đóng trang.'
                     : !bankId && !folderId
                         ? <>Chọn môn học để tạo đề. Muốn lưu vào ngân hàng thì vào <Link to='/question-bank'>Ngân hàng câu hỏi</Link> chọn một ngân hàng rồi bấm “Nhập đề”.</>
@@ -586,6 +652,10 @@ export default function ImportExam() {
                     : bankId ? 'Vào ngân hàng: cắt thành khối để sau này rút đề ngẫu nhiên.' : ''}
             </span>
         </Card>}
+
+        <ConfirmDialog open={leaveTo !== null} tone='danger' title='Rời trang này?' cancelLabel='Ở lại' confirmLabel='Rời đi'
+                       message='Đề đã đọc, các chỗ đã sửa và các cảnh báo đã xác nhận sẽ mất. Muốn làm tiếp thì phải chọn file và nhập lại.'
+                       onCancel={() => setLeaveTo(null)} onConfirm={() => { const to = leaveTo; setLeaveTo(null); setExams([]); if (to) setTimeout(() => navigate(to), 0); }}/>
 
         <ExamInfoModal exam={exams.find(e => e.id === infoId)} onClose={() => setInfoId(null)}
                        onJump={x => infoId && jumpTo(infoId, x)}/>

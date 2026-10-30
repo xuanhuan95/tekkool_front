@@ -83,8 +83,12 @@ const ANCHOR: Record<string, string> = {
 
 export const GUIDE_PATH = '/import-exam/loi-thuong-gap';
 
+/** `?bank=` / `?folder=` of the import screen, to carry to the guide and back (empty when neither is set). */
+export const ctxQuery = (p: URLSearchParams) =>
+    p.get('bank') ? '?bank=' + encodeURIComponent(p.get('bank')!) : p.get('folder') ? '?folder=' + encodeURIComponent(p.get('folder')!) : '';
+
 /** Where "Cách sửa" goes for a warning code, or null when the guide has nothing for it. */
-export const fixHref = (code: string) => ANCHOR[code] ? `${GUIDE_PATH}#${ANCHOR[code]}` : null;
+export const fixHref = (code: string, ctx = '') => ANCHOR[code] ? `${GUIDE_PATH}${ctx}#${ANCHOR[code]}` : null;
 
 /** Short name of a warning for the chip on the question card. */
 const LABEL: Record<string, string> = {

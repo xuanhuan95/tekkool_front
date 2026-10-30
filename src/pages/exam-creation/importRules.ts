@@ -16,7 +16,7 @@ export type ImportSection = {
 };
 
 /** `stats` of `import_docx/preview`: what the file DECLARES vs what the reader found (SPT-93). */
-export type ImportStats = {declared_questions?: number | null; total_score?: number | null};
+export type ImportStats = {declared_questions?: number | null; read_questions?: number | null; total_score?: number | null};
 
 export type ImportedExam = {
     id: string;
@@ -72,10 +72,17 @@ export function toUnits(questions: ImportQuestion[]): QuestionUnit[] {
 export const isBadTrueFalse = (u: QuestionUnit) =>
     u.questions[0].type === 'TrueFalse' && u.questions.length !== TRUE_FALSE_STATEMENTS;
 
-/** Q12: a pick-one question without a correct answer always scores 0. */
-export const isMissingKey = (u: QuestionUnit) => isChoice(u.questions[0]) && !u.questions[0].data.correctAnswerId;
+/** Q12: a pick-one question without a correct answer always scores 0 (the BE also refuses a key that points at no option). */
+export const isMissingKey = (u: QuestionUnit) => {
+    const d = u.questions[0].data;
+    return isChoice(u.questions[0]) && (!d.correctAnswerId || !(d.answers || []).some(a => a.id === d.correctAnswerId));
+};
 
-const plain = (html?: string) => String(html || '').replace(/<[^>]*>/g, '').trim();
+/** ý a), b)… of a Đúng/Sai question that have no Đúng/Sai set — the BE refuses to save these (`true_false_missing_answer`). */
+export const missingTfStatements = (u: QuestionUnit) =>
+    u.questions[0].type === 'TrueFalse' ? u.questions.flatMap((q, i) => typeof q.data.answer === 'boolean' ? [] : [String.fromCharCode(97 + i)]) : [];
+
+export const plain = (html?: string) => String(html || '').replace(/<[^>]*>/g, '').trim();
 
 export type NumberedUnit = {unit: QuestionUnit; no: number};
 
@@ -87,6 +94,8 @@ export function numberedUnits(exam: ImportedExam): NumberedUnit[] {
 export const countQuestions = (exam: ImportedExam) => numberedUnits(exam).length;
 
 export const missingKeys = (exam: ImportedExam) => numberedUnits(exam).filter(x => isMissingKey(x.unit)).length;
+
+export const missingTf = (exam: ImportedExam) => numberedUnits(exam).filter(x => missingTfStatements(x.unit).length).length;
 
 export const badTrueFalse = (exam: ImportedExam) => numberedUnits(exam).filter(x => isBadTrueFalse(x.unit)).length;
 
@@ -101,6 +110,7 @@ export function examStats(exam: ImportedExam) {
         ['Câu trắc nghiệm không đủ 4 lựa chọn',
             all.filter(x => choice(x) && (x.unit.questions[0].data.answers || []).length !== 4)],
         ['Câu Đúng/Sai không đủ 4 ý', all.filter(x => isBadTrueFalse(x.unit))],
+        ['Câu Đúng/Sai có ý chưa đặt Đúng/Sai', all.filter(x => missingTfStatements(x.unit).length)],
         ['Câu nội dung rỗng', all.filter(x => !plain(x.unit.questions[0].data.question))],
     ];
     return {total: all.length, rows: rows.filter(r => r[1].length)};
@@ -113,9 +123,11 @@ export function examStats(exam: ImportedExam) {
 export function saveBlocker(exams: ImportedExam[]): string | null {
     const keys = exams.reduce((n, e) => n + missingKeys(e), 0);
     const tf = exams.reduce((n, e) => n + badTrueFalse(e), 0);
+    const tfKey = exams.reduce((n, e) => n + missingTf(e), 0);
     const parts = [
         keys && `Còn ${keys} câu chưa có đáp án`,
         tf && `Còn ${tf} câu Đúng/Sai chưa đủ 4 ý`,
+        tfKey && `Còn ${tfKey} câu Đúng/Sai chưa đặt Đúng/Sai cho từng ý`,
     ].filter(Boolean);
     return parts.length ? parts.join(' · ') : null;
 }
@@ -279,3 +291,29 @@ export function pasteRows(exam: ImportedExam, pasted: PastedAnswers): PasteRow[]
     });
     return rows;
 }
+
+// ── "Đổi sang Trắc nghiệm và tách A–D" ─────────────────────────────────────────────────
+
+/**
+ * Cut "stem … A. … B. … C. … D. …" (one paragraph or several) into the stem and 4 options. null unless A, B, C, D all
+ * appear in order. Works on the HTML text so inline formulas and images stay inside their piece.
+ */
+export function splitOptions(html: string): {stem: string; options: string[]} | null {
+    const text = html.split(/<\/p>\s*<p[^>]*>|<br\s*\/?>/i).map(x => x.replace(/^\s*<p[^>]*>|<\/p>\s*$/gi, '')).join('\n');
+    const marks: Array<{at: number; end: number}> = [];
+    let from = 0;
+    for (const letter of 'ABCD') {
+        const m = new RegExp('(?:^|\\n|\\s)' + letter + '\\.\\s*').exec(text.slice(from));
+        if (!m) return null;
+        marks.push({at: from + m.index, end: from + m.index + m[0].length});
+        from = marks[marks.length - 1].end;
+    }
+    const piece = (a: number, b: number) => text.slice(a, b).replace(/\n/g, '<br>').replace(/^(<br>)+|(<br>)+$/g, '').trim();
+    return {
+        stem: '<p>' + piece(0, marks[0].at) + '</p>',
+        options: marks.map((m, i) => '<p>' + piece(m.end, i + 1 < marks.length ? marks[i + 1].at : text.length) + '</p>'),
+    };
+}
+
+/** A question in its original type, kept when the teacher converts it so converting back brings everything back. */
+export type Stash = Record<string, {type: string; data: QuestionData}>;

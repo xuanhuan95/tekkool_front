@@ -3,7 +3,7 @@ import {describe, expect, it} from 'vitest';
 import {
     badTrueFalse, countQuestions, examStats, fileProblem, importErrorText, missingKeys, removeQuestions, saveBlocker,
     setPassage, setType, toUnits,
-    answerCounts, answerFrame, applyPasted, examIssues, issueKey, missingNumbers, pasteRows, unseenSevere,
+    missingTfStatements, splitOptions, answerCounts, answerFrame, applyPasted, examIssues, issueKey, missingNumbers, pasteRows, unseenSevere,
     type ImportedExam, type ImportIssue, type ImportQuestion,
 } from './importRules';
 
@@ -46,11 +46,11 @@ describe('Q13: Đúng/Sai needs exactly 4 ý', () => {
 
 describe('Q12: a pick-one question needs a correct answer', () => {
     it('counts only the ticked exams, and says both reasons at once', () => {
-        const bad = exam(mc('1'), mc('2', 'a'), tf('3'));
+        const bad = exam(mc('1'), mc('2', '2a'), tf('3'));
         expect(missingKeys(bad)).toBe(1);
         expect(saveBlocker([bad])).toBe('Còn 1 câu chưa có đáp án · Còn 1 câu Đúng/Sai chưa đủ 4 ý');
         expect(saveBlocker([])).toBeNull();
-        expect(saveBlocker([exam(mc('1', 'a'))])).toBeNull();
+        expect(saveBlocker([exam(mc('1', '1a'))])).toBeNull();
     });
 
     it('ErrorIdentify is pick-one too', () => {
@@ -165,5 +165,32 @@ describe('SPT-93: Dán đáp án nhanh', () => {
         expect(rows[0].next).toBe('Đ S Đ S');
         expect(answerFrame(t)[0]).toEqual({id: 't1', type: 'TrueFalse', answer_ids: [], group: 'P'});
         expect(JSON.stringify(answerFrame(e))).not.toContain('<p>');
+    });
+});
+
+describe('B1: what the BE (invalid_questions_response) refuses, the FE blocks first', () => {
+    it('a Đúng/Sai ý without Đúng/Sai blocks saving and names the ý', () => {
+        const unset = (id: string): ImportQuestion => ({id, type: 'TrueFalse', data: {question: 'y', passageId: 'P'}});
+        const e = exam(tf('1', 'P'), unset('2'), tf('3', 'P'), unset('4'));
+        expect(missingTfStatements(toUnits(e.sections[0].questions)[0])).toEqual(['b', 'd']);
+        expect(saveBlocker([e])).toBe('Còn 1 câu Đúng/Sai chưa đặt Đúng/Sai cho từng ý');
+        expect(saveBlocker([exam(tf('1', 'P'), tf('2', 'P'), tf('3', 'P'), tf('4', 'P'))])).toBeNull();
+    });
+
+    it('a correct answer pointing at no option is as bad as none', () => {
+        expect(saveBlocker([exam(mc('1', 'ghost'))])).toBe('Còn 1 câu chưa có đáp án');
+    });
+});
+
+describe('B5: tách A–D', () => {
+    it('cuts stem and four options, inline or one per paragraph', () => {
+        expect(splitOptions('<p>Chất nào? A. HCl B. NaCl C. KCl D. H₂O</p>')).toEqual({
+            stem: '<p>Chất nào?</p>', options: ['<p>HCl</p>', '<p>NaCl</p>', '<p>KCl</p>', '<p>H₂O</p>']});
+        expect(splitOptions('<p>Chất nào?</p><p>A. 1</p><p>B. 2</p><p>C. 3</p><p>D. 4</p>')?.options).toEqual(['<p>1</p>', '<p>2</p>', '<p>3</p>', '<p>4</p>']);
+    });
+
+    it('is null unless A, B, C, D all appear in order', () => {
+        expect(splitOptions('<p>Viết đoạn văn. A. một B. hai</p>')).toBeNull();
+        expect(splitOptions('<p>Viết đoạn văn.</p>')).toBeNull();
     });
 });

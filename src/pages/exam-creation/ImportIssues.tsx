@@ -14,7 +14,7 @@ type Tile = {label: string; value: string; note: string; tone: 'ok' | 'sun' | 'e
 
 /** The four tiles above the two columns (IV2-XemTruoc): what the file declares vs what was read, answers, score, warnings. */
 export function SummaryBar({exam, issues}: {exam: ImportedExam; issues: ImportIssue[]}) {
-    const read = countQuestions(exam);
+    const read = exam.stats?.read_questions ?? countQuestions(exam);
     const declared = exam.stats?.declared_questions;
     const {done, total} = answerCounts(exam);
     const score = exam.stats?.total_score;
@@ -23,7 +23,7 @@ export function SummaryBar({exam, issues}: {exam: ImportedExam; issues: ImportIs
         {label: 'Số câu', value: declared ? `${read} / ${declared}` : String(read),
             note: !declared ? 'file không ghi số câu' : read === declared ? 'đủ' : read < declared ? `thiếu ${declared - read} câu` : `thừa ${read - declared} câu`,
             tone: !declared || read === declared ? 'ok' : 'sun'},
-        {label: 'Đáp án', value: `${done} / ${total}`, note: done === total ? 'đủ' : `thiếu ${total - done}`, tone: done === total ? 'ok' : 'sun'},
+        {label: 'Đáp án (tính từng ý)', value: `${done} / ${total}`, note: done === total ? 'đủ' : `thiếu ${total - done}`, tone: done === total ? 'ok' : 'sun'},
         ...(typeof score === 'number' ? [{label: 'Tổng điểm', value: `${formatDecimal(score)} / 10`,
             note: score === 10 ? 'đủ' : score < 10 ? `thiếu ${formatDecimal(10 - score)} điểm` : `thừa ${formatDecimal(score - 10)} điểm`,
             tone: score === 10 ? 'ok' as const : 'sun' as const}] : []),
@@ -46,16 +46,17 @@ type ListProps = {
     /** "Đến câu n": scroll the question (or its section) into view. `where` is a label like "câu 7". */
     jump: (i: ImportIssue) => string | null;
     onGo: (i: ImportIssue) => void;
+    ctx: string;
 };
 
 /** "Cần kiểm tra n chỗ": each warning with Đến câu / Cách sửa; a Nặng one also needs "Đã xem, cho phép lưu" before saving. */
-export function IssueList({issues, seen, onSee, jump, onGo}: ListProps) {
+export function IssueList({issues, seen, onSee, jump, onGo, ctx}: ListProps) {
     if (!issues.length) return null;
     return <Card className='vt-imp-issues' as='section' aria-label='Cần kiểm tra'>
         <h2 className='vt-imp-h2'>Cần kiểm tra {issues.length} chỗ</h2>
         <ul>
             {issues.map(i => {
-                const where = jump(i), fix = fixHref(i.code), ok = seen[issueKey(i)];
+                const where = jump(i), fix = fixHref(i.code, ctx), ok = seen[issueKey(i)];
                 return <li key={issueKey(i)}>
                     <LevelBadge issue={i}/>
                     <span className='vt-imp-issue-text'>{i.message}</span>
