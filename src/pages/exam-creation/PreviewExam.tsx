@@ -95,7 +95,8 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
 
         {exam.sections.map((s, idx) => {
             return <div className="section" style={{marginTop: '30px'}} key={s.id}>
-                <b>Phần {idx + 1}: </b>
+                {/* an imported name already starts with "Phần I …": no second prefix */}
+                {!/^\s*(<[^>]+>\s*)*Phần\s/i.test(s.name || '') && <b>Phần {idx + 1}: </b>}
 
                 {renderHTML(s.name || '')}
 
