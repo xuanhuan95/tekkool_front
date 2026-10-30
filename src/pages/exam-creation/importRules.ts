@@ -5,20 +5,25 @@ import {convertData, type QuestionData} from './convertData';
  * sent to `question_bank/save` / `exam/create`. Unlike the editor's `Exam` it carries `source`
  * (the original text of the Word file) for the right column.
  */
-export type ImportQuestion = {id: string; type: string; data: QuestionData};
+export type ImportQuestion = {id: string; type: string; data: QuestionData; /** Question number as printed in the Word file (BE, SPT-93). */ source_no?: number};
 
 export type ImportSection = {
     id: string;
     name: string;
     question_type?: string;
+    description?: string;
     questions: ImportQuestion[];
 };
+
+/** `stats` of `import_docx/preview`: what the file DECLARES vs what the reader found (SPT-93). */
+export type ImportStats = {declared_questions?: number | null; total_score?: number | null};
 
 export type ImportedExam = {
     id: string;
     name: string;
     duration?: number;
     sections: ImportSection[];
+    stats?: ImportStats;
     /** Each line of the original text, already escaped by the backend. */
     source?: string[];
 };
@@ -27,6 +32,12 @@ export type ImportedExam = {
 export type DuplicateInfo = {
     score: number;
     khop: Array<{id?: string; khoi?: string; score: number; trong_file?: boolean}>;
+};
+
+/** One coded warning of `import_docx/preview` (`issues`). `error` = Nặng (must be acknowledged before saving). */
+export type ImportIssue = {
+    code: string; level: 'error' | 'warning' | 'info'; exam_id: string | null; section_index: number | null;
+    question_id: string | null; question_no: number | null; message: string;
 };
 
 /** An SPT exam asks exactly 4 ý (a–d) per Đúng/Sai question; grading depends on it. */
@@ -170,3 +181,101 @@ export const removeQuestions = (exam: ImportedExam, ids: string[]): ImportedExam
         .map(s => ({...s, questions: s.questions.filter(q => !ids.includes(q.id))}))
         .filter(s => s.questions.length),
 });
+
+// ── coded warnings (SPT-93) ────────────────────────────────────────────────────────────
+
+export const isSevere = (i: ImportIssue) => i.level === 'error';
+
+/** Info is not shown to the teacher (the BE leaves it out of `warnings` too). */
+const SHOWN = (i: ImportIssue) => i.level !== 'info';
+
+/** The teacher renumbered the exam: the "number jumps" warnings no longer apply. */
+const RENUMBERED = new Set(['NUMBER_GAP', 'NUMBER_DUPLICATE']);
+
+export const issueKey = (i: ImportIssue) => [i.exam_id, i.code, i.section_index, i.question_id, i.message].join('|');
+
+/** Warnings of ONE exam, in file order, without info and (after "Đánh số lại") without number-jump ones. */
+export const examIssues = (issues: ImportIssue[], examId: string, renumbered = false) =>
+    issues.filter(i => i.exam_id === examId && SHOWN(i) && !(renumbered && RENUMBERED.has(i.code)));
+
+/** Severe warnings of the ticked exams the teacher has not pressed "Đã xem, cho phép lưu" on yet. */
+export const unseenSevere = (issues: ImportIssue[], examIds: string[], seen: Record<string, boolean>, renumbered: Record<string, boolean> = {}) =>
+    examIds.flatMap(id => examIssues(issues, id, renumbered[id]).filter(i => isSevere(i) && !seen[issueKey(i)]));
+
+/**
+ * Numbers printed in the Word file that the reader skipped, as [id of the question that follows, missing number] — "Thiếu Câu 6".
+ * Compared inside one section only: the file restarts at "Câu 1" in every Phần.
+ */
+export function missingNumbers(exam: ImportedExam): Array<{beforeId: string; no: number}> {
+    const out: Array<{beforeId: string; no: number}> = [];
+    for (const s of exam.sections) {
+        let prev: number | undefined;
+        for (const u of toUnits(s.questions)) {
+            const no = u.questions[0].source_no;
+            if (no === undefined) { prev = undefined; continue; }
+            // a gap this long is a numbering error in the file, not 40 lost questions
+            if (prev !== undefined && no > prev + 1 && no - prev <= 10) for (let n = prev + 1; n < no; n++) out.push({beforeId: u.id, no: n});
+            prev = no;
+        }
+    }
+    return out;
+}
+
+/** Answered / answerable questions, counted live so "Dán đáp án" and picking an answer move the tile. */
+export function answerCounts(exam: ImportedExam) {
+    let total = 0, done = 0;
+    for (const q of exam.sections.flatMap(s => s.questions)) {
+        if (isChoice(q)) { total++; if (q.data.correctAnswerId) done++; }
+        else if (q.type === 'TrueFalse') { total++; if (typeof q.data.answer === 'boolean') done++; }
+        else if (q.type === 'FillBlank') { total++; if (plain(String(q.data.answer ?? ''))) done++; }
+    }
+    return {total, done};
+}
+
+// ── "Dán đáp án nhanh" (`import_docx/answers`) ─────────────────────────────────────────
+
+/** What `import_docx/answers` sends back: question id → the value to set. */
+export type PastedAnswers = Record<string, {correctAnswerId?: string; answer?: boolean | string}>;
+
+/** The frame the BE needs (no images — the whole exam would break the 2 MB nginx cap), in paper order. */
+export function answerFrame(exam: ImportedExam) {
+    const types = ['MultipleChoice', 'TrueFalse', 'FillBlank', 'FreeAnswer'];
+    return exam.sections.flatMap(s => s.questions).map(q => ({
+        id: q.id, type: types.includes(q.type) ? q.type : 'FreeAnswer',
+        answer_ids: (q.data.answers || []).map(a => a.id), group: q.data.passageId || undefined,
+    }));
+}
+
+export const applyPasted = (exam: ImportedExam, pasted: PastedAnswers): ImportedExam =>
+    mapQuestions(exam, q => {
+        const p = pasted[q.id];
+        if (!p) return q;
+        return {...q, data: {...q.data, ...('correctAnswerId' in p ? {correctAnswerId: p.correctAnswerId} : {answer: p.answer})}};
+    });
+
+export type PasteRow = {no: number; type: string; now: string; next: string; status: 'new' | 'change' | 'same'};
+
+const TF_TEXT = (v: unknown) => v === true ? 'Đ' : v === false ? 'S' : '';
+
+/** One row per question the paste would touch; Đúng/Sai ý of one question share a row. */
+export function pasteRows(exam: ImportedExam, pasted: PastedAnswers): PasteRow[] {
+    const rows: PasteRow[] = [];
+    numberedUnits(exam).forEach(({unit, no}) => {
+        const qs = unit.questions.filter(q => pasted[q.id]);
+        if (!qs.length) return;
+        const first = unit.questions[0];
+        let now: string, next: string;
+        if (isChoice(first)) {
+            const letter = (id?: string) => { const i = (first.data.answers || []).findIndex(a => a.id === id); return i < 0 ? '' : String.fromCharCode(65 + i); };
+            now = letter(first.data.correctAnswerId); next = letter(pasted[first.id].correctAnswerId);
+        } else if (first.type === 'TrueFalse') {
+            now = unit.questions.map(q => TF_TEXT(q.data.answer)).join(' ');
+            next = unit.questions.map(q => TF_TEXT(q.id in pasted ? pasted[q.id].answer : q.data.answer)).join(' ');
+        } else {
+            now = plain(String(first.data.answer ?? '')); next = String(pasted[first.id].answer ?? '');
+        }
+        const blank = now.replace(/\s/g, '') === '';
+        rows.push({no, type: first.type, now, next, status: blank ? 'new' : now === next ? 'same' : 'change'});
+    });
+    return rows;
+}

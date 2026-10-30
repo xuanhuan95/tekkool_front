@@ -39,8 +39,8 @@ const renderScreen = (path = '/import-exam?bank=B1') => render(
     </QueryClientProvider>
 );
 
-async function loadFile(exam: unknown = EXAM) {
-    vi.spyOn(Api, 'upload').mockResolvedValue({exams: [exam], warnings: []});
+async function loadFile(exam: unknown = EXAM, issues: unknown[] = []) {
+    vi.spyOn(Api, 'upload').mockResolvedValue({exams: [exam], issues});
     const input = document.querySelector('input[type=file]') as HTMLInputElement;
     fireEvent.change(input, {target: {files: [new File(['x'], 'de.docx')]}});
     await screen.findByText(/Đọc được 1 đề/);
@@ -82,7 +82,7 @@ describe('ImportExam: feedback', () => {
         const withImg = examOf({...mc('Q1', 'Q1A'), data: {...mc('Q1', 'Q1A').data, question: `<p>x<img src="${IMG}"></p>`}});
         const sent = mockPost();
         renderScreen();
-        const up = vi.spyOn(Api, 'upload').mockResolvedValueOnce({exams: [withImg], warnings: []});
+        const up = vi.spyOn(Api, 'upload').mockResolvedValueOnce({exams: [withImg], issues: []});
         fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['x'], 'de.docx')]}});
         await screen.findByText(/Đọc được 1 đề/);
 
@@ -289,16 +289,141 @@ describe('ImportExam: bản gốc PDF (SPT-70)', () => {
         vi.spyOn(Api, 'uploadBlob').mockRejectedValue({code: 503, error: 'x'});
         renderScreen();
         await loadFile();
-        await screen.findByText('Không có bản gốc cho file này.');
+        await screen.findByText('Không có bản gốc cho file này');
         expect(saveButton().disabled).toBe(false);
     });
 
-    it('phone: no PDF call, no pane', async () => {
+    it('phone: also asks for the PDF, but shows it only on the "Bản gốc" tab', async () => {
         desktop(false);
-        const blob = vi.spyOn(Api, 'uploadBlob');
+        const blob = vi.spyOn(Api, 'uploadBlob').mockResolvedValue(new Blob(['%PDF']));
         renderScreen();
         await loadFile();
-        expect(blob).not.toHaveBeenCalled();
+        await vi.waitFor(() => expect(blob).toHaveBeenCalledWith('import_docx/pdf', expect.any(File)));
         expect(document.querySelector('iframe')).toBeNull();
+        fireEvent.click(screen.getByRole('tab', {name: 'Bản gốc'}));
+        expect(document.querySelector('iframe')?.getAttribute('src')).toBe('blob:pdf-1');
+        expect(screen.getByText('Mở bản gốc toàn màn hình')).toBeTruthy();
+        fireEvent.click(screen.getByRole('tab', {name: 'Đã đọc'}));
+        expect(document.querySelector('iframe')).toBeNull();
+    });
+});
+
+// ── Nhập đề v2 (SPT-93): coded warnings, the save gate, paste answers ─────────────────
+const issue = (over: Record<string, unknown>) => ({
+    code: 'COUNT_MISMATCH', level: 'error', exam_id: 'E1', section_index: null, question_id: null, question_no: null,
+    message: 'Đề ghi 2 câu, hệ thống đọc được 1 câu', ...over,
+});
+const SEVERE = issue({});
+const LIGHT = issue({code: 'RAW_LATEX', level: 'warning', question_id: 'Q1', question_no: 1, message: 'Câu 1: có công thức gõ thô'});
+const seeButton = () => screen.getByText('Đã xem, cho phép lưu');
+
+describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
+    it('a Nhẹ warning is shown with its level in words and never blocks', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(EXAM, [LIGHT]);
+        expect(saveButton().disabled).toBe(false);
+        // once in the list, once as the chip on the question itself
+        expect(screen.getAllByText('Nhẹ')).toHaveLength(2);
+        expect(screen.getByText('Công thức gõ thô')).toBeTruthy();
+    });
+
+    it('a Nặng warning disables both buttons with a spoken reason, "Đã xem" lifts it', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(EXAM, [SEVERE, LIGHT]);
+        const draft = screen.getByText(/Tạo thẳng 1 đề/).closest('button')!;
+        expect(saveButton().disabled).toBe(true);
+        expect(draft.disabled).toBe(true);
+        expect(screen.getByRole('alert').textContent).toContain('Còn 1 cảnh báo nặng chưa xem');
+
+        fireEvent.click(seeButton());
+        expect(saveButton().disabled).toBe(false);
+        expect(draft.disabled).toBe(false);
+        expect(screen.getByText(/Đã xem 1 cảnh báo nặng. 1 cảnh báo nhẹ không chặn/)).toBeTruthy();
+    });
+
+    it('draft-only screen (no bank): the gate applies there too', async () => {
+        mockPost();
+        renderScreen('/import-exam?folder=F1');
+        await loadFile(EXAM, [SEVERE]);
+        const create = screen.getByText(/Tạo 1 đề nháp/).closest('button')!;
+        expect(create.disabled).toBe(true);
+        fireEvent.click(seeButton());
+        expect(create.disabled).toBe(false);
+    });
+
+    it('each Nặng warning needs its own confirmation', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(EXAM, [SEVERE, issue({code: 'EMPTY_SECTION', message: 'Phần IV: không đọc được câu nào'})]);
+        fireEvent.click(screen.getAllByText('Đã xem, cho phép lưu')[0]);
+        expect(saveButton().disabled).toBe(true);
+        fireEvent.click(seeButton());
+        expect(saveButton().disabled).toBe(false);
+    });
+
+    it('unticking the exam with the Nặng warning lifts the gate; "Cách sửa" opens the guide anchor in a new tab', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(EXAM, [SEVERE]);
+        const fix = screen.getByText('Cách sửa').closest('a')!;
+        expect(fix.getAttribute('href')).toBe('/import-exam/loi-thuong-gap#mat-cau');
+        expect(fix.getAttribute('target')).toBe('_blank');
+        fireEvent.click(screen.getByLabelText('Chọn Đề thử 1'));
+        expect(screen.queryByText(/cảnh báo nặng chưa xem/)).toBeNull();
+    });
+
+    it('"Đánh số lại" drops the number-jump warnings of that exam', async () => {
+        mockPost();
+        renderScreen();
+        const gap = issue({code: 'NUMBER_GAP', level: 'warning', question_id: 'Q1', message: 'sau câu 5 là câu 7'});
+        await loadFile(EXAM, [gap]);
+        expect(screen.getByText('sau câu 5 là câu 7')).toBeTruthy();
+        fireEvent.click(screen.getByText('Đánh số lại câu'));
+        fireEvent.click(screen.getByText('Đánh số lại', {selector: 'button'}));
+        expect(screen.queryByText('sau câu 5 là câu 7')).toBeNull();
+    });
+});
+
+describe('ImportExam: Dán đáp án nhanh', () => {
+    it('previews per question, applies only on confirm, and the applied key reaches the BE', async () => {
+        const sent = mockPost({
+            'import_docx/answers': () => ({answers: {Q1: {correctAnswerId: 'Q1B'}}, applied: 1,
+                issues: [{code: 'PASTE_OUT_OF_RANGE', level: 'warning', message: 'Câu 40: phần này chỉ có 1 câu'}]}),
+        });
+        renderScreen();
+        await loadFile(examOf(mc('Q1')));
+
+        fireEvent.click(screen.getByText('Dán đáp án nhanh'));
+        fireEvent.change(screen.getByLabelText('Chuỗi đáp án'), {target: {value: '1B 40B'}});
+        fireEvent.click(screen.getByText('Xem trước'));
+        await screen.findByText('Áp dụng 1 đáp án');
+        expect(screen.getByText('Thêm mới')).toBeTruthy();
+        expect(screen.getByText('Câu 40: phần này chỉ có 1 câu')).toBeTruthy();
+        // preview only: nothing written yet
+        expect(saveButton().disabled).toBe(true);
+
+        fireEvent.click(screen.getByText('Áp dụng 1 đáp án'));
+        expect(saveButton().disabled).toBe(false);
+        fireEvent.click(saveButton());
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        expect(sent[0].sections[0].questions[0].data.correctAnswerId).toBe('Q1B');
+    });
+
+    it('sends the question frame without images, in paper order', async () => {
+        const calls: any[] = [];
+        mockPost({'import_docx/answers': body => { calls.push(body); return {answers: {}, applied: 0, issues: []}; }});
+        renderScreen();
+        await loadFile(examOf(mc('Q1', 'Q1A'), tf('T1')));
+        fireEvent.click(screen.getByText('Dán đáp án nhanh'));
+        fireEvent.change(screen.getByLabelText('Chuỗi đáp án'), {target: {value: '1A'}});
+        fireEvent.click(screen.getByText('Xem trước'));
+        await vi.waitFor(() => expect(calls).toHaveLength(1));
+        expect(calls[0].text).toBe('1A');
+        expect(calls[0].questions).toEqual([
+            {id: 'Q1', type: 'MultipleChoice', answer_ids: ['Q1A', 'Q1B']},
+            {id: 'T1', type: 'TrueFalse', answer_ids: [], group: 'P'},
+        ]);
     });
 });

@@ -3,7 +3,8 @@ import {describe, expect, it} from 'vitest';
 import {
     badTrueFalse, countQuestions, examStats, fileProblem, importErrorText, missingKeys, removeQuestions, saveBlocker,
     setPassage, setType, toUnits,
-    type ImportedExam, type ImportQuestion,
+    answerCounts, answerFrame, applyPasted, examIssues, issueKey, missingNumbers, pasteRows, unseenSevere,
+    type ImportedExam, type ImportIssue, type ImportQuestion,
 } from './importRules';
 
 const mc = (id: string, key?: string): ImportQuestion => ({
@@ -95,5 +96,74 @@ describe('upload checks and messages', () => {
         expect(importErrorText('Khong doc duoc file: bad zip')).toMatch(/hỏng hoặc đang đặt mật khẩu/);
         expect(importErrorText('Khong tim thay de nao trong file')).toMatch(/Câu 1/);
         expect(importErrorText('boom')).toBe('Không đọc được file: boom');
+    });
+});
+
+describe('SPT-93: coded warnings', () => {
+    const iss = (over: Partial<ImportIssue>): ImportIssue => ({
+        code: 'COUNT_MISMATCH', level: 'error', exam_id: 'E', section_index: null, question_id: null, question_no: null, message: 'm', ...over,
+    });
+    const sev = iss({}), gap = iss({code: 'NUMBER_GAP', level: 'warning', question_id: 'q', message: 'gap'});
+    const info = iss({code: 'NO_DECLARED_COUNT', level: 'info', message: 'i'});
+
+    it('info is never shown; renumbering drops only the number-jump warnings', () => {
+        expect(examIssues([sev, gap, info], 'E').map(i => i.code)).toEqual(['COUNT_MISMATCH', 'NUMBER_GAP']);
+        expect(examIssues([sev, gap, info], 'E', true).map(i => i.code)).toEqual(['COUNT_MISMATCH']);
+        expect(examIssues([sev], 'OTHER')).toEqual([]);
+    });
+
+    it('only Nặng warnings of the ticked exams that were not seen block saving', () => {
+        const other = iss({exam_id: 'F', message: 'x'});
+        expect(unseenSevere([sev, gap, other], ['E'], {})).toEqual([sev]);
+        expect(unseenSevere([sev, gap, other], ['E', 'F'], {[issueKey(sev)]: true})).toEqual([other]);
+        expect(unseenSevere([sev], ['E'], {}, {E: true})).toEqual([sev]);   // renumbering does not hide a COUNT_MISMATCH
+        expect(unseenSevere([iss({code: 'NUMBER_GAP'})], ['E'], {}, {E: true}).length).toBe(0);
+    });
+
+    const num = (id: string, no: number) => ({...mc(id, id + 'a'), source_no: no});
+
+    it('finds the numbers the file has but the reader skipped (per section: the file restarts at Câu 1)', () => {
+        const e = exam(num('a', 1), num('b', 2), num('c', 4), num('d', 5));
+        expect(missingNumbers(e)).toEqual([{beforeId: 'c', no: 3}]);
+        const two = {id: 'E', name: 'Đề', sections: [
+            {id: 'S1', name: 'I', questions: [num('a', 1), num('b', 2)]}, {id: 'S2', name: 'II', questions: [num('c', 1)]}]};
+        expect(missingNumbers(two)).toEqual([]);
+        // an absurd jump is a typo in the file, not 90 lost questions
+        expect(missingNumbers(exam(num('a', 1), num('b', 99)))).toEqual([]);
+    });
+
+    it('counts answers live (Đúng/Sai per ý, short answer by text)', () => {
+        const fill = (id: string, answer?: string): ImportQuestion => ({id, type: 'FillBlank', data: {question: '<p>q</p>', answer}});
+        const e = exam(mc('1', '1a'), mc('2'), tf('t1', 'P'), fill('f1', '<p>3,5</p>'), fill('f2'));
+        expect(answerCounts(e)).toEqual({total: 5, done: 3});
+    });
+});
+
+describe('SPT-93: Dán đáp án nhanh', () => {
+    const two = (id: string, key?: string): ImportQuestion => ({
+        id, type: 'MultipleChoice',
+        data: {question: '<p>q</p>', answers: [{id: id + 'A', value: 'x'}, {id: id + 'B', value: 'y'}], correctAnswerId: key},
+    });
+    const e = exam(two('1', '1A'), two('2'), two('3', '3A'));
+
+    it('applies the BE reply and leaves every other question alone', () => {
+        const out = applyPasted(e, {'2': {correctAnswerId: '2B'}, '3': {correctAnswerId: '3B'}});
+        expect(out.sections[0].questions.map(q => q.data.correctAnswerId)).toEqual(['1A', '2B', '3B']);
+    });
+
+    it('previews new / change / same per question', () => {
+        const rows = pasteRows(e, {'1': {correctAnswerId: '1A'}, '2': {correctAnswerId: '2B'}, '3': {correctAnswerId: '3B'}});
+        expect(rows.map(r => [r.no, r.now, r.next, r.status])).toEqual([
+            [1, 'A', 'A', 'same'], [2, '', 'B', 'new'], [3, 'A', 'B', 'change'],
+        ]);
+    });
+
+    it('a Đúng/Sai question is one row; the frame has no content, only ids', () => {
+        const t = exam(tf('t1', 'P'), tf('t2', 'P'), tf('t3', 'P'), tf('t4', 'P'));
+        const rows = pasteRows(t, Object.fromEntries(['t1', 't2', 't3', 't4'].map((id, i) => [id, {answer: i % 2 === 0}])));
+        expect(rows).toHaveLength(1);
+        expect(rows[0].next).toBe('Đ S Đ S');
+        expect(answerFrame(t)[0]).toEqual({id: 't1', type: 'TrueFalse', answer_ids: [], group: 'P'});
+        expect(JSON.stringify(answerFrame(e))).not.toContain('<p>');
     });
 });
