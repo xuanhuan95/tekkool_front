@@ -47,6 +47,7 @@
 .vt-imp-answer-key { margin-top: 6px; font-weight: 700; }
 .vt-imp-answer-body { flex: 1; min-width: 0; }
 .vt-imp-words { max-width: 220px; }
+.vt-imp-chum .vt-imp-answer-body input { width: 100%; height: auto; margin-top: 0; accent-color: initial; }
 .vt-imp-dup { align-self: flex-start; padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--vt-title-bg); border: 1.5px solid var(--vt-line-option); }
 .vt-imp-dup.mid { background: var(--vt-sun-soft); border-color: var(--vt-sun); }
 .vt-imp-dup.high { background: var(--vt-sun-soft); border-color: #faad05; border-width: 2px; }

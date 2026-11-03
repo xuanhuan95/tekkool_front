@@ -13,10 +13,10 @@ import {formatDecimal} from '../../lib/format';
  * `exam/save_answer/<id>` stores and what `markedAnswer` gives back after F5.
  */
 
-export type QuestionKind = 'choice' | 'truefalse' | 'short' | 'essay';
+export type QuestionKind = 'choice' | 'truefalse' | 'short' | 'essay' | 'cluster';
 
 export type PaperOption = {key: string; id: string; value: string};
-export type PaperStatement = {key: string; questionId: string; html: string};
+export type PaperStatement = {key: string; questionId: string; html: string; /** Câu chùm: the ý's own label (data.label: "a)", "1)"). */ label?: string};
 
 export type PaperQuestion = {
     number: number;
@@ -59,7 +59,7 @@ export type Paper = {
 export type RawAnswers = Record<string, string>;
 
 const KIND_LABEL: Record<QuestionKind, string> = {
-    choice: 'Trắc nghiệm', truefalse: 'Đúng / Sai', short: 'Trả lời ngắn', essay: 'Tự luận',
+    choice: 'Trắc nghiệm', truefalse: 'Đúng / Sai', short: 'Trả lời ngắn', essay: 'Tự luận', cluster: 'Câu chùm',
 };
 export function kindOf(type: string): QuestionKind {
     if (type === 'MultipleChoice' || type === 'ErrorIdentify') return 'choice';
@@ -79,6 +79,10 @@ function toNumber(v: unknown): number | null {
     const n = typeof v === 'string' ? Number(v.replace(',', '.')) : typeof v === 'number' ? v : NaN;
     return Number.isFinite(n) && n > 0 ? n : null;
 }
+
+/** SPT-97: a ChumTLN ý (FillBlank sharing a passageId with the next ones). */
+export const isCluster = (q: TestQuestion) => q.type === 'FillBlank' && q.data.block_type === 'ChumTLN' && !!q.data.passageId;
+const sameCluster = (a: TestQuestion, b: TestQuestion) => isCluster(b) && b.data.passageId === a.data.passageId;
 
 /** Old exams can have empty placeholder questions — the old screen skipped them, so do we. */
 const isEmptyQuestion = (q: TestQuestion) => !q.data || !Object.keys(q.data).length;
@@ -119,6 +123,24 @@ export function buildPaper(exam: TestExam): Paper {
                 maxChars: q.data.max_chars,
                 maxWords: q.data.max_words,
             };
+            if (isCluster(q)) {
+                // SPT-97: Hoá Phần IV chùm = consecutive FillBlank ý of one passageId, ONE question (like BE grading).
+                const group = [q];
+                while (i + group.length < raws.length && sameCluster(q, raws[i + group.length])) group.push(raws[i + group.length]);
+                const scores = group.map(x => toNumber(x.data.max_score));
+                questions.push({
+                    ...base,
+                    kind: 'cluster',
+                    questionIds: group.map(x => x.id),
+                    prompt: '',   // the shared passage is printed by <Passage> before the question
+                    options: [],
+                    statements: group.map((x, k) => ({key: String.fromCharCode(97 + k), questionId: x.id, html: stripStatementLabel(x.data.question, String.fromCharCode(97 + k)),
+                        label: String(x.data.label || String.fromCharCode(97 + k) + ')')})),
+                    maxScore: scores.every(s => s !== null) ? scores.reduce((t, s) => t + (s as number), 0) : null,
+                });
+                i += group.length;
+                continue;
+            }
             if (kind === 'truefalse') {
                 // Consecutive statements sharing a passageId = one SPT question (same rule as BE grading).
                 const group = [q];
@@ -241,5 +263,6 @@ export function trueFalseWrites(q: PaperQuestion, prev: TrueFalseValue, next: Tr
 export function isAnswered(q: PaperQuestion, answers: RawAnswers): boolean {
     if (q.kind === 'choice') return choiceKey(q, answers) !== null || !!answers[q.questionIds[0]];
     if (q.kind === 'truefalse') return Object.values(trueFalseValue(q, answers)).some(v => v !== null);
+    if (q.kind === 'cluster') return q.questionIds.some(id => stripHtml(answers[id]) !== '');
     return stripHtml(answers[q.questionIds[0]]) !== '';
 }

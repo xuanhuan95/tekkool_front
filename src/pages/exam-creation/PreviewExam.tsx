@@ -103,7 +103,11 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
                 {s.questions.map((q, qi) => {
                     if (!Object.keys(q.data).length)
                         return null;
-                    qIdx++;
+                    // SPT-97: the 2nd..nth ý of a câu chùm continue the same question number.
+                    const prev = s.questions[qi - 1];
+                    const chumTail = q.type === 'FillBlank' && q.data.block_type === 'ChumTLN' && !!q.data.passageId
+                        && prev?.data?.block_type === 'ChumTLN' && prev.data.passageId === q.data.passageId;
+                    if (!chumTail) qIdx++;
 
                     let columnWidthSingleChoice: any = 4;
 
@@ -112,8 +116,7 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
 
                         {q.type === 'FillBlank' &&
                         <div className='question FillBlank' style={pageNonBreak}>
-                            <span style={boldText}>Câu {qIdx}:</span>
-                            <br/>
+                            {!chumTail && <><span style={boldText}>Câu {qIdx}:</span><br/></>}
                             <span style={marginLeft}>{renderHTML(q.data.question || '')}</span>
 
                             {showAnswer && <div className="answer">{renderHTML(q.data.answer || '')}</div>}

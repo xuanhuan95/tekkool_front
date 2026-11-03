@@ -201,3 +201,13 @@ describe('V2-1: tách A–D takes the real A–D run', () => {
             stem: '<p>Cho dung dịch A. Chọn</p>', options: ['<p>một</p>', '<p>hai</p>', '<p>ba</p>', '<p>bốn</p>']});
     });
 });
+
+describe('SPT-97: câu chùm in the preview', () => {
+    const y = (id: string, pid: string): ImportQuestion => ({id, type: 'FillBlank', data: {question: id, passage: 'dẫn liệu', passageId: pid, block_type: 'ChumTLN'}});
+    const lone: ImportQuestion = {id: 'L', type: 'FillBlank', data: {question: 'lẻ', passageId: 'G1'}};
+
+    it('groups the ý of one passageId into ONE unit, a plain FillBlank stays alone', () => {
+        const units = toUnits([y('a', 'G1'), y('b', 'G1'), y('c', 'G1'), y('d', 'G1'), y('e', 'G2'), lone]);
+        expect(units.map(u => u.questions.length)).toEqual([4, 1, 1]);
+    });
+});

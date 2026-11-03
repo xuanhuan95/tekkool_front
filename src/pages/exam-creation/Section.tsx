@@ -5,7 +5,7 @@ import MultipleChoice from './questions/MultipleChoice';
 import FillBlank from './questions/FillBlank';
 import ShortAnswer from './questions/ShortAnswer';
 import TrueFalseBlock from './TrueFalseBlock';
-import {scoreData, toUnits} from './examRules';
+import {isChum, scoreData, toUnits} from './examRules';
 import ScoreField from './ScoreField';
 import ErrorIdentify from './questions/ErrorIdentify';
 import FreeAnswer from './questions/FreeAnswer';
@@ -144,8 +144,9 @@ export default function Section({section, subject}: Props) {
                             ? <div role='alert' className='ui warning message'>
                                 Chưa hỗ trợ sửa loại câu hỏi "{question.type}". Câu này được giữ nguyên khi lưu.
                             </div>
-                            : <QuestionView question={question} section={section}
-                                        setSectionState={setSectionState}/>}
+                            // SPT-97 câu chùm: every ý is its own FillBlank (question + answer), the passage is above.
+                            : (isChum(unit) ? unit : [question]).map(q => <QuestionView key={q.id} question={q} section={section}
+                                        setSectionState={setSectionState}/>)}
                     <ScoreField unit={unit} subject={subject} onChange={setScore}/>
                 </div>
             </div>

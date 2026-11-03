@@ -19,7 +19,7 @@ import {DESKTOP, useMediaQuery} from '../useMediaQuery';
 import {blockLabel} from './blockTypes';
 import {
     plain as plainText, applyPasted, badTrueFalse, countQuestions, examIssues, examStats, fileProblem, importErrorText, isBadTrueFalse, isChoice,
-    isMissingKey, isSevere, issueKey, missingKeys, missingNumbers, missingTfStatements, numberedUnits, patchData, patchQuestion, removeQuestions,
+    isClusterQuestion, isMissingKey, isSevere, issueKey, missingKeys, missingNumbers, missingTfStatements, numberedUnits, patchData, patchQuestion, removeQuestions,
     saveBlocker, setAnswer, setPassage, setType, splitOptions, toUnits, unseenSevere, TRUE_FALSE_STATEMENTS,
     type DuplicateInfo, type ImportIssue, type ImportedExam, type NumberedUnit, type PastedAnswers, type QuestionUnit, type Stash,
 } from './importRules';
@@ -86,6 +86,7 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: Unit
     const first = unit.questions[0];
     const ids = unit.questions.map(q => q.id);
     const isTf = first.type === 'TrueFalse';
+    const isChum = isClusterQuestion(first);   // SPT-97 câu chùm: dẫn liệu + n ý trả lời ngắn
     const noKey = isMissingKey(unit);
     const badTf = isBadTrueFalse(unit);
     const dup = unit.questions.map(q => duplicates[q.id]).filter(Boolean).sort((a, b) => b.score - a.score)[0];
@@ -111,13 +112,13 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: Unit
     const changeType = (type: string) => {
         if (type === first.type) return;
         // 4 ý become 4 separate questions: ask first.
-        if (isTf && unit.questions.length > 1) setSplitTo(type); else convert(type);
+        if ((isTf || isChum) && unit.questions.length > 1) setSplitTo(type); else convert(type);
     };
 
     return <div id={'imp-' + first.id} className={cx('vt-imp-q', noKey && 'bad-key', badTf && 'bad-tf', issues.length > 0 && (severe ? 'has-err' : 'has-warn'))}>
         {showPassage && first.data.passage !== undefined && <div className='vt-imp-passage'>
             <div className='vt-imp-passage-label'>
-                {isTf ? 'Đề dẫn chung của 4 ý' : 'Ngữ liệu dùng chung — sửa ở đây áp dụng cho cả nhóm câu'}
+                {isTf ? 'Đề dẫn chung của 4 ý' : isChum ? `Dẫn liệu chung của ${unit.questions.length} ý` : 'Ngữ liệu dùng chung — sửa ở đây áp dụng cho cả nhóm câu'}
             </div>
             <Editor text={first.data.passage} onChange={html => edit(e => setPassage(e, first.data.passageId, html))}/>
         </div>}
@@ -148,10 +149,21 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: Unit
             Đổi sang Trắc nghiệm và tách A–D
         </Button>}
         <ConfirmDialog open={splitTo !== null} title='Đổi dạng câu Đúng/Sai?' cancelLabel='Giữ nguyên' confirmLabel='Đổi và tách'
-                       message={`Câu này có ${unit.questions.length} ý. Đổi dạng sẽ tách thành ${unit.questions.length} câu riêng, mất đề dẫn chung và đáp án Đúng/Sai của từng ý.`}
+                       message={`Câu này có ${unit.questions.length} ý. Đổi dạng sẽ tách thành ${unit.questions.length} câu riêng, mất đề dẫn chung và đáp án của từng ý.`}
                        onCancel={() => setSplitTo(null)} onConfirm={() => { const t = splitTo; setSplitTo(null); if (t) convert(t); }}/>
 
-        {isTf
+        {isChum
+            ? unit.questions.map((q, i) => <div key={q.id} className='vt-imp-answer vt-imp-chum'>
+                <span className='vt-imp-answer-key'>{String(q.data.label || String.fromCharCode(97 + i) + ')')}</span>
+                <div className='vt-imp-answer-body'>
+                    <Editor text={q.data.question} disableReturn disableStyle
+                            onChange={html => edit(e => patchData(e, q.id, {question: html}))}/>
+                    <TextField label='Đáp án (cách viết khác ngăn bằng |)' value={String(q.data.answer ?? '')}
+                               onChange={ev => edit(e => patchData(e, q.id, {answer: ev.target.value}))}/>
+                </div>
+                <Badge tone='title'>{formatDecimal(Number(q.data.max_score) || 0.5)}đ</Badge>
+            </div>)
+        : isTf
             ? unit.questions.map((q, i) => <div key={q.id} className='vt-imp-answer'>
                 <span className='vt-imp-answer-key'>{String.fromCharCode(97 + i)})</span>
                 <div className='vt-imp-answer-body'>

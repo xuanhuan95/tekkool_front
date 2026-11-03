@@ -138,3 +138,40 @@ describe('points per question (Q3: the teacher sets them)', () => {
         expect(mixed.questions.map(q => q.showPoints)).toEqual([true, true]);
     });
 });
+
+describe('SPT-97: câu chùm trả lời ngắn', () => {
+    const chum = (id: string, label: string, extra: Partial<TestQuestion> = {}): TestQuestion => ({
+        id, type: 'FillBlank',
+        data: {question: `ý ${id}`, label, passage: '<p>Dẫn liệu</p>', passageId: 'G1', block_type: 'ChumTLN', max_score: 0.5},
+        ...extra,
+    });
+    const exam: TestExam = {id: 'H', sections: [
+        {id: 'S1', name: 'Phần I', questions: [mc('Q1')]},
+        {id: 'S2', name: 'Phần IV', questions: [chum('C1', 'a)', {markedAnswer: '10,0'}), chum('C2', 'b)'), chum('C3', 'c)'), chum('C4', 'd)'),
+            {id: 'F', type: 'FillBlank', data: {question: 'lẻ?', max_score: 0.25}}]},
+    ]};
+    const paper = buildPaper(exam);
+
+    it('counts one chùm as ONE question, the lone FillBlank after it as the next', () => {
+        expect(paper.questions.map(q => q.number)).toEqual([1, 2, 3]);
+        const c = paper.questions[1];
+        expect(c.kind).toBe('cluster');
+        expect(c.questionIds).toEqual(['C1', 'C2', 'C3', 'C4']);
+        expect(c.statements[1]).toMatchObject({html: 'ý C2', label: 'b)'});   // BE sends the label apart from the text
+        expect(c.maxScore).toBe(2);
+        expect(paper.questions[2].kind).toBe('short');
+    });
+
+    it('is answered once any ý has text (F5 keeps it through markedAnswer)', () => {
+        const c = paper.questions[1];
+        expect(isAnswered(c, {})).toBe(false);
+        expect(isAnswered(c, initialAnswers(exam))).toBe(true);
+        expect(isAnswered(c, {C3: '  '})).toBe(false);
+    });
+
+    it('a FillBlank without ChumTLN stays one short question per box', () => {
+        const p = buildPaper({id: 'X', sections: [{id: 'S', questions: [
+            {id: 'A', type: 'FillBlank', data: {question: 'a', passageId: 'G'}}, {id: 'B', type: 'FillBlank', data: {question: 'b', passageId: 'G'}}]}]});
+        expect(p.questions.map(q => q.kind)).toEqual(['short', 'short']);
+    });
+});

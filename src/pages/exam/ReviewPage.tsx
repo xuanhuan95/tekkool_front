@@ -52,6 +52,20 @@ function TrueFalseBody({item}: {item: ReviewItem}) {
     </div>;
 }
 
+function ClusterBody({item}: {item: ReviewItem}) {
+    return <div className='vt-rv-tf'>
+        {(item.parts || []).map(p => <div key={p.key} className='vt-rv-tfrow vt-rv-cl'>
+            <span className={'vt-rv-mark ' + (p.ok ? 'vt-rv-ok' : 'vt-rv-bad')} aria-label={p.ok ? 'Đúng' : 'Sai'}>
+                {p.ok ? '✓' : '✗'}</span>
+            <span className='vt-rv-tftext'><b>{p.key})</b> {renderHTML(p.html)}
+                <span className='vt-rv-clans'>Bạn: {p.answer ? <b>{p.answer}</b> : <i>(bỏ trống)</i>} · {formatDecimal(p.score)} / {formatDecimal(p.maxScore)}đ
+                    {!p.ok && p.correctText && <> · Đáp án đúng: <b className='vt-rv-ok'>{p.correctText.split('|').join(' hoặc ')}</b></>}
+                </span>
+            </span>
+        </div>)}
+    </div>;
+}
+
 function TextBody({item}: {item: ReviewItem}) {
     const empty = !item.answer.replace(/<[^>]*>/g, '').trim();
     return <>
@@ -81,6 +95,7 @@ function ReviewCard({item}: {item: ReviewItem}) {
             {item.prompt && <div className='vt-rv-prompt'>{renderHTML(item.prompt)}</div>}
             {item.kind === 'choice' && <ChoiceBody item={item}/>}
             {item.kind === 'truefalse' && <TrueFalseBody item={item}/>}
+            {item.kind === 'cluster' && <ClusterBody item={item}/>}
             {(item.kind === 'short' || item.kind === 'essay') && <TextBody item={item}/>}
             {item.comment && <div className='vt-rv-comment'><b>Giáo viên:</b> {item.comment}</div>}
             {item.explanation && <details className='vt-rv-sol' open={item.status === 'wrong' || item.status === 'partial'}>

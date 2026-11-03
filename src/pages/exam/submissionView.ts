@@ -54,6 +54,8 @@ const isFull = (a: SubmissionAnswer) =>
 export type ReviewStatus = 'correct' | 'wrong' | 'partial' | 'pending' | 'graded';
 
 export type ReviewOption = {key: string; html: string; chosen: boolean; correct: boolean};
+/** SPT-97 câu chùm: one ý = a short answer worth its own points, no partial credit inside it. */
+export type ReviewPart = {key: string; html: string; answer: string; correctText: string | null; score: number; maxScore: number; ok: boolean};
 export type ReviewStatement = {key: string; html: string; answer: boolean | null; correct: boolean | null; ok: boolean};
 
 export type ReviewItem = {
@@ -68,6 +70,8 @@ export type ReviewItem = {
     status: ReviewStatus;
     options: ReviewOption[];
     statements: ReviewStatement[];
+    /** Câu chùm only: the ý, in order. */
+    parts?: ReviewPart[];
     /** Short / essay: the student's answer; empty string = not answered. */
     answer: string;
     /** Essay: ids of the handwriting photos. */
@@ -135,6 +139,30 @@ export function buildReview(answers: SubmissionAnswer[]): ReviewItem[] {
                 status: okCount === statements.length ? 'correct' : okCount === 0 ? 'wrong' : 'partial',
                 options: [], statements, answer: '', images: [], marks: [], correctText: null, comment: a.comment || null,
                 explanation: joinExplanations(group),
+            });
+            lastPassage = a.passage_id;
+            i += group.length;
+            continue;
+        }
+        if (a.block_type === 'ChumTLN' && a.passage_id) {
+            const group = [a];
+            while (i + group.length < answers.length) {
+                const n = answers[i + group.length];
+                if (n.block_type !== 'ChumTLN' || n.passage_id !== a.passage_id || (n.section_name || '') !== sectionName) break;
+                group.push(n);
+            }
+            const parts = group.map((g, k) => ({
+                key: String.fromCharCode(97 + k), html: stripStatementLabel(g.question_text, String.fromCharCode(97 + k)), answer: g.answer || '', correctText: g.correct || null,
+                score: g.score || 0, maxScore: g.max_score || 0, ok: isFull(g),
+            }));
+            const okCount = parts.filter(p => p.ok).length;
+            out.push({
+                number, kind: 'cluster', sectionName, prompt: '', passage: a.passage || null,
+                score: Math.round(parts.reduce((t, p) => t + p.score, 0) * 10000) / 10000,
+                maxScore: parts.reduce((t, p) => t + p.maxScore, 0),
+                status: okCount === parts.length ? 'correct' : okCount === 0 ? 'wrong' : 'partial',
+                options: [], statements: [], parts, answer: '', images: [], marks: [], correctText: null,
+                comment: a.comment || null, explanation: joinExplanations(group),
             });
             lastPassage = a.passage_id;
             i += group.length;
@@ -209,9 +237,9 @@ export function filterReview(items: ReviewItem[], f: ReviewFilter): ReviewItem[]
 export function reviewBadge(it: ReviewItem): string {
     if (it.status === 'pending') return 'Chờ giáo viên chấm';
     const sc = formatDecimal(it.score || 0);
-    if (it.kind === 'truefalse') {
-        const ok = it.statements.filter(s => s.ok).length;
-        return `${ok} / ${it.statements.length} ý · ${sc} / ${formatDecimal(it.maxScore)}`;
+    if (it.kind === 'truefalse' || it.kind === 'cluster') {
+        const parts = it.kind === 'cluster' ? it.parts || [] : it.statements;
+        return `${parts.filter(s => s.ok).length} / ${parts.length} ý · ${sc} / ${formatDecimal(it.maxScore)}`;
     }
     if (it.kind === 'essay') return `${sc} / ${formatDecimal(it.maxScore)} điểm`;
     return `${it.status === 'correct' ? 'Đúng' : 'Sai'} · ${sc} điểm`;

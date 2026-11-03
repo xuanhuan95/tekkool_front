@@ -9,6 +9,8 @@ export type QuestionData = {
     explanation?: string;
     /** Import hint for the bank slot (short answer in Toán/Lí/Hoá = 'TraLoiNgan'); only valid for the type it was set for. */
     block_type?: string;
+    /** SPT-97 câu chùm: the ý's own label ("a)", "1)"), kept apart from the question text. */
+    label?: string;
     answers?: Array<{id: string; value: string}>;
     correctAnswerId?: string;
     /** WARNING: the meaning differs per type — TrueFalse reads a boolean, FillBlank reads an HTML string. */

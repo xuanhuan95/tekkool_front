@@ -244,6 +244,11 @@
 .vt-tf-btn:disabled { cursor: default; }
 
 /* Short answer */
+.vt-cluster { display: flex; flex-direction: column; }
+.vt-cluster-row { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-top: 1.5px solid var(--vt-line-soft); }
+.vt-cluster-row:first-child { border-top: 0; }
+.vt-cluster-text { font-size: 15px; line-height: 1.5; overflow-wrap: anywhere; }
+@media (min-width: 768px) { .vt-cluster-row { flex-direction: row; align-items: center; gap: 16px; } .vt-cluster-text { flex-grow: 1; } .vt-cluster-row .vt-input { width: 220px; flex-shrink: 0; } }
 .vt-short { display: flex; flex-direction: column; gap: 6px; }
 
 /* Essay */

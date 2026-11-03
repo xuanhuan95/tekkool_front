@@ -48,8 +48,13 @@ export const isChoice = (q: ImportQuestion) => q.type === 'MultipleChoice' || q.
 /** One question as the teacher and the student see it. A Đúng/Sai question is several stored questions (one per ý). */
 export type QuestionUnit = {id: string; questions: ImportQuestion[]};
 
+/** SPT-97: ý of a Hoá câu chùm = FillBlank with block_type ChumTLN; they group by passageId like Đúng/Sai ý. */
+export const isClusterQuestion = (q: ImportQuestion) => q.type === 'FillBlank' && q.data.block_type === 'ChumTLN';
+const sameGroup = (a: ImportQuestion, b: ImportQuestion) =>
+    (a.type === 'TrueFalse' && b.type === 'TrueFalse') || (isClusterQuestion(a) && isClusterQuestion(b));
+
 /**
- * Group consecutive TrueFalse questions that share a passageId into one unit — the same rule the
+ * Group consecutive TrueFalse (or ChumTLN) questions that share a passageId into one unit — the same rule the
  * backend grades by (core_grading.grade_items) and the student paper uses (exam/paper.ts).
  * Every other question is a unit of its own.
  */
@@ -58,8 +63,7 @@ export function toUnits(questions: ImportQuestion[]): QuestionUnit[] {
     for (const q of questions) {
         const last = units[units.length - 1];
         const pid = q.data.passageId;
-        if (last && q.type === 'TrueFalse' && pid
-            && last.questions[0].type === 'TrueFalse' && last.questions[0].data.passageId === pid) {
+        if (last && pid && sameGroup(last.questions[0], q) && last.questions[0].data.passageId === pid) {
             last.questions.push(q);
         } else {
             units.push({id: q.id, questions: [q]});

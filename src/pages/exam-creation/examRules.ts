@@ -3,7 +3,8 @@ import type {Question, Section} from './Default';
 /** An SPT exam asks exactly 4 ý (a–d) per Đúng/Sai question; the backend refuses to save anything else (SPT-63). */
 export const TRUE_FALSE_STATEMENTS = 4;
 
-type Unitable = {type?: string; data?: {passageId?: string}};
+type Unitable = {type?: string; data?: {passageId?: string; block_type?: string}};
+const groupKind = (q: Unitable) => q.type === 'TrueFalse' ? 'tf' : q.type === 'FillBlank' && q.data?.block_type === 'ChumTLN' ? 'chum' : '';
 
 /**
  * Group consecutive TrueFalse questions that share a passageId into one unit — the rule the backend
@@ -14,8 +15,7 @@ export function toUnits<T extends Unitable>(questions: T[]): T[][] {
     for (const q of questions) {
         const last = units[units.length - 1];
         const pid = q.data?.passageId;
-        if (last && q.type === 'TrueFalse' && pid
-            && last[0].type === 'TrueFalse' && last[0].data?.passageId === pid) last.push(q);
+        if (last && pid && groupKind(q) && groupKind(q) === groupKind(last[0]) && last[0].data?.passageId === pid) last.push(q);
         else units.push([q]);
     }
     return units;
@@ -78,6 +78,10 @@ export function defaultScore(type: string, subject?: string | null): number | un
     return type === 'FillBlank' || !literature ? 0.25 : 0.3;
 }
 
+/** SPT-97 câu chùm (ChumTLN): n ý of 0,5đ, scored for the whole question like Đúng/Sai. */
+export const isChum = (unit: Unitable[]) => groupKind(unit[0]) === 'chum';
+export const CHUM_PART_SCORE = 0.5;
+
 const round = (n: number) => Math.round(n * 10000) / 10000;
 
 /**
@@ -86,6 +90,7 @@ const round = (n: number) => Math.round(n * 10000) / 10000;
  */
 export function unitScore(unit: Question[], subject?: string | null): number | undefined {
     const q = unit[0];
+    if (isChum(unit)) return round(unit.reduce((sum, y) => sum + (Number(y.data.max_score) || CHUM_PART_SCORE), 0));
     if (q.type === 'TrueFalse') {
         const share = (defaultScore('TrueFalse') as number) / TRUE_FALSE_STATEMENTS;
         return round(unit.reduce((sum, y) => sum + (y.data.max_score ?? share), 0));
@@ -96,7 +101,7 @@ export function unitScore(unit: Question[], subject?: string | null): number | u
 
 /** `max_score` to write on each question of the unit for a total of `score`. */
 export const scoreData = (unit: Question[], score: number): Array<[string, number]> =>
-    unit.map(q => [q.id, unit[0].type === 'TrueFalse' ? round(score / unit.length) : score]);
+    unit.map(q => [q.id, unit[0].type === 'TrueFalse' || isChum(unit) ? round(score / unit.length) : score]);
 
 /** Copy of the sections with every missing default score filled in, so the BE grades what the teacher sees. */
 export function withDefaultScores(sections: Section[], subject?: string | null): Section[] {
