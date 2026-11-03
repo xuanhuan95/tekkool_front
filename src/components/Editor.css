@@ -51,12 +51,6 @@
 }
 .check-item::before { counter-increment: check-item; content: counter(check-item, upper-alpha); }
 
-.tt-charcount {
-    text-align: right;
-    font-size: .85em;
-    padding: 2px 6px;
-}
-
 .tt-editor .ProseMirror ul, .tt-editor .ProseMirror ol { margin: .3em 0; padding-left: 1.4em; }
 
 /* Formula keyboard dialog (student Σ) */

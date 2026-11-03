@@ -23,7 +23,7 @@ import {
     type DuplicateInfo, type ImportIssue, type ImportQuestion, type ImportedExam, type NumberedUnit, type PastedAnswers, type QuestionUnit, type Stash,
 } from './importRules';
 import {withDefaultScores} from './examRules';
-import {ctxQuery, issueLabel} from './guideContent';
+import {issueLabel} from './guideContent';
 import {GuideModal} from './ImportGuide';
 import ImportQuestionModal from './ImportQuestionModal';
 import {IssueList, LevelBadge, SummaryBar} from './ImportIssues';
@@ -104,10 +104,10 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: Unit
         edit(e => {
             let next = setType(e, ids, type);
             if (ids.length === 1 && kept.type === type) {
-                const {answers, correctAnswerId, answer} = kept.data;
+                const {answers, correctAnswerId, answer, max_words, max_chars} = kept.data;
                 // after "tách A–D" the A–D text goes back into the question, unless the teacher rewrote the stem meanwhile
                 const back = kept.split !== undefined && first.data.question === kept.split ? {question: kept.data.question} : {};
-                next = patchQuestion(next, first.id, q => ({...q, data: {...q.data, ...back, ...(answers && {answers}), ...(correctAnswerId && {correctAnswerId}), ...(answer !== undefined && {answer})}}));
+                next = patchQuestion(next, first.id, q => ({...q, data: {...q.data, ...back, ...(answers && {answers}), ...(correctAnswerId && {correctAnswerId}), ...(answer !== undefined && {answer}), ...(max_words && {max_words}), ...(max_chars && {max_chars})}}));
             }
             return after ? after(next) : next;
         });
@@ -204,12 +204,12 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: Unit
 }
 
 type BodyProps = {
-    ctx: string; exam: ImportedExam; edit: Edit; duplicates: Record<string, DuplicateInfo>; pdf: PdfState; desktop: boolean;
+    onFix: (anchor: string) => void; exam: ImportedExam; edit: Edit; duplicates: Record<string, DuplicateInfo>; pdf: PdfState; desktop: boolean;
     issues: ImportIssue[]; seen: Record<string, boolean>; onSee: (i: ImportIssue) => void;
     renumbered: boolean; onRenumber: () => void;
 };
 
-function ExamBody({ctx, exam, edit, duplicates, pdf, desktop, issues, seen, onSee, renumbered, onRenumber}: BodyProps) {
+function ExamBody({onFix, exam, edit, duplicates, pdf, desktop, issues, seen, onSee, renumbered, onRenumber}: BodyProps) {
     const [tab, setTab] = useState<'doc' | 'src'>('doc');
     const [pasting, setPasting] = useState(false);
     const [renumbering, setRenumbering] = useState(false);
@@ -250,7 +250,7 @@ function ExamBody({ctx, exam, edit, duplicates, pdf, desktop, issues, seen, onSe
     let no = 0;
     return <div className='vt-imp-body'>
         <SummaryBar exam={exam} issues={issues}/>
-        <IssueList issues={issues} seen={seen} onSee={onSee} jump={jump} onGo={go} ctx={ctx}/>
+        <IssueList issues={issues} seen={seen} onSee={onSee} jump={jump} onGo={go} onFix={onFix}/>
         {!desktop && <Tabs aria-label='Đã đọc hoặc bản gốc' block value={tab} onChange={setTab}
                            items={[{value: 'doc', label: 'Đã đọc'}, {value: 'src', label: 'Bản gốc'}]}/>}
         <div className='vt-imp-split'>
@@ -323,7 +323,6 @@ export default function ImportExam() {
     const folderId = params.get('folder') || pickedFolder || null;
     const navigate = useNavigate();
     const qc = useQueryClient();
-    const ctx = ctxQuery(params);   // ?bank= / ?folder= follows every link to the guide and back
 
     const banksQ = useBanks();
     const foldersQ = useFolders(!bankId);
@@ -339,7 +338,7 @@ export default function ImportExam() {
     const [problem, setProblem] = useState<string | null>(null);
     const [exams, setExams] = useState<ImportedExam[]>([]);
     const [allIssues, setIssues] = useState<ImportIssue[]>([]);
-    const [guide, setGuide] = useState(false);
+    const [guide, setGuide] = useState<string | null>(null);   // the guide dialog: '' = top, else the entry id
     // "Đã xem, cho phép lưu" per Nặng warning (key = issueKey), and the exams the teacher renumbered.
     const [seen, setSeen] = useState<Record<string, boolean>>({});
     const [renumbered, setRenumbered] = useState<Record<string, boolean>>({});
@@ -546,7 +545,7 @@ export default function ImportExam() {
             })}
         </ol>
 
-        {!exams.length && !reading && !problem && <ImportUpload onFile={readFile} pick={pickFile} onGuide={() => setGuide(true)}/>}
+        {!exams.length && !reading && !problem && <ImportUpload onFile={readFile} pick={pickFile} onGuide={() => setGuide('')}/>}
 
         {reading && <Card className='vt-imp-drop' aria-live='polite'>
             <h2>Đang đọc {fileName}…</h2>
@@ -561,7 +560,7 @@ export default function ImportExam() {
 
         {problem && <ErrorState title={problem.startsWith('Chỉ nhận') ? 'Chưa đúng loại file' : problem.startsWith('File quá lớn') ? 'File quá lớn' : 'Không đọc được file'}
                                 retryLabel='Chọn file khác' onRetry={pickFile}
-                                description={<>{problem.replace(/^Không đọc được file: /, '')} <button type='button' className='vt-imp-link' onClick={() => setGuide(true)}>Lỗi thường gặp</button></>}/>}
+                                description={<>{problem.replace(/^Không đọc được file: /, '')} <button type='button' className='vt-imp-link' onClick={() => setGuide('')}>Lỗi thường gặp</button></>}/>}
 
         {stock && total > 0 && <Card className='vt-imp-bank'>
             <div className='vt-imp-bank-head'>
@@ -626,7 +625,7 @@ export default function ImportExam() {
                         <Button variant='secondary' size='sm' aria-expanded={open}
                                 onClick={() => setOpenId(open ? null : exam.id)}>{open ? 'Thu gọn' : 'Xem & sửa'}</Button>
                     </div>
-                    {open && <ExamBody ctx={ctx} exam={exam} edit={patchExam(exam.id)} duplicates={duplicates} pdf={pdf} desktop={desktop}
+                    {open && <ExamBody onFix={setGuide} exam={exam} edit={patchExam(exam.id)} duplicates={duplicates} pdf={pdf} desktop={desktop}
                                        issues={mine} seen={seen} onSee={i => setSeen(m => ({...m, [issueKey(i)]: true}))}
                                        renumbered={!!renumbered[exam.id]} onRenumber={() => setRenumbered(m => ({...m, [exam.id]: true}))}/>}
                 </div>;
@@ -680,7 +679,7 @@ export default function ImportExam() {
                            else if (to) setTimeout(() => goTo(to), 0);
                        }}/>
 
-        <GuideModal open={guide} onClose={() => setGuide(false)}/>
+        <GuideModal open={guide !== null} at={guide || undefined} onClose={() => setGuide(null)}/>
         <ExamInfoModal exam={exams.find(e => e.id === infoId)} onClose={() => setInfoId(null)}
                        onJump={x => infoId && jumpTo(infoId, x)}/>
     </div>;

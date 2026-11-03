@@ -49,7 +49,7 @@ export const GUIDE: GuideEntry[] = [
         symptom: 'Mọi câu hiện “Chưa có đáp án đúng”, phải chọn tay từng câu.',
         cause: 'File không đánh dấu đáp án theo cách nào hệ thống nhận, hoặc bảng ĐÁP ÁN không đứng sau dòng “HẾT”.',
         steps: ['Chọn một trong ba cách: gạch chân chữ cái, tô màu chữ cái, hoặc bảng ĐÁP ÁN sau “HẾT”.',
-            'Bảng ĐÁP ÁN: dòng tiêu đề ghi “ĐÁP ÁN”, các phần ghi “Phần I”, “Phần II”.', 'Hoặc dùng “Dán đáp án nhanh” ngay trên màn Xem trước.'],
+            'Bảng ĐÁP ÁN: dòng tiêu đề ghi “ĐÁP ÁN”, các phần ghi “Phần I”, “Phần II”.', 'Không trộn các cách trong cùng một file.', 'Hoặc dùng “Dán đáp án nhanh” ngay trên màn Xem trước.'],
     },
     {
         id: 'tron-cach', title: 'File trộn nhiều cách đánh dấu đáp án',
@@ -94,8 +94,8 @@ export const GUIDE_PATH = '/import-exam/loi-thuong-gap';
 export const ctxQuery = (p: URLSearchParams) =>
     p.get('bank') ? '?bank=' + encodeURIComponent(p.get('bank')!) : p.get('folder') ? '?folder=' + encodeURIComponent(p.get('folder')!) : '';
 
-/** Where "Cách sửa" goes for a warning code, or null when the guide has nothing for it. */
-export const fixHref = (code: string, ctx = '') => ANCHOR[code] ? `${GUIDE_PATH}${ctx}#${ANCHOR[code]}` : null;
+/** The guide entry "Cách sửa" opens for a warning code, or null when the guide has nothing for it. */
+export const fixAnchor = (code: string) => ANCHOR[code] || null;
 
 /** Short name of a warning for the chip on the question card. */
 const LABEL: Record<string, string> = {

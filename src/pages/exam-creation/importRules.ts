@@ -103,15 +103,22 @@ export const missingTf = (exam: ImportedExam) => numberedUnits(exam).filter(x =>
 
 export const badTrueFalse = (exam: ImportedExam) => numberedUnits(exam).filter(x => isBadTrueFalse(x.unit)).length;
 
-/** Question count per kind, in paper order of the kinds, zero kinds left out — the SPT parts of the exam. */
-export function typeCounts(exam: ImportedExam): Array<[string, number]> {
-    const kind = (u: QuestionUnit) => {
-        const q = u.questions[0];
-        return isChoice(q) ? 'Trắc nghiệm' : q.type === 'TrueFalse' ? 'Đúng/Sai' : isClusterQuestion(q) ? 'Câu chùm' : q.type === 'FillBlank' ? 'Trả lời ngắn' : 'Tự luận';
-    };
-    const n: Record<string, number> = {};
-    for (const {unit} of numberedUnits(exam)) n[kind(unit)] = (n[kind(unit)] || 0) + 1;
-    return ['Trắc nghiệm', 'Đúng/Sai', 'Trả lời ngắn', 'Câu chùm', 'Tự luận'].filter(k => n[k]).map(k => [k, n[k]]);
+/** SPT name of the kind of a question. */
+const kindOf = (q: ImportQuestion) =>
+    isChoice(q) ? 'Trắc nghiệm' : q.type === 'TrueFalse' ? 'Đúng/Sai' : isClusterQuestion(q) ? 'Câu chùm' : q.type === 'FillBlank' ? 'Trả lời ngắn' : 'Tự luận';
+
+export type PartRow = {name: string; kind: string; read: number; done: number; total: number; severe: number; light: number};
+
+/** One row per Phần of the exam for the summary table, counted from the data on screen (nothing here comes from the BE). */
+export function partRows(exam: ImportedExam, issues: ImportIssue[]): PartRow[] {
+    return exam.sections.map((s, i) => {
+        const mine = issues.filter(x => x.section_index === i || (x.question_id && s.questions.some(q => q.id === x.question_id)));
+        return {
+            name: plain(s.name).replace(/\s*\(.*$/, ''), kind: [...new Set(s.questions.map(kindOf))].join(' / ') || '—',
+            read: toUnits(s.questions).length, ...countAnswers(s.questions),
+            severe: mine.filter(isSevere).length, light: mine.filter(x => !isSevere(x)).length,
+        };
+    });
 }
 
 /** Rows of the "Thông tin đề" modal; rows with no question are left out. */
@@ -260,9 +267,11 @@ export function missingNumbers(exam: ImportedExam): Array<{beforeId: string; no:
 }
 
 /** Answered / answerable questions, counted live so "Dán đáp án" and picking an answer move the tile. */
-export function answerCounts(exam: ImportedExam) {
+export const answerCounts = (exam: ImportedExam) => countAnswers(exam.sections.flatMap(s => s.questions));
+
+function countAnswers(questions: ImportQuestion[]) {
     let total = 0, done = 0;
-    for (const q of exam.sections.flatMap(s => s.questions)) {
+    for (const q of questions) {
         if (isChoice(q)) { total++; if (q.data.correctAnswerId) done++; }
         else if (q.type === 'TrueFalse') { total++; if (typeof q.data.answer === 'boolean') done++; }
         else if (q.type === 'FillBlank') { total++; if (plain(String(q.data.answer ?? ''))) done++; }

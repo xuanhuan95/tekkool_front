@@ -31,8 +31,6 @@ export type PaperQuestion = {
     maxScore: number | null;
     /** The part's questions have different scores → show this one's points next to its number (not in the part heading). */
     showPoints?: boolean;
-    maxChars?: number;
-    maxWords?: number;
     /** Raw question + its predecessor in the section, for the shared reading text (Passage). */
     raw: TestQuestion;
     rawPrev?: TestQuestion;
@@ -120,8 +118,6 @@ export function buildPaper(exam: TestExam): Paper {
                 raw: q,
                 rawPrev: i > 0 ? raws[i - 1] : undefined,
                 sectionIndex,
-                maxChars: q.data.max_chars,
-                maxWords: q.data.max_words,
             };
             if (isCluster(q)) {
                 // SPT-97: Hoá Phần IV chùm = consecutive FillBlank ý of one passageId, ONE question (like BE grading).

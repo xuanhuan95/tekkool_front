@@ -4,6 +4,7 @@ export type QuestionData = {
     passage?: string;
     passageId?: string;
     max_words?: number;
+    max_chars?: number;
     /** Set by the Word import (SPT-62): score of the question and the HTML solution shown after submitting. */
     max_score?: number;
     explanation?: string;
@@ -27,7 +28,7 @@ export type QuestionData = {
 export function convertData(data: QuestionData, to: string): QuestionData {
     // question / passage / passageId / max_words / max_score / explanation are shared by every type.
     // block_type is NOT: it was guessed for the old type, the backend re-derives it.
-    const {question, passage, passageId, max_words, max_score, explanation} = data;
+    const {question, passage, passageId, max_words, max_chars, max_score, explanation} = data;
     const next: QuestionData = {question};
     if (max_score !== undefined) next.max_score = max_score;
     if (explanation) next.explanation = explanation;
@@ -38,7 +39,9 @@ export function convertData(data: QuestionData, to: string): QuestionData {
         next.answers = data.answers || [];
         if (data.correctAnswerId) next.correctAnswerId = data.correctAnswerId;
     } else if (to === 'FreeAnswer') {
+        // no UI sets these any more, but the BE sorts Ngữ văn blocks (TraLoiNgan/VietDoan/VietBai) by them
         if (max_words) next.max_words = max_words;
+        if (max_chars) next.max_chars = max_chars;
     }
     // TrueFalse: don't set data.answer — TrueFalse.jsx treats undefined as NOT CHOSEN
     // and unchecks both radios. Presetting true/false would assign a correct answer arbitrarily.

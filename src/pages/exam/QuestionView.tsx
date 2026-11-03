@@ -67,7 +67,6 @@ function QuestionView({question: q, answers, flagged, disabled, onToggleFlag, on
                           editor={disabled
                               ? <div className='tt-editor'><div className='ProseMirror'>{renderHTML(raw)}</div></div>
                               : <Editor text={raw} placeholder='Viết bài làm của bạn…' variant='student'
-                                        maxChars={q.maxChars} maxWords={q.maxWords}
                                         onChange={html => onWrite({[id]: html}, textDelayMs)}/>}
                           extra={<AnswerImages questionId={id} initial={(q.raw as {markedImages?: string[]}).markedImages || []}
                                                disabled={disabled}/>}/>;

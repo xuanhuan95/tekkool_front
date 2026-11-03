@@ -147,7 +147,7 @@ describe('ImportExam: saving in the wrong place', () => {
 });
 
 /** "Sửa câu n" dialog: open it, pick the n-th radio of the editor, save/cancel it. */
-const openEdit = (n = 1) => fireEvent.click(screen.getByLabelText('Sửa câu ' + n));
+const openEdit = (n = 1) => fireEvent.click(screen.getByRole('button', {name: 'Sửa câu ' + n}));
 const pickRadio = (i: number) => fireEvent.click(document.querySelectorAll<HTMLInputElement>('.vt-imp-edit input[type=radio]')[i]);
 const saveEdit = () => fireEvent.click(screen.getByText('Lưu câu'));
 const cancelEdit = () => fireEvent.click(screen.getByText('Huỷ'));
@@ -360,14 +360,18 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
         expect(saveButton().disabled).toBe(false);
     });
 
-    it('unticking the exam with the Nặng warning lifts the gate; "Cách sửa" opens the guide anchor in a new tab', async () => {
+    it('unticking the exam with the Nặng warning lifts the gate; "Cách sửa" opens the guide dialog at that entry', async () => {
         mockPost();
         renderScreen();
         await loadFile(EXAM, [SEVERE]);
-        const fix = screen.getByText('Cách sửa').closest('a')!;
-        // B4: the bank (or folder) travels with the link
-        expect(fix.getAttribute('href')).toBe('/import-exam/loi-thuong-gap?bank=B1#mat-cau');
-        expect(fix.getAttribute('target')).toBe('_blank');
+        const fix = screen.getByText('Cách sửa');
+        // SPT-99: the same dialog as on the upload screen, opened at that entry — no new tab, the file stays
+        expect(fix.getAttribute('href')).toBeNull();
+        fireEvent.click(fix);
+        expect(screen.getByRole('dialog', {name: 'Lỗi thường gặp và cách sửa'})).toBeTruthy();
+        expect((document.getElementById('mat-cau') as HTMLDetailsElement).open).toBe(true);
+        expect((document.getElementById('bang') as HTMLDetailsElement).open).toBe(false);
+        fireEvent.click(screen.getByText('Đóng', {selector: 'button'}));
         fireEvent.click(screen.getByLabelText('Chọn Đề thử 1'));
         expect(screen.queryByText(/cảnh báo nặng chưa xem/)).toBeNull();
     });
@@ -441,7 +445,7 @@ describe('ImportExam: QC round (B1, B4, B5, B12)', () => {
         renderScreen('/import-exam?bank=B1');
         // SPT-99: a dialog on the same screen, not another page
         fireEvent.click(screen.getByText('Lỗi thường gặp và cách sửa →'));
-        expect(screen.getByRole('dialog', {name: 'Lỗi thường gặp khi nhập đề'})).toBeTruthy();
+        expect(screen.getByRole('dialog', {name: 'Lỗi thường gặp và cách sửa'})).toBeTruthy();
         expect(screen.getByText('Mất câu hoặc mất phương án')).toBeTruthy();
         fireEvent.click(screen.getByText('Đóng', {selector: 'button'}));
         expect(screen.queryByRole('dialog')).toBeNull();
@@ -532,7 +536,7 @@ describe('ImportExam: follow-up (V2-2, V2-3, V2-4, V2-5)', () => {
         renderScreen();
         const dup = issue({code: 'OPTION_DUPLICATE', question_id: 'Q1', message: 'Câu 1: hai phương án cùng chữ B'});
         await loadFile(EXAM, [dup]);
-        expect(screen.getByText('Cách sửa').closest('a')!.getAttribute('href')).toBe('/import-exam/loi-thuong-gap?bank=B1#phuong-an-trung');
+        expect(screen.getByText('Cách sửa').tagName).toBe('BUTTON');
         expect(screen.getByText('Có phương án trùng chữ cái')).toBeTruthy();
     });
 });
@@ -540,12 +544,29 @@ describe('ImportExam: follow-up (V2-2, V2-3, V2-4, V2-5)', () => {
 describe('ImportExam: SPT-99 preview as on the paper', () => {
     const SHORT = {id: 'Q3', type: 'FillBlank', data: {question: '<p>Tính 1+1.</p>', answer: '2'}};
 
-    it('the summary splits the count by part', async () => {
+    it('max_words / max_chars survive import → Sửa câu → save (the BE sorts Ngữ văn blocks by them)', async () => {
+        const sent = mockPost();
+        renderScreen();
+        const essay = {id: 'Q2', type: 'FreeAnswer', data: {question: '<p>Viết bài.</p>', max_words: 600, max_chars: 3000}};
+        await loadFile(examOf(mc('Q1', 'Q1A'), essay));
+        openEdit(2); saveEdit();
+        changeType(2, 'FillBlank'); fireEvent.change(screen.getByLabelText('Loại câu'), {target: {value: 'FreeAnswer'}}); cancelEdit();   // the type round trip keeps them too
+        fireEvent.click(saveButton());
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        const q = sent[0].sections[0].questions[1];
+        expect(q.data.max_words).toBe(600);
+        expect(q.data.max_chars).toBe(3000);
+    });
+
+    it('the summary is a table by Phần plus a Cả đề row', async () => {
         mockPost();
         renderScreen();
         await loadFile(examOf(mc('Q1', 'Q1A'), tf('T1'), tf('T2'), tf('T3'), tf('T4'), SHORT, {id: 'Q9', type: 'FreeAnswer', data: {question: '<p>Viết.</p>'}}));
-        const parts = screen.getByLabelText('Số câu theo loại').textContent;
-        expect(parts).toBe('Trắc nghiệm: 1 câuĐúng/Sai: 1 câuTrả lời ngắn: 1 câuTự luận: 1 câu');
+        const rows = [...screen.getByLabelText('Tóm tắt theo phần').querySelectorAll('tbody tr, tfoot tr')].map(r => r.textContent);
+        expect(rows).toHaveLength(2);
+        expect(rows[0]).toContain('Phần I');
+        expect(rows[0]).toContain('Trắc nghiệm / Đúng/Sai / Trả lời ngắn / Tự luận');
+        expect(rows[1]).toContain('Cả đề');
     });
 
     it('only the right option is tinted, and there is no type select or inline editor on the card', async () => {
