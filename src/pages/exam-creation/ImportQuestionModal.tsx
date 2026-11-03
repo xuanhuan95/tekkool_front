@@ -48,16 +48,12 @@ export default function ImportQuestionModal({unit, no, header, onSave, onClose}:
                     <div className='vt-imp-passage-label'>Ngữ liệu dùng chung — sửa ở đây áp dụng cho cả nhóm câu</div>
                     <Editor text={first.data.passage} onChange={setPassage}/>
                 </div>}
+                {first.type !== 'TrueFalse' && !isClusterQuestion(first) && <span className='vt-imp-edit-label'>Câu hỏi</span>}
                 {!QuestionView
                     ? <div role='alert' className='ui warning message'>Chưa hỗ trợ sửa loại câu hỏi “{first.type}”. Câu này được giữ nguyên khi lưu.</div>
                     // câu chùm: every ý is its own FillBlank, the dẫn liệu is above
                     : (isClusterQuestion(first) ? draft : [first]).map(q =>
                         <QuestionView key={q.id} question={q} section={section} setSectionState={bump}/>)}
             </>}
-        {/* IV2-SuaCau: the solution students see after submitting (all kinds) */}
-        <div className='vt-imp-edit-solution'>
-            <span className='vt-imp-passage-label'>Lời giải (học sinh thấy sau khi nộp bài)</span>
-            <Editor text={first.data.explanation || ''} onChange={html => { first.data.explanation = html; bump(); }}/>
-        </div>
     </Modal>;
 }

@@ -212,7 +212,7 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 .vt-imp-answer-label { margin-left: auto; align-self: center; font-size: 12px; font-weight: 700; color: var(--vt-ok-ink); white-space: nowrap; }
 .vt-imp-split-hint { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 10px 12px; background: var(--vt-sun-soft); border: 1.5px solid var(--vt-sun); border-radius: var(--vt-r-btn); font-size: 14px; color: var(--vt-sun-ink); }
 .vt-imp-split-btn { align-self: flex-start; }
-.vt-imp-edit-solution { display: flex; flex-direction: column; gap: 4px; }
+.vt-imp-edit-label { display: block; font-size: 13px; font-weight: 600; color: var(--vt-muted, #57534e); margin-bottom: 4px; }
 .vt-imp-q-issue { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 8px 10px; border: 1.5px solid currentColor; border-radius: var(--vt-r-btn); background: var(--vt-card); }
 .vt-imp-q.has-warn .vt-imp-q-issue { border-color: var(--vt-sun); }
 .vt-imp-q.has-err .vt-imp-q-issue { border-color: var(--vt-err); }

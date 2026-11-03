@@ -1,7 +1,7 @@
 import {Badge, Button, Card, cx} from '../../components/ui';
 import {formatDecimal} from '../../lib/format';
 import {fixAnchor} from './guideContent';
-import {answerCounts, countQuestions, isSevere, issueKey, partRows} from './importRules';
+import {answerCounts, isSevere, issueKey, partRows} from './importRules';
 import type {ImportIssue, ImportedExam} from './importRules';
 
 /** The words carry the level; colour only repeats it (design: Nặng / Nhẹ). */
@@ -14,8 +14,10 @@ export const LevelBadge = ({issue}: {issue: ImportIssue}) =>
  */
 export function SummaryBar({exam, issues}: {exam: ImportedExam; issues: ImportIssue[]}) {
     const parts = partRows(exam, issues);
-    const read = exam.stats?.read_questions ?? countQuestions(exam);
-    const declared = exam.stats?.declared_questions;
+    // Read on screen (a deleted question leaves at once); declared: the file's total, else the sum of the Phần when every one says so
+    const read = parts.reduce((n, p) => n + p.read, 0);
+    const declared = exam.stats?.declared_questions
+        ?? (parts.length && parts.every(p => typeof p.declared === 'number') ? parts.reduce((n, p) => n + (p.declared as number), 0) : undefined);
     const {done, total} = answerCounts(exam);
     const score = exam.stats?.total_score;
     const severe = issues.filter(isSevere).length;
@@ -38,7 +40,7 @@ export function SummaryBar({exam, issues}: {exam: ImportedExam; issues: ImportIs
                 </tbody>
                 <tfoot><tr>
                     <th scope='row' colSpan={2}>Cả đề</th>
-                    <td>{declared ? <>{read} / {declared} {state(read, declared, 'câu')}</> : <>{read} / — <span className='ok'>file không ghi số câu</span></>}</td>
+                    <td>{read} / {declared ?? '—'} {typeof declared === 'number' && state(read, declared, 'câu')}</td>
                     <td>{done} / {total} {state(done, total)}</td>
                     <td>{typeof score === 'number' ? <>{formatDecimal(score)} / 10 {state(score, 10, 'điểm')}</> : '—'}</td>
                     <td className={cx('lg', severe && 'err')}>{issues.length ? `${issues.length} · ${warn(severe, issues.length - severe)}` : 'không có'}</td>

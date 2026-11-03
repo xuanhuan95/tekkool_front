@@ -606,4 +606,18 @@ describe('ImportExam: SPT-99 preview as on the paper', () => {
         expect(sent).toHaveLength(0);   // nothing was saved by deleting
         expect(saveButton().disabled).toBe(false);
     });
+
+    it('Cả đề: the read count follows a deleted question; declared = sum of the Phần when the file gives no total', async () => {
+        mockPost();
+        renderScreen();
+        const exam: any = examOf(mc('Q1', 'Q1A'), mc('Q2', 'Q2A'));
+        exam.stats = {read_questions: 2, sections: [{label: 'Phần I', declared_questions: 2, declared_score: null, read_questions: 2, read_score: 0.5}]};
+        await loadFile(exam);
+        const total = () => screen.getByText('Cả đề').closest('tr')!.querySelectorAll('td')[0].textContent;
+        expect(total()).toContain('2 / 2');
+        expect(total()).not.toContain('file không ghi');
+        fireEvent.click(screen.getByLabelText('Xoá câu 2'));
+        fireEvent.click(screen.getByText('Xoá câu', {selector: 'button'}));
+        expect(total()).toContain('1 / 2');
+    });
 });
