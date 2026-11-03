@@ -320,8 +320,8 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
         renderScreen();
         await loadFile(EXAM, [LIGHT]);
         expect(saveButton().disabled).toBe(false);
-        // once in the list, once as the chip on the question itself
-        expect(screen.getAllByText('Nhẹ')).toHaveLength(2);
+        // in the list, as the chip on the question, and in the warning block inside the question card
+        expect(screen.getAllByText('Nhẹ')).toHaveLength(3);
         expect(screen.getByText('Công thức gõ thô')).toBeTruthy();
     });
 
@@ -381,7 +381,7 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
         renderScreen();
         const gap = issue({code: 'NUMBER_GAP', level: 'warning', question_id: 'Q1', message: 'sau câu 5 là câu 7'});
         await loadFile(EXAM, [gap]);
-        expect(screen.getByText('sau câu 5 là câu 7')).toBeTruthy();
+        expect(screen.getAllByText('sau câu 5 là câu 7').length).toBeGreaterThan(0);
         fireEvent.click(screen.getByText('Đánh số lại câu'));
         fireEvent.click(screen.getByText('Đánh số lại', {selector: 'button'}));
         expect(screen.queryByText('sau câu 5 là câu 7')).toBeNull();

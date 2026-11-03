@@ -22,7 +22,7 @@ export default class FreeAnswer extends BaseQuestion {
             <Editor
                 type='FreeAnswer'
                 text={data.question}
-                placeholder='Type your Open-ended question here...'
+                placeholder='Nhập câu hỏi tự luận...'
                 onToAnswerButton={this.onToAnswerButton}
                 onChange={(question: string) => this.setQuestionData({question})}
             />

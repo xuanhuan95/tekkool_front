@@ -77,12 +77,13 @@ type UnitCardProps = {
     duplicates: Record<string, DuplicateInfo>;
     /** Coded warnings of THIS question (SPT-93). */
     issues: ImportIssue[];
+    seen: Record<string, boolean>; onSee: (i: ImportIssue) => void;
     /** Original data of questions the teacher converted, so converting back restores the options / answer. */
     stash: MutableRefObject<Stash>;
 };
 
 /** The question as on the paper: only the right answer is tinted. Editing happens in `ImportQuestionModal`. */
-function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: UnitCardProps) {
+function UnitCard({unit, no, edit, showPassage, duplicates, issues, seen, onSee, stash}: UnitCardProps) {
     const [confirmRemove, setConfirmRemove] = useState(false);
     const [editing, setEditing] = useState(false);
     const [splitTo, setSplitTo] = useState<string | null>(null);
@@ -182,6 +183,15 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: Unit
                     {plainText(String(first.data.answer ?? '')) ? <>Đáp án: <b>{renderHTML(String(first.data.answer))}</b></> : 'Chưa có đáp án'}
                 </div>}
             </>}
+
+        {/* IV2-XemTruoc: each warning of this question inside its card, level always in words */}
+        {issues.map(i => <div key={issueKey(i)} className='vt-imp-q-issue' role='note'>
+            <LevelBadge issue={i}/>
+            <span className='vt-imp-issue-text'>{i.message}</span>
+            {isSevere(i) && (seen[issueKey(i)]
+                ? <Badge tone='ok'>Đã xem</Badge>
+                : <Button variant='secondary' size='sm' onClick={() => onSee(i)}>Đã xem, cho phép lưu</Button>)}
+        </div>)}
 
         {split && <div className='vt-imp-split-hint' role='note'>
             <span>Câu này có “A. … B. … C. … D.” trong nội dung. Có phải câu trắc nghiệm?</span>
@@ -286,7 +296,7 @@ function ExamBody({onFix, exam, edit, duplicates, pdf, desktop, issues, seen, on
                                 <Badge tone='err'>Thiếu</Badge> <b>Câu {g.no}</b> có trong file Word nhưng hệ thống không đọc được.
                             </div>)}
                             <UnitCard unit={u} no={++no} edit={edit} showPassage={showPassage} duplicates={duplicates}
-                                      issues={mine} stash={stash}/>
+                                      issues={mine} seen={seen} onSee={onSee} stash={stash}/>
                         </div>;
                     })}
                 </div>)}

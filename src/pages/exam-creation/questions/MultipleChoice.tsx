@@ -152,7 +152,7 @@ export default class MultipleChoice extends BaseQuestion<ChoiceProps> {
             cssClass = 'multiple-choice',
             editorType = 'MultipleChoice',
             toAnswerButton = false,
-            placeholder = 'Type your Multiple-choice question here...',
+            placeholder = 'Nhập câu hỏi trắc nghiệm...',
             iconOffset = true,
         } = this.props;
 
@@ -195,7 +195,7 @@ export default class MultipleChoice extends BaseQuestion<ChoiceProps> {
 
             <Editor
                 refMedium={this.refNewAnswer}
-                placeholder='Type answer here...'
+                placeholder='Nhập đáp án...'
                 onKeyUp={this.handleEnter}
                 onBlur={() => this.addAnswer(this.getAnswerContent())}
             />
