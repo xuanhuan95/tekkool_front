@@ -4,6 +4,8 @@ import Passage from '../../components/Passage';
 import {useExamDraftStore} from '../../stores/examDraftStore';
 import {ExamHeader} from "./ExamHeader";
 import {numToChar} from '../../services/tools';
+import {isChum, tickOf, toUnits} from './examRules';
+import {stripQuestionLabel, stripStatementLabel} from '../exam/stripLabel';
 import striptags from 'striptags';
 import {Grid} from 'semantic-ui-react';
 
@@ -100,17 +102,30 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
 
                 {renderHTML(s.name || '')}
 
-                {s.questions.map((q, qi) => {
-                    if (!Object.keys(q.data).length)
-                        return null;
+                {/* Same grouping as the exam page and the editor (toUnits): a Đúng/Sai question (4 ý) or a câu chùm
+                    is ONE numbered question, the shared stem / dẫn liệu is printed once. */}
+                {toUnits(s.questions.filter(q => Object.keys(q.data).length)).map((unit, ui, units) => {
+                    const q = unit[0];
                     qIdx++;
+                    const multi = q.type === 'TrueFalse' || isChum(unit);
 
                     let columnWidthSingleChoice: any = 4;
 
                     return <Fragment key={q.id}>
-                        <Passage question={q} prev={s.questions[qi - 1]} questions={s.questions}/>
+                        {!multi || isChum(unit)
+                            ? <Passage question={q} prev={units[ui - 1]?.[0]} questions={s.questions}/> : null}
 
-                        {q.type === 'FillBlank' &&
+                        {isChum(unit) &&
+                        <div className='question FillBlank' style={pageNonBreak}>
+                            <span style={boldText}>Câu {qIdx}:</span>
+                            {unit.map((y, k) => <div key={y.id} style={marginLeft}>
+                                <b>{y.data.label || String.fromCharCode(97 + k) + ')'}</b> {renderHTML(y.data.question || '')}
+                                {showAnswer && <div className="answer">{renderHTML(y.data.answer || '')}</div>}
+                            </div>)}
+                        </div>
+                        }
+
+                        {!multi && q.type === 'FillBlank' &&
                         <div className='question FillBlank' style={pageNonBreak}>
                             <span style={boldText}>Câu {qIdx}:</span>
                             <br/>
@@ -123,13 +138,15 @@ export default function PreviewExam({action, closeModal, showAnswer = false}: Pr
                         {q.type === 'TrueFalse' &&
                         <div className='question TrueFalse' style={pageNonBreak}>
                             <span style={boldText}>Câu {qIdx}:</span>
-                            <br/>
-                            <span style={marginLeft}>{renderHTML(q.data.question)}</span>
-                            <br/>
-                            <span style={marginLeft}>A. True</span>
-                            <span style={marginLeft}>B. False</span>
-
-                            {showAnswer && <div className="answer">{q.data.answer ? 'A. True' : 'B. False'}</div>}
+                            {unit.length > 1 || q.data.passage ? renderHTML(stripQuestionLabel(q.data.passage)) : null}
+                            {unit.map((y, k) => {
+                                const key = String.fromCharCode(97 + k);
+                                const tick = tickOf(y);
+                                return <div key={y.id} style={marginLeft}>
+                                    <b>{key})</b> {renderHTML(stripStatementLabel(y.data.question, key))}
+                                    {showAnswer && <div className="answer">{tick === undefined ? '' : tick ? 'Đúng' : 'Sai'}</div>}
+                                </div>;
+                            })}
                         </div>
                         }
 

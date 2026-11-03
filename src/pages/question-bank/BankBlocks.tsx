@@ -40,7 +40,7 @@ function QuestionView({no, q}: {no: string; q: BankBlock['questions'][number]}) 
 }
 
 function BlockCard({block, onDelete}: {block: BankBlock; onDelete: () => void}) {
-    const tf = block.block_type === 'DungSai';
+    const tf = block.block_type === 'DungSai' || block.block_type === 'ChumTLN';   // ý a), b)… sharing one stem
     return <Card as='article' className='vt-qbv-block'>
         <div className='vt-qbv-head'>
             <Badge tone='title'>{block.block_type_name}</Badge>
@@ -60,6 +60,7 @@ function BlockCard({block, onDelete}: {block: BankBlock; onDelete: () => void}) 
 /** Message of the confirm box: one question vs a passage with its questions (count comes from the BE). */
 export function deleteQuestion(b: BankBlock) {
     if (b.block_type === 'DungSai') return `Xoá câu đúng/sai này (${b.count} ý)?`;
+    if (b.block_type === 'ChumTLN') return `Xoá câu chùm này (${b.count} ý)?`;
     return b.count > 1 ? `Xoá văn bản này và ${b.count} câu đi kèm?` : 'Xoá câu này?';
 }
 

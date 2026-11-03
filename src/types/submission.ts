@@ -66,6 +66,8 @@ export type SubmissionAnswer = {
     /** Part title snapshotted at submit ("Phần I", teacher's title...). */
     section_name?: string | null;
     block_type?: string | null;
+    /** SPT-97 câu chùm: the ý's own label ("a)", "1)"), apart from question_text. */
+    label?: string | null;
     question_text?: string;
     /** The student's work: option id (multiple choice) or HTML (essay). */
     answer?: string | null;

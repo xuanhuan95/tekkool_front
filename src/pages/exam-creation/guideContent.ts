@@ -104,6 +104,6 @@ const LABEL: Record<string, string> = {
     NUMBER_GAP: 'Số câu nhảy', NUMBER_DUPLICATE: 'Trùng số câu', MC_AS_ESSAY: 'Có A. B. C. D. nhưng không phải trắc nghiệm',
     SECTION_TYPE_MIXED: 'Dạng câu lệch tiêu đề phần', IMAGE_BEFORE_QUESTION: 'Hình đứng trước câu kế', SWALLOWED_QUESTION: 'Có câu bị dính vào',
     ANSWER_CONFLICT: 'Đáp án mâu thuẫn', MULTI_MARK: 'Nhiều phương án được đánh dấu', EMPTY_CONTENT: 'Nội dung rỗng',
-    INTERNAL_NOTE: 'Còn ghi chú nội bộ', OPTION_DUPLICATE: 'Có phương án trùng chữ cái', UNSUPPORTED_CLUSTER: 'Câu chùm chưa hỗ trợ',
+    INTERNAL_NOTE: 'Còn ghi chú nội bộ', OPTION_DUPLICATE: 'Có phương án trùng chữ cái', UNSUPPORTED_CLUSTER: 'Câu chùm chưa hỗ trợ', IMAGE_OPTIONS: 'Phương án nằm trong ảnh',
 };
 export const issueLabel = (code: string) => LABEL[code] || 'Cần kiểm tra';

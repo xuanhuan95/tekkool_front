@@ -64,7 +64,15 @@ export interface EssayQuestionProps extends BaseProps {
     extra?: ReactNode;
 }
 
-export type QuestionBlockProps = ChoiceQuestionProps | TrueFalseQuestionProps | ShortQuestionProps | EssayQuestionProps;
+/** SPT-97 câu chùm: one shared passage (in `prompt` / printed above) and n short-answer ý, each with its own box. */
+export interface ClusterQuestionProps extends BaseProps {
+    kind: 'cluster';
+    items: Array<{key: string; label: string; content: ReactNode; value: string}>;
+    onChange: (key: string, text: string) => void;
+}
+
+export type QuestionBlockProps = ChoiceQuestionProps | TrueFalseQuestionProps | ShortQuestionProps | EssayQuestionProps
+    | ClusterQuestionProps;
 
 /** Short options (numbers like "4", "I = 2") sit four in a row on phones, like the paper; long ones stack. */
 function isCompact(options: ChoiceOption[]): boolean {
@@ -134,6 +142,18 @@ function ShortAnswer({value, onChange, disabled, label = 'Kết quả',
     </div>;
 }
 
+function ClusterAnswer({number, items, onChange, disabled}: ClusterQuestionProps) {
+    const id = useId();
+    return <div className='vt-cluster'>
+        {items.map(it => <div key={it.key} role='group' aria-label={`Câu ${number} ý ${it.key}`} className='vt-cluster-row'>
+            <div className='vt-cluster-text'><b>{it.label}</b> {it.content}</div>
+            <input type='text' inputMode='decimal' autoComplete='off' spellCheck={false} className='vt-input'
+                   id={id + it.key} aria-label={`Kết quả ý ${it.key}`} placeholder='Nhập kết quả'
+                   value={it.value} disabled={disabled} onChange={e => onChange(it.key, e.target.value)}/>
+        </div>)}
+    </div>;
+}
+
 function EssayAnswer({value, onChange, disabled, editor, onAttach, extra}: EssayQuestionProps) {
     const id = useId();
     const words = countWords(value);
@@ -162,7 +182,9 @@ export default function QuestionBlock(props: QuestionBlockProps) {
     const titleId = useId();
 
     const sub = props.kind === 'truefalse'
-        ? `đã trả lời ${countTrueFalse(props.value)} / ${props.statements.length} ý` : null;
+        ? `đã trả lời ${countTrueFalse(props.value)} / ${props.statements.length} ý`
+        : props.kind === 'cluster'
+            ? `đã trả lời ${props.items.filter(it => it.value.trim()).length} / ${props.items.length} ý` : null;
 
     return <div id={id ?? 'cau-' + number} role='group' aria-labelledby={titleId} className={cx('vt-q', className)}>
         <div className='vt-q-head'>
@@ -180,5 +202,6 @@ export default function QuestionBlock(props: QuestionBlockProps) {
         {props.kind === 'truefalse' && <TrueFalseAnswer {...props}/>}
         {props.kind === 'short' && <ShortAnswer {...props}/>}
         {props.kind === 'essay' && <EssayAnswer {...props}/>}
+        {props.kind === 'cluster' && <ClusterAnswer {...props}/>}
     </div>;
 }

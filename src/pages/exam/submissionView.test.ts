@@ -111,3 +111,37 @@ it('explanations: per question, Đúng/Sai group joins distinct ones', () => {
     ]);
     expect(items.map(i => i.explanation)).toEqual(['<p>Vì 1+1=2</p>', 'Giải Đ/S', null]);
 });
+
+describe('SPT-97: câu chùm', () => {
+    const ý = (id: string, answer: string, score: number): SubmissionAnswer => ({
+        question_id: id, type: 'FillBlank', block_type: 'ChumTLN', section_name: 'Phần IV', question_text: `a) ${id}`,
+        passage: '<p>Dẫn liệu</p>', passage_id: 'G1', answer, correct: '10,0|10', score, max_score: 0.5,
+    });
+    const items = buildReview([
+        {question_id: 'Q1', type: 'MultipleChoice', section_name: 'Phần I', question_text: '?', answers: [{id: 'a', value: '1'}], correct_id: 'a', score: 0.25, max_score: 0.25},
+        ý('C1', '10', 0.5), ý('C2', '7', 0), ý('C3', '', 0), ý('C4', '10,0', 0.5),
+        {question_id: 'S1', type: 'FillBlank', section_name: 'Phần IV', question_text: 'lẻ', answer: '1', correct: '1', score: 0.25, max_score: 0.25},
+    ]);
+
+    it('merges the 4 ý into one question with the passage once', () => {
+        expect(items.map(i => i.number)).toEqual([1, 2, 3]);
+        const c = items[1];
+        expect(c.kind).toBe('cluster');
+        expect(c.passage).toBe('<p>Dẫn liệu</p>');
+        expect(c.parts?.map(p => p.ok)).toEqual([true, false, false, true]);
+        expect(c.score).toBe(1);
+        expect(c.maxScore).toBe(2);
+        expect(c.status).toBe('partial');
+        expect(items[2].passage).toBeNull();
+    });
+
+    it('keeps the BE label ("1)") and falls back to a)–d) without one', () => {
+        const withLabel = buildReview([{...ý('C1', '1', 0.5), label: '1)'}, {...ý('C2', '2', 0), label: '2)'}]);
+        expect(withLabel[0].parts?.map(p => p.label)).toEqual(['1)', '2)']);
+        expect(items[1].parts?.map(p => p.label)).toEqual(['a)', 'b)', 'c)', 'd)']);
+    });
+
+    it('badge counts ý, not partial points inside a ý', () => {
+        expect(reviewBadge(items[1])).toBe('2 / 4 ý · 1 / 2');
+    });
+});

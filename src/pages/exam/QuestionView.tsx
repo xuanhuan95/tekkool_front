@@ -48,6 +48,14 @@ function QuestionView({question: q, answers, flagged, disabled, onToggleFlag, on
                               value={value}
                               onChange={next => onWrite(trueFalseWrites(q, value, next), 0)}/>;
     }
+    if (q.kind === 'cluster') {
+        return <QuestionBlock kind='cluster' {...common}
+                              items={q.statements.map(s => ({key: s.key, label: s.label || s.key + ')', content: renderHTML(s.html), value: textValue({...q, questionIds: [s.questionId]}, answers)}))}
+                              onChange={(key, text) => {
+                                  const st = q.statements.find(s => s.key === key);
+                                  if (st) onWrite({[st.questionId]: text}, textDelayMs);
+                              }}/>;
+    }
     if (q.kind === 'short') {
         return <QuestionBlock kind='short' {...common} value={textValue(q, answers)}
                               onChange={text => onWrite({[id]: text}, textDelayMs)}/>;

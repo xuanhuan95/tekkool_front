@@ -1,5 +1,5 @@
 import type {Question} from './Default';
-import {defaultScore, unitScore} from './examRules';
+import {CHUM_PART_SCORE, defaultScore, isChum, unitScore} from './examRules';
 
 type Props = {
     unit: Question[];
@@ -12,13 +12,13 @@ type Props = {
 export default function ScoreField({unit, subject, onChange}: Props) {
     const type = unit[0].type;
     const score = unitScore(unit, subject);
-    const fallback = defaultScore(type, subject);
+    const fallback = isChum(unit) ? unit.length * CHUM_PART_SCORE : defaultScore(type, subject);
     const edited = unit.some(q => q.data.max_score !== undefined) && score !== fallback;
     const missing = type === 'FreeAnswer' && !(Number(score) > 0);
 
     return <div className='vt-score-field'>
         <label>
-            Điểm câu{type === 'TrueFalse' ? ' (cả 4 ý)' : ''}:{' '}
+            Điểm câu{type === 'TrueFalse' ? ' (cả 4 ý)' : isChum(unit) ? ` (cả ${unit.length} ý)` : ''}:{' '}
             <input type='number' min={0} step={0.05} aria-label='Điểm câu'
                    value={score ?? ''} placeholder={type === 'FreeAnswer' ? 'bắt buộc' : ''}
                    onChange={e => onChange(unit, e.target.value === '' ? undefined : Math.max(0, Number(e.target.value)))}/>
