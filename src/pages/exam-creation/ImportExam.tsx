@@ -18,7 +18,7 @@ import {DESKTOP, useMediaQuery} from '../useMediaQuery';
 import {blockLabel} from './blockTypes';
 import {
     plain as plainText, applyPasted, badTrueFalse, countQuestions, examIssues, examStats, fileProblem, importErrorText, isBadTrueFalse, isChoice,
-    isClusterQuestion, isMissingKey, isSevere, issueKey, missingKeys, missingNumbers, missingTfStatements, numberedUnits, patchData, patchQuestion, removeQuestions, replaceUnit,
+    isClusterQuestion, isMissingKey, isSevere, issueKey, missingKeys, missingNumbers, missingTfStatements, numberedUnits, partRows, patchData, patchQuestion, removeQuestions, replaceUnit,
     saveBlocker, setPassage, setType, splitOptions, toUnits, unseenSevere, TRUE_FALSE_STATEMENTS,
     type DuplicateInfo, type ImportIssue, type ImportQuestion, type ImportedExam, type NumberedUnit, type PastedAnswers, type QuestionUnit, type Stash,
 } from './importRules';
@@ -176,11 +176,21 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: Unit
                     <div key={a.id} className={cx('vt-imp-answer', first.data.correctAnswerId === a.id && 'on')}>
                         <span className='vt-imp-answer-key'>{keyOf(i)}</span>
                         <div className='vt-imp-answer-body'>{renderHTML(a.value)}</div>
+                        {first.data.correctAnswerId === a.id && <span className='vt-imp-answer-label'>Đáp án đúng</span>}
                     </div>)}
                 {first.type === 'FillBlank' && <div className={cx('vt-imp-key', plainText(String(first.data.answer ?? '')) && 'on')}>
                     {plainText(String(first.data.answer ?? '')) ? <>Đáp án: <b>{renderHTML(String(first.data.answer))}</b></> : 'Chưa có đáp án'}
                 </div>}
             </>}
+
+        {split && <div className='vt-imp-split-hint' role='note'>
+            <span>Câu này có “A. … B. … C. … D.” trong nội dung. Có phải câu trắc nghiệm?</span>
+            <Button variant='secondary' size='sm'
+                    onClick={() => { convert('MultipleChoice', e => patchData(e, first.id, {
+                        question: split.stem, answers: split.options.map((value, i) => ({id: first.id + '_' + 'ABCD'[i], value}))})); stash.current[first.id].split = split.stem; }}>
+                Đổi sang Trắc nghiệm và tách A–D
+            </Button>
+        </div>}
 
         {first.data.explanation && <details className='vt-imp-explain'>
             <summary>Lời giải (học sinh thấy sau khi nộp bài)</summary>
@@ -191,11 +201,6 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: Unit
             onSave={save} onClose={() => setEditing(false)}
             header={<div className='vt-imp-edit-head'>
                 <Select label='Loại câu' value={first.type} onChange={ev => changeType(ev.target.value)} options={QUESTION_TYPES}/>
-                {split && <Button variant='secondary' size='sm'
-                                  onClick={() => { convert('MultipleChoice', e => patchData(e, first.id, {
-                                      question: split.stem, answers: split.options.map((value, i) => ({id: first.id + '_' + 'ABCD'[i], value}))})); stash.current[first.id].split = split.stem; }}>
-                    Đổi sang Trắc nghiệm và tách A–D
-                </Button>}
             </div>}/>}
         <ConfirmDialog open={splitTo !== null} title='Đổi dạng câu Đúng/Sai?' cancelLabel='Giữ nguyên' confirmLabel='Đổi và tách'
                        message={`Câu này có ${unit.questions.length} ý. Đổi dạng sẽ tách thành ${unit.questions.length} câu riêng, mất đề dẫn chung và đáp án của từng ý.`}
@@ -215,6 +220,7 @@ function ExamBody({onFix, exam, edit, duplicates, pdf, desktop, issues, seen, on
     const [renumbering, setRenumbering] = useState(false);
     const stash = useRef<Stash>({});
     const numbered = numberedUnits(exam);
+    const parts = partRows(exam, issues);
     const noOf = (qid: string) => numbered.find(x => x.unit.questions.some(q => q.id === qid))?.no;
     const gaps = renumbered ? [] : missingNumbers(exam);
     // Warnings that point at no question and no section in the payload (a whole part the reader dropped).
@@ -264,8 +270,11 @@ function ExamBody({onFix, exam, edit, duplicates, pdf, desktop, issues, seen, on
                     <Button variant='secondary' size='sm' onClick={() => setPasting(true)}>Dán đáp án nhanh</Button>
                     <Button variant='secondary' size='sm' disabled={renumbered} onClick={() => setRenumbering(true)}>Đánh số lại câu</Button>
                 </div>
-                {exam.sections.map(s => <div key={s.id} className='vt-imp-col'>
-                    <h3 className='vt-imp-section' id={'imp-' + s.id}>{renderHTML(s.name)}</h3>
+                {exam.sections.map((s, si) => <div key={s.id} className='vt-imp-col'>
+                    <h3 className='vt-imp-section' id={'imp-' + s.id}>
+                        {parts[si].name} · {parts[si].kind}
+                        <span className='vt-imp-section-count'>đọc {parts[si].read}{typeof parts[si].declared === 'number' && ` / ${parts[si].declared}`} câu</span>
+                    </h3>
                     {toUnits(s.questions).map((u, i, all) => {
                         const prev = all[i - 1];
                         // The passage is printed once, at the FIRST question of its group (groups are consecutive).

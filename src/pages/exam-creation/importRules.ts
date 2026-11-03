@@ -16,7 +16,11 @@ export type ImportSection = {
 };
 
 /** `stats` of `import_docx/preview`: what the file DECLARES vs what the reader found (SPT-93). */
-export type ImportStats = {declared_questions?: number | null; read_questions?: number | null; total_score?: number | null};
+export type ImportStats = {
+    declared_questions?: number | null; read_questions?: number | null; total_score?: number | null;
+    /** One entry per Phần, same order as `sections` (BE, SPT-99); absent on an older BE. `declared_*` null = the file says nothing. */
+    sections?: Array<{label: string; declared_questions: number | null; declared_score: number | null; read_questions: number; read_score: number}>;
+};
 
 export type ImportedExam = {
     id: string;
@@ -107,15 +111,20 @@ export const badTrueFalse = (exam: ImportedExam) => numberedUnits(exam).filter(x
 const kindOf = (q: ImportQuestion) =>
     isChoice(q) ? 'Trắc nghiệm' : q.type === 'TrueFalse' ? 'Đúng/Sai' : isClusterQuestion(q) ? 'Câu chùm' : q.type === 'FillBlank' ? 'Trả lời ngắn' : 'Tự luận';
 
-export type PartRow = {name: string; kind: string; read: number; done: number; total: number; severe: number; light: number};
+export type PartRow = {
+    name: string; kind: string; read: number; done: number; total: number; severe: number; light: number;
+    /** From `stats.sections`; undefined = the BE sent none, null = the file declares none. */
+    declared?: number | null; score?: number; declaredScore?: number | null;
+};
 
-/** One row per Phần of the exam for the summary table, counted from the data on screen (nothing here comes from the BE). */
+/** One row per Phần for the summary table: kinds and answers counted on screen, what the file declares from `stats.sections`. */
 export function partRows(exam: ImportedExam, issues: ImportIssue[]): PartRow[] {
     return exam.sections.map((s, i) => {
         const mine = issues.filter(x => x.section_index === i || (x.question_id && s.questions.some(q => q.id === x.question_id)));
         return {
             name: plain(s.name).replace(/\s*\(.*$/, ''), kind: [...new Set(s.questions.map(kindOf))].join(' / ') || '—',
             read: toUnits(s.questions).length, ...countAnswers(s.questions),
+            ...(exam.stats?.sections?.[i] && {declared: exam.stats.sections[i].declared_questions, score: exam.stats.sections[i].read_score, declaredScore: exam.stats.sections[i].declared_score}),
             severe: mine.filter(isSevere).length, light: mine.filter(x => !isSevere(x)).length,
         };
     });

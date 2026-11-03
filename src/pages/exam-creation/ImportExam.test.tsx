@@ -465,8 +465,8 @@ describe('ImportExam: QC round (B1, B4, B5, B12)', () => {
         const sent = mockPost();
         renderScreen();
         await loadFile(examOf({id: 'Q1', type: 'FreeAnswer', data: {question: '<p>Chất nào? A. HCl B. NaCl C. KCl D. H₂O</p>'}}));
+        fireEvent.click(screen.getByText('Đổi sang Trắc nghiệm và tách A–D'));   // the hint sits on the card, not in the dialog
         openEdit();
-        fireEvent.click(screen.getByText('Đổi sang Trắc nghiệm và tách A–D'));
         expect(document.querySelectorAll('.vt-imp-edit input[type=radio]')).toHaveLength(4);
         pickRadio(1);
         saveEdit();
@@ -502,8 +502,8 @@ describe('ImportExam: follow-up (V2-2, V2-3, V2-4, V2-5)', () => {
         mockPost();
         renderScreen();
         await loadFile(examOf({id: 'Q1', type: 'FreeAnswer', data: {question: '<p>Chất nào? A. HCl B. NaCl C. KCl D. H₂O</p>'}}));
-        openEdit();
         fireEvent.click(screen.getByText('Đổi sang Trắc nghiệm và tách A–D'));
+        openEdit();
         fireEvent.change(screen.getByLabelText('Loại câu'), {target: {value: 'FreeAnswer'}});
         cancelEdit();
         expect(screen.getByText(/A\. HCl B\. NaCl C\. KCl D\. H₂O/)).toBeTruthy();

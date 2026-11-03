@@ -9,8 +9,8 @@ export const LevelBadge = ({issue}: {issue: ImportIssue}) =>
     <Badge tone={isSevere(issue) ? 'err' : 'sun'}>{isSevere(issue) ? 'Nặng' : 'Nhẹ'}</Badge>;
 
 /**
- * Summary table by Phần (IV2-XemTruoc): kind, questions read, answers, warnings, then "Cả đề".
- * What the file DECLARES (questions, score) is per exam only: the BE gives no per-Phần figure yet, so those cells stay "—" on the part rows.
+ * Summary table by Phần (IV2-XemTruoc): kind, questions read / declared, answers, score, warnings, then "Cả đề".
+ * What the file declares per Phần is `stats.sections` (BE); an older BE sends none and the cells show "—". On a phone the long labels and the warnings column drop (IV2-M-DaDoc).
  */
 export function SummaryBar({exam, issues}: {exam: ImportedExam; issues: ImportIssue[]}) {
     const parts = partRows(exam, issues);
@@ -25,14 +25,15 @@ export function SummaryBar({exam, issues}: {exam: ImportedExam; issues: ImportIs
         <h2 className='vt-imp-h2'>Tóm tắt theo phần</h2>
         <div className='vt-imp-sum-scroll'>
             <table className='vt-imp-sum-table'>
-                <thead><tr><th>Phần</th><th>Dạng câu</th><th>Số câu (đọc / file ghi)</th><th>Đáp án (từng ý)</th><th>Điểm</th><th>Cảnh báo</th></tr></thead>
+                <thead><tr><th>Phần</th><th>Dạng<span className='lg'> câu</span></th><th><span className='lg'>Số câu (đọc / file ghi)</span><span className='sm'>Câu</span></th>
+                    <th>Đáp án<span className='lg'> (từng ý)</span></th><th>Điểm</th><th className='lg'>Cảnh báo</th></tr></thead>
                 <tbody>
                     {parts.map(p => <tr key={p.name + p.kind}>
-                        <th scope='row'>{p.name}</th><td>{p.kind}</td>
-                        <td>{p.read} / —</td>
+                        <th scope='row'><span className='lg'>{p.name}</span><span className='sm'>{p.name.replace(/^Phần\s+/, '')}</span></th><td>{p.kind}</td>
+                        <td>{p.read} / {p.declared ?? '—'} {typeof p.declared === 'number' && state(p.read, p.declared, 'câu')}</td>
                         <td>{p.done} / {p.total} {state(p.done, p.total)}</td>
-                        <td>—</td>
-                        <td className={cx(p.severe && 'err')}>{warn(p.severe, p.light)}</td>
+                        <td>{p.score === undefined ? '—' : <>{formatDecimal(p.score)} / {p.declaredScore == null ? '—' : formatDecimal(p.declaredScore)}</>}</td>
+                        <td className={cx('lg', p.severe && 'err')}>{warn(p.severe, p.light)}</td>
                     </tr>)}
                 </tbody>
                 <tfoot><tr>
@@ -40,7 +41,7 @@ export function SummaryBar({exam, issues}: {exam: ImportedExam; issues: ImportIs
                     <td>{declared ? <>{read} / {declared} {state(read, declared, 'câu')}</> : <>{read} / — <span className='ok'>file không ghi số câu</span></>}</td>
                     <td>{done} / {total} {state(done, total)}</td>
                     <td>{typeof score === 'number' ? <>{formatDecimal(score)} / 10 {state(score, 10, 'điểm')}</> : '—'}</td>
-                    <td className={cx(severe && 'err')}>{issues.length ? `${issues.length} · ${warn(severe, issues.length - severe)}` : 'không có'}</td>
+                    <td className={cx('lg', severe && 'err')}>{issues.length ? `${issues.length} · ${warn(severe, issues.length - severe)}` : 'không có'}</td>
                 </tr></tfoot>
             </table>
         </div>

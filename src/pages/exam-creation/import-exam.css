@@ -200,4 +200,16 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 .vt-imp-sum-table .ok { color: var(--vt-ok-ink); font-weight: 600; }
 .vt-imp-sum-table .sun { color: var(--vt-sun-ink); font-weight: 600; }
 .vt-imp-sum-table .err { color: var(--vt-err); font-weight: 700; }
-@media (max-width: 1023.98px) { .vt-imp-sum-table { min-width: 0; font-size: 12px; } .vt-imp-sum-table :is(th, td) { padding: 6px 4px; } }
+.vt-imp-sum-table .sm { display: none; }
+@media (max-width: 1023.98px) {
+    .vt-imp-sum-table { min-width: 0; font-size: 12px; }
+    .vt-imp-sum-table :is(th, td) { padding: 6px 4px; }
+    .vt-imp-sum-table .lg { display: none; }
+    .vt-imp-sum-table .sm { display: inline; }
+}
+.vt-imp-section { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.vt-imp-section-count { font-size: 13px; font-weight: 600; color: var(--vt-muted); }
+.vt-imp-answer-label { margin-left: auto; align-self: center; font-size: 12px; font-weight: 700; color: var(--vt-ok-ink); white-space: nowrap; }
+.vt-imp-split-hint { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 10px 12px; background: var(--vt-sun-soft); border: 1.5px solid var(--vt-sun); border-radius: var(--vt-r-btn); font-size: 14px; color: var(--vt-sun-ink); }
+.vt-imp-split-btn { align-self: flex-start; }
+.vt-imp-edit-solution { display: flex; flex-direction: column; gap: 4px; }
