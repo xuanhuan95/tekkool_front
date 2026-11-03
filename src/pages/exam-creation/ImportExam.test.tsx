@@ -620,4 +620,24 @@ describe('ImportExam: SPT-99 preview as on the paper', () => {
         fireEvent.click(screen.getByText('Xoá câu', {selector: 'button'}));
         expect(total()).toContain('1 / 2');
     });
+
+    it('Phần read count: the BE read_questions (chùm left out) when sent, minus deletions; units on screen for an older BE', async () => {
+        mockPost();
+        renderScreen();
+        const exam: any = examOf(mc('Q1', 'Q1A'), mc('Q2', 'Q2A'), mc('Q3', 'Q3A'));
+        exam.stats = {sections: [{label: 'Phần I', declared_questions: 2, declared_score: null, read_questions: 2, read_score: 0.5}]};
+        await loadFile(exam);
+        const row = () => screen.getByText('Phần I', {selector: 'th span'}).closest('tr')!.querySelectorAll('td')[1].textContent;
+        expect(row()).toContain('2 / 2');       // 3 units on screen, the BE counts 2
+        fireEvent.click(screen.getByLabelText('Xoá câu 3'));
+        fireEvent.click(screen.getByText('Xoá câu', {selector: 'button'}));
+        expect(row()).toContain('1 / 2');
+    });
+
+    it('Phần read count without BE stats is the units on screen', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(examOf(mc('Q1', 'Q1A'), mc('Q2', 'Q2A')));
+        expect(screen.getByText('Phần I', {selector: 'th span'}).closest('tr')!.querySelectorAll('td')[1].textContent).toContain('2 /');
+    });
 });

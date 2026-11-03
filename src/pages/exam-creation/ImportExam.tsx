@@ -19,7 +19,7 @@ import {blockLabel} from './blockTypes';
 import {
     plain as plainText, applyPasted, badTrueFalse, countQuestions, examIssues, examStats, fileProblem, importErrorText, isBadTrueFalse, isChoice,
     isClusterQuestion, isMissingKey, isSevere, issueKey, missingKeys, missingNumbers, missingTfStatements, numberedUnits, partRows, patchData, patchQuestion, removeQuestions, replaceUnit,
-    saveBlocker, setPassage, setType, splitOptions, toUnits, unseenSevere, TRUE_FALSE_STATEMENTS,
+    saveBlocker, setPassage, setType, splitOptions, toUnits, withShownCounts, unseenSevere, TRUE_FALSE_STATEMENTS,
     type DuplicateInfo, type ImportIssue, type ImportQuestion, type ImportedExam, type NumberedUnit, type PastedAnswers, type QuestionUnit, type Stash,
 } from './importRules';
 import {withDefaultScores} from './examRules';
@@ -417,7 +417,7 @@ export default function ImportExam() {
             // Tick ALL by default: untick a few beats re-picking 20.
             setPicked(Object.fromEntries(res.exams.map(e => [e.id, true])));
             setOpenId(res.exams.length ? res.exams[0].id : null);
-            setExams(res.exams);
+            setExams(res.exams.map(withShownCounts));
             setIssues(res.issues || []);
         } catch (e) {
             if (mine === seq.current) setProblem(importErrorText(errorText(e, 'không rõ nguyên nhân')));

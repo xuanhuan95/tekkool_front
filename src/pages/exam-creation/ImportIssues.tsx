@@ -1,7 +1,7 @@
 import {Badge, Button, Card, cx} from '../../components/ui';
 import {formatDecimal} from '../../lib/format';
 import {fixAnchor} from './guideContent';
-import {answerCounts, isSevere, issueKey, partRows} from './importRules';
+import {answerCounts, isSevere, issueKey, partRows, toUnits} from './importRules';
 import type {ImportIssue, ImportedExam} from './importRules';
 
 /** The words carry the level; colour only repeats it (design: Nặng / Nhẹ). */
@@ -15,7 +15,7 @@ export const LevelBadge = ({issue}: {issue: ImportIssue}) =>
 export function SummaryBar({exam, issues}: {exam: ImportedExam; issues: ImportIssue[]}) {
     const parts = partRows(exam, issues);
     // Read on screen (a deleted question leaves at once); declared: the file's total, else the sum of the Phần when every one says so
-    const read = parts.reduce((n, p) => n + p.read, 0);
+    const read = exam.sections.reduce((n, s) => n + toUnits(s.questions).length, 0);
     const declared = exam.stats?.declared_questions
         ?? (parts.length && parts.every(p => typeof p.declared === 'number') ? parts.reduce((n, p) => n + (p.declared as number), 0) : undefined);
     const {done, total} = answerCounts(exam);
