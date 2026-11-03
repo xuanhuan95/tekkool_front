@@ -3,7 +3,7 @@ import {Link} from 'react-router-dom';
 import {Badge, Button, Card, cx} from '../../components/ui';
 import {formatDecimal} from '../../lib/format';
 import {fixHref} from './guideContent';
-import {answerCounts, countQuestions, isSevere, issueKey} from './importRules';
+import {answerCounts, countQuestions, isSevere, issueKey, typeCounts} from './importRules';
 import type {ImportIssue, ImportedExam} from './importRules';
 
 /** The words carry the level; colour only repeats it (design: Nặng / Nhẹ). */
@@ -30,13 +30,19 @@ export function SummaryBar({exam, issues}: {exam: ImportedExam; issues: ImportIs
         {label: 'Cảnh báo', value: String(issues.length), note: issues.length ? `${severe} nặng · ${issues.length - severe} nhẹ` : 'không có',
             tone: severe ? 'err' : issues.length ? 'sun' : 'ok'},
     ];
-    return <div className='vt-imp-tiles'>
-        {tiles.map(t => <div key={t.label} className='vt-imp-tile'>
-            <span className='vt-imp-tile-label'>{t.label}</span>
-            <span className={cx('vt-imp-tile-value', t.tone)}>{t.value}</span>
-            <span className='vt-imp-tile-note'>{t.note}</span>
-        </div>)}
-    </div>;
+    return <>
+        <div className='vt-imp-tiles'>
+            {tiles.map(t => <div key={t.label} className='vt-imp-tile'>
+                <span className='vt-imp-tile-label'>{t.label}</span>
+                <span className={cx('vt-imp-tile-value', t.tone)}>{t.value}</span>
+                <span className='vt-imp-tile-note'>{t.note}</span>
+            </div>)}
+        </div>
+        {/* The exam is stored by part: how many questions each part holds. */}
+        <ul className='vt-imp-kinds' aria-label='Số câu theo loại'>
+            {typeCounts(exam).map(([k, n]) => <li key={k}><Badge tone='title'>{k}: {n} câu</Badge></li>)}
+        </ul>
+    </>;
 }
 
 type ListProps = {

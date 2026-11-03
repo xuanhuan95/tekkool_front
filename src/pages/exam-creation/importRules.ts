@@ -103,6 +103,17 @@ export const missingTf = (exam: ImportedExam) => numberedUnits(exam).filter(x =>
 
 export const badTrueFalse = (exam: ImportedExam) => numberedUnits(exam).filter(x => isBadTrueFalse(x.unit)).length;
 
+/** Question count per kind, in paper order of the kinds, zero kinds left out — the SPT parts of the exam. */
+export function typeCounts(exam: ImportedExam): Array<[string, number]> {
+    const kind = (u: QuestionUnit) => {
+        const q = u.questions[0];
+        return isChoice(q) ? 'Trắc nghiệm' : q.type === 'TrueFalse' ? 'Đúng/Sai' : isClusterQuestion(q) ? 'Câu chùm' : q.type === 'FillBlank' ? 'Trả lời ngắn' : 'Tự luận';
+    };
+    const n: Record<string, number> = {};
+    for (const {unit} of numberedUnits(exam)) n[kind(unit)] = (n[kind(unit)] || 0) + 1;
+    return ['Trắc nghiệm', 'Đúng/Sai', 'Trả lời ngắn', 'Câu chùm', 'Tự luận'].filter(k => n[k]).map(k => [k, n[k]]);
+}
+
 /** Rows of the "Thông tin đề" modal; rows with no question are left out. */
 export function examStats(exam: ImportedExam) {
     const all = numberedUnits(exam);
@@ -189,6 +200,17 @@ export const setAnswer = (exam: ImportedExam, qid: string, answerId: string, val
     patchQuestion(exam, qid, q => ({
         ...q, data: {...q.data, answers: (q.data.answers || []).map(a => a.id === answerId ? {...a, value} : a)},
     }));
+
+/** `ids` (one unit) become `next` in place; a ý added in the dialog goes after the others, a removed one is dropped. */
+export const replaceUnit = (exam: ImportedExam, ids: string[], next: ImportQuestion[]): ImportedExam => ({
+    ...exam,
+    sections: exam.sections.map(s => {
+        if (!s.questions.some(q => ids.includes(q.id))) return s;
+        const at = s.questions.findIndex(q => ids.includes(q.id));   // nothing before `at` is in `ids`
+        const rest = s.questions.filter(q => !ids.includes(q.id));
+        return {...s, questions: [...rest.slice(0, at), ...next, ...rest.slice(at)]};
+    }),
+});
 
 /** Drop every question in `ids`; a section left empty goes too. */
 export const removeQuestions = (exam: ImportedExam, ids: string[]): ImportedExam => ({

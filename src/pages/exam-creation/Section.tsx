@@ -17,7 +17,7 @@ import {Editor} from "../../components/Editor";
 import {ConfirmDialog, IconButton, icons} from '../../components/ui';
 
 
-const questionTypes: Record<string, any> = {
+export const questionTypes: Record<string, any> = {
     'FillBlank': FillBlank,
     'ShortAnswer': ShortAnswer,
     'MultipleChoice': MultipleChoice,
