@@ -78,7 +78,7 @@ export default class MultipleChoiceAnswer extends React.Component<Props> {
                 text={value}
                 onKeyUp={this.handleEnter}
                 onChange={this.updateAnswer}
-                placeholder={'Type answer here...'}
+                placeholder={'Nhập đáp án...'}
             />
         </Form.Group>
     }

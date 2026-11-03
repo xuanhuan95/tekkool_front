@@ -16,7 +16,11 @@ export type ImportSection = {
 };
 
 /** `stats` of `import_docx/preview`: what the file DECLARES vs what the reader found (SPT-93). */
-export type ImportStats = {declared_questions?: number | null; read_questions?: number | null; total_score?: number | null};
+export type ImportStats = {
+    declared_questions?: number | null; read_questions?: number | null; total_score?: number | null;
+    /** One entry per Phần, same order as `sections` (BE, SPT-99); absent on an older BE. `declared_*` null = the file says nothing. */
+    sections?: Array<{label: string; declared_questions: number | null; declared_score: number | null; read_questions: number; read_score: number; shown?: number}>;
+};
 
 export type ImportedExam = {
     id: string;
@@ -102,6 +106,40 @@ export const missingKeys = (exam: ImportedExam) => numberedUnits(exam).filter(x 
 export const missingTf = (exam: ImportedExam) => numberedUnits(exam).filter(x => missingTfStatements(x.unit).length).length;
 
 export const badTrueFalse = (exam: ImportedExam) => numberedUnits(exam).filter(x => isBadTrueFalse(x.unit)).length;
+
+/** SPT name of the kind of a question. */
+const kindOf = (q: ImportQuestion) =>
+    isChoice(q) ? 'Trắc nghiệm' : q.type === 'TrueFalse' ? 'Đúng/Sai' : isClusterQuestion(q) ? 'Câu chùm' : q.type === 'FillBlank' ? 'Trả lời ngắn' : 'Tự luận';
+
+/** At load: remember how many units each Phần showed, to follow later deletions on top of the BE's own count (which leaves a câu chùm out of "câu"). */
+export const withShownCounts = (exam: ImportedExam): ImportedExam => exam.stats?.sections
+    ? {...exam, stats: {...exam.stats, sections: exam.stats.sections.map((x, i) => ({...x, shown: toUnits(exam.sections[i]?.questions || []).length}))}}
+    : exam;
+
+export type PartRow = {
+    name: string; kind: string; read: number; done: number; total: number; severe: number; light: number;
+    /** From `stats.sections`; undefined = the BE sent none, null = the file declares none. */
+    declared?: number | null; score?: number; declaredScore?: number | null;
+};
+
+/** The BE's `read_questions` (no câu chùm) minus what was deleted since; an older BE: the units on screen. */
+const readOf = (exam: ImportedExam, i: number) => {
+    const units = toUnits(exam.sections[i].questions).length, st = exam.stats?.sections?.[i];
+    return st && typeof st.read_questions === 'number' && st.shown !== undefined ? Math.max(0, st.read_questions - (st.shown - units)) : units;
+};
+
+/** One row per Phần for the summary table: kinds and answers counted on screen, what the file declares from `stats.sections`. */
+export function partRows(exam: ImportedExam, issues: ImportIssue[]): PartRow[] {
+    return exam.sections.map((s, i) => {
+        const mine = issues.filter(x => x.section_index === i || (x.question_id && s.questions.some(q => q.id === x.question_id)));
+        return {
+            name: plain(s.name).replace(/\s*\(.*$/, ''), kind: [...new Set(s.questions.map(kindOf))].join(' / ') || '—',
+            read: readOf(exam, i), ...countAnswers(s.questions),
+            ...(exam.stats?.sections?.[i] && {declared: exam.stats.sections[i].declared_questions, score: exam.stats.sections[i].read_score, declaredScore: exam.stats.sections[i].declared_score}),
+            severe: mine.filter(isSevere).length, light: mine.filter(x => !isSevere(x)).length,
+        };
+    });
+}
 
 /** Rows of the "Thông tin đề" modal; rows with no question are left out. */
 export function examStats(exam: ImportedExam) {
@@ -190,6 +228,17 @@ export const setAnswer = (exam: ImportedExam, qid: string, answerId: string, val
         ...q, data: {...q.data, answers: (q.data.answers || []).map(a => a.id === answerId ? {...a, value} : a)},
     }));
 
+/** `ids` (one unit) become `next` in place; a ý added in the dialog goes after the others, a removed one is dropped. */
+export const replaceUnit = (exam: ImportedExam, ids: string[], next: ImportQuestion[]): ImportedExam => ({
+    ...exam,
+    sections: exam.sections.map(s => {
+        if (!s.questions.some(q => ids.includes(q.id))) return s;
+        const at = s.questions.findIndex(q => ids.includes(q.id));   // nothing before `at` is in `ids`
+        const rest = s.questions.filter(q => !ids.includes(q.id));
+        return {...s, questions: [...rest.slice(0, at), ...next, ...rest.slice(at)]};
+    }),
+});
+
 /** Drop every question in `ids`; a section left empty goes too. */
 export const removeQuestions = (exam: ImportedExam, ids: string[]): ImportedExam => ({
     ...exam,
@@ -238,9 +287,11 @@ export function missingNumbers(exam: ImportedExam): Array<{beforeId: string; no:
 }
 
 /** Answered / answerable questions, counted live so "Dán đáp án" and picking an answer move the tile. */
-export function answerCounts(exam: ImportedExam) {
+export const answerCounts = (exam: ImportedExam) => countAnswers(exam.sections.flatMap(s => s.questions));
+
+function countAnswers(questions: ImportQuestion[]) {
     let total = 0, done = 0;
-    for (const q of exam.sections.flatMap(s => s.questions)) {
+    for (const q of questions) {
         if (isChoice(q)) { total++; if (q.data.correctAnswerId) done++; }
         else if (q.type === 'TrueFalse') { total++; if (typeof q.data.answer === 'boolean') done++; }
         else if (q.type === 'FillBlank') { total++; if (plain(String(q.data.answer ?? ''))) done++; }

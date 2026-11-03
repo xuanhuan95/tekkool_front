@@ -17,7 +17,7 @@ import {Editor} from "../../components/Editor";
 import {ConfirmDialog, IconButton, icons} from '../../components/ui';
 
 
-const questionTypes: Record<string, any> = {
+export const questionTypes: Record<string, any> = {
     'FillBlank': FillBlank,
     'ShortAnswer': ShortAnswer,
     'MultipleChoice': MultipleChoice,
@@ -104,7 +104,7 @@ export default function Section({section, subject}: Props) {
     return <div className='form' ref={setContextRef}>
         <Editor
             text={name}
-            placeholder='Type your section requirements here...'
+            placeholder='Nhập yêu cầu của phần này...'
             onChange={(value: string) => setSectionState({name: value})}
         />
 

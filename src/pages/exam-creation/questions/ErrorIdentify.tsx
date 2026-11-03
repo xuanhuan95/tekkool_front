@@ -21,6 +21,6 @@ export default function ErrorIdentify(props: BaseQuestionProps) {
         editorType='ErrorIdentify'
         toAnswerButton
         iconOffset={false}
-        placeholder='Type your Error-identification question here...'
+        placeholder='Nhập câu hỏi tìm lỗi sai...'
     />;
 }

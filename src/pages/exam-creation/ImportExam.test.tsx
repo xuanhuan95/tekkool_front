@@ -146,6 +146,18 @@ describe('ImportExam: saving in the wrong place', () => {
     });
 });
 
+/** "Sửa câu n" dialog: open it, pick the n-th radio of the editor, save/cancel it. */
+const openEdit = (n = 1) => fireEvent.click(screen.getByRole('button', {name: 'Sửa câu ' + n}));
+const pickRadio = (i: number) => fireEvent.click(document.querySelectorAll<HTMLInputElement>('.vt-imp-edit input[type=radio]')[i]);
+const saveEdit = () => fireEvent.click(screen.getByText('Lưu câu'));
+const cancelEdit = () => fireEvent.click(screen.getByText('Huỷ'));
+// the type picker lives in the "Sửa câu" dialog; the type change reaches the exam at once, Huỷ only closes the dialog
+const changeType = (n: number, type: string) => {
+    openEdit(n);
+    fireEvent.change(screen.getByLabelText('Loại câu'), {target: {value: type}});
+};
+const keyOnCard = () => document.querySelector('.vt-imp-q .vt-imp-answer.on')?.textContent;
+
 describe('ImportExam: Q12 / Q13 save blockers', () => {
     it('Q12: a pick-one question without a correct answer blocks saving until one is picked', async () => {
         const sent = mockPost();
@@ -154,9 +166,12 @@ describe('ImportExam: Q12 / Q13 save blockers', () => {
 
         expect(saveButton().disabled).toBe(true);
         expect(screen.getAllByText(/Còn 1 câu chưa có đáp án/).length).toBeGreaterThan(0);
-        expect(screen.getByText('Chưa có đáp án đúng — chọn một phương án')).toBeTruthy();
+        expect(screen.getByText('Chưa có đáp án đúng — sửa câu để chọn')).toBeTruthy();
 
-        fireEvent.click(screen.getByLabelText('Đáp án đúng của câu 1: B'));
+        openEdit();
+        pickRadio(1);
+        saveEdit();
+        expect(keyOnCard()).toContain('B.');
         expect(saveButton().disabled).toBe(false);
         fireEvent.click(saveButton());
         await vi.waitFor(() => expect(sent).toHaveLength(1));
@@ -191,36 +206,18 @@ describe('ImportExam: Q12 / Q13 save blockers', () => {
 });
 
 describe('ImportExam: payload decides which slot a question goes into', () => {
-    const typeSelect = (n: number) => screen.getAllByLabelText('Loại câu')[n];
-
-    it('the word limit typed on screen reaches the BE as a NUMBER', async () => {
-        const sent = mockPost();
+    it('SPT-99: a free-answer question shows no "Số từ gợi ý" box on the preview', async () => {
+        mockPost();
         renderScreen();
         await loadFile(MIXED);
-        fireEvent.change(screen.getByLabelText(/Số từ gợi ý/), {target: {value: '200'}});
-        fireEvent.click(saveButton());
-        await vi.waitFor(() => expect(sent).toHaveLength(1));
-        // The BE compares max_words with 50/400 to pick TraLoiNgan/VietDoan/VietBai: a string breaks that.
-        expect(sent[0].sections[0].questions[1].data.max_words).toBe(200);
-    });
-
-    it('a word limit of 0 removes the field', async () => {
-        const sent = mockPost();
-        renderScreen();
-        await loadFile(MIXED);
-        const box = screen.getByLabelText(/Số từ gợi ý/);
-        fireEvent.change(box, {target: {value: '200'}});
-        fireEvent.change(box, {target: {value: '0'}});
-        fireEvent.click(saveButton());
-        await vi.waitFor(() => expect(sent).toHaveLength(1));
-        expect('max_words' in sent[0].sections[0].questions[1].data).toBe(false);
+        expect(screen.queryByLabelText(/Số từ gợi ý/)).toBeNull();
     });
 
     it('changing a type sends the NEW type, drops the old answers, and leaves the other question alone', async () => {
         const sent = mockPost();
         renderScreen();
         await loadFile(MIXED);
-        fireEvent.change(typeSelect(0), {target: {value: 'FillBlank'}});
+        changeType(1, 'FillBlank'); cancelEdit();
         fireEvent.click(saveButton());
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         const [q1, q2] = sent[0].sections[0].questions;
@@ -233,7 +230,7 @@ describe('ImportExam: payload decides which slot a question goes into', () => {
         mockPost();
         renderScreen();
         await loadFile(MIXED);
-        fireEvent.change(typeSelect(0), {target: {value: 'TrueFalse'}});
+        changeType(1, 'TrueFalse'); cancelEdit();
         expect(saveButton().disabled).toBe(true);
         expect(screen.getAllByText(/Còn 1 câu Đúng\/Sai chưa đủ 4 ý/).length).toBeGreaterThan(0);
     });
@@ -323,8 +320,8 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
         renderScreen();
         await loadFile(EXAM, [LIGHT]);
         expect(saveButton().disabled).toBe(false);
-        // once in the list, once as the chip on the question itself
-        expect(screen.getAllByText('Nhẹ')).toHaveLength(2);
+        // in the list, as the chip on the question, and in the warning block inside the question card
+        expect(screen.getAllByText('Nhẹ')).toHaveLength(3);
         expect(screen.getByText('Công thức gõ thô')).toBeTruthy();
     });
 
@@ -363,14 +360,18 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
         expect(saveButton().disabled).toBe(false);
     });
 
-    it('unticking the exam with the Nặng warning lifts the gate; "Cách sửa" opens the guide anchor in a new tab', async () => {
+    it('unticking the exam with the Nặng warning lifts the gate; "Cách sửa" opens the guide dialog at that entry', async () => {
         mockPost();
         renderScreen();
         await loadFile(EXAM, [SEVERE]);
-        const fix = screen.getByText('Cách sửa').closest('a')!;
-        // B4: the bank (or folder) travels with the link
-        expect(fix.getAttribute('href')).toBe('/import-exam/loi-thuong-gap?bank=B1#mat-cau');
-        expect(fix.getAttribute('target')).toBe('_blank');
+        const fix = screen.getByText('Cách sửa');
+        // SPT-99: the same dialog as on the upload screen, opened at that entry — no new tab, the file stays
+        expect(fix.getAttribute('href')).toBeNull();
+        fireEvent.click(fix);
+        expect(screen.getByRole('dialog', {name: 'Lỗi thường gặp và cách sửa'})).toBeTruthy();
+        expect((document.getElementById('mat-cau') as HTMLDetailsElement).open).toBe(true);
+        expect((document.getElementById('bang') as HTMLDetailsElement).open).toBe(false);
+        fireEvent.click(screen.getByText('Đóng', {selector: 'button'}));
         fireEvent.click(screen.getByLabelText('Chọn Đề thử 1'));
         expect(screen.queryByText(/cảnh báo nặng chưa xem/)).toBeNull();
     });
@@ -380,7 +381,7 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
         renderScreen();
         const gap = issue({code: 'NUMBER_GAP', level: 'warning', question_id: 'Q1', message: 'sau câu 5 là câu 7'});
         await loadFile(EXAM, [gap]);
-        expect(screen.getByText('sau câu 5 là câu 7')).toBeTruthy();
+        expect(screen.getAllByText('sau câu 5 là câu 7').length).toBeGreaterThan(0);
         fireEvent.click(screen.getByText('Đánh số lại câu'));
         fireEvent.click(screen.getByText('Đánh số lại', {selector: 'button'}));
         expect(screen.queryByText('sau câu 5 là câu 7')).toBeNull();
@@ -440,30 +441,35 @@ describe('ImportExam: QC round (B1, B4, B5, B12)', () => {
         expect(screen.getByText(/Chưa đặt Đúng\/Sai cho ý a/)).toBeTruthy();
     });
 
-    it('B4: the upload page and the error link keep ?bank=', async () => {
+    it('B4: the upload page opens the guide as a dialog', async () => {
         renderScreen('/import-exam?bank=B1');
-        const link = screen.getByText('Lỗi thường gặp và cách sửa →').closest('a')!;
-        expect(link.getAttribute('href')).toBe('/import-exam/loi-thuong-gap?bank=B1');
+        // SPT-99: a dialog on the same screen, not another page
+        fireEvent.click(screen.getByText('Lỗi thường gặp và cách sửa →'));
+        expect(screen.getByRole('dialog', {name: 'Lỗi thường gặp và cách sửa'})).toBeTruthy();
+        expect(screen.getByText('Mất câu hoặc mất phương án')).toBeTruthy();
+        fireEvent.click(screen.getByText('Đóng', {selector: 'button'}));
+        expect(screen.queryByRole('dialog')).toBeNull();
     });
 
     it('B5: converting away and back restores the options and the key', async () => {
         mockPost();
         renderScreen();
         await loadFile(examOf(mc('Q1', 'Q1B')));
-        const sel = () => screen.getAllByLabelText('Loại câu')[0];
-        fireEvent.change(sel(), {target: {value: 'FreeAnswer'}});
-        expect(screen.queryByLabelText(/Đáp án đúng của câu 1/)).toBeNull();
-        fireEvent.change(sel(), {target: {value: 'MultipleChoice'}});
-        expect((screen.getByLabelText('Đáp án đúng của câu 1: B') as HTMLInputElement).checked).toBe(true);
+        changeType(1, 'FreeAnswer'); cancelEdit();
+        expect(document.querySelector('.vt-imp-q .vt-imp-answer')).toBeNull();
+        changeType(1, 'MultipleChoice'); cancelEdit();
+        expect(keyOnCard()).toContain('B.');
     });
 
     it('B5: a free-answer question that holds A–D can be split into options with one button', async () => {
         const sent = mockPost();
         renderScreen();
         await loadFile(examOf({id: 'Q1', type: 'FreeAnswer', data: {question: '<p>Chất nào? A. HCl B. NaCl C. KCl D. H₂O</p>'}}));
-        fireEvent.click(screen.getByText('Đổi sang Trắc nghiệm và tách A–D'));
-        expect(screen.getByLabelText('Đáp án đúng của câu 1: D')).toBeTruthy();
-        fireEvent.click(screen.getByLabelText('Đáp án đúng của câu 1: B'));
+        fireEvent.click(screen.getByText('Đổi sang Trắc nghiệm và tách A–D'));   // the hint sits on the card, not in the dialog
+        openEdit();
+        expect(document.querySelectorAll('.vt-imp-edit input[type=radio]')).toHaveLength(4);
+        pickRadio(1);
+        saveEdit();
         fireEvent.click(saveButton());
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         expect(sent[0].sections[0].questions[0].data.answers).toHaveLength(4);
@@ -473,7 +479,7 @@ describe('ImportExam: QC round (B1, B4, B5, B12)', () => {
         mockPost();
         renderScreen();
         await loadFile(examOf(tf('T1'), tf('T2'), tf('T3'), tf('T4')));
-        fireEvent.change(screen.getAllByLabelText('Loại câu')[0], {target: {value: 'FillBlank'}});
+        changeType(1, 'FillBlank');
         expect(screen.getByText('Đổi dạng câu Đúng/Sai?')).toBeTruthy();
         expect(screen.getByText('1 câu')).toBeTruthy();   // nothing changed yet
         fireEvent.click(screen.getByText('Giữ nguyên'));
@@ -497,7 +503,9 @@ describe('ImportExam: follow-up (V2-2, V2-3, V2-4, V2-5)', () => {
         renderScreen();
         await loadFile(examOf({id: 'Q1', type: 'FreeAnswer', data: {question: '<p>Chất nào? A. HCl B. NaCl C. KCl D. H₂O</p>'}}));
         fireEvent.click(screen.getByText('Đổi sang Trắc nghiệm và tách A–D'));
-        fireEvent.change(screen.getAllByLabelText('Loại câu')[0], {target: {value: 'FreeAnswer'}});
+        openEdit();
+        fireEvent.change(screen.getByLabelText('Loại câu'), {target: {value: 'FreeAnswer'}});
+        cancelEdit();
         expect(screen.getByText(/A\. HCl B\. NaCl C\. KCl D\. H₂O/)).toBeTruthy();
     });
 
@@ -528,7 +536,108 @@ describe('ImportExam: follow-up (V2-2, V2-3, V2-4, V2-5)', () => {
         renderScreen();
         const dup = issue({code: 'OPTION_DUPLICATE', question_id: 'Q1', message: 'Câu 1: hai phương án cùng chữ B'});
         await loadFile(EXAM, [dup]);
-        expect(screen.getByText('Cách sửa').closest('a')!.getAttribute('href')).toBe('/import-exam/loi-thuong-gap?bank=B1#phuong-an-trung');
+        expect(screen.getByText('Cách sửa').tagName).toBe('BUTTON');
         expect(screen.getByText('Có phương án trùng chữ cái')).toBeTruthy();
+    });
+});
+
+describe('ImportExam: SPT-99 preview as on the paper', () => {
+    const SHORT = {id: 'Q3', type: 'FillBlank', data: {question: '<p>Tính 1+1.</p>', answer: '2'}};
+
+    it('max_words / max_chars survive import → Sửa câu → save (the BE sorts Ngữ văn blocks by them)', async () => {
+        const sent = mockPost();
+        renderScreen();
+        const essay = {id: 'Q2', type: 'FreeAnswer', data: {question: '<p>Viết bài.</p>', max_words: 600, max_chars: 3000}};
+        await loadFile(examOf(mc('Q1', 'Q1A'), essay));
+        openEdit(2); saveEdit();
+        changeType(2, 'FillBlank'); fireEvent.change(screen.getByLabelText('Loại câu'), {target: {value: 'FreeAnswer'}}); cancelEdit();   // the type round trip keeps them too
+        fireEvent.click(saveButton());
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        const q = sent[0].sections[0].questions[1];
+        expect(q.data.max_words).toBe(600);
+        expect(q.data.max_chars).toBe(3000);
+    });
+
+    it('the summary is a table by Phần plus a Cả đề row', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(examOf(mc('Q1', 'Q1A'), tf('T1'), tf('T2'), tf('T3'), tf('T4'), SHORT, {id: 'Q9', type: 'FreeAnswer', data: {question: '<p>Viết.</p>'}}));
+        const rows = [...screen.getByLabelText('Tóm tắt theo phần').querySelectorAll('tbody tr, tfoot tr')].map(r => r.textContent);
+        expect(rows).toHaveLength(2);
+        expect(rows[0]).toContain('Phần I');
+        expect(rows[0]).toContain('Trắc nghiệm / Đúng/Sai / Trả lời ngắn / Tự luận');
+        expect(rows[1]).toContain('Cả đề');
+    });
+
+    it('only the right option is tinted, and there is no type select or inline editor on the card', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(examOf(mc('Q1', 'Q1B')));
+        expect(document.querySelectorAll('.vt-imp-q .vt-imp-answer.on')).toHaveLength(1);
+        expect(keyOnCard()).toContain('B.');
+        expect(screen.queryByLabelText('Loại câu')).toBeNull();
+        expect(document.querySelector('.vt-imp-q .tt-editor, .vt-imp-q [contenteditable]')).toBeNull();
+    });
+
+    it('Sửa then Huỷ changes nothing; Sửa then Lưu câu puts the new key on the card', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(examOf(mc('Q1', 'Q1A')));
+        openEdit(); pickRadio(1); cancelEdit();
+        expect(keyOnCard()).toContain('A.');
+        openEdit(); pickRadio(1); saveEdit();
+        expect(keyOnCard()).toContain('B.');
+        expect(screen.queryByRole('dialog')).toBeNull();
+    });
+
+    it('Xoá asks first, drops only that question from the preview and its warning goes with it', async () => {
+        const sent = mockPost();
+        renderScreen();
+        const sev = issue({code: 'MISSING_ANSWER', level: 'error', question_id: 'Q2', message: 'Câu 2: chưa có đáp án'});
+        await loadFile(examOf(mc('Q1', 'Q1A'), mc('Q2')), [sev]);
+        expect(saveButton().disabled).toBe(true);
+        fireEvent.click(screen.getByLabelText('Xoá câu 2'));
+        fireEvent.click(screen.getByText('Giữ lại'));
+        expect(screen.getByText('2 câu')).toBeTruthy();
+        fireEvent.click(screen.getByLabelText('Xoá câu 2'));
+        fireEvent.click(screen.getByText('Xoá câu', {selector: 'button'}));
+        expect(screen.getByText('1 câu')).toBeTruthy();
+        expect(screen.queryByText(/Cần kiểm tra 1 chỗ/)).toBeNull();
+        expect(sent).toHaveLength(0);   // nothing was saved by deleting
+        expect(saveButton().disabled).toBe(false);
+    });
+
+    it('Cả đề: the read count follows a deleted question; declared = sum of the Phần when the file gives no total', async () => {
+        mockPost();
+        renderScreen();
+        const exam: any = examOf(mc('Q1', 'Q1A'), mc('Q2', 'Q2A'));
+        exam.stats = {read_questions: 2, sections: [{label: 'Phần I', declared_questions: 2, declared_score: null, read_questions: 2, read_score: 0.5}]};
+        await loadFile(exam);
+        const total = () => screen.getByText('Cả đề').closest('tr')!.querySelectorAll('td')[0].textContent;
+        expect(total()).toContain('2 / 2');
+        expect(total()).not.toContain('file không ghi');
+        fireEvent.click(screen.getByLabelText('Xoá câu 2'));
+        fireEvent.click(screen.getByText('Xoá câu', {selector: 'button'}));
+        expect(total()).toContain('1 / 2');
+    });
+
+    it('Phần read count: the BE read_questions (chùm left out) when sent, minus deletions; units on screen for an older BE', async () => {
+        mockPost();
+        renderScreen();
+        const exam: any = examOf(mc('Q1', 'Q1A'), mc('Q2', 'Q2A'), mc('Q3', 'Q3A'));
+        exam.stats = {sections: [{label: 'Phần I', declared_questions: 2, declared_score: null, read_questions: 2, read_score: 0.5}]};
+        await loadFile(exam);
+        const row = () => screen.getByText('Phần I', {selector: 'th span'}).closest('tr')!.querySelectorAll('td')[1].textContent;
+        expect(row()).toContain('2 / 2');       // 3 units on screen, the BE counts 2
+        fireEvent.click(screen.getByLabelText('Xoá câu 3'));
+        fireEvent.click(screen.getByText('Xoá câu', {selector: 'button'}));
+        expect(row()).toContain('1 / 2');
+    });
+
+    it('Phần read count without BE stats is the units on screen', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(examOf(mc('Q1', 'Q1A'), mc('Q2', 'Q2A')));
+        expect(screen.getByText('Phần I', {selector: 'th span'}).closest('tr')!.querySelectorAll('td')[1].textContent).toContain('2 /');
     });
 });

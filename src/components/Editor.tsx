@@ -1,7 +1,6 @@
 import {Suspense, lazy, useEffect, useRef, useState} from "react";
 import {useEditor, EditorContent} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import type {Node as PMNode} from '@tiptap/pm/model';
 import type {EditorView} from '@tiptap/pm/view';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
@@ -15,27 +14,11 @@ import EditorToolbar from './EditorToolbar';
 import type {EditorVariant} from './EditorToolbar';
 import ImageDialog from './ImageDialog';
 import {Superscript, Subscript, Image, MathInline} from './RichExtras';
-import {measure, WORD} from './textLimit';
-import type {Unit} from './textLimit';
 
 import './Editor.css';
 
 // MathLive is big: only downloaded when Σ is opened.
 const MathDialog = lazy(() => import('./MathDialog'));
-
-// Plain text of a ProseMirror doc. Each block is a boundary ('\n').
-// NFC is mandatory — 'ệ' typed on macOS is e + 2 combining marks (NFD), so
-// .length gives 3 instead of 1, and the same sentence can be off by up to 35%.
-const docText = (doc: PMNode): string => doc.textBetween(0, doc.content.size, '\n', '\n').normalize('NFC');
-
-const docSize = (doc: PMNode, unit: Unit): number => measure(docText(doc), unit);
-
-// ponytail: the word limit NO LONGER blocks typing — it is only a number for
-// counting and for classifying blocks in the bank (core_question_bank._tu_luan_type).
-// The old version blocked in ProseMirror's filterTransaction because Telex/VNI
-// input goes through the IME and handleKeyDown sees nothing; that layer is gone
-// now, so students can write past the limit freely.
-type Limit = {max: number; unit: Unit};
 
 export type EditorProps = {
     text?: string;
@@ -53,14 +36,12 @@ export type EditorProps = {
     variant?: EditorVariant;
     /** Shim for legacy code: NOT a React ref, see the useEffect below. */
     refMedium?: {current: any};
-    maxChars?: number;
-    maxWords?: number;
 };
 
 export function Editor(props: EditorProps) {
     const {
         text, placeholder, type, onChange, onToAnswerButton,
-        onPaste, onKeyUp, onBlur, disableReturn, disableStyle, refMedium, maxChars, maxWords,
+        onPaste, onKeyUp, onBlur, disableReturn, disableStyle, refMedium,
         variant = 'teacher',
     } = props;
 
@@ -75,15 +56,6 @@ export function Editor(props: EditorProps) {
         const {html, onChange: cb} = latest.current;
         if (html !== null && cb) cb(html);
     };
-    const [size, setSize] = useState(0);
-    // maxWords wins if both are passed — an exam sets only one unit.
-    const unit: Unit = maxWords && maxWords > 0 ? WORD : 'char';
-    const max = (maxWords && maxWords > 0 ? maxWords : maxChars) || 0;
-    // ponytail: useEditor captures the closure once -> read the limit through a
-    // ref, otherwise handlers keep the old number after the limit changes.
-    const limit = useRef<Limit>({max, unit});
-    limit.current = {max, unit};
-
     // Σ dialog state: pos != null = editing the formula node at that position.
     const [math, setMath] = useState<{pos: number | null; latex: string} | null>(null);
     const [imageOpen, setImageOpen] = useState(false);
@@ -120,7 +92,6 @@ export function Editor(props: EditorProps) {
         },
         // Merge consecutive keystrokes into one onChange call (keeps old behavior).
         onUpdate: ({editor}) => {
-            setSize(docSize(editor.state.doc, limit.current.unit));
             if (!onChange) return;
             if (timeout.current) clearTimeout(timeout.current);
             latest.current.html = editor.getHTML();
@@ -153,7 +124,6 @@ export function Editor(props: EditorProps) {
     useEffect(() => {
         if (editor && !editor.isFocused && text !== undefined && text !== editor.getHTML()) {
             editor.commands.setContent(text || '', false);
-            setSize(docSize(editor.state.doc, limit.current.unit));
         }
     }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -163,11 +133,6 @@ export function Editor(props: EditorProps) {
         {!disableStyle && <EditorToolbar editor={editor} variant={variant} type={type} onToAnswerButton={onToAnswerButton}
                                          onSigma={() => setMath({pos: null, latex: ''})} onImage={() => setImageOpen(true)}/>}
         <EditorContent editor={editor}/>
-        {/* Always gray: going over the word count is no longer an error, so no alarm. */}
-        {max > 0 &&
-            <div className='tt-charcount' style={{color: '#767676'}}>
-                {size} / {max} {unit === WORD ? 'từ' : 'ký tự'}
-            </div>}
         {math && <Suspense fallback={null}>
             <MathDialog open latex={math.latex} onCancel={() => setMath(null)}
                         onDone={latex => {

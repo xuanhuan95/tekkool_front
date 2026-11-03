@@ -1,9 +1,7 @@
 import {useState} from 'react';
 import type {DragEvent, ReactNode} from 'react';
-import {Link} from 'react-router-dom';
 
 import {Button, Card, cx, icons} from '../../components/ui';
-import {GUIDE_PATH} from './guideContent';
 
 const RULES: Array<[string, string]> = [
     ['Mỗi câu một đoạn', 'Bắt đầu bằng “Câu 1.”. Mỗi phương án A, B, C, D một dòng; không xuống dòng bằng Shift+Enter.'],
@@ -11,14 +9,14 @@ const RULES: Array<[string, string]> = [
     ['Ghi đầu đề rõ', '“Bài thi: HÓA HỌC” và “Mã đề thi: 01”, mỗi file một mã đề.'],
 ];
 
-const WAYS: Array<[string, string, ReactNode]> = [
-    ['Gạch chân', 'Gạch chân chữ cái của đáp án đúng.', <>A. HCl<br/><u><b>B</b></u>. CH₃COOH</>],
-    ['Tô màu', 'Tô nền hoặc đổi màu chữ cái của đáp án đúng.', <>A. HCl<br/><mark><b>B</b></mark>. CH₃COOH</>],
-    ['Bảng ĐÁP ÁN', 'Bảng sau dòng “HẾT”, tiêu đề ĐÁP ÁN.', <><b>ĐÁP ÁN</b><br/>1 2 3 4<br/>B C A D</>],
+const WAYS: Array<[string, ReactNode]> = [
+    ['Gạch chân', <>A. HCl<br/><u><b>B</b></u>. CH₃COOH</>],
+    ['Tô màu', <>A. HCl<br/><mark><b>B</b></mark>. CH₃COOH</>],
+    ['Bảng ĐÁP ÁN', <><b>ĐÁP ÁN</b><br/>1 2 3 4<br/>B C A D</>],
 ];
 
-/** Step 1 (IV2-TaiLen): drop zone + how to write the Word file. Never reads the file itself — hands it to `onFile`. */
-export default function ImportUpload({onFile, pick, ctx}: {onFile: (f: File) => void; pick: () => void; ctx: string}) {
+/** Step 1 (IV2-TaiLen): drop zone + the 3 rules + samples. Never reads the file itself — hands it to `onFile`. */
+export default function ImportUpload({onFile, pick, onGuide}: {onFile: (f: File) => void; pick: () => void; onGuide: () => void}) {
     const [over, setOver] = useState(false);
     const drop = (e: DragEvent) => {
         e.preventDefault(); setOver(false);
@@ -40,10 +38,9 @@ export default function ImportUpload({onFile, pick, ctx}: {onFile: (f: File) => 
             <Card>
                 <h2 className='vt-imp-h2'>3 cách đánh dấu đáp án</h2>
                 <div className='vt-imp-ways'>
-                    {WAYS.map(([name, text, sample], i) => <div key={name} className='vt-imp-way'>
+                    {WAYS.map(([name, sample], i) => <div key={name} className='vt-imp-way'>
                         <div><span className='vt-imp-num'>{i + 1}</span> <b>{name}</b></div>
                         <div className='vt-imp-sample'>{sample}</div>
-                        <span className='vt-imp-hint'>{text}</span>
                     </div>)}
                 </div>
                 <div className='vt-imp-notice' role='note'>Mỗi file chỉ dùng <b>một</b> cách. Trộn nhiều cách trong một file thì hệ thống báo lỗi.</div>
@@ -55,7 +52,6 @@ export default function ImportUpload({onFile, pick, ctx}: {onFile: (f: File) => 
                 {/* Samples live in public/mau-de; the answer-table variant is the one that always works. */}
                 <a className='vt-imp-dl' href='/mau-de/mau-khtn.docx' download><icons.IconArrowDown size={18}/>Toán · Lí · Hoá · Sinh</a>
                 <a className='vt-imp-dl' href='/mau-de/mau-ngu-van.docx' download><icons.IconArrowDown size={18}/>Ngữ văn</a>
-                <span className='vt-imp-hint'>Soạn đề theo mẫu thì hệ thống đọc đúng cả đề.</span>
             </Card>
             <Card>
                 <h2 className='vt-imp-h2'>3 quy tắc chính</h2>
@@ -63,7 +59,7 @@ export default function ImportUpload({onFile, pick, ctx}: {onFile: (f: File) => 
                     {RULES.map(([t, d], i) => <li key={t}><span className='vt-imp-num'>{i + 1}</span>
                         <div><b>{t}</b><span className='vt-imp-hint'>{d}</span></div></li>)}
                 </ol>
-                <Link to={GUIDE_PATH + ctx} className='vt-imp-link'>Lỗi thường gặp và cách sửa →</Link>
+                <button type='button' className='vt-imp-link' onClick={() => onGuide()}>Lỗi thường gặp và cách sửa →</button>
             </Card>
         </div>
     </div>;

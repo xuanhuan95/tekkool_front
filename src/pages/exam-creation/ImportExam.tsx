@@ -4,9 +4,8 @@ import type {ChangeEvent} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {Editor} from '../../components/Editor';
 import renderHTML from '../../components/SafeHtml';
-import {Badge, Button, Card, ConfirmDialog, ErrorState, MetaChips, Modal, PageTitle, Select, Skeleton, Table, Tabs, TextField, buttonClass, cx, notify}
+import {Badge, Button, Card, ConfirmDialog, ErrorState, IconButton, MetaChips, Modal, PageTitle, Select, Skeleton, Table, Tabs, TextField, buttonClass, cx, icons, notify}
     from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {uploadImages} from './imageUpload';
@@ -19,12 +18,14 @@ import {DESKTOP, useMediaQuery} from '../useMediaQuery';
 import {blockLabel} from './blockTypes';
 import {
     plain as plainText, applyPasted, badTrueFalse, countQuestions, examIssues, examStats, fileProblem, importErrorText, isBadTrueFalse, isChoice,
-    isClusterQuestion, isMissingKey, isSevere, issueKey, missingKeys, missingNumbers, missingTfStatements, numberedUnits, patchData, patchQuestion, removeQuestions,
-    saveBlocker, setAnswer, setPassage, setType, splitOptions, toUnits, unseenSevere, TRUE_FALSE_STATEMENTS,
-    type DuplicateInfo, type ImportIssue, type ImportedExam, type NumberedUnit, type PastedAnswers, type QuestionUnit, type Stash,
+    isClusterQuestion, isMissingKey, isSevere, issueKey, missingKeys, missingNumbers, missingTfStatements, numberedUnits, partRows, patchData, patchQuestion, removeQuestions, replaceUnit,
+    saveBlocker, setPassage, setType, splitOptions, toUnits, withShownCounts, unseenSevere, TRUE_FALSE_STATEMENTS,
+    type DuplicateInfo, type ImportIssue, type ImportQuestion, type ImportedExam, type NumberedUnit, type PastedAnswers, type QuestionUnit, type Stash,
 } from './importRules';
 import {withDefaultScores} from './examRules';
-import {GUIDE_PATH, ctxQuery, issueLabel} from './guideContent';
+import {issueLabel} from './guideContent';
+import {GuideModal} from './ImportGuide';
+import ImportQuestionModal from './ImportQuestionModal';
 import {IssueList, LevelBadge, SummaryBar} from './ImportIssues';
 import ImportUpload from './ImportUpload';
 import PasteAnswers from './PasteAnswers';
@@ -76,12 +77,15 @@ type UnitCardProps = {
     duplicates: Record<string, DuplicateInfo>;
     /** Coded warnings of THIS question (SPT-93). */
     issues: ImportIssue[];
+    seen: Record<string, boolean>; onSee: (i: ImportIssue) => void;
     /** Original data of questions the teacher converted, so converting back restores the options / answer. */
     stash: MutableRefObject<Stash>;
 };
 
-function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: UnitCardProps) {
+/** The question as on the paper: only the right answer is tinted. Editing happens in `ImportQuestionModal`. */
+function UnitCard({unit, no, edit, showPassage, duplicates, issues, seen, onSee, stash}: UnitCardProps) {
     const [confirmRemove, setConfirmRemove] = useState(false);
+    const [editing, setEditing] = useState(false);
     const [splitTo, setSplitTo] = useState<string | null>(null);
     const first = unit.questions[0];
     const ids = unit.questions.map(q => q.id);
@@ -101,10 +105,10 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: Unit
         edit(e => {
             let next = setType(e, ids, type);
             if (ids.length === 1 && kept.type === type) {
-                const {answers, correctAnswerId, answer} = kept.data;
+                const {answers, correctAnswerId, answer, max_words, max_chars} = kept.data;
                 // after "tách A–D" the A–D text goes back into the question, unless the teacher rewrote the stem meanwhile
                 const back = kept.split !== undefined && first.data.question === kept.split ? {question: kept.data.question} : {};
-                next = patchQuestion(next, first.id, q => ({...q, data: {...q.data, ...back, ...(answers && {answers}), ...(correctAnswerId && {correctAnswerId}), ...(answer !== undefined && {answer})}}));
+                next = patchQuestion(next, first.id, q => ({...q, data: {...q.data, ...back, ...(answers && {answers}), ...(correctAnswerId && {correctAnswerId}), ...(answer !== undefined && {answer}), ...(max_words && {max_words}), ...(max_chars && {max_chars})}}));
             }
             return after ? after(next) : next;
         });
@@ -114,114 +118,119 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, stash}: Unit
         // 4 ý become 4 separate questions: ask first.
         if ((isTf || isChum) && unit.questions.length > 1) setSplitTo(type); else convert(type);
     };
+    const save = (next: ImportQuestion[]) => {
+        setEditing(false);
+        edit(e => {
+            const done = replaceUnit(e, ids, next);
+            const {passageId, passage} = next[0].data;
+            return passageId && passage !== first.data.passage ? setPassage(done, passageId, passage || '') : done;
+        });
+    };
 
+    const keyOf = (i: number) => String.fromCharCode(65 + i) + '.';
     return <div id={'imp-' + first.id} className={cx('vt-imp-q', noKey && 'bad-key', badTf && 'bad-tf', issues.length > 0 && (severe ? 'has-err' : 'has-warn'))}>
-        {showPassage && first.data.passage !== undefined && <div className='vt-imp-passage'>
-            <div className='vt-imp-passage-label'>
-                {isTf ? 'Đề dẫn chung của 4 ý' : isChum ? `Dẫn liệu chung của ${unit.questions.length} ý` : 'Ngữ liệu dùng chung — sửa ở đây áp dụng cho cả nhóm câu'}
-            </div>
-            <Editor text={first.data.passage} onChange={html => edit(e => setPassage(e, first.data.passageId, html))}/>
-        </div>}
+        {showPassage && first.data.passage !== undefined && <div className='vt-imp-passage'>{renderHTML(first.data.passage)}</div>}
 
         <div className='vt-imp-q-head'>
             <b>Câu {no}</b>
-            <Select label='Loại câu' className='vt-imp-q-type' value={first.type}
-                    onChange={ev => changeType(ev.target.value)}
-                    options={QUESTION_TYPES}/>
-            {noKey && <span className='vt-imp-flag err'>Chưa có đáp án đúng — chọn một phương án</span>}
+            <Badge tone='title'>{QUESTION_TYPES.find(t => t.value === first.type)?.label || first.type}</Badge>
+            {noKey && <span className='vt-imp-flag err'>Chưa có đáp án đúng — sửa câu để chọn</span>}
             {noTf.length > 0 && <span className='vt-imp-flag err'>Chưa đặt Đúng/Sai cho ý {noTf.join(', ')} — dùng “Dán đáp án nhanh” hoặc sửa file Word</span>}
             {badTf && <span className='vt-imp-flag warn'>
                 {unit.questions.length} ý — cần đủ {TRUE_FALSE_STATEMENTS} ý để chấm theo SPT
             </span>}
             {issues.map(i => <span key={issueKey(i)} className='vt-imp-chip'><LevelBadge issue={i}/> {issueLabel(i.code)}</span>)}
             <DuplicateChip info={dup}/>
-            <Button variant='ghost' size='sm' className='vt-imp-remove' aria-label={'Xoá câu ' + no}
-                    onClick={() => setConfirmRemove(true)}>Xoá</Button>
+            <span className='vt-imp-q-acts'>
+                <IconButton label={'Sửa câu ' + no} icon={<icons.IconEdit size={18}/>} onClick={() => setEditing(true)}/>
+                <IconButton label={'Xoá câu ' + no} tipEnd icon={<icons.IconClose size={18}/>} onClick={() => setConfirmRemove(true)}/>
+            </span>
             <ConfirmDialog open={confirmRemove} tone='danger' title={'Xoá câu ' + no + '?'} cancelLabel='Giữ lại' confirmLabel='Xoá câu'
                            message='Câu bị xoá khỏi bản nhập này. Muốn lấy lại thì chọn file Word và nhập lại.'
                            onCancel={() => setConfirmRemove(false)}
                            onConfirm={() => { setConfirmRemove(false); edit(e => removeQuestions(e, ids)); }}/>
         </div>
 
-        {split && <Button variant='secondary' size='sm' className='vt-imp-split-btn'
-                          onClick={() => { convert('MultipleChoice', e => patchData(e, first.id, {
-                              question: split.stem, answers: split.options.map((value, i) => ({id: first.id + '_' + 'ABCD'[i], value}))})); stash.current[first.id].split = split.stem; }}>
-            Đổi sang Trắc nghiệm và tách A–D
-        </Button>}
-        <ConfirmDialog open={splitTo !== null} title='Đổi dạng câu Đúng/Sai?' cancelLabel='Giữ nguyên' confirmLabel='Đổi và tách'
-                       message={`Câu này có ${unit.questions.length} ý. Đổi dạng sẽ tách thành ${unit.questions.length} câu riêng, mất đề dẫn chung và đáp án của từng ý.`}
-                       onCancel={() => setSplitTo(null)} onConfirm={() => { const t = splitTo; setSplitTo(null); if (t) convert(t); }}/>
-
-        {isChum
-            ? unit.questions.map((q, i) => <div key={q.id} className='vt-imp-answer vt-imp-chum'>
-                <span className='vt-imp-answer-key'>{String(q.data.label || String.fromCharCode(97 + i) + ')')}</span>
-                <div className='vt-imp-answer-body'>
-                    <Editor text={q.data.question} disableReturn disableStyle
-                            onChange={html => edit(e => patchData(e, q.id, {question: html}))}/>
-                    <TextField label='Đáp án (cách viết khác ngăn bằng |)' value={String(q.data.answer ?? '')}
-                               onChange={ev => edit(e => patchData(e, q.id, {answer: ev.target.value}))}/>
-                </div>
-                <Badge tone='title'>{formatDecimal(Number(q.data.max_score) || 0.5)}đ</Badge>
-            </div>)
-        : isTf
-            ? unit.questions.map((q, i) => <div key={q.id} className='vt-imp-answer'>
-                <span className='vt-imp-answer-key'>{String.fromCharCode(97 + i)})</span>
-                <div className='vt-imp-answer-body'>
-                    <Editor text={q.data.question} disableReturn disableStyle
-                            onChange={html => edit(e => patchData(e, q.id, {question: html}))}/>
-                </div>
-                <Badge tone={q.data.answer === true ? 'ok' : q.data.answer === false ? 'err' : 'draft'}>
-                    {q.data.answer === true ? 'Đúng' : q.data.answer === false ? 'Sai' : 'Chưa có đáp án'}
-                </Badge>
-            </div>)
-            : <>
-                <Editor text={first.data.question} onChange={html => edit(e => patchData(e, first.id, {question: html}))}/>
-
-                {!isChoice(first) && <TextField label='Số từ gợi ý (0 = không ghi)' type='number' min={0} className='vt-imp-words'
-                    value={first.data.max_words || 0}
-                    onChange={ev => edit(e => patchQuestion(e, first.id, q => {
-                        const {max_words: _drop, ...rest} = q.data;
-                        const words = parseInt(ev.target.value, 10) || 0;
-                        // 0 = no limit → drop the field, don't write junk into the DB
-                        return {...q, data: words ? {...rest, max_words: words} : rest};
-                    }))}/>}
-
-                {/* ponytail: radios take their name from the question id — one shared name would make
-                    a whole 20-exam screen one radio group (picking Q2's answer would unpick Q1's). */}
-                {isChoice(first) && (first.data.answers || []).map((a, i) => {
-                    const on = first.data.correctAnswerId === a.id;
-                    return <div key={a.id} className={cx('vt-imp-answer', on && 'on')}>
-                        <label className='vt-imp-hit'><input type='radio' name={'ans-' + first.id} checked={on}
-                               aria-label={`Đáp án đúng của câu ${no}: ${String.fromCharCode(65 + i)}`}
-                               onChange={() => edit(e => patchData(e, first.id, {correctAnswerId: a.id}))}/></label>
-                        <span className='vt-imp-answer-key'>{String.fromCharCode(65 + i)}.</span>
+        {isChum || isTf
+            ? <>
+                {unit.questions.map((q, i) => {
+                    const right = isChum ? !!plainText(String(q.data.answer ?? '')) : false;
+                    return <div key={q.id} className='vt-imp-answer vt-imp-chum'>
+                        <span className='vt-imp-answer-key'>{isChum ? String(q.data.label || String.fromCharCode(97 + i) + ')') : String.fromCharCode(97 + i) + ')'}</span>
                         <div className='vt-imp-answer-body'>
-                            <Editor text={a.value} disableReturn disableStyle
-                                    onChange={html => edit(e => setAnswer(e, first.id, a.id, html))}/>
+                            {renderHTML(q.data.question || '')}
+                            {isChum && <div className={cx('vt-imp-key', right && 'on')}>
+                                {right ? <>Đáp án: <b>{renderHTML(String(q.data.answer))}</b></> : 'Chưa có đáp án'}
+                            </div>}
                         </div>
+                        {isChum
+                            ? <Badge tone='title'>{formatDecimal(Number(q.data.max_score) || 0.5)}đ</Badge>
+                            : <Badge tone={q.data.answer === true ? 'ok' : q.data.answer === false ? 'err' : 'draft'}>
+                                {q.data.answer === true ? 'Đúng' : q.data.answer === false ? 'Sai' : 'Chưa có đáp án'}
+                            </Badge>}
                     </div>;
                 })}
+            </>
+            : <>
+                <div className='vt-imp-stem'>{renderHTML(first.data.question || '')}</div>
+                {isChoice(first) && (first.data.answers || []).map((a, i) =>
+                    <div key={a.id} className={cx('vt-imp-answer', first.data.correctAnswerId === a.id && 'on')}>
+                        <span className='vt-imp-answer-key'>{keyOf(i)}</span>
+                        <div className='vt-imp-answer-body'>{renderHTML(a.value)}</div>
+                        {first.data.correctAnswerId === a.id && <span className='vt-imp-answer-label'>Đáp án đúng</span>}
+                    </div>)}
+                {first.type === 'FillBlank' && <div className={cx('vt-imp-key', plainText(String(first.data.answer ?? '')) && 'on')}>
+                    {plainText(String(first.data.answer ?? '')) ? <>Đáp án: <b>{renderHTML(String(first.data.answer))}</b></> : 'Chưa có đáp án'}
+                </div>}
             </>}
+
+        {/* IV2-XemTruoc: each warning of this question inside its card, level always in words */}
+        {issues.map(i => <div key={issueKey(i)} className='vt-imp-q-issue' role='note'>
+            <LevelBadge issue={i}/>
+            <span className='vt-imp-issue-text'>{i.message}</span>
+            {isSevere(i) && (seen[issueKey(i)]
+                ? <Badge tone='ok'>Đã xem</Badge>
+                : <Button variant='secondary' size='sm' onClick={() => onSee(i)}>Đã xem, cho phép lưu</Button>)}
+        </div>)}
+
+        {split && <div className='vt-imp-split-hint' role='note'>
+            <span>Câu này có “A. … B. … C. … D.” trong nội dung. Có phải câu trắc nghiệm?</span>
+            <Button variant='secondary' size='sm'
+                    onClick={() => { convert('MultipleChoice', e => patchData(e, first.id, {
+                        question: split.stem, answers: split.options.map((value, i) => ({id: first.id + '_' + 'ABCD'[i], value}))})); stash.current[first.id].split = split.stem; }}>
+                Đổi sang Trắc nghiệm và tách A–D
+            </Button>
+        </div>}
 
         {first.data.explanation && <details className='vt-imp-explain'>
             <summary>Lời giải (học sinh thấy sau khi nộp bài)</summary>
             <div>{renderHTML(first.data.explanation)}</div>
         </details>}
+
+        {editing && <ImportQuestionModal key={unit.questions.map(q => q.id + q.type).join()} unit={unit} no={no}
+            onSave={save} onClose={() => setEditing(false)}
+            header={<div className='vt-imp-edit-head'>
+                <Select label='Loại câu' value={first.type} onChange={ev => changeType(ev.target.value)} options={QUESTION_TYPES}/>
+            </div>}/>}
+        <ConfirmDialog open={splitTo !== null} title='Đổi dạng câu Đúng/Sai?' cancelLabel='Giữ nguyên' confirmLabel='Đổi và tách'
+                       message={`Câu này có ${unit.questions.length} ý. Đổi dạng sẽ tách thành ${unit.questions.length} câu riêng, mất đề dẫn chung và đáp án của từng ý.`}
+                       onCancel={() => setSplitTo(null)} onConfirm={() => { const t = splitTo; setSplitTo(null); if (t) convert(t); }}/>
     </div>;
 }
 
 type BodyProps = {
-    ctx: string; exam: ImportedExam; edit: Edit; duplicates: Record<string, DuplicateInfo>; pdf: PdfState; desktop: boolean;
+    onFix: (anchor: string) => void; exam: ImportedExam; edit: Edit; duplicates: Record<string, DuplicateInfo>; pdf: PdfState; desktop: boolean;
     issues: ImportIssue[]; seen: Record<string, boolean>; onSee: (i: ImportIssue) => void;
     renumbered: boolean; onRenumber: () => void;
 };
 
-function ExamBody({ctx, exam, edit, duplicates, pdf, desktop, issues, seen, onSee, renumbered, onRenumber}: BodyProps) {
+function ExamBody({onFix, exam, edit, duplicates, pdf, desktop, issues, seen, onSee, renumbered, onRenumber}: BodyProps) {
     const [tab, setTab] = useState<'doc' | 'src'>('doc');
     const [pasting, setPasting] = useState(false);
     const [renumbering, setRenumbering] = useState(false);
     const stash = useRef<Stash>({});
     const numbered = numberedUnits(exam);
+    const parts = partRows(exam, issues);
     const noOf = (qid: string) => numbered.find(x => x.unit.questions.some(q => q.id === qid))?.no;
     const gaps = renumbered ? [] : missingNumbers(exam);
     // Warnings that point at no question and no section in the payload (a whole part the reader dropped).
@@ -257,7 +266,7 @@ function ExamBody({ctx, exam, edit, duplicates, pdf, desktop, issues, seen, onSe
     let no = 0;
     return <div className='vt-imp-body'>
         <SummaryBar exam={exam} issues={issues}/>
-        <IssueList issues={issues} seen={seen} onSee={onSee} jump={jump} onGo={go} ctx={ctx}/>
+        <IssueList issues={issues} seen={seen} onSee={onSee} jump={jump} onGo={go} onFix={onFix}/>
         {!desktop && <Tabs aria-label='Đã đọc hoặc bản gốc' block value={tab} onChange={setTab}
                            items={[{value: 'doc', label: 'Đã đọc'}, {value: 'src', label: 'Bản gốc'}]}/>}
         <div className='vt-imp-split'>
@@ -271,8 +280,11 @@ function ExamBody({ctx, exam, edit, duplicates, pdf, desktop, issues, seen, onSe
                     <Button variant='secondary' size='sm' onClick={() => setPasting(true)}>Dán đáp án nhanh</Button>
                     <Button variant='secondary' size='sm' disabled={renumbered} onClick={() => setRenumbering(true)}>Đánh số lại câu</Button>
                 </div>
-                {exam.sections.map(s => <div key={s.id} className='vt-imp-col'>
-                    <h3 className='vt-imp-section' id={'imp-' + s.id}>{renderHTML(s.name)}</h3>
+                {exam.sections.map((s, si) => <div key={s.id} className='vt-imp-col'>
+                    <h3 className='vt-imp-section' id={'imp-' + s.id}>
+                        {parts[si].name} · {parts[si].kind}
+                        <span className='vt-imp-section-count'>đọc {parts[si].read}{typeof parts[si].declared === 'number' && ` / ${parts[si].declared}`} câu</span>
+                    </h3>
                     {toUnits(s.questions).map((u, i, all) => {
                         const prev = all[i - 1];
                         // The passage is printed once, at the FIRST question of its group (groups are consecutive).
@@ -284,7 +296,7 @@ function ExamBody({ctx, exam, edit, duplicates, pdf, desktop, issues, seen, onSe
                                 <Badge tone='err'>Thiếu</Badge> <b>Câu {g.no}</b> có trong file Word nhưng hệ thống không đọc được.
                             </div>)}
                             <UnitCard unit={u} no={++no} edit={edit} showPassage={showPassage} duplicates={duplicates}
-                                      issues={mine} stash={stash}/>
+                                      issues={mine} seen={seen} onSee={onSee} stash={stash}/>
                         </div>;
                     })}
                 </div>)}
@@ -330,7 +342,6 @@ export default function ImportExam() {
     const folderId = params.get('folder') || pickedFolder || null;
     const navigate = useNavigate();
     const qc = useQueryClient();
-    const ctx = ctxQuery(params);   // ?bank= / ?folder= follows every link to the guide and back
 
     const banksQ = useBanks();
     const foldersQ = useFolders(!bankId);
@@ -345,7 +356,8 @@ export default function ImportExam() {
     const [reading, setReading] = useState(false);
     const [problem, setProblem] = useState<string | null>(null);
     const [exams, setExams] = useState<ImportedExam[]>([]);
-    const [issues, setIssues] = useState<ImportIssue[]>([]);
+    const [allIssues, setIssues] = useState<ImportIssue[]>([]);
+    const [guide, setGuide] = useState<string | null>(null);   // the guide dialog: '' = top, else the entry id
     // "Đã xem, cho phép lưu" per Nặng warning (key = issueKey), and the exams the teacher renumbered.
     const [seen, setSeen] = useState<Record<string, boolean>>({});
     const [renumbered, setRenumbered] = useState<Record<string, boolean>>({});
@@ -367,6 +379,9 @@ export default function ImportExam() {
     const seq = useRef(0);   // a PDF that arrives after another file was picked (or the screen closed) is ignored
     useEffect(() => () => { seq.current++; dropPdf(); }, []);
 
+    // A warning about a question the teacher deleted is gone with it (it would still gate saving otherwise).
+    const alive = new Set(exams.flatMap(e => e.sections.flatMap(s => s.questions.map(q => q.id))));
+    const issues = allIssues.filter(i => !i.question_id || alive.has(i.question_id));
     const chosen = exams.filter(e => picked[e.id]);
     // Q15: imported exams are saved as Nháp even with errors — only the bank path (?bank=) keeps its block on missing keys.
     const problems = saveBlocker(chosen);
@@ -402,7 +417,7 @@ export default function ImportExam() {
             // Tick ALL by default: untick a few beats re-picking 20.
             setPicked(Object.fromEntries(res.exams.map(e => [e.id, true])));
             setOpenId(res.exams.length ? res.exams[0].id : null);
-            setExams(res.exams);
+            setExams(res.exams.map(withShownCounts));
             setIssues(res.issues || []);
         } catch (e) {
             if (mine === seq.current) setProblem(importErrorText(errorText(e, 'không rõ nguyên nhân')));
@@ -529,7 +544,7 @@ export default function ImportExam() {
         : folderId ? <>Tạo trong môn <b>{folder?.name || '…'}</b></> : null;
     const direct = (label: string) => `${label} ${chosen.length} đề`;
 
-    return <div className='vt-imp'>
+    return <div className={cx('vt-imp', exams.length > 0 && 'vt-imp--wide')}>
         <input type='file' accept='.docx' ref={fileRef} onChange={upload} hidden/>
 
         <div className='vt-imp-head'>
@@ -549,7 +564,7 @@ export default function ImportExam() {
             })}
         </ol>
 
-        {!exams.length && !reading && !problem && <ImportUpload onFile={readFile} pick={pickFile} ctx={ctx}/>}
+        {!exams.length && !reading && !problem && <ImportUpload onFile={readFile} pick={pickFile} onGuide={() => setGuide('')}/>}
 
         {reading && <Card className='vt-imp-drop' aria-live='polite'>
             <h2>Đang đọc {fileName}…</h2>
@@ -564,7 +579,7 @@ export default function ImportExam() {
 
         {problem && <ErrorState title={problem.startsWith('Chỉ nhận') ? 'Chưa đúng loại file' : problem.startsWith('File quá lớn') ? 'File quá lớn' : 'Không đọc được file'}
                                 retryLabel='Chọn file khác' onRetry={pickFile}
-                                description={<>{problem.replace(/^Không đọc được file: /, '')} <Link to={GUIDE_PATH + ctx} className='vt-imp-link'>Lỗi thường gặp</Link></>}/>}
+                                description={<>{problem.replace(/^Không đọc được file: /, '')} <button type='button' className='vt-imp-link' onClick={() => setGuide('')}>Lỗi thường gặp</button></>}/>}
 
         {stock && total > 0 && <Card className='vt-imp-bank'>
             <div className='vt-imp-bank-head'>
@@ -629,7 +644,7 @@ export default function ImportExam() {
                         <Button variant='secondary' size='sm' aria-expanded={open}
                                 onClick={() => setOpenId(open ? null : exam.id)}>{open ? 'Thu gọn' : 'Xem & sửa'}</Button>
                     </div>
-                    {open && <ExamBody ctx={ctx} exam={exam} edit={patchExam(exam.id)} duplicates={duplicates} pdf={pdf} desktop={desktop}
+                    {open && <ExamBody onFix={setGuide} exam={exam} edit={patchExam(exam.id)} duplicates={duplicates} pdf={pdf} desktop={desktop}
                                        issues={mine} seen={seen} onSee={i => setSeen(m => ({...m, [issueKey(i)]: true}))}
                                        renumbered={!!renumbered[exam.id]} onRenumber={() => setRenumbered(m => ({...m, [exam.id]: true}))}/>}
                 </div>;
@@ -683,6 +698,7 @@ export default function ImportExam() {
                            else if (to) setTimeout(() => goTo(to), 0);
                        }}/>
 
+        <GuideModal open={guide !== null} at={guide || undefined} onClose={() => setGuide(null)}/>
         <ExamInfoModal exam={exams.find(e => e.id === infoId)} onClose={() => setInfoId(null)}
                        onJump={x => infoId && jumpTo(infoId, x)}/>
     </div>;

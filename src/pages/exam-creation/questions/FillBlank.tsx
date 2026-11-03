@@ -21,7 +21,7 @@ export default class FillBlank extends BaseQuestion {
             <Editor
                 type='FillBlank'
                 text={data.question}
-                placeholder='Type your Fill-in-blank question here...'
+                placeholder='Nhập câu hỏi trả lời ngắn...'
                 onToAnswerButton={this.onToAnswerButton}
                 onChange={(question: string) => this.setQuestionData({question})}
             />
@@ -31,7 +31,7 @@ export default class FillBlank extends BaseQuestion {
             <Editor
                 refMedium={this.refAnswer}
                 text={data.answer}
-                placeholder='Type your answer here...'
+                placeholder='Nhập đáp án...'
                 onChange={(answer: string) => this.setQuestionData({answer})}
             />
         </Form>

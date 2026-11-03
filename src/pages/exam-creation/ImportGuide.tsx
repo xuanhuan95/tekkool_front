@@ -1,11 +1,43 @@
 import {useEffect} from 'react';
 import {Link, useLocation, useSearchParams} from 'react-router-dom';
 
-import {Badge, Card, PageTitle, buttonClass, cx} from '../../components/ui';
+import {Badge, Button, Card, Modal, PageTitle, buttonClass, cx} from '../../components/ui';
 import {GUIDE, ctxQuery} from './guideContent';
+import type {GuideEntry} from './guideContent';
 import './import-exam.css';
 
-/** "Lỗi thường gặp" (IV2-LoiThuongGap): symptom → cause → how to fix the Word file, one anchor per entry. */
+/** symptom → cause → fix (+ wrong/right sample) of one entry. */
+function GuideBody({g}: {g: GuideEntry}) {
+    return <>
+        <dl>
+            <dt>Triệu chứng</dt><dd>{g.symptom}</dd>
+            <dt>Nguyên nhân</dt><dd>{g.cause}</dd>
+            <dt>Cách sửa file Word</dt>
+            <dd><ol>{g.steps.map((s, i) => <li key={i}>{s}</li>)}</ol></dd>
+        </dl>
+        {(g.wrong || g.right) && <div className='vt-guide-eg'>
+            {g.wrong && <div className='bad'><Badge tone='err'>Sai</Badge><code>{g.wrong}</code></div>}
+            {g.right && <div className='good'><Badge tone='ok'>Đúng</Badge><code>{g.right}</code></div>}
+        </div>}
+    </>;
+}
+
+/** "Lỗi thường gặp" as a dialog on the screen that holds the parsed file (leaving it would lose the work): one fold per entry. */
+export function GuideModal({open, at, onClose}: {open: boolean; at?: string; onClose: () => void}) {
+    // Opened from "Cách sửa" of a warning: that entry is open and in view; from the upload screen: the first one.
+    useEffect(() => { if (open && at) setTimeout(() => document.getElementById(at)?.scrollIntoView({block: 'nearest'}), 0); }, [open, at]);
+    return <Modal open={open} onClose={onClose} title='Lỗi thường gặp và cách sửa' size='md' className='vt-guide-modal' showClose
+           footer={<Button variant='secondary' onClick={onClose}>Đóng</Button>}>
+        <div className='vt-guide-list'>
+            {GUIDE.map((g, i) => <details key={g.id} id={g.id} className='vt-guide-fold' open={at ? g.id === at : i === 0}>
+                <summary>{g.title}</summary>
+                <GuideBody g={g}/>
+            </details>)}
+        </div>
+    </Modal>;
+}
+
+/** "Lỗi thường gặp" page (IV2-LoiThuongGap): symptom → cause → how to fix the Word file, one anchor per entry. */
 export default function ImportGuide() {
     const {hash} = useLocation();
     const back = '/import-exam' + ctxQuery(useSearchParams()[0]);   // keep ?bank= / ?folder=
@@ -29,16 +61,7 @@ export default function ImportGuide() {
             <div className='vt-guide-list'>
                 {GUIDE.map(g => <Card key={g.id} as='section' id={g.id} className='vt-guide-item' aria-labelledby={g.id + '-h'}>
                     <h2 id={g.id + '-h'}>{g.title}</h2>
-                    <dl>
-                        <dt>Triệu chứng</dt><dd>{g.symptom}</dd>
-                        <dt>Nguyên nhân</dt><dd>{g.cause}</dd>
-                        <dt>Cách sửa file Word</dt>
-                        <dd><ol>{g.steps.map((s, i) => <li key={i}>{s}</li>)}</ol></dd>
-                    </dl>
-                    {(g.wrong || g.right) && <div className='vt-guide-eg'>
-                        {g.wrong && <div className='bad'><Badge tone='err'>Sai</Badge><code>{g.wrong}</code></div>}
-                        {g.right && <div className='good'><Badge tone='ok'>Đúng</Badge><code>{g.right}</code></div>}
-                    </div>}
+                    <GuideBody g={g}/>
                 </Card>)}
                 <Card className='vt-guide-end'>
                     <b>Đã sửa file xong?</b>
