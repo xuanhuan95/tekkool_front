@@ -57,7 +57,7 @@ function ClusterBody({item}: {item: ReviewItem}) {
         {(item.parts || []).map(p => <div key={p.key} className='vt-rv-tfrow vt-rv-cl'>
             <span className={'vt-rv-mark ' + (p.ok ? 'vt-rv-ok' : 'vt-rv-bad')} aria-label={p.ok ? 'Đúng' : 'Sai'}>
                 {p.ok ? '✓' : '✗'}</span>
-            <span className='vt-rv-tftext'><b>{p.key})</b> {renderHTML(p.html)}
+            <span className='vt-rv-tftext'><b>{p.label}</b> {renderHTML(p.html)}
                 <span className='vt-rv-clans'>Bạn: {p.answer ? <b>{p.answer}</b> : <i>(bỏ trống)</i>} · {formatDecimal(p.score)} / {formatDecimal(p.maxScore)}đ
                     {!p.ok && p.correctText && <> · Đáp án đúng: <b className='vt-rv-ok'>{p.correctText.split('|').join(' hoặc ')}</b></>}
                 </span>

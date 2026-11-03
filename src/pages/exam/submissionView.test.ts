@@ -135,6 +135,12 @@ describe('SPT-97: câu chùm', () => {
         expect(items[2].passage).toBeNull();
     });
 
+    it('keeps the BE label ("1)") and falls back to a)–d) without one', () => {
+        const withLabel = buildReview([{...ý('C1', '1', 0.5), label: '1)'}, {...ý('C2', '2', 0), label: '2)'}]);
+        expect(withLabel[0].parts?.map(p => p.label)).toEqual(['1)', '2)']);
+        expect(items[1].parts?.map(p => p.label)).toEqual(['a)', 'b)', 'c)', 'd)']);
+    });
+
     it('badge counts ý, not partial points inside a ý', () => {
         expect(reviewBadge(items[1])).toBe('2 / 4 ý · 1 / 2');
     });

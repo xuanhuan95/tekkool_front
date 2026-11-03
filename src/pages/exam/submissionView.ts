@@ -55,7 +55,7 @@ export type ReviewStatus = 'correct' | 'wrong' | 'partial' | 'pending' | 'graded
 
 export type ReviewOption = {key: string; html: string; chosen: boolean; correct: boolean};
 /** SPT-97 câu chùm: one ý = a short answer worth its own points, no partial credit inside it. */
-export type ReviewPart = {key: string; html: string; answer: string; correctText: string | null; score: number; maxScore: number; ok: boolean};
+export type ReviewPart = {key: string; label: string; html: string; answer: string; correctText: string | null; score: number; maxScore: number; ok: boolean};
 export type ReviewStatement = {key: string; html: string; answer: boolean | null; correct: boolean | null; ok: boolean};
 
 export type ReviewItem = {
@@ -152,7 +152,7 @@ export function buildReview(answers: SubmissionAnswer[]): ReviewItem[] {
                 group.push(n);
             }
             const parts = group.map((g, k) => ({
-                key: String.fromCharCode(97 + k), html: stripStatementLabel(g.question_text, String.fromCharCode(97 + k)), answer: g.answer || '', correctText: g.correct || null,
+                key: String.fromCharCode(97 + k), label: g.label || String.fromCharCode(97 + k) + ')', html: stripStatementLabel(g.question_text, String.fromCharCode(97 + k)), answer: g.answer || '', correctText: g.correct || null,
                 score: g.score || 0, maxScore: g.max_score || 0, ok: isFull(g),
             }));
             const okCount = parts.filter(p => p.ok).length;
