@@ -38,6 +38,10 @@ export const IconClip = ({size = 18}: P) =>
     <Line size={size}><path d='M21 12l-8.5 8.5a5 5 0 0 1-7-7L14 5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4L15.5 8'/></Line>;
 export const IconEdit = ({size = 16}: P) =>
     <Line size={size}><path d='M4 20h4L19 9l-4-4L4 16z'/><path d='M13 7l4 4'/></Line>;
+export const IconUploadDoc = ({size = 20}: P) =>
+    <Line size={size}><path d='M6 3h9l3 3v15H6z'/><path d='M12 11v6'/><path d='M9.5 13.5L12 11l2.5 2.5'/></Line>;
+export const IconBank = ({size = 20}: P) =>
+    <Line size={size}><path d='M5 6c0-1.5 3-3 7-3s7 1.5 7 3-3 3-7 3-7-1.5-7-3z'/><path d='M5 6v6c0 1.5 3 3 7 3s7-1.5 7-3V6'/><path d='M5 12v6c0 1.5 3 3 7 3s7-1.5 7-3v-6'/></Line>;
 export const IconOk = ({size = 20}: P) =>
     <Line size={size} w={2.6} color='var(--vt-ok-icon)'><circle cx='12' cy='12' r='9'/><path d='M8 12.5l2.8 2.8L16 10'/></Line>;
 export const IconAlert = ({size = 20}: P) =>

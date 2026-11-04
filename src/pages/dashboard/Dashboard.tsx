@@ -1,4 +1,5 @@
-import {useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {Link, useNavigate, useParams} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 import striptags from 'striptags';
@@ -12,7 +13,8 @@ import {useAuthStore} from '../../stores/authStore';
 import {useFolders, useSubjectExams} from '../../queries/exams';
 import type {ExamStatus, ExamSummary, Folder} from '../../types/exam';
 import Default from '../exam-creation/Default';
-import {useMediaQuery} from '../useMediaQuery';
+import {IconBank, IconEdit, IconUploadDoc} from '../../components/ui/icons';
+import {DESKTOP, useMediaQuery} from '../useMediaQuery';
 import StudentHome from '../student/StudentHome';
 import {stripAccents} from './subjectStyle';
 import './teacher-home.css';
@@ -37,7 +39,6 @@ export default function Dashboard() {
 function TeacherHome() {
     const {subjectId} = useParams();
     const [q, setQ] = useState('');
-    const [menuFor, setMenuFor] = useState<string | null>(null);
     const folders = useFolders();
 
     if (folders.isError) return <ErrorState title='Không tải được kho đề' description={errorText(folders.error, 'Thử lại sau. Đề của cô vẫn an toàn.')}
@@ -69,9 +70,7 @@ function TeacherHome() {
             action={<Button variant='secondary' onClick={() => setQ('')}>Xoá ô tìm</Button>}/>}
 
         <div className='vt-th-subjects'>
-            {shown.map(s => <SubjectCard key={s.id} subject={s} active={s.id === subjectId}
-                                         menuOpen={menuFor === s.id}
-                                         onMenu={() => setMenuFor(menuFor === s.id ? null : s.id)}/>)}
+            {shown.map(s => <SubjectCard key={s.id} subject={s} active={s.id === subjectId}/>)}
         </div>
 
         {subjectId && subjects.some(s => s.id === subjectId) &&
@@ -79,22 +78,60 @@ function TeacherHome() {
     </div>;
 }
 
-function SubjectCard({subject, active, menuOpen, onMenu}: {subject: Folder; active: boolean; menuOpen: boolean; onMenu: () => void}) {
-    const navigate = useNavigate();
-    const to = (path: string) => navigate(path + '?folder=' + subject.id);
+function SubjectCard({subject, active}: {subject: Folder; active: boolean}) {
     return <Card as='article' className={'vt-th-subject' + (active ? ' is-active' : '')}>
         <Link to={'/subject/' + subject.id} className='vt-th-subject-name' aria-current={active ? 'true' : undefined}>{subject.name}</Link>
         {subject.hidden && <Badge tone='sun'>Môn đang ẩn — học sinh không thấy</Badge>}
-        <Button variant='secondary' aria-expanded={menuOpen} onClick={onMenu}>+ Tạo đề</Button>
-        {menuOpen && <div className='vt-th-menu' role='menu'>
-            <button role='menuitem' type='button' onClick={() => to('/create-exam')}>
-                <b>Tự soạn</b><span>Soạn theo phần trên máy tính</span></button>
-            <button role='menuitem' type='button' onClick={() => to('/import-exam')}>
-                <b>Nhập Word</b><span>Tải file .docx, xem lại rồi lưu</span></button>
-            <button role='menuitem' type='button' onClick={() => to('/create-from-bank')}>
-                <b>Từ ngân hàng đề</b><span>Theo cấu trúc, mỗi lượt một đề riêng</span></button>
-        </div>}
+        <CreateMenu subject={subject}/>
     </Card>;
+}
+
+const CREATE_OPTIONS = [
+    {path: '/create-exam', title: 'Tự soạn', hint: 'Soạn theo phần trên máy tính', icon: <IconEdit size={20}/>},
+    {path: '/import-exam', title: 'Nhập Word', hint: 'Tải file .docx, xem lại rồi lưu', icon: <IconUploadDoc/>},
+    {path: '/create-from-bank', title: 'Từ ngân hàng đề', hint: 'Theo cấu trúc, mỗi lượt một đề riêng', icon: <IconBank/>},
+];
+
+/** "+ Tạo đề": floating menu anchored to the button on desktop, bottom sheet on phones (canvas APP-teacher-home-create-menu-a). */
+export function CreateMenu({subject}: {subject: Folder}) {
+    const navigate = useNavigate();
+    const web = useMediaQuery(DESKTOP);
+    const [open, setOpen] = useState(false);
+    const anchor = useRef<HTMLDivElement>(null);
+    const title = 'Tạo đề cho môn ' + subject.name;
+
+    useEffect(() => {
+        if (!open) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+        const onDown = (e: MouseEvent) => { if (web && !anchor.current?.contains(e.target as Node)) setOpen(false); };
+        document.addEventListener('keydown', onKey);
+        document.addEventListener('mousedown', onDown);
+        return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onDown); };
+    }, [open, web]);
+
+    const pick = (path: string) => { setOpen(false); navigate(path + '?folder=' + subject.id); };
+    const options = (cls: string) => CREATE_OPTIONS.map(o =>
+        <button key={o.path} role={web ? 'menuitem' : undefined} className={cls} type='button' onClick={() => pick(o.path)}>
+            <span className='vt-opt-ico'>{o.icon}</span>
+            <span><b>{o.title}</b><span className='d'>{o.hint}</span></span>
+        </button>);
+
+    return <div className='vt-th-anchor' ref={anchor}>
+        <Button variant='secondary' aria-expanded={open} aria-haspopup='menu' onClick={() => setOpen(!open)}>+ Tạo đề</Button>
+        {open && web && <div className='vt-pop' role='menu'>
+            <div className='vt-pop-title'>{title}</div>
+            {options('')}
+        </div>}
+        {open && !web && createPortal(
+            <div className='vt-scrim' onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false); }}>
+                <div className='vt-sheet' role='dialog' aria-modal='true' aria-label={title}>
+                    <span className='vt-sheet-grab'/>
+                    <h2 className='vt-sheet-title'>{title}</h2>
+                    {options('row')}
+                    <Button variant='secondary' block onClick={() => setOpen(false)}>Huỷ</Button>
+                </div>
+            </div>, document.body)}
+    </div>;
 }
 
 function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: Folder[]; folders: Folder[]; q: string}) {

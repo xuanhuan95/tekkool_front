@@ -9,7 +9,7 @@ import type {BankSummary} from '../../types/exam';
 import './question-bank.css';
 
 /**
- * GV-NganHang: banks by subject, the door to Nhập đề / Tạo đề / Làm thử.
+ * GV-NganHang: banks by subject; card actions are Nhập đề / Xem nội dung / Xoá only (04/11: banks are not tied to creating exams).
  * Blocks are viewable and deletable (SPT-73, BankBlocks); editing one is still "fix in Word and import again" (design Q14).
  */
 export default function BankList() {
@@ -39,29 +39,23 @@ export default function BankList() {
                     : <>
                         <div className='vt-qb-grid'>
                             {banks.map(b => <Card key={b.id} as='article' className='vt-qb-card'>
-                                <h2 className='vt-qb-name'>{b.name}</h2>
-                                <div><Badge tone='title'>{b.subject}</Badge></div>
-                                {b.blocks
-                                    ? <div className='vt-qb-count'><b>{b.blocks}</b> khối câu hỏi</div>
-                                    : <div className='vt-qb-empty-box'>Chưa có khối nào — bấm Nhập đề để thêm.</div>}
+                                <div className='vt-qb-top'>
+                                    <h2 className='vt-qb-name'>{b.name}</h2>
+                                    <Badge tone='title'>{b.subject}</Badge>
+                                </div>
+                                <div className='vt-qb-count'><b>{b.blocks}</b> khối câu hỏi</div>
                                 <div className='vt-qb-actions'>
                                     <Link to={'/import-exam?bank=' + b.id} className={buttonClass({variant: 'primary'})}>Nhập đề</Link>
                                     {b.blocks > 0 &&
                                         <Link to={'/question-bank/' + b.id} className={buttonClass({variant: 'secondary'})}>Xem nội dung</Link>}
-                                    {b.blocks
-                                        ? <Link to={'/create-from-bank?bank=' + b.id} className={buttonClass({variant: 'secondary'})}>Tạo đề</Link>
-                                        : <Button variant='secondary' disabled>Tạo đề</Button>}
-                                    {b.blocks > 0 &&
-                                        <Link to={'/draw-exam/bank/' + b.id} className={buttonClass({variant: 'ghost'})}>Làm thử</Link>}
                                     <Button variant='ghost' className='vt-qb-remove' aria-label={'Xoá ngân hàng ' + b.name}
                                             onClick={() => setRemoving(b)}>Xoá</Button>
                                 </div>
                             </Card>)}
                         </div>
-                        <p className='vt-qb-note'>Bấm Xem nội dung để xem hoặc xoá từng khối. Muốn sửa nội dung, hãy sửa file Word rồi nhập lại.</p>
                     </>}
 
-        <CreateBankModal open={creating} onClose={() => setCreating(false)}/>
+        <CreateBankModal open={creating} taken={(banks || []).map(b => b.name)} onClose={() => setCreating(false)}/>
 
         <ConfirmDialog open={!!removing} tone='danger' loading={remove.isPending}
                        title={removing ? `Xoá ngân hàng "${removing.name}"?` : ''}
@@ -76,23 +70,28 @@ export default function BankList() {
     </div>;
 }
 
-function CreateBankModal({open, onClose}: {open: boolean; onClose: () => void}) {
+/** Blank name -> subject name; if taken, "Hoá học 2", "Hoá học 3"… */
+export function defaultBankName(subject: string, taken: string[]): string {
+    let name = subject;
+    for (let n = 2; taken.includes(name); n++) name = subject + ' ' + n;
+    return name;
+}
+
+function CreateBankModal({open, onClose, taken}: {open: boolean; onClose: () => void; taken: string[]}) {
     const {data: subjects = []} = useBankSubjects();
     const create = useCreateBank();
     const [name, setName] = useState('');
     const [subject, setSubject] = useState('');
-    const [errors, setErrors] = useState<{name?: string; subject?: string; server?: string}>({});
+    const [errors, setErrors] = useState<{subject?: string; server?: string}>({});
 
     const close = () => { setName(''); setSubject(''); setErrors({}); onClose(); };
     const submit = () => {
-        const next = {
-            name: name.trim() ? undefined : 'Chưa nhập tên ngân hàng',
-            subject: subject ? undefined : 'Chưa chọn môn',
-        };
-        setErrors(next);
-        if (next.name || next.subject) return;
-        create.mutate({name: name.trim(), subject}, {
-            onSuccess: () => { notify.success('Đã tạo ngân hàng', name.trim()); close(); },
+        if (!subject) return setErrors({subject: 'Chưa chọn môn'});
+        setErrors({});
+        // BE still requires a name -> fill it in here (ponytail: BE untouched).
+        const finalName = name.trim() || defaultBankName(subject, taken);
+        create.mutate({name: finalName, subject}, {
+            onSuccess: () => { notify.success('Đã tạo ngân hàng', finalName); close(); },
             onError: e => setErrors({server: errorText(e, 'Không tạo được ngân hàng.')}),
         });
     };
@@ -103,11 +102,12 @@ function CreateBankModal({open, onClose}: {open: boolean; onClose: () => void}) 
                       <Button variant='primary' onClick={submit} loading={create.isPending}>Tạo ngân hàng</Button>
                   </>}>
         <form className='vt-qb-page' onSubmit={e => { e.preventDefault(); submit(); }}>
-            <TextField label='Tên ngân hàng' placeholder='Ví dụ: Ngữ văn 12 — HK1' value={name} error={errors.name}
-                       onChange={e => setName(e.target.value)}/>
             <Select label='Môn' placeholder='Chọn môn' value={subject} error={errors.subject}
-                    hint='Không đổi được sau khi tạo.' options={subjects.map(s => ({value: s, label: s}))}
+                    options={subjects.map(s => ({value: s, label: s}))}
                     onChange={e => setSubject(e.target.value)}/>
+            <TextField label={<>Tên ngân hàng <span className='vt-muted' style={{fontWeight: 400}}>(không bắt buộc)</span></>}
+                       placeholder={subject || 'Tên môn đã chọn'} value={name}
+                       onChange={e => setName(e.target.value)}/>
             {errors.server && <div role='alert' className='vt-qb-warn'>{errors.server}</div>}
         </form>
     </Modal>;
