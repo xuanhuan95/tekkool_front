@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {useParams} from 'react-router-dom';
 import {Button, Form, Header, Icon, Input, Label, Message, Segment, TextArea} from 'semantic-ui-react';
-import {Card, ErrorState, MetaChips} from '../../components/ui';
+import {Card, ErrorState, MetaChips, notify} from '../../components/ui';
 
 import Loading from '../../components/Loading';
 import renderHTML from '../../components/SafeHtml';
@@ -15,6 +15,9 @@ import {AnswerImageThumbs} from '../exam/AnswerImages';
 import ImageMarker from './ImageMarker';
 import {marksOf, markProblem, toPayload} from './imageMarks';
 import type {Mark} from './imageMarks';
+
+/** 403 from the BE: only the teacher in charge of the exam's subject may open / grade it. */
+const NO_ACCESS = 'Bạn không phụ trách môn của đề này nên không xem và chấm được bài. Liên hệ Admin để được gán môn.';
 
 /** Scores/comments the teacher is typing, keyed by `question_id`. */
 type Draft = Record<string, string>;
@@ -48,7 +51,7 @@ export default function SubmissionDetail() {
         setError(null);
         Api.get<Sub>('exam/submission/' + id)
             .then(s => { setSub(s); setTeacherComment(s.teacher_comment || ''); })
-            .catch((e: any) => setError((e && (e.error || e.message)) || 'Không xem được bài này'));
+            .catch((e: any) => setError(e?.code === 403 ? NO_ACCESS : (e && (e.error || e.message)) || 'Không xem được bài này'));
     }, [id, tries]);
 
     // Grading permission is decided by the BE (`can_grade` = exam owner). `user` is only to
@@ -74,7 +77,9 @@ export default function SubmissionDetail() {
         try {
             // Take back the version the BE returns: total score and status are computed by the BE,
             // not guessed on the FE. Marks ride along only when the teacher touched some (BE: absent = untouched).
+            // graded_at = what we saw on open: if another teacher graded meanwhile the BE answers 409.
             const fresh = await Api.post<Sub>('exam/grade/' + id, {
+                graded_at: sub?.graded_at ?? null,
                 scores, comments, teacher_comment: teacherComment,
                 ...(Object.keys(markDraft).length ? {marks: toPayload(markDraft)} : {}),
             });
@@ -84,6 +89,13 @@ export default function SubmissionDetail() {
             setMarkDraft({});
             setSaved(true);
         } catch (e: any) {
+            if (e?.code === 409) {
+                notify.error('Bài này vừa được giáo viên khác chấm', 'Đã tải lại bài, xem điểm mới rồi chấm tiếp nếu cần.');
+                setScores({}); setComments({}); setMarkDraft({});
+                setTries(t => t + 1);
+                setSaving(false);
+                return;
+            }
             // Keep everything on screen (scores, comments, marks) so pressing "Lưu điểm" again is the retry.
             setSaveError((e && (e.error || e.message)) || 'Lưu điểm thất bại');
         }
@@ -204,7 +216,7 @@ export default function SubmissionDetail() {
         </Segment>;
     };
 
-    if (error) return <div className='margin'><ErrorState title='Chưa xem được bài này' description={error} onRetry={() => setTries(t => t + 1)}/></div>;
+    if (error) return <div className='margin'><ErrorState title='Chưa xem được bài này' description={error} onRetry={error === NO_ACCESS ? undefined : () => setTries(t => t + 1)}/></div>;
     if (!sub) return <Loading/>;
 
     return <div className='margin sub-detail'>

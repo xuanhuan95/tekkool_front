@@ -152,3 +152,15 @@ describe('Teachers (AD-GiaoVien)', () => {
         expect(screen.getByText('Chỉ Admin mới được làm thao tác này')).toBeTruthy();
     });
 });
+
+describe('Môn phụ trách (04/11)', () => {
+    it('unassigned teacher shows "Chưa gán"; edit dialog posts the full subject list (empty allowed)', async () => {
+        const api = mockApi({'admin/teachers': page([T({subjects: []})])}, {'admin/update_teacher_subjects/u1': T()});
+        renderAt(<Teachers/>);
+        expect(await screen.findByText('Chưa gán')).toBeTruthy();
+        fireEvent.click(screen.getByRole('button', {name: 'Sửa môn phụ trách của Cô Thu Hà'}));
+        fireEvent.click(await screen.findByRole('button', {name: 'Toán'}));
+        fireEvent.click(screen.getByRole('button', {name: 'Lưu'}));
+        await waitFor(() => expect(api.post).toHaveBeenCalledWith('admin/update_teacher_subjects/u1', {subjects: ['Toán']}));
+    });
+});

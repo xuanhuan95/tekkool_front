@@ -65,6 +65,8 @@ export type MeProfile = {
     name: string;
     email: string;
     group: string | null;
+    /** Subjects the teacher is in charge of (Admin assigns); students: []. */
+    subjects?: string[];
     /** SPT-64: null = no tier reached (or not a student). */
     title?: StudentTitle | null;
     /** SPT-64: next tier hint, present even when `title` is null (students only). */

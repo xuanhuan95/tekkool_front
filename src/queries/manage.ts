@@ -169,6 +169,15 @@ export function useCreateTeacher() {
     });
 }
 
+export function useUpdateTeacherSubjects() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: ({userId, subjects}: {userId: string; subjects: string[]}) =>
+            Api.post<Teacher>('admin/update_teacher_subjects/' + id(userId), {subjects}),
+        onSuccess: () => { qc.invalidateQueries({queryKey: ['manage']}); },
+    });
+}
+
 export function useLockTeacher() {
     const qc = useQueryClient();
     return useMutation({

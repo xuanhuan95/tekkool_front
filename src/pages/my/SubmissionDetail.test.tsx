@@ -74,4 +74,22 @@ describe('SubmissionDetail — grading on the photo (SPT-84)', () => {
         await waitFor(() => expect(post).toHaveBeenCalledTimes(2));
         expect(post.mock.calls[1][1]).toEqual(post.mock.calls[0][1]);
     });
+
+    it('sends graded_at as seen on open; 409 (another teacher graded) reloads the submission', async () => {
+        const get = vi.spyOn(Api, 'get').mockResolvedValue(sub({graded_at: '2026-11-04T01:00:00'}));
+        const post = vi.spyOn(Api, 'post').mockRejectedValue({code: 409, error: 'x'});
+        open();
+        await screen.findByRole('button', {name: 'Đặt dấu đúng (✓)'});
+        fireEvent.click(screen.getByRole('button', {name: /Lưu điểm/}));
+        await waitFor(() => expect(post).toHaveBeenCalled());
+        expect(post.mock.calls[0][1]).toMatchObject({graded_at: '2026-11-04T01:00:00'});
+        await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+    });
+
+    it('403: explains the teacher is not in charge of the subject, no retry button', async () => {
+        vi.spyOn(Api, 'get').mockRejectedValue({code: 403, error: 'Forbidden'});
+        open();
+        expect(await screen.findByText(/không phụ trách môn/)).toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: 'Thử lại'})).toBeNull();
+    });
 });

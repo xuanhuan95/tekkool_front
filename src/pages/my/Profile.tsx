@@ -3,16 +3,18 @@ import {useState} from 'react';
 import {Avatar, Badge, Card} from '../../components/ui';
 import {IconEdit} from '../../components/ui/icons';
 import {useAuthStore} from '../../stores/authStore';
+import {useMeProfile} from '../../queries/student';
 import {PasswordDialog} from '../hs/AccountPage';
 import {PageHead} from '../hs/common';
 
 /**
- * Teacher profile (canvas APP-teacher-profile-*): name + email (read-only) and change password.
+ * Teacher profile (canvas APP-teacher-profile-*): name + email + subjects in charge (read-only, Admin assigns) and change password.
  * Same frame/components as the student account page; sign-out lives in the header.
  */
 export default function Profile() {
     const user = useAuthStore(s => s.user);
     const [pw, setPw] = useState(false);
+    const subjects = useMeProfile().data?.subjects;
 
     return <div className='hs-page'>
         <PageHead title='Thông tin cá nhân'/>
@@ -26,6 +28,12 @@ export default function Profile() {
                     <span><Badge tone='title'>Giáo viên</Badge></span>
                 </div>
             </div>
+            {subjects && <div className='hs-col2'>
+                <span className='hs-meta'>Môn phụ trách</span>
+                {subjects.length
+                    ? <span style={{display: 'flex', flexWrap: 'wrap', gap: 6}}>{subjects.map(s => <Badge key={s} tone='title'>{s}</Badge>)}</span>
+                    : <span className='hs-meta'>Chưa được gán môn, liên hệ Admin.</span>}
+            </div>}
         </Card>
 
         <section className='hs-sec' aria-labelledby='hs-settings'>
