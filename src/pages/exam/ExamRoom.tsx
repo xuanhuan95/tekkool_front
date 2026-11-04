@@ -248,7 +248,7 @@ export default function ExamRoom({examId, exam, deadlineMs}: ExamRoomProps) {
 
         {total === 0 && <p className='vt-q-note'>Đề này chưa có câu hỏi.</p>}
 
-        {paper.parts.map(part => <ExamSection key={part.id} id={part.id} title={part.title} note={part.note}>
+        {paper.parts.map(part => <ExamSection key={part.id} id={part.id} title={part.title}>
             {part.questions.map(q => <Fragment key={q.questionIds[0]}>
                 {/* Shared reading text: printed once, before the first question of its group.
                     Đúng/Sai already shows its stem as the question text. */}

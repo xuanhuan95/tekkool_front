@@ -35,7 +35,7 @@ export default function Users() {
         {key: 'turns', header: 'Lượt còn', align: 'right', render: u => <span className='vt-num'>{u.turns_remaining ?? '—'}</span>},
         {key: 'created', header: 'Ngày tham gia', emphasis: 'muted', render: u => <span className='vt-num'>{formatDate(u.created_at)}</span>},
         {key: 'status', header: 'Trạng thái', render: u => <AccountBadge status={u.status}/>},
-        {key: 'actions', header: 'Thao tác', sticky: true, render: u =>
+        {key: 'actions', header: <span className='vt-sr-only'>Thao tác</span>, sticky: true, render: u =>
             <IconButton to={'/manage/users/' + u.id} tipEnd label={'Xem chi tiết ' + u.name} icon={<icons.IconArrowRight/>}/>},
     ];
 

@@ -32,7 +32,7 @@ export type PaymentPoll = {
     seconds: number;
     /** 90 s passed and the order is still PENDING — NOT a failure, the IPN may just be slow. */
     timedOut: boolean;
-    /** Start polling again from zero ("Kiểm tra lại"). */
+    /** Start polling again from zero. */
     restart: () => void;
 };
 
@@ -42,7 +42,7 @@ export type PaymentPoll = {
  * header pill and "Bạn có N lượt" show the new balance.
  *
  * `cancel` (SePay sent the student back with `?result=cancel|error`, SPT-58): the first request is
- * `POST payment/cancel/<inv>` instead — sent ONCE per page load; "Kiểm tra lại" only reads the status.
+ * `POST payment/cancel/<inv>` instead — sent ONCE per page load; the old check-again button only read the status.
  * BE may still answer PAID (SePay already took the money), so the screen follows the returned status.
  */
 export function usePaymentStatus(inv: string | null, cancel = false): PaymentPoll {
