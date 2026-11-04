@@ -1,7 +1,7 @@
 import {keepPreviousData, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import Api from '../services/api';
-import type {BankBlocksPage, BankCapacity, BankStats, BankSummary, StructureSlot} from '../types/exam';
+import type {BankBlocksPage, BankCapacity, BankKind, BankPaper, BankPapersPage, BankStats, BankSummary, StructureSlot} from '../types/exam';
 
 export const bankKeys = {
     all: ['question_bank'] as const,
@@ -21,7 +21,7 @@ export function useBankSubjects() {
 export function useCreateBank() {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: async (v: {name: string; subject: string}) => {
+        mutationFn: async (v: {name: string; subject: string; kind?: BankKind}) => {
             const r = await Api.post<{error?: string}>('question_bank/create', v);
             if (r && r.error) throw new Error(r.error);
             return r;
@@ -49,7 +49,9 @@ export function useBankCapacity(banks: string[], slots: Record<string, number>) 
 }
 
 export type CreateFromBankInput = {
-    banks: string[]; name: string; duration: number; folder?: string; cau_truc: StructureSlot[];
+    banks: string[]; name: string; duration: number; folder?: string;
+    /** Required for kind block; ignored for a paper bank (exactly one bank). */
+    structure?: StructureSlot[];
 };
 
 export function useCreateFromBank() {
@@ -62,7 +64,7 @@ export function useCreateFromBank() {
 
 /** Draw-exam screen: stock per type + capacity. Bank is the main path; subject is the legacy route (blocks imported before banks). */
 export function useDrawInfo(bankId: string, subject: string) {
-    const body = bankId ? {bank: bankId} : {subject, matran: subject || 'Ngữ văn'};
+    const body = bankId ? {bank: bankId} : {subject};
     return useQuery({
         queryKey: [...bankKeys.all, 'draw-info', bankId, subject],
         queryFn: async () => {
@@ -72,18 +74,6 @@ export function useDrawInfo(bankId: string, subject: string) {
                 Api.post<BankCapacity>('question_bank/capacity', body),
             ]);
             return {stats, capacity};
-        },
-    });
-}
-
-/** 409 (not enough blocks) arrives resolved as `{error}`, not thrown. */
-export function useDrawExam(bankId: string, subject: string) {
-    return useMutation({
-        mutationFn: async () => {
-            const r = await Api.post<{id?: string; error?: string}>('question_bank/draw',
-                bankId ? {bank: bankId} : {subject, matran: subject || 'Ngữ văn'});
-            if (r.error) throw new Error(r.error);
-            return r as {id: string};
         },
     });
 }
@@ -117,6 +107,32 @@ export function useDeleteBlock() {
     return useMutation({
         mutationFn: (id: string) => Api.post('question_bank/delete_block', {id}),
         // 404 = already gone (other tab / second click) → same end state, so refresh either way.
+        onSettled: () => qc.invalidateQueries({queryKey: bankKeys.all}),
+    });
+}
+
+export const PAPERS_PER_PAGE = 20;
+
+/** Whole-exam bank (kind paper): one page of its papers. */
+export function useBankPapers(bank: string, page: number) {
+    return useQuery({
+        queryKey: [...bankKeys.all, 'papers', bank, page],
+        queryFn: () => Api.get<BankPapersPage>(`question_bank/papers?bank=${bank}&page=${page}&per_page=${PAPERS_PER_PAGE}`),
+        enabled: !!bank,
+        placeholderData: keepPreviousData,
+    });
+}
+
+/** One whole exam with keys. */
+export function useBankPaper(id: string | null) {
+    return useQuery({queryKey: [...bankKeys.all, 'paper', id], queryFn: () => Api.get<BankPaper>('question_bank/paper?id=' + id), enabled: !!id});
+}
+
+/** 409 when it would leave a published exam with nothing to draw (message names the exam). */
+export function useDeletePaper() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (id: string) => Api.post<{id: string; kept_for_exams: unknown}>('question_bank/delete_paper', {id}),
         onSettled: () => qc.invalidateQueries({queryKey: bankKeys.all}),
     });
 }

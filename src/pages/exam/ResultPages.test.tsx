@@ -13,10 +13,10 @@ const DETAIL: SubmissionDetail = {
     id: 'SUB1', exam_name: 'Toán — Đề 3', submitted_at: '2026-10-21T13:47:00', duration_sec: 82 * 60,
     score: 5.75, max_score: 10, graded_max_score: 8.5, pending_count: 1, status: 'GRADING',
     subject: {id: 'F1', name: 'Toán'}, duration_min: 90, ranking_contribution: 15.8,
-    phan: [
-        {ten: 'I · Trắc nghiệm', score: 0.25, max_score: 0.5, pending: 0},
-        {ten: 'II · Đúng/Sai', score: 0.25, max_score: 1, pending: 0},
-        {ten: 'IV · Tự luận', score: 0, max_score: 1.5, pending: 1},
+    parts: [
+        {name: 'I · Trắc nghiệm', score: 0.25, max_score: 0.5, pending: 0},
+        {name: 'II · Đúng/Sai', score: 0.25, max_score: 1, pending: 0},
+        {name: 'IV · Tự luận', score: 0, max_score: 1.5, pending: 1},
     ],
     answers: [
         {question_id: 'Q1', type: 'MultipleChoice', section_name: 'I · Trắc nghiệm', question_text: '<p>1+1?</p>',
@@ -68,7 +68,7 @@ describe('ResultPage', () => {
 
     it('graded: table by part and the ranking line from BE ranking_contribution; 0 explains why; absent → hidden', async () => {
         const graded = {...DETAIL, pending_count: 0, status: 'GRADED', score: 7.25, graded_max_score: 10,
-            phan: DETAIL.phan!.map(p => ({...p, pending: 0}))};
+            parts: DETAIL.parts!.map(p => ({...p, pending: 0}))};
         vi.spyOn(Api, 'get').mockResolvedValue({...graded, ranking_contribution: 17.3});
         const first = page('/result/SUB1');
         await screen.findByText(/\+17,3 điểm xếp hạng tuần/);
@@ -87,7 +87,7 @@ describe('ResultPage', () => {
 
     it('final score when everything is graded — no "Tạm tính"', async () => {
         vi.spyOn(Api, 'get').mockResolvedValue({...DETAIL, pending_count: 0, status: 'GRADED', score: 7.25,
-            graded_max_score: 10, phan: DETAIL.phan!.map(p => ({...p, pending: 0}))});
+            graded_max_score: 10, parts: DETAIL.parts!.map(p => ({...p, pending: 0}))});
         page('/result/SUB1');
         await screen.findByText('Đã chấm');
         expect(screen.queryByText(/Tạm tính/)).toBeNull();

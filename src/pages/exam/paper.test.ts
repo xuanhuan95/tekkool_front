@@ -142,7 +142,7 @@ describe('points per question (Q3: the teacher sets them)', () => {
 describe('SPT-97: câu chùm trả lời ngắn', () => {
     const chum = (id: string, label: string, extra: Partial<TestQuestion> = {}): TestQuestion => ({
         id, type: 'FillBlank',
-        data: {question: `ý ${id}`, label, passage: '<p>Dẫn liệu</p>', passageId: 'G1', block_type: 'ChumTLN', max_score: 0.5},
+        data: {question: `ý ${id}`, label, passage: '<p>Dẫn liệu</p>', passageId: 'G1', block_type: 'short_answer_group', max_score: 0.5},
         ...extra,
     });
     const exam: TestExam = {id: 'H', sections: [
@@ -169,7 +169,7 @@ describe('SPT-97: câu chùm trả lời ngắn', () => {
         expect(isAnswered(c, {C3: '  '})).toBe(false);
     });
 
-    it('a FillBlank without ChumTLN stays one short question per box', () => {
+    it('a FillBlank without short_answer_group stays one short question per box', () => {
         const p = buildPaper({id: 'X', sections: [{id: 'S', questions: [
             {id: 'A', type: 'FillBlank', data: {question: 'a', passageId: 'G'}}, {id: 'B', type: 'FillBlank', data: {question: 'b', passageId: 'G'}}]}]});
         expect(p.questions.map(q => q.kind)).toEqual(['short', 'short']);

@@ -203,7 +203,7 @@ describe('V2-1: tách A–D takes the real A–D run', () => {
 });
 
 describe('SPT-97: câu chùm in the preview', () => {
-    const y = (id: string, pid: string): ImportQuestion => ({id, type: 'FillBlank', data: {question: id, passage: 'dẫn liệu', passageId: pid, block_type: 'ChumTLN'}});
+    const y = (id: string, pid: string): ImportQuestion => ({id, type: 'FillBlank', data: {question: id, passage: 'dẫn liệu', passageId: pid, block_type: 'short_answer_group'}});
     const lone: ImportQuestion = {id: 'L', type: 'FillBlank', data: {question: 'lẻ', passageId: 'G1'}};
 
     it('groups the ý of one passageId into ONE unit, a plain FillBlank stays alone', () => {

@@ -3,15 +3,15 @@ import type {SemanticICONS} from 'semantic-ui-react';
 // Display labels for the 8 block types — must match TEN_LOAI in core_question_bank.py.
 // Keys are backend codes, never rename them. Shared by DrawExam and ImportExam.
 export const BLOCK_LABELS = {
-    DocHieu: 'Đọc hiểu (ngữ liệu + 5 câu)',
-    TracNghiem: 'Trắc nghiệm chọn đáp án',
-    DungSai: 'Câu đúng/sai',
-    TraLoiNgan: 'Viết đáp án (trả lời ngắn)',
-    ChumTLN: 'Câu chùm (dẫn liệu + 4 ý)',
-    TuLuan: 'Giải bài (tự luận)',
-    VietDoan: 'Viết đoạn văn',
-    VietBai: 'Viết bài văn',
-    DienTu: 'Bài điền từ',
+    reading: 'Đọc hiểu (ngữ liệu + 5 câu)',
+    multiple_choice: 'Trắc nghiệm chọn đáp án',
+    true_false: 'Câu đúng/sai',
+    short_answer: 'Viết đáp án (trả lời ngắn)',
+    short_answer_group: 'Câu chùm (dẫn liệu + 4 ý)',
+    problem: 'Giải bài (tự luận)',
+    paragraph: 'Viết đoạn văn',
+    essay: 'Viết bài văn',
+    cloze: 'Bài điền từ',
 } as const;
 
 export type BlockType = keyof typeof BLOCK_LABELS;
@@ -28,15 +28,15 @@ export const blockLabel = (t: string) => (BLOCK_LABELS as Record<string, string>
  * Colors are tokens in src/styles/tokens.css (white text on them ≥ 4.5:1).
  */
 export const BLOCK_STYLES: Record<string, {icon: SemanticICONS; color: string}> = {
-    DocHieu: {icon: 'book', color: 'var(--tk-block-reading)'},
-    TracNghiem: {icon: 'list ol', color: 'var(--tk-block-choice)'},
-    DungSai: {icon: 'balance scale', color: 'var(--tk-block-truefalse)'},
-    TraLoiNgan: {icon: 'i cursor', color: 'var(--tk-block-short)'},
-    ChumTLN: {icon: 'sitemap', color: 'var(--tk-block-short)'},
-    TuLuan: {icon: 'calculator', color: 'var(--tk-block-essay-math)'},
-    VietDoan: {icon: 'paragraph', color: 'var(--tk-block-paragraph)'},
-    VietBai: {icon: 'pencil alternate', color: 'var(--tk-block-essay)'},
-    DienTu: {icon: 'puzzle piece', color: 'var(--tk-block-cloze)'},
+    reading: {icon: 'book', color: 'var(--tk-block-reading)'},
+    multiple_choice: {icon: 'list ol', color: 'var(--tk-block-choice)'},
+    true_false: {icon: 'balance scale', color: 'var(--tk-block-truefalse)'},
+    short_answer: {icon: 'i cursor', color: 'var(--tk-block-short)'},
+    short_answer_group: {icon: 'sitemap', color: 'var(--tk-block-short)'},
+    problem: {icon: 'calculator', color: 'var(--tk-block-essay-math)'},
+    paragraph: {icon: 'paragraph', color: 'var(--tk-block-paragraph)'},
+    essay: {icon: 'pencil alternate', color: 'var(--tk-block-essay)'},
+    cloze: {icon: 'puzzle piece', color: 'var(--tk-block-cloze)'},
 };
 
 // Hand-written exams have no block type → app primary color.

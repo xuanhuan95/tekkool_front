@@ -45,7 +45,7 @@ T5 chấm tự luận            ◄──────  S5 xem kết quả
 | T1.2 | Câu trắc nghiệm nhiều phương án | Giữ đúng `correctAnswerId` ✅ *(đã có)* |
 | T1.3 | Ngữ liệu dùng chung cho 3 câu | In **một lần** ở câu đầu nhóm (đã có `Passage.test.js`) |
 | T1.4 | Đề rỗng, **phần không đọc được câu nào** | Báo rõ, không đi qua im lặng ✅ *(đã có)* |
-| T1.5 | **Import xong vào đúng ngăn ngân hàng** | `.docx` → `block_type` đúng: ngữ liệu + trắc nghiệm = `DocHieu`, "khoảng 200 chữ" = `VietDoan` ✅ |
+| T1.5 | **Import xong vào đúng ngăn ngân hàng** | `.docx` → `block_type` đúng: ngữ liệu + trắc nghiệm = `reading`, "khoảng 200 chữ" = `paragraph` ✅ |
 
 ### T2. Trọng số điểm — **điểm chết**
 | # | Ca | Phải đúng |

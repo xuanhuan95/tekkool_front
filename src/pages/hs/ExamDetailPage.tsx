@@ -99,7 +99,7 @@ export default function ExamDetailPage() {
     const parts = partsFromStructure(exam.parts) || partCount(exam);
     const structure = structureRows(exam.parts);
     // Older API without `parts`: titles of the bank structure only.
-    const titles = structure.rows.length ? [] : (exam.cau_truc || []).filter(c => c.tieu_de);
+    const titles = structure.rows.length ? [] : (exam.structure || []).filter(c => c.title);
 
     const info = <>
         <div className='hs-head'>
@@ -119,7 +119,7 @@ export default function ExamDetailPage() {
                         <span>{r.name && <b>{r.name}</b>}{r.name && r.kind ? ' · ' : ''}{r.kind}</span>
                         <span className='hs-parts-amount'>{r.amount}</span>
                     </div>)}
-                    {titles.map((c, i) => <div key={i}><span>{c.tieu_de}</span></div>)}
+                    {titles.map((c, i) => <div key={i}><span>{c.title}</span></div>)}
                 </div>
                 {structure.total && <span className='hs-meta'>{structure.total}</span>}
                 {exam.parts?.some(p => p.approx) &&

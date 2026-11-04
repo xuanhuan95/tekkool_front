@@ -6,7 +6,7 @@ import {Editor} from "../../../components/Editor";
 
 
 // ponytail: no length box any more (anh Thịnh, 03/11/2026). `data.max_words` / `max_chars` of an
-// exam that already has them are left alone: the BE sorts Ngữ văn blocks (TraLoiNgan / VietDoan / VietBai) by them.
+// exam that already has them are left alone: the BE sorts Ngữ văn blocks (short_answer / paragraph / essay) by them.
 export default class FreeAnswer extends BaseQuestion {
     // Shim ref for Editor: {current: {medium: {setContent}}} — see Editor.tsx.
     refAnswer = React.createRef<any>();

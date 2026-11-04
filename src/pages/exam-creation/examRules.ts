@@ -4,7 +4,7 @@ import type {Question, Section} from './Default';
 export const TRUE_FALSE_STATEMENTS = 4;
 
 type Unitable = {type?: string; data?: {passageId?: string; block_type?: string}};
-const groupKind = (q: Unitable) => q.type === 'TrueFalse' ? 'tf' : q.type === 'FillBlank' && q.data?.block_type === 'ChumTLN' ? 'chum' : '';
+const groupKind = (q: Unitable) => q.type === 'TrueFalse' ? 'tf' : q.type === 'FillBlank' && q.data?.block_type === 'short_answer_group' ? 'chum' : '';
 
 /**
  * Group consecutive TrueFalse questions that share a passageId into one unit — the rule the backend
@@ -78,7 +78,7 @@ export function defaultScore(type: string, subject?: string | null): number | un
     return type === 'FillBlank' || !literature ? 0.25 : 0.3;
 }
 
-/** SPT-97 câu chùm (ChumTLN): n ý of 0,5đ, scored for the whole question like Đúng/Sai. */
+/** SPT-97 câu chùm (short_answer_group): n ý of 0,5đ, scored for the whole question like Đúng/Sai. */
 export const isChum = (unit: Unitable[]) => groupKind(unit[0]) === 'chum';
 export const CHUM_PART_SCORE = 0.5;
 

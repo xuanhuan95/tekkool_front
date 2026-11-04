@@ -74,12 +74,6 @@ export interface ClusterQuestionProps extends BaseProps {
 export type QuestionBlockProps = ChoiceQuestionProps | TrueFalseQuestionProps | ShortQuestionProps | EssayQuestionProps
     | ClusterQuestionProps;
 
-/** Short options (numbers like "4", "I = 2") sit four in a row on phones, like the paper; long ones stack. */
-function isCompact(options: ChoiceOption[]): boolean {
-    return options.length <= 4 && options.every(o =>
-        (typeof o.content === 'string' || typeof o.content === 'number') && String(o.content).length <= 6);
-}
-
 function ChoiceAnswer({number, options, value, onChange, disabled}: ChoiceQuestionProps) {
     const refs = useRef<Array<HTMLButtonElement | null>>([]);
     const selected = options.findIndex(o => o.key === value);
@@ -95,7 +89,7 @@ function ChoiceAnswer({number, options, value, onChange, disabled}: ChoiceQuesti
         refs.current[next]?.focus();
     };
     return <div role='radiogroup' aria-label={'Đáp án câu ' + number} aria-disabled={disabled || undefined}
-                className={cx('vt-options', isCompact(options) && 'vt-options--compact')} onKeyDown={onKeyDown}>
+                className='vt-options' onKeyDown={onKeyDown}>
         {options.map((o, i) => {
             const on = o.key === value;
             return <button key={o.key} ref={el => { refs.current[i] = el; }} type='button' role='radio'

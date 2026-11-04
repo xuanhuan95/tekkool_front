@@ -106,7 +106,7 @@ const TYPE_SCALE: {label: string; style: CSSProperties; text: string}[] = [
 ];
 
 export default function DesignSystem() {
-    const reading = BLOCK_STYLES.DocHieu;
+    const reading = BLOCK_STYLES.reading;
 
     return <div className='tk tk-wrap'>
         <h1 className='tk-title'>Design system</h1>
@@ -260,7 +260,7 @@ export default function DesignSystem() {
                                  style={{'--block-color': reading.color} as CSSProperties}>
                                 <span className='tk-cfb-type-icon'><Icon name={reading.icon}/></span>
                                 <div className='tk-cfb-type-text'>
-                                    <b>{blockLabel('DocHieu')}</b>
+                                    <b>{blockLabel('reading')}</b>
                                     <small>{st === 'off' ? 'có 0 khối' : 'dùng 2 / có 6 khối'}</small>
                                 </div>
                                 <button type='button' aria-label='Thêm' disabled={st === 'off'}><Icon name='plus'/></button>

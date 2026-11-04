@@ -14,7 +14,8 @@ import './question-bank.css';
 const isChoiceType = (t: string) => t === 'MultipleChoice' || t === 'ErrorIdentify';
 
 /** SPT-73 · read-only question: prompt, options with the key marked, T/F statements, short answer, explanation. */
-function QuestionView({no, q}: {no: string; q: BankBlock['questions'][number]}) {
+/** `plain` (whole-exam banks): the correct option is only tinted, without the "Đáp án đúng" text. */
+export function QuestionView({no, q, plain}: {no: string; q: BankBlock['questions'][number]; plain?: boolean}) {
     const d = q.data;
     return <div className='vt-qbv-q'>
         <div className='vt-qbv-prompt'><b>{no}</b><div>{renderHTML(d.question)}</div>
@@ -27,7 +28,7 @@ function QuestionView({no, q}: {no: string; q: BankBlock['questions'][number]}) 
                 return <li key={a.id} className={on ? 'on' : undefined}>
                     <span className='vt-qbv-key'>{String.fromCharCode(65 + i)}.</span>
                     <div>{renderHTML(a.value)}</div>
-                    {on && <Badge tone='ok'>Đáp án đúng</Badge>}
+                    {on && !plain && <Badge tone='ok'>Đáp án đúng</Badge>}
                 </li>;
             })}
         </ul>}
@@ -40,7 +41,7 @@ function QuestionView({no, q}: {no: string; q: BankBlock['questions'][number]}) 
 }
 
 function BlockCard({block, onDelete}: {block: BankBlock; onDelete: () => void}) {
-    const tf = block.block_type === 'DungSai' || block.block_type === 'ChumTLN';   // ý a), b)… sharing one stem
+    const tf = block.block_type === 'true_false' || block.block_type === 'short_answer_group';   // ý a), b)… sharing one stem
     return <Card as='article' className='vt-qbv-block'>
         <div className='vt-qbv-head'>
             <Badge tone='title'>{block.block_type_name}</Badge>
@@ -59,8 +60,8 @@ function BlockCard({block, onDelete}: {block: BankBlock; onDelete: () => void}) 
 
 /** Message of the confirm box: one question vs a passage with its questions (count comes from the BE). */
 export function deleteQuestion(b: BankBlock) {
-    if (b.block_type === 'DungSai') return `Xoá câu đúng/sai này (${b.count} ý)?`;
-    if (b.block_type === 'ChumTLN') return `Xoá câu chùm này (${b.count} ý)?`;
+    if (b.block_type === 'true_false') return `Xoá câu đúng/sai này (${b.count} ý)?`;
+    if (b.block_type === 'short_answer_group') return `Xoá câu chùm này (${b.count} ý)?`;
     return b.count > 1 ? `Xoá văn bản này và ${b.count} câu đi kèm?` : 'Xoá câu này?';
 }
 

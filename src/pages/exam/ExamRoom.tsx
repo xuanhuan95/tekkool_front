@@ -3,7 +3,7 @@ import {useNavigate} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {
-    Button, Card, ConfirmDialog, ExamBanner, ExamEnd, ExamHeader, ExamLayout, ExamSection, Modal,
+    Button, Card, ConfirmDialog, ExamBanner, ExamEnd, ExamHeader, ExamLayout, ExamSection, ExamSharedInfo, Modal,
     QuestionGrid, QuestionNumberStrip, WARN_SECONDS,
 } from '../../components/ui';
 import type {QuestionGridPart, QuestionStatus} from '../../components/ui';
@@ -21,6 +21,7 @@ import type {RawAnswers} from './paper';
 import QuestionView from './QuestionView';
 import SubmitDialog from './SubmitDialog';
 import {useCountdown} from './useCountdown';
+import {DESKTOP, useMediaQuery} from '../useMediaQuery';
 import {withSubject} from '../../lib/format';
 
 /** Debounce per kind: clicks go out at once, typing waits for a pause. */
@@ -221,6 +222,7 @@ export default function ExamRoom({examId, exam, deadlineMs}: ExamRoomProps) {
     const openConfirm = () => { setSubmitError(null); setConfirm(true); };
     const warn = secondsLeft !== null && secondsLeft > 0 && secondsLeft <= WARN_SECONDS;
     const disabled = locked || submitting;
+    const desktop = useMediaQuery(DESKTOP);   // desktop: the info block sticks inside the paper column only, not over the side grid
 
     return <ExamLayout
         header={<ExamHeader title={withSubject(exam.subject?.name, exam.name) || 'Đề thi'} secondsLeft={secondsLeft} answered={answered} total={total}
@@ -231,6 +233,7 @@ export default function ExamRoom({examId, exam, deadlineMs}: ExamRoomProps) {
                                     Mất kết nối — đáp án được giữ trên máy và sẽ tự lưu khi có mạng.</ExamBanner>}
                                 <QuestionNumberStrip questions={status} current={current} onJump={jump}
                                                      onOpenAll={() => setSheet(true)}/>
+                                {!desktop && <ExamSharedInfo items={exam.shared_info}/>}
                             </>}/>}
         aside={<Card>
             <QuestionGrid showHeading parts={gridParts} current={current} onJump={jump}
@@ -240,6 +243,8 @@ export default function ExamRoom({examId, exam, deadlineMs}: ExamRoomProps) {
                               <Button variant='primary' block onClick={openConfirm} disabled={locked}>Nộp bài</Button>
                           </>}/>
         </Card>}>
+
+        {desktop && <ExamSharedInfo items={exam.shared_info}/>}
 
         {total === 0 && <p className='vt-q-note'>Đề này chưa có câu hỏi.</p>}
 

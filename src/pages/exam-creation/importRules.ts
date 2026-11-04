@@ -32,10 +32,10 @@ export type ImportedExam = {
     source?: string[];
 };
 
-/** Duplicate-check result for ONE question — `question_bank/check_trung`. */
+/** Duplicate-check result for ONE question — `question_bank/check_duplicates`. */
 export type DuplicateInfo = {
     score: number;
-    khop: Array<{id?: string; khoi?: string; score: number; trong_file?: boolean}>;
+    matches: Array<{id?: string; block?: string; score: number; in_file?: boolean}>;
 };
 
 /** One coded warning of `import_docx/preview` (`issues`). `error` = Nặng (must be acknowledged before saving). */
@@ -52,13 +52,13 @@ export const isChoice = (q: ImportQuestion) => q.type === 'MultipleChoice' || q.
 /** One question as the teacher and the student see it. A Đúng/Sai question is several stored questions (one per ý). */
 export type QuestionUnit = {id: string; questions: ImportQuestion[]};
 
-/** SPT-97: ý of a Hoá câu chùm = FillBlank with block_type ChumTLN; they group by passageId like Đúng/Sai ý. */
-export const isClusterQuestion = (q: ImportQuestion) => q.type === 'FillBlank' && q.data.block_type === 'ChumTLN';
+/** SPT-97: ý of a Hoá câu chùm = FillBlank with block_type short_answer_group; they group by passageId like Đúng/Sai ý. */
+export const isClusterQuestion = (q: ImportQuestion) => q.type === 'FillBlank' && q.data.block_type === 'short_answer_group';
 const sameGroup = (a: ImportQuestion, b: ImportQuestion) =>
     (a.type === 'TrueFalse' && b.type === 'TrueFalse') || (isClusterQuestion(a) && isClusterQuestion(b));
 
 /**
- * Group consecutive TrueFalse (or ChumTLN) questions that share a passageId into one unit — the same rule the
+ * Group consecutive TrueFalse (or short_answer_group) questions that share a passageId into one unit — the same rule the
  * backend grades by (core_grading.grade_items) and the student paper uses (exam/paper.ts).
  * Every other question is a unit of its own.
  */
@@ -108,7 +108,7 @@ export const missingTf = (exam: ImportedExam) => numberedUnits(exam).filter(x =>
 export const badTrueFalse = (exam: ImportedExam) => numberedUnits(exam).filter(x => isBadTrueFalse(x.unit)).length;
 
 /** SPT name of the kind of a question. */
-const kindOf = (q: ImportQuestion) =>
+export const kindOf = (q: ImportQuestion) =>
     isChoice(q) ? 'Trắc nghiệm' : q.type === 'TrueFalse' ? 'Đúng/Sai' : isClusterQuestion(q) ? 'Câu chùm' : q.type === 'FillBlank' ? 'Trả lời ngắn' : 'Tự luận';
 
 /** At load: remember how many units each Phần showed, to follow later deletions on top of the BE's own count (which leaves a câu chùm out of "câu"). */

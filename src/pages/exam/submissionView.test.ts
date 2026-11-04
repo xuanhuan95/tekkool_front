@@ -21,11 +21,11 @@ const ANSWERS: SubmissionAnswer[] = [
 
 const DETAIL: SubmissionDetail = {
     id: 'SUB', score: 0.75, max_score: 3.25, graded_max_score: 1.75, pending_count: 1, status: 'GRADING',
-    phan: [
-        {ten: 'Phần I', score: 0.25, max_score: 0.5, pending: 0},
-        {ten: 'Phần II', score: 0.25, max_score: 1, pending: 0},
-        {ten: 'Phần III', score: 0.25, max_score: 0.25, pending: 0},
-        {ten: 'Phần IV', score: 0, max_score: 1.5, pending: 1},
+    parts: [
+        {name: 'Phần I', score: 0.25, max_score: 0.5, pending: 0},
+        {name: 'Phần II', score: 0.25, max_score: 1, pending: 0},
+        {name: 'Phần III', score: 0.25, max_score: 0.25, pending: 0},
+        {name: 'Phần IV', score: 0, max_score: 1.5, pending: 1},
     ],
     answers: ANSWERS,
 };
@@ -114,7 +114,7 @@ it('explanations: per question, Đúng/Sai group joins distinct ones', () => {
 
 describe('SPT-97: câu chùm', () => {
     const ý = (id: string, answer: string, score: number): SubmissionAnswer => ({
-        question_id: id, type: 'FillBlank', block_type: 'ChumTLN', section_name: 'Phần IV', question_text: `a) ${id}`,
+        question_id: id, type: 'FillBlank', block_type: 'short_answer_group', section_name: 'Phần IV', question_text: `a) ${id}`,
         passage: '<p>Dẫn liệu</p>', passage_id: 'G1', answer, correct: '10,0|10', score, max_score: 0.5,
     });
     const items = buildReview([

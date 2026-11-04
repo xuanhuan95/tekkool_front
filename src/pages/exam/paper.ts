@@ -78,8 +78,8 @@ function toNumber(v: unknown): number | null {
     return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-/** SPT-97: a ChumTLN ý (FillBlank sharing a passageId with the next ones). */
-export const isCluster = (q: TestQuestion) => q.type === 'FillBlank' && q.data.block_type === 'ChumTLN' && !!q.data.passageId;
+/** SPT-97: a short_answer_group ý (FillBlank sharing a passageId with the next ones). */
+export const isCluster = (q: TestQuestion) => q.type === 'FillBlank' && q.data.block_type === 'short_answer_group' && !!q.data.passageId;
 const sameCluster = (a: TestQuestion, b: TestQuestion) => isCluster(b) && b.data.passageId === a.data.passageId;
 
 /** Old exams can have empty placeholder questions — the old screen skipped them, so do we. */

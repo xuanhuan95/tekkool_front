@@ -77,6 +77,24 @@ describe('ImportExam: feedback', () => {
         await vi.waitFor(() => expect(notify.success).toHaveBeenCalledWith(expect.stringContaining('Đã thêm 2 khối')));
     });
 
+    it('whole-exam bank: ONE save request carries every exam; the answer shows what was saved and refused', async () => {
+        vi.mocked(Api.get).mockImplementation(async (url: string) =>
+            url === 'question_bank/list' ? [{id: 'B1', name: 'SPT Hoá', subject: 'Hoá học', kind: 'paper', items: 0, blocks: 0}]
+                : url.startsWith('question_bank/papers') ? {items: [], total: 0} : []);
+        const sent: any[] = [];
+        mockPost({'question_bank/save': (b: any) => (sent.push(b), {saved: 1, total: 1, papers: [{id: 'E1', name: 'Đề thử 1', question_count: 1, total_score: 10}],
+            rejected: [{id: 'E2', name: 'Đề thử 2', reason: 'structure', message: 'Lệch cấu trúc'}]})});
+        renderScreen();
+        vi.spyOn(Api, 'upload').mockResolvedValue({exams: [EXAM, {...EXAM, id: 'E2', name: 'Đề thử 2'}], issues: []});
+        fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['PK'], 'de.docx')]}});
+        await screen.findByText(/Đọc được 2 đề/);
+        fireEvent.click(screen.getByText(/Lưu 2 đề vào ngân hàng/).closest('button')!);
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        expect(sent[0].bank).toBe('B1');
+        expect(sent[0].papers.map((p: any) => p.id)).toEqual(['E1', 'E2']);
+        await screen.findByText(/Lệch cấu trúc/);
+    });
+
     it('images go through image/upload before save; a dropped connection can be retried', async () => {
         const IMG = 'data:image/png;base64,iVBORw0KGgo=';
         const withImg = examOf({...mc('Q1', 'Q1A'), data: {...mc('Q1', 'Q1A').data, question: `<p>x<img src="${IMG}"></p>`}});
@@ -108,7 +126,7 @@ describe('ImportExam: feedback', () => {
     });
 
     it('a failed duplicate check reports an error instead of staying silent as if clean', async () => {
-        mockPost({'question_bank/check_trung': () => { throw {error: 'bận'}; }});
+        mockPost({'question_bank/check_duplicates': () => { throw {error: 'bận'}; }});
         renderScreen();
         await loadFile();
         fireEvent.click(screen.getByText(/Kiểm tra trùng lặp/));
@@ -116,7 +134,7 @@ describe('ImportExam: feedback', () => {
     });
 
     it('a duplicate shows on the exam row', async () => {
-        mockPost({'question_bank/check_trung': () => ({trung: {Q1: {score: 0.97, khop: [{khoi: 'K9', score: 0.97}]}}})});
+        mockPost({'question_bank/check_duplicates': () => ({duplicates: {Q1: {score: 0.97, matches: [{block: 'K9', score: 0.97}]}}})});
         renderScreen();
         await loadFile();
         fireEvent.click(screen.getByText(/Kiểm tra trùng lặp/));
