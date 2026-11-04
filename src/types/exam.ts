@@ -62,7 +62,7 @@ export type QuestionBank = {
 };
 
 /** A slot in a bank exam's structure — each slot draws one block, order preserved. */
-export type StructureSlot = {loai: string; tieu_de: string};
+export type StructureSlot = {block_type: string; title: string};
 
 /** An option of a multiple-choice question, as `exam/during_test` returns it (correct flags stripped). */
 export type TestAnswerOption = {id: string; value?: string | null};
@@ -95,8 +95,8 @@ export type TestSection = {
     id: string;
     name?: string | null;
     questions: TestQuestion[];
-    /** Only on exams drawn from the bank: block type code (TracNghiem, DungSai...). */
-    loai?: string | null;
+    /** Only on exams drawn from the bank: block type code (multiple_choice, true_false...). */
+    block_type?: string | null;
 };
 
 /** `GET exam/during_test/<id>` — the paper of an open attempt. */
@@ -114,10 +114,22 @@ export type TestExam = {
     subject?: {id: string | null; name: string | null} | null;
     /** SPT-60: exam duration in minutes. */
     duration_min?: number | null;
+    /** «Cho biết» boxes (HTML) of the drawn exam — shown sticky for the whole attempt. */
+    shared_info?: string[];
 };
 
-/** `question_bank/list` row: `blocks` = passage blocks the bank holds now. */
-export type BankSummary = {id: string; name: string; subject: string; blocks: number};
+/** Bank kind: `block` = passage blocks drawn per slot, `paper` = whole exams, one drawn per attempt. Fixed at creation. */
+export type BankKind = 'block' | 'paper';
+
+/** `question_bank/list` row: `items` = blocks (kind block) or whole exams (kind paper). */
+export type BankSummary = {id: string; name: string; subject: string; kind?: BankKind; items?: number; blocks: number};
+
+/** `question_bank/papers` row (kind paper). */
+export type BankPaperRow = {id: string; name: string; part_count: number; question_count: number; total_score: number; created_at: string};
+export type BankPapersPage = {items: BankPaperRow[]; total: number; page: number; per_page: number};
+
+/** `question_bank/paper?id=` — one whole exam with keys (owner/Admin only). */
+export type BankPaper = {id: string; name: string; bank: string; duration: number; shared_info: string[]; sections: unknown[]};
 
 /** `question_bank/blocks` (SPT-73): one block = a passage + its questions, or a single question. `data` carries the key + explanation. */
 export type BankBlock = {

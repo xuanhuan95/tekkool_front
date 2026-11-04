@@ -8,7 +8,7 @@ export type QuestionData = {
     /** Set by the Word import (SPT-62): score of the question and the HTML solution shown after submitting. */
     max_score?: number;
     explanation?: string;
-    /** Import hint for the bank slot (short answer in Toán/Lí/Hoá = 'TraLoiNgan'); only valid for the type it was set for. */
+    /** Import hint for the bank slot (short answer in Toán/Lí/Hoá = 'short_answer'); only valid for the type it was set for. */
     block_type?: string;
     /** SPT-97 câu chùm: the ý's own label ("a)", "1)"), kept apart from the question text. */
     label?: string;
@@ -39,7 +39,7 @@ export function convertData(data: QuestionData, to: string): QuestionData {
         next.answers = data.answers || [];
         if (data.correctAnswerId) next.correctAnswerId = data.correctAnswerId;
     } else if (to === 'FreeAnswer') {
-        // no UI sets these any more, but the BE sorts Ngữ văn blocks (TraLoiNgan/VietDoan/VietBai) by them
+        // no UI sets these any more, but the BE sorts Ngữ văn blocks (short_answer/paragraph/essay) by them
         if (max_words) next.max_words = max_words;
         if (max_chars) next.max_chars = max_chars;
     }

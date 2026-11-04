@@ -26,7 +26,7 @@ describe('examStatus', () => {
         expect(durationLabel(60)).toBe('60 phút');
         expect(durationLabel(0)).toBe('Không giới hạn thời gian');
         expect(partCount({sections: [1, 2, 3, 4]})).toBe(4);
-        expect(partCount({sections: [], cau_truc: [{}, {}]})).toBe(2);
+        expect(partCount({sections: [], structure: [{}, {}]})).toBe(2);
     });
 });
 

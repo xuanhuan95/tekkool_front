@@ -66,7 +66,7 @@ function SourcePdf({pdf, desktop}: {pdf: PdfState; desktop: boolean}) {
 /** Duplicate rate: never red — a warning to read, not an error to fix (same-template questions measure 80–90%). */
 function DuplicateChip({info}: {info?: DuplicateInfo}) {
     if (!info) return null;
-    const matches = info.khop.map(k => (k.trong_file ? 'trong file này' : (k.khoi || k.id)) + ' — ' + formatDecimal(k.score * 100) + '%').join('\n');
+    const matches = info.matches.map(k => (k.in_file ? 'trong file này' : (k.block || k.id)) + ' — ' + formatDecimal(k.score * 100) + '%').join('\n');
     return <span className={cx('vt-imp-dup', info.score >= 0.95 ? 'high' : info.score >= 0.8 && 'mid')} title={'Trùng với:\n' + matches}>
         Tỷ lệ trùng: {formatDecimal(info.score * 100)}%
     </span>;
@@ -481,8 +481,8 @@ export default function ImportExam() {
         try {
             const merged: Record<string, DuplicateInfo> = {};
             for (const e of chosen) {
-                const r = await Api.post<{trung?: Record<string, DuplicateInfo>}>('question_bank/check_trung', {...await uploadImages(e, images.current), bank: bankId});
-                Object.assign(merged, r.trung || {});
+                const r = await Api.post<{duplicates?: Record<string, DuplicateInfo>}>('question_bank/check_duplicates', {...await uploadImages(e, images.current), bank: bankId});
+                Object.assign(merged, r.duplicates || {});
             }
             setDuplicates(merged);
         } catch (e) {

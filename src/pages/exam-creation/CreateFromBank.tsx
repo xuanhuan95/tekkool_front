@@ -67,7 +67,7 @@ export default function CreateFromBank() {
     const dragging = useRef<Dragged | null>(null);
 
     const slots: Record<string, number> = {};
-    structure.forEach(x => { slots[x.loai] = (slots[x.loai] || 0) + 1; });
+    structure.forEach(x => { slots[x.block_type] = (slots[x.block_type] || 0) + 1; });
     // Asks the BE whenever the banks or the slot count per type change; editing a title does not refetch.
     // With no slots the BE uses the subject's standard matrix — still called for the stock (per_type).
     const capQ = useBankCapacity(selected, slots);
@@ -85,7 +85,7 @@ export default function CreateFromBank() {
     const toggleBank = (id: string) => setPicked(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id]);
 
     const addSlot = (type: string, at = structure.length) =>
-        setStructure(list => [...list.slice(0, at), {loai: type, tieu_de: '', key: ++keyCounter}, ...list.slice(at)]);
+        setStructure(list => [...list.slice(0, at), {block_type: type, title: '', key: ++keyCounter}, ...list.slice(at)]);
     const move = (from: number, to: number) => setStructure(list => {
         if (to < 0 || to > list.length) return list;
         const next = list.slice();
@@ -93,7 +93,7 @@ export default function CreateFromBank() {
         next.splice(to > from ? to - 1 : to, 0, x);
         return next;
     });
-    const setTitle = (i: number, title: string) => setStructure(list => list.map((x, j) => j === i ? {...x, tieu_de: title} : x));
+    const setTitle = (i: number, title: string) => setStructure(list => list.map((x, j) => j === i ? {...x, title: title} : x));
     const remove = (i: number) => setStructure(list => list.filter((_x, j) => j !== i));
 
     const dragStart = (e: DragEvent, item: Dragged) => {
@@ -134,7 +134,7 @@ export default function CreateFromBank() {
                 duration: minutes,
                 folder: folder || undefined,
                 // An empty slot saves the suggested title: students must see "Phần I…", not a blank line.
-                cau_truc: structure.map((x, i) => ({loai: x.loai, tieu_de: x.tieu_de.trim() || suggestedTitle(i, x.loai)})),
+                structure: structure.map((x, i) => ({block_type: x.block_type, title: x.title.trim() || suggestedTitle(i, x.block_type)})),
             });
         } catch (e) {
             return setFormError(errorText(e, 'Lưu đề thất bại, thử lại.'));
@@ -195,16 +195,16 @@ export default function CreateFromBank() {
                                 const isLifted = dragging.current && 'from' in dragging.current && dragging.current.from === i;
                                 return <li key={x.key} draggable
                                            className={cx('vt-cfb-slot', overIndex === i && 'over', isLifted && 'lifted')}
-                                           style={{'--block-color': blockStyle(x.loai).color} as CSSProperties}
+                                           style={{'--block-color': blockStyle(x.block_type).color} as CSSProperties}
                                            onDragStart={e => dragStart(e, {from: i})}
                                            onDragOver={e => { e.stopPropagation(); dragOver(e, i); }}
                                            onDrop={e => { e.stopPropagation(); drop(e, i); }}
                                            onDragEnd={dragEnd}>
                                     <span className='vt-cfb-grip' aria-hidden='true'>⋮⋮</span>
                                     <div className='vt-cfb-slot-body'>
-                                        <span className='vt-cfb-kind'>{blockLabel(x.loai)}</span>
-                                        <input className='vt-input' value={x.tieu_de} aria-label={'Tiêu đề phần ' + (i + 1)}
-                                               placeholder={suggestedTitle(i, x.loai)} maxLength={200}
+                                        <span className='vt-cfb-kind'>{blockLabel(x.block_type)}</span>
+                                        <input className='vt-input' value={x.title} aria-label={'Tiêu đề phần ' + (i + 1)}
+                                               placeholder={suggestedTitle(i, x.block_type)} maxLength={200}
                                                onChange={e => setTitle(i, e.target.value)}/>
                                     </div>
                                     <div className='vt-cfb-actions'>

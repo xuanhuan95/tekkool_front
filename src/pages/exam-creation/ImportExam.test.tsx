@@ -108,7 +108,7 @@ describe('ImportExam: feedback', () => {
     });
 
     it('a failed duplicate check reports an error instead of staying silent as if clean', async () => {
-        mockPost({'question_bank/check_trung': () => { throw {error: 'bận'}; }});
+        mockPost({'question_bank/check_duplicates': () => { throw {error: 'bận'}; }});
         renderScreen();
         await loadFile();
         fireEvent.click(screen.getByText(/Kiểm tra trùng lặp/));
@@ -116,7 +116,7 @@ describe('ImportExam: feedback', () => {
     });
 
     it('a duplicate shows on the exam row', async () => {
-        mockPost({'question_bank/check_trung': () => ({trung: {Q1: {score: 0.97, khop: [{khoi: 'K9', score: 0.97}]}}})});
+        mockPost({'question_bank/check_duplicates': () => ({duplicates: {Q1: {score: 0.97, matches: [{block: 'K9', score: 0.97}]}}})});
         renderScreen();
         await loadFile();
         fireEvent.click(screen.getByText(/Kiểm tra trùng lặp/));

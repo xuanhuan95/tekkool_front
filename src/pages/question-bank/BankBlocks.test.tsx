@@ -10,8 +10,8 @@ afterEach(() => vi.restoreAllMocks());
 
 const choice = {id: 'q1', type: 'MultipleChoice', data: {question: '<p>1 + 1 = ?</p>', correctAnswerId: 'a2',
     answers: [{id: 'a1', value: '1'}, {id: 'a2', value: '2'}], explanation: '<p>Cộng.</p>'}};
-const single = {id: 'S1', block_type: 'TracNghiem', block_type_name: 'Trắc nghiệm chọn đáp án', question_type: 'MultipleChoice', count: 1, passage: null, questions: [choice]};
-const group = {id: 'S2', block_type: 'DocHieu', block_type_name: 'Đọc hiểu', question_type: 'MultipleChoice', count: 5, passage: '<p>Văn bản dài</p>',
+const single = {id: 'S1', block_type: 'multiple_choice', block_type_name: 'Trắc nghiệm chọn đáp án', question_type: 'MultipleChoice', count: 1, passage: null, questions: [choice]};
+const group = {id: 'S2', block_type: 'reading', block_type_name: 'Đọc hiểu', question_type: 'MultipleChoice', count: 5, passage: '<p>Văn bản dài</p>',
     questions: [choice, {...choice, id: 'q2'}]};
 const page = (blocks: unknown[], total = blocks.length) => ({total, page: 1, per_page: 20, blocks});
 
@@ -26,7 +26,7 @@ describe('BankBlocks (SPT-73)', () => {
     it('confirm wording: single question vs passage + N questions vs true/false', () => {
         expect(deleteQuestion(single as any)).toBe('Xoá câu này?');
         expect(deleteQuestion(group as any)).toBe('Xoá văn bản này và 5 câu đi kèm?');
-        expect(deleteQuestion({...group, block_type: 'DungSai', count: 4} as any)).toBe('Xoá câu đúng/sai này (4 ý)?');
+        expect(deleteQuestion({...group, block_type: 'true_false', count: 4} as any)).toBe('Xoá câu đúng/sai này (4 ý)?');
     });
 
     it('shows the key marked, the passage and no source-exam info; query carries bank/page/per_page', async () => {
@@ -42,8 +42,8 @@ describe('BankBlocks (SPT-73)', () => {
         const api = mockApi({'question_bank/list': [], 'question_bank/blocks': page([single])});
         renderScreen();
         await screen.findAllByText('Đáp án đúng');
-        fireEvent.change(screen.getByLabelText('Dạng khối'), {target: {value: 'DocHieu'}});
-        await waitFor(() => expect(api.get).toHaveBeenCalledWith('question_bank/blocks?bank=B1&page=1&per_page=20&block_type=DocHieu'));
+        fireEvent.change(screen.getByLabelText('Dạng khối'), {target: {value: 'reading'}});
+        await waitFor(() => expect(api.get).toHaveBeenCalledWith('question_bank/blocks?bank=B1&page=1&per_page=20&block_type=reading'));
     });
 
     it('delete: asks with the count, posts the id, and a 404 counts as already deleted', async () => {

@@ -31,8 +31,10 @@ export type ExamMeta = {
     /** Serialised Section references — only the count is used. */
     sections?: unknown[];
     /** Bank exam structure: one slot per part. */
-    cau_truc?: Array<{loai?: string; tieu_de?: string}>;
-    bank?: unknown;
+    structure?: Array<{block_type?: string; title?: string}>;
+    banks?: string[];
+    /** Reading-box «Cho biết» (HTML), shown sticky for the whole attempt. */
+    shared_info?: string[];
     /** SPT-60 `exam/fetch`: structure preview, one row per (part, question type). No content. */
     parts?: ExamPart[];
 };

@@ -144,11 +144,11 @@ export function buildReview(answers: SubmissionAnswer[]): ReviewItem[] {
             i += group.length;
             continue;
         }
-        if (a.block_type === 'ChumTLN' && a.passage_id) {
+        if (a.block_type === 'short_answer_group' && a.passage_id) {
             const group = [a];
             while (i + group.length < answers.length) {
                 const n = answers[i + group.length];
-                if (n.block_type !== 'ChumTLN' || n.passage_id !== a.passage_id || (n.section_name || '') !== sectionName) break;
+                if (n.block_type !== 'short_answer_group' || n.passage_id !== a.passage_id || (n.section_name || '') !== sectionName) break;
                 group.push(n);
             }
             const parts = group.map((g, k) => ({
@@ -208,9 +208,9 @@ export type PartRow = {
 /** Result table by part (I–IV), in paper order. Uses BE's `phan` sums for the scores. */
 export function partRows(detail: SubmissionDetail): PartRow[] {
     const items = buildReview(detail.answers || []);
-    const sections = detail.phan && detail.phan.length ? detail.phan : [];
+    const sections = detail.parts && detail.parts.length ? detail.parts : [];
     return sections.map(p => {
-        const its = items.filter(it => (it.sectionName || 'Khác') === p.ten);
+        const its = items.filter(it => (it.sectionName || 'Khác') === p.name);
         const tf = its.filter(it => it.kind === 'truefalse');
         const auto = its.filter(it => it.kind !== 'essay' && it.kind !== 'truefalse');
         let correct = '—';
@@ -220,7 +220,7 @@ export function partRows(detail: SubmissionDetail): PartRow[] {
         } else if (auto.length) {
             correct = `${auto.filter(it => it.status === 'correct').length} / ${auto.length}`;
         }
-        return {name: p.ten, correct, score: p.pending ? null : p.score, maxScore: p.max_score, pending: p.pending > 0};
+        return {name: p.name, correct, score: p.pending ? null : p.score, maxScore: p.max_score, pending: p.pending > 0};
     });
 }
 

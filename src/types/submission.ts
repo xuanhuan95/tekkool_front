@@ -17,7 +17,7 @@ export type Submission = {
      * Score grouped by section. Submissions made before BE stored `section_name`
      * lack this field — truly optional, not something for FE to guess.
      */
-    phan?: ScoreSection[];
+    parts?: ScoreSection[];
     /** Time ran out, the machine submitted on the student's behalf. */
     auto_submitted?: boolean;
     exam_id?: string;
@@ -47,7 +47,7 @@ export type SubmissionStatus = 'GRADING' | 'GRADED';
 
 /** A section in the score table ("Phần I", "Phần II"...). */
 export type ScoreSection = {
-    ten: string;
+    name: string;
     score: number;
     max_score: number;
     /** Number of questions in this section still waiting to be graded. */

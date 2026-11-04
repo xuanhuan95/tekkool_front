@@ -10,7 +10,7 @@ const mc = (id: string): Question => ({id, type: 'MultipleChoice', data: {questi
 const tf = (id: string, pid: string, k: number): Question =>
     ({id, type: 'TrueFalse', data: {question: `ý ${k}`, passage: '<p>Cho hàm số</p>', passageId: pid, correctAnswer: k % 2 === 0}} as unknown as Question);
 const chum = (id: string, label: string): Question =>
-    ({id, type: 'FillBlank', data: {question: 'ý ' + id, label, answer: '1,44', passage: '<p>Dẫn liệu</p>', passageId: 'G', block_type: 'ChumTLN'}} as unknown as Question);
+    ({id, type: 'FillBlank', data: {question: 'ý ' + id, label, answer: '1,44', passage: '<p>Dẫn liệu</p>', passageId: 'G', block_type: 'short_answer_group'}} as unknown as Question);
 
 function load(questions: Question[]) {
     useExamDraftStore.getState().setExam({

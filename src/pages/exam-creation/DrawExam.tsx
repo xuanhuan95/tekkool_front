@@ -1,14 +1,14 @@
-import {Link, useNavigate, useParams} from 'react-router-dom';
+import {Link, useParams} from 'react-router-dom';
 
-import {Badge, Button, Card, ErrorState, MetaChips, PageTitle, SkeletonCard, buttonClass} from '../../components/ui';
+import {Badge, Card, ErrorState, MetaChips, PageTitle, SkeletonCard, buttonClass} from '../../components/ui';
 import {errorText} from '../../lib/format';
-import {useDrawExam, useDrawInfo} from '../../queries/questionBank';
+import {useDrawInfo} from '../../queries/questionBank';
 import {blockLabel} from './blockTypes';
 import './create-from-bank.css';
 
 /**
  * GV-TaoDeTuNganHang sub-screen: see how many blocks of each type remain, how many
- * non-overlapping draws are possible, then draw an exam and try it.
+ * non-overlapping draws are possible, (the draw-and-try button was removed with `question_bank/draw`).
  *
  * ponytail: the matrix can't be edited here — the BE takes the subject's MA_TRAN.
  * Add an input when teachers need a non-standard exam.
@@ -16,9 +16,7 @@ import './create-from-bank.css';
 export default function DrawExam() {
     // Drawing by BANK is the main path. /draw-exam/:subject is kept for the blocks imported before banks existed.
     const {bankId = '', subject = ''} = useParams();
-    const navigate = useNavigate();
     const info = useDrawInfo(bankId, subject);
-    const draw = useDrawExam(bankId, subject);
 
     const back = <Link to='/question-bank' className={buttonClass({variant: 'ghost'})}>← Ngân hàng câu hỏi</Link>;
 
@@ -34,8 +32,6 @@ export default function DrawExam() {
     const bottleneck = capacity.bottleneck;
     // Types present in the bank but absent from the matrix are never drawn — shown so the teacher sees unused stock.
     const unusedTypes = Object.keys(per).filter(t => !slots[t]);
-
-    const onDraw = () => draw.mutate(undefined, {onSuccess: r => navigate('/do-exam/' + r.id)});
 
     return <div className='vt-draw'>
         {back}
@@ -80,12 +76,7 @@ export default function DrawExam() {
             </div>
         </Card>
 
-        {draw.isError && <p className='vt-cfb-err' role='alert'>{errorText(draw.error, 'Rút đề thất bại')}</p>}
-
         <div className='vt-draw-actions'>
-            <Button variant='primary' size='lg' disabled={runs < 1 || draw.isPending} loading={draw.isPending} onClick={onDraw}>
-                Rút một đề và làm thử
-            </Button>
             <Link to={bankId ? '/import-exam?bank=' + bankId : '/import-exam'} className={buttonClass({variant: 'secondary', size: 'lg'})}>
                 Nhập thêm đề
             </Link>

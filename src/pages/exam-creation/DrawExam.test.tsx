@@ -38,11 +38,11 @@ beforeEach(() => {
     vi.restoreAllMocks();
 });
 
-const STATS = {per_type: {DocHieu: 10, TracNghiem: 40}};
+const STATS = {per_type: {reading: 10, multiple_choice: 40}};
 const CAP: BankCapacity = {
-    slots: {DocHieu: 2, TracNghiem: 8},
+    slots: {reading: 2, multiple_choice: 8},
     capacity: 5,
-    bottleneck: ['DocHieu', 5],
+    bottleneck: ['reading', 5],
     subject: 'Ngữ văn',
 };
 
@@ -50,58 +50,26 @@ function mockBank(capacity: BankCapacity = CAP, stats: any = STATS) {
     vi.spyOn(Api, 'get').mockResolvedValue(stats);
     return vi.spyOn(Api, 'post').mockImplementation(async (url: string) => {
         if (url === 'question_bank/capacity') return capacity;
-        if (url === 'question_bank/draw') return {id: 'E_new'};
         throw new Error('unknown endpoint: ' + url);
     });
 }
 
-describe('DrawExam: drawing an exam', () => {
-    it('clicking Draw goes straight to the exam page', async () => {
-        mockBank();
-        renderAt('/draw-exam/bank/B1');
-
-        const button = await screen.findByText('Rút một đề và làm thử');
-        button.click();
-
-        // This is what the old version broke: navigate undefined -> TypeError, staying
-        // on the old screen without any notice.
-        await waitFor(() => expect(screen.getByText('ĐÃ VÀO ĐỀ')).toBeTruthy());
-        expect(navigated).toEqual(['/do-exam/E_new']);
-    });
-
-    it('when the BE reports missing blocks (409 via resolve) it shows the error and does not navigate', async () => {
-        vi.spyOn(Api, 'get').mockResolvedValue(STATS);
-        vi.spyOn(Api, 'post').mockImplementation(async (url: string) => {
-            if (url === 'question_bank/capacity') return CAP;
-            return {error: 'Thiếu khối loại Đọc hiểu'};
-        });
-        renderAt('/draw-exam/bank/B1');
-
-        (await screen.findByText('Rút một đề và làm thử')).click();
-
-        await waitFor(() => expect(screen.getByText('Thiếu khối loại Đọc hiểu')).toBeTruthy());
-        expect(navigated).toEqual([]);
-    });
-});
-
 describe('DrawExam: stock table', () => {
-    it('when a type runs out it disables the draw button, so no exam with missing questions', async () => {
+    it('when a type runs out it says there are not enough blocks', async () => {
         mockBank({...CAP, capacity: 0, bottleneck: null});
         renderAt('/draw-exam/bank/B1');
 
-        const button = await screen.findByText('Rút một đề và làm thử');
-        expect(button.closest('button')!.disabled).toBe(true);
-        expect(screen.getByText('Chưa đủ khối để rút một đề')).toBeTruthy();
+        expect(await screen.findByText('Chưa đủ khối để rút một đề')).toBeTruthy();
     });
 
     it('types outside the matrix are still shown — otherwise teachers think blocks vanished', async () => {
-        // VietBai has 7 blocks but this subject's matrix doesn't use it -> never
+        // essay has 7 blocks but this subject's matrix doesn't use it -> never
         // drawn. Hiding it makes teachers keep writing that type without understanding
         // why the "drawable" number stays still.
-        mockBank(CAP, {per_type: {...STATS.per_type, VietBai: 7}});
+        mockBank(CAP, {per_type: {...STATS.per_type, essay: 7}});
         renderAt('/draw-exam/bank/B1');
 
-        await screen.findByText('Rút một đề và làm thử');
+        await screen.findByText(/Mỗi học sinh làm lại|Chưa đủ khối/);
         expect(screen.getByText(/7 khối, không nằm trong ma trận/)).toBeTruthy();
     });
 

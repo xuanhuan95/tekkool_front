@@ -11,7 +11,7 @@ const BANKS = [
     {id: 'b2', name: 'Toán A', subject: 'Toán', blocks: 4},
 ];
 
-function mock(capacity = 3, per_type: Record<string, number> = {DocHieu: 3, VietDoan: 2, VietBai: 1}) {
+function mock(capacity = 3, per_type: Record<string, number> = {reading: 3, paragraph: 2, essay: 1}) {
     vi.spyOn(Api, 'get').mockResolvedValue(BANKS);
     return vi.spyOn(Api, 'post').mockImplementation(async (url: string) => {
         if (url === 'question_bank/capacity') return {capacity, per_type, slots: {}, bottleneck: null};
@@ -53,10 +53,10 @@ it('saves parts and titles in order; an empty slot gets the suggested title by p
     const call = post.mock.calls.find(c => c[0] === 'exam/create_from_bank');
     expect(call && call[1]).toEqual({
         banks: ['b1'], name: 'Đề thử', duration: 90, folder: undefined,
-        cau_truc: [
-            {loai: 'DocHieu', tieu_de: 'Phần I. Đọc hiểu (ngữ liệu + 5 câu)'},
-            {loai: 'VietBai', tieu_de: 'Phần II. Viết bài văn'},
-            {loai: 'VietDoan', tieu_de: 'Viết đoạn nghị luận'},
+        structure: [
+            {block_type: 'reading', title: 'Phần I. Đọc hiểu (ngữ liệu + 5 câu)'},
+            {block_type: 'essay', title: 'Phần II. Viết bài văn'},
+            {block_type: 'paragraph', title: 'Viết đoạn nghị luận'},
         ],
     });
 });
@@ -78,7 +78,7 @@ it('dropping a block type onto a card inserts it before that card', async () => 
 });
 
 it('when stock is short it says what is missing and disables the Save button', async () => {
-    mock(0, {VietBai: 1});
+    mock(0, {essay: 1});
     renderPage();
     await screen.findByText('có 1 khối');
     addSlot('Viết bài văn');

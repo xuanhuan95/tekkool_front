@@ -38,9 +38,9 @@ export function durationLabel(min?: number | null): string {
     return min && min > 0 ? min + ' phút' : 'Không giới hạn thời gian';
 }
 
-/** Number of parts: bank exams describe them in cau_truc, others have one Section per part. */
-export function partCount(meta: {sections?: unknown[]; cau_truc?: unknown[]}): number {
-    return (meta.cau_truc && meta.cau_truc.length) || (meta.sections ? meta.sections.length : 0);
+/** Number of parts: bank exams describe them in structure, others have one Section per part. */
+export function partCount(meta: {sections?: unknown[]; structure?: unknown[]}): number {
+    return (meta.structure && meta.structure.length) || (meta.sections ? meta.sections.length : 0);
 }
 
 const PART_TYPE_LABEL: Record<ExamPartType, string> = {
