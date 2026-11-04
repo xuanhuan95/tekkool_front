@@ -137,7 +137,6 @@ export default function PaymentResult() {
         <main className='vt-pay-main vt-pay-main--center'>
             {card}
             {waiting && <>
-                {view === 'timeout' && <Button variant='secondary' block onClick={restart} icon={<RefreshIcon/>}>Kiểm tra lại</Button>}
                 <Link to='/billing' className={buttonClass({variant: 'ghost'}) + ' vt-pay-center'}>Xem lịch sử mua gói</Link>
             </>}
         </main>

@@ -1,7 +1,6 @@
 import type {TestExam, TestQuestion, TestSection} from '../../types/exam';
 import type {TrueFalseValue} from '../../components/ui';
 import {stripQuestionLabel, stripStatementLabel} from './stripLabel';
-import {formatDecimal} from '../../lib/format';
 
 /*
  * Turns `exam/during_test` into the SPT paper the student sees, and maps answers both ways.
@@ -41,7 +40,6 @@ export type PaperPart = {
     id: string;
     /** "Phần I · Trắc nghiệm" */
     title: string;
-    note: string;
     kind: QuestionKind;
     questions: PaperQuestion[];
     /** Raw questions of the section (Passage numbers its reading texts with them). */
@@ -90,14 +88,6 @@ function partTitle(section: TestSection, index: number, kind: QuestionKind): str
     // Teachers often already write "Phần I. Trắc nghiệm" — do not prefix it twice.
     if (/^phần(\s|$)/i.test(name)) return name;
     return `Phần ${roman(index + 1)} · ${name || KIND_LABEL[kind]}`;
-}
-
-/** Design (SPT-82): the part heading carries only "0,25đ/câu" — no range, no how-to hint; essays show their points on the question. */
-function partNote(questions: PaperQuestion[], kind: QuestionKind): string {
-    if (!questions.length || kind === 'essay') return '';
-    const scores = questions.map(q => q.maxScore);
-    const same = scores[0] !== null && scores.every(s => s === scores[0]);
-    return same ? `${formatDecimal(scores[0] as number)}đ/câu` : '';
 }
 
 /** Build the numbered paper. Numbering is continuous across parts (Câu 1…23). */
@@ -180,12 +170,13 @@ export function buildPaper(exam: TestExam): Paper {
         }
         if (!questions.length) return;
         const kind = questions[0].kind;
-        // Teacher sets points per question (Q3): equal → one "0,25đ/câu" in the heading; different → each question shows its own.
-        if (kind !== 'essay' && !partNote(questions, kind)) questions.forEach(q => { q.showPoints = q.maxScore !== null; });
+        // Teacher sets points per question (Q3): the part heading shows no points; only mixed scores show each question's own.
+        const first = questions[0].maxScore;
+        const same = first !== null && questions.every(q => q.maxScore === first);
+        if (kind !== 'essay' && !same) questions.forEach(q => { q.showPoints = q.maxScore !== null; });
         parts.push({
             id: 'phan-' + (parts.length + 1),
             title: partTitle(section, parts.length, kind),
-            note: partNote(questions, kind),
             kind,
             questions,
             rawQuestions: raws,

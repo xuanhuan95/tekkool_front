@@ -65,7 +65,6 @@ export default function PurchaseHistory() {
                                 </li>;
                             })}
                         </ul>
-                        <span className='vt-muted vt-pay-small vt-pay-center'>Chỉ tính các đơn thành công.</span>
                     </>}
     </div>;
 }

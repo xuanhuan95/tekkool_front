@@ -51,16 +51,6 @@ describe('buildPaper', () => {
             'Phần I · Trắc nghiệm', 'PHẦN II. Đúng sai', 'Phần III · Trả lời ngắn', 'Phần IV · Tự luận']);
     });
 
-    it('part note is only "points/câu" when every question has the same score; none for essays', () => {
-        expect(paper.parts[0].note).toBe('');
-        expect(paper.parts[1].note).toBe('');
-        expect(paper.parts[2].note).toBe('0,25đ/câu');
-        expect(paper.parts[3].note).toBe('');
-        expect(paper.questions[6].maxScore).toBe(1.5);
-        // equal scores → heading only; none of those questions shows its own points
-        expect(paper.questions.some(q => q.showPoints)).toBe(false);
-    });
-
     it('a lone TrueFalse without passage stays a one-statement question', () => {
         const p = buildPaper({id: 'E', sections: [{id: 'S', questions: [{id: 'L', type: 'TrueFalse', data: {question: 'Trời xanh'}}]}]});
         expect(p.questions[0].statements).toHaveLength(1);
@@ -129,12 +119,10 @@ describe('points per question (Q3: the teacher sets them)', () => {
         data: {question: `<p>${id}</p>`, answers: [{id: id + 'A', value: '1'}, {id: id + 'B', value: '2'}], max_score: score}});
     const exam = (...qs: ReturnType<typeof mc>[]) => ({id: 'E', sections: [{id: 'S', name: 'Phần I', questions: qs}]}) as never;
 
-    it('same score → "0,25đ/câu" in the heading; different scores → no heading note, each question shows its own points', () => {
+    it('same score → no per-question points; different scores → each question shows its own points', () => {
         const same = buildPaper(exam(mc('a', 0.25), mc('b', 0.25)));
-        expect(same.parts[0].note).toBe('0,25đ/câu');
         expect(same.questions.some(q => q.showPoints)).toBe(false);
         const mixed = buildPaper(exam(mc('a', 0.25), mc('b', 0.5)));
-        expect(mixed.parts[0].note).toBe('');
         expect(mixed.questions.map(q => q.showPoints)).toEqual([true, true]);
     });
 });

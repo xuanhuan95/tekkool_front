@@ -65,7 +65,6 @@ function CreateTeacherDialog({open, onClose, onCreated}: {
                       <Button variant='primary' loading={create.isPending} loadingText='Đang tạo…' onClick={() => submit()}>Tạo tài khoản</Button>
                   </>}>
         <form className='vt-mg-stack' onSubmit={submit} noValidate>
-            <p className='vt-muted'>Giáo viên đăng nhập bằng email và mật khẩu tạm bên dưới.</p>
             <TextField label='Họ tên' value={d.name} autoComplete='off' error={tried ? errs.name : null}
                        onChange={e => setD({...d, name: e.target.value})}/>
             <TextField label='Email' type='email' value={d.email} autoComplete='off' error={tried ? errs.email : null}
@@ -164,11 +163,10 @@ export default function Teachers() {
             : <span className='vt-muted'>Chưa gán</span>},
         {key: 'created_at', header: 'Ngày tạo', emphasis: 'muted', render: t => <span className='vt-num'>{formatDate(t.created_at)}</span>},
         {key: 'status', header: 'Trạng thái', render: t => <AccountBadge status={t.status}/>},
-        {key: 'actions', header: 'Thao tác', sticky: true, render: t => <span className='vt-mg-actions'>
+        {key: 'actions', header: <span className='vt-sr-only'>Thao tác</span>, sticky: true, render: t => <span className='vt-mg-actions'>
             <IconButton label={'Sửa môn phụ trách của ' + t.name} tipEnd onClick={() => setEditing(t)} icon={<icons.IconEdit size={18}/>}/>
-            <Button size='sm' variant='ghost' className={t.locked ? undefined : 'vt-btn-danger-text'}
-                    aria-label={(t.locked ? 'Mở khoá tài khoản ' : 'Khoá tài khoản ') + t.name}
-                    onClick={() => setConfirmLock(t)}>{t.locked ? 'Mở khoá' : 'Khoá'}</Button>
+            <IconButton label={(t.locked ? 'Mở khoá tài khoản ' : 'Khoá tài khoản ') + t.name} tipEnd onClick={() => setConfirmLock(t)}
+                        icon={t.locked ? <icons.IconUnlock/> : <icons.IconLock/>}/>
             <IconButton label={'Đặt lại mật khẩu cho ' + t.name} tipEnd onClick={() => setConfirmReset(t)} icon={<icons.IconKey/>}/>
         </span>},
     ];
