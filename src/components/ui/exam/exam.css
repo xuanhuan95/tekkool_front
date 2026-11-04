@@ -190,7 +190,6 @@
 
 /* Multiple choice */
 .vt-options { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
-.vt-options--compact { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .vt-option {
     font-family: var(--vt-font); font-size: 15px; font-weight: 400; line-height: 1.45;
     color: var(--vt-ink); text-align: left;
@@ -203,7 +202,6 @@
     box-sizing: border-box;
     cursor: pointer;
 }
-.vt-options--compact .vt-option { justify-content: center; gap: 8px; padding: 0 6px; }
 .vt-option:hover { border-color: var(--vt-ink); }
 .vt-option[aria-checked='true'] {
     background: var(--vt-action);
@@ -211,7 +209,6 @@
     font-weight: 600;
     padding: 9.5px 11.5px;
 }
-.vt-options--compact .vt-option[aria-checked='true'] { padding: 0 5.5px; }
 .vt-option:disabled { cursor: default; }
 .vt-option-letter {
     width: 28px; height: 28px; flex-shrink: 0; box-sizing: border-box;
@@ -283,9 +280,9 @@
     .vt-q { scroll-margin-top: 120px; padding: 16px 0 18px; gap: 12px; }
     .vt-q-title { font-size: 24px; }
     .vt-q-prompt { font-size: 16px; }
-    .vt-options, .vt-options--compact { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
-    .vt-options--compact .vt-option, .vt-option { justify-content: flex-start; gap: 12px; padding: 12px 14px; }
-    .vt-options--compact .vt-option[aria-checked='true'], .vt-option[aria-checked='true'] { padding: 11.5px 13.5px; }
+    .vt-options { gap: 10px; }
+    .vt-option { justify-content: flex-start; gap: 12px; padding: 12px 14px; }
+    .vt-option[aria-checked='true'] { padding: 11.5px 13.5px; }
     .vt-tf { border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-card-md); }
     .vt-tf-row { gap: 16px; padding: 10px 16px; }
     .vt-tf-row:first-child { border-top: 0; }
@@ -402,3 +399,10 @@
 
 
 .vt-q-pts { font-family: var(--vt-font); font-size: 13px; font-weight: 600; color: var(--vt-muted); }
+
+/* "Cho biết": inside the sticky block, always fully visible */
+.vt-exam-info { background: var(--vt-sun-soft); border-bottom: 2px solid var(--vt-ink); padding: 8px 20px 10px; font-size: 13px; line-height: 1.5; }
+.vt-exam-info h2 { margin: 0 0 4px; font-size: 13px; font-weight: 700; color: var(--vt-sun-ink); display: flex; justify-content: space-between; gap: 8px; }
+.vt-exam-info h2 span { font-weight: 400; }
+.vt-exam-info-body p { margin: 0; }
+@media (min-width: 1024px) { .vt-exam-info { padding: 8px 24px 10px; font-size: 14px; } }

@@ -3,7 +3,7 @@ import {fireEvent, render, screen, within} from '@testing-library/react';
 
 import QuestionBlock from './QuestionBlock';
 import {QuestionGrid, QuestionNumberStrip} from './QuestionNav';
-import {AutosaveNote, ExamBanner, ExamEnd, ExamHeader} from './ExamFrame';
+import {AutosaveNote, ExamBanner, ExamEnd, ExamHeader, ExamSharedInfo} from './ExamFrame';
 import {countTrueFalse, countWords, formatClock, questionCellLabel} from './types';
 
 const OPTIONS = [{key: 'A', content: '2'}, {key: 'B', content: '6'}, {key: 'C', content: '4'}, {key: 'D', content: '8'}];
@@ -255,5 +255,16 @@ describe('ExamHeader no limit, AutosaveNote states, ExamBanner', () => {
             <ExamEnd answered={1} total={2} onSubmit={() => {}} disabled/></>);
         expect(screen.getByRole('alert').textContent).toMatch(/Còn dưới 5 phút/);
         expect(screen.getByRole('button', {name: 'Nộp bài'})).toBeDisabled();
+    });
+});
+
+describe('ExamSharedInfo', () => {
+    it('shows every item in full (no toggle); renders nothing without shared_info', () => {
+        const {container, rerender} = render(<ExamSharedInfo items={['<p>H = 1</p>', '<p>C = 12</p>']}/>);
+        expect(screen.getByText('H = 1')).toBeTruthy();
+        expect(screen.getByText('C = 12')).toBeTruthy();
+        expect(screen.queryByRole('button')).toBeNull();
+        rerender(<ExamSharedInfo items={[]}/>);
+        expect(container.firstChild).toBeNull();
     });
 });

@@ -507,21 +507,26 @@ export default function ImportExam() {
         let done = 0;
         const out: PaperResult = {papers: [], rejected: [], total: bankInfo?.items ?? 0};
         try {
-            // ponytail: sequential on purpose — 20 exams x 12 questions in parallel chokes a 2-core server.
-            for (const source of chosen) {
-                // base64 images → image/upload first, so the exam sent is text only (nginx caps the body at 2MB)
-                const e = await uploadImages(source, images.current);
-                if (toBank && paperBank) {
-                    // One exam per call (2 MB body cap); a 409 carrying `rejected` = this exam does not match the bank's structure.
+            if (toBank && paperBank) {
+                // Whole exams: images first (one by one), then the batch in one request (BE takes 1-50 papers); a 409 carrying `rejected` = none fit.
+                const papers = [];
+                for (const source of chosen) { papers.push(await uploadImages(source, images.current)); setProgress(++done); }
+                for (let i = 0; i < papers.length; i += 50) {
                     try {
-                        const r = await Api.post<PaperSaveReply>('question_bank/save', {bank: bankId, papers: [e]});
+                        const r = await Api.post<PaperSaveReply>('question_bank/save', {bank: bankId, papers: papers.slice(i, i + 50)});
                         out.papers.push(...r.papers); out.rejected.push(...r.rejected); out.total = r.total;
                     } catch (err) {
                         const rejected = (err as Partial<PaperSaveReply>).rejected;
                         if ((err as {code?: number}).code !== 409 || !rejected) throw err;
                         out.rejected.push(...rejected);
                     }
-                } else if (toBank) {
+                }
+                setResult(out);
+            } else for (const source of chosen) {
+                // ponytail: sequential on purpose — 20 exams x 12 questions in parallel chokes a 2-core server.
+                // base64 images → image/upload first, so the exam sent is text only (nginx caps the body at 2MB)
+                const e = await uploadImages(source, images.current);
+                if (toBank) {
                     const r = await Api.post<{saved: number}>('question_bank/save', {...e, bank: bankId});
                     added += r.saved;
                 } else {
@@ -532,7 +537,7 @@ export default function ImportExam() {
                 setProgress(++done);
             }
             if (toBank && paperBank) {
-                setResult(out);
+                // result already set above
             } else if (toBank) {
                 notify.success(`Đã thêm ${added} khối vào ngân hàng. Số liệu sức chứa ở trên đã cập nhật.`);
             } else if (folderId) {
@@ -546,7 +551,7 @@ export default function ImportExam() {
             }
         } catch (err) {
             // keep what is already saved; the teacher sees which exam stopped it
-            notify.error('Lưu thất bại: ' + chosen[done].name, errorText(err, 'Thử lại sau.'));
+            notify.error('Lưu thất bại: ' + chosen[Math.min(done, chosen.length - 1)].name, errorText(err, 'Thử lại sau.'));
             if (paperBank && (out.papers.length || out.rejected.length)) setResult(out);   // keep what is already saved on screen
         } finally {
             if (toBank) qc.invalidateQueries({queryKey: bankKeys.all});

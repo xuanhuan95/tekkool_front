@@ -3,7 +3,7 @@ import {useNavigate} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {
-    Button, Card, ConfirmDialog, ExamBanner, ExamEnd, ExamHeader, ExamLayout, ExamSection, Modal,
+    Button, Card, ConfirmDialog, ExamBanner, ExamEnd, ExamHeader, ExamLayout, ExamSection, ExamSharedInfo, Modal,
     QuestionGrid, QuestionNumberStrip, WARN_SECONDS,
 } from '../../components/ui';
 import type {QuestionGridPart, QuestionStatus} from '../../components/ui';
@@ -231,6 +231,7 @@ export default function ExamRoom({examId, exam, deadlineMs}: ExamRoomProps) {
                                     Mất kết nối — đáp án được giữ trên máy và sẽ tự lưu khi có mạng.</ExamBanner>}
                                 <QuestionNumberStrip questions={status} current={current} onJump={jump}
                                                      onOpenAll={() => setSheet(true)}/>
+                                <ExamSharedInfo items={exam.shared_info}/>
                             </>}/>}
         aside={<Card>
             <QuestionGrid showHeading parts={gridParts} current={current} onJump={jump}

@@ -80,6 +80,7 @@ const columns: Column<Pkg>[] = [
 | `ExamLayout` | `header`, `children` (cả đề), `aside` (web) | Trang trắng, header dính, cột phải dính ở web |
 | `ExamHeader` | `title`, `secondsLeft` (**null = không giới hạn**), `answered`, `total`, `onExit`, `onSubmit`, `submitting`, `strip` | Đồng hồ đỏ khi ≤ 5 phút. Màn chỉ đưa số giây — tự tính từ hạn của server. |
 | `ExamBanner` | `tone` error · warn, `children` | Dải dưới header: "Còn dưới 5 phút…", "Mất kết nối…" |
+| `ExamSharedInfo` | `items?` (HTML) | Khối "Cho biết" (đề có `shared_info`): đặt trong `strip` của header sticky, luôn hiện đủ, không thu gọn |
 | `ExamSection` | `id`, `title`, `note` | Một phần (I–IV) |
 | `QuestionBlock` | `kind` choice · truefalse · short · essay, `number`, `prompt`, `value`, `onChange`, `flagged`, `onToggleFlag`, `disabled`; choice: `options`; truefalse: `statements`; essay: `editor` | Chỉ hiển thị — màn giữ đáp án, tự lưu, nộp. Đ/S: bấm lại ý đã chọn = xoá lựa chọn; trắc nghiệm không bỏ chọn được. |
 | `QuestionNumberStrip`, `QuestionGrid` | `questions` (QuestionStatus), `current`, `onJump`, `onOpenAll`; `parts`, `showHeading`, `footer` | Dải số câu (điện thoại) và lưới "Đi tới câu" (sheet / cột phải web; thân lưới tự cuộn, `footer` luôn thấy) |
