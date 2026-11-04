@@ -34,7 +34,8 @@ class ToGrade extends Component<RouterProps, State> {
                                  : 'exam/to_grade/' + this.props.match.params.examId;
             this.setState({subs: await Api.get(url)});
         } catch (e: any) {
-            this.setState({error: (e && (e.error || e.message)) || 'Không tải được danh sách'});
+            this.setState({error: e?.code === 403 ? 'Bạn không phụ trách môn của đề này nên không xem được bài nộp. Liên hệ Admin để được gán môn.'
+                : (e && (e.error || e.message)) || 'Không tải được danh sách'});
         }
     };
 

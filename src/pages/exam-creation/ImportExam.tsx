@@ -589,9 +589,6 @@ export default function ImportExam() {
                         ? <>Đủ rút {drawable} đề không trùng khối{stock.bottleneck && <> · nghẽn ở <b>{blockLabel(stock.bottleneck[0])}</b></>}</>
                         : 'Chưa đủ khối để rút một đề hoàn chỉnh — nhập thêm đề bên dưới.'}</p>
                 </div>
-                {drawable > 0
-                    ? <Link to={'/draw-exam/bank/' + bankId} className={buttonClass({variant: 'secondary'})}>Rút thử một đề</Link>
-                    : <Button variant='secondary' disabled>Rút thử một đề</Button>}
             </div>
             <div className='vt-imp-chips'>
                 {Object.keys(slots).map(t => {

@@ -4,7 +4,7 @@ import type {FormEvent} from 'react';
 import {Avatar, Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, FilterChip, IconButton, MetaChips, Modal, PageTitle, Select, Skeleton,
     SkeletonCard, Table, TextField, icons, notify} from '../../components/ui';
 import type {Column} from '../../components/ui';
-import {useCreateTeacher, useLockTeacher, useResetPassword, useTeachers} from '../../queries/manage';
+import {useCreateTeacher, useLockTeacher, useResetPassword, useTeachers, useUpdateTeacherSubjects} from '../../queries/manage';
 import type {Teacher} from '../../queries/manage';
 import {errorText, formatDate, groupDigits} from '../../lib/format';
 import {AccountBadge, Pager, SUBJECTS, TempPasswordDialog, generateTempPassword, isValidTempPassword,
@@ -59,7 +59,7 @@ function CreateTeacherDialog({open, onClose, onCreated}: {
     const toggle = (s: string, on: boolean) =>
         setD(x => ({...x, subjects: on ? [...x.subjects, s] : x.subjects.filter(v => v !== s)}));
 
-    return <Modal open={open} onClose={close} size='md' title='Tạo tài khoản giáo viên' showClose
+    return <Modal open={open} onClose={close} size='md' title='Tạo tài khoản giáo viên'
                   footer={<>
                       <Button onClick={close} disabled={create.isPending}>Huỷ</Button>
                       <Button variant='primary' loading={create.isPending} loadingText='Đang tạo…' onClick={() => submit()}>Tạo tài khoản</Button>
@@ -90,6 +90,34 @@ function CreateTeacherDialog({open, onClose, onCreated}: {
     </Modal>;
 }
 
+/** "Môn phụ trách" dialog: replaces the teacher's subjects; empty is allowed (APP-admin-teachers-v2-edit-subjects). */
+function SubjectsDialog({teacher, onClose}: {teacher: Teacher; onClose: () => void}) {
+    const update = useUpdateTeacherSubjects();
+    const [subjects, setSubjects] = useState(teacher.subjects);
+    const [err, setErr] = useState<string | null>(null);
+    const toggle = (s: string, on: boolean) => setSubjects(x => on ? [...x, s] : x.filter(v => v !== s));
+    const save = () => update.mutate({userId: teacher.id, subjects}, {
+        onSuccess: () => { notify.success('Đã lưu môn phụ trách', teacher.name); onClose(); },
+        onError: e => setErr(errorText(e, 'Không lưu được. Thử lại sau.')),
+    });
+    return <Modal open onClose={update.isPending ? undefined : onClose} size='md' title='Môn phụ trách'
+                  footer={<>
+                      <Button onClick={onClose} disabled={update.isPending}>Huỷ</Button>
+                      <Button variant='primary' loading={update.isPending} onClick={save}>Lưu</Button>
+                  </>}>
+        <form className='vt-mg-stack' onSubmit={e => { e.preventDefault(); save(); }} noValidate>
+            <p className='vt-muted'>Giáo viên <b style={{color: 'var(--vt-ink)'}}>{teacher.name}</b> · {teacher.email}</p>
+            <fieldset className='vt-mg-fieldset'>
+                <legend className='vt-field-label'>Chọn một hoặc nhiều môn</legend>
+                <div className='vt-chip-row'>
+                    {SUBJECTS.map(s => <FilterChip key={s} selected={subjects.includes(s)} onChange={on => toggle(s, on)}>{s}</FilterChip>)}
+                </div>
+            </fieldset>
+            {err && <p role='alert' className='vt-mg-err'>{err}</p>}
+        </form>
+    </Modal>;
+}
+
 /** "Tài khoản giáo viên" (AD-GiaoVien). Route /manage/teachers. */
 export default function Teachers() {
     const [q, setQ] = useState('');
@@ -105,6 +133,7 @@ export default function Teachers() {
     const reset = useResetPassword();
 
     const [creating, setCreating] = useState(false);
+    const [editing, setEditing] = useState<Teacher | null>(null);
     const [confirmLock, setConfirmLock] = useState<Teacher | null>(null);
     const [confirmReset, setConfirmReset] = useState<Teacher | null>(null);
     const [shown, setShown] = useState<{name: string; email: string; password: string} | null>(null);
@@ -132,10 +161,11 @@ export default function Teachers() {
         {key: 'email', header: 'Email', emphasis: 'muted'},
         {key: 'subjects', header: 'Môn phụ trách', render: t => t.subjects.length
             ? <span className='vt-mg-tags'>{t.subjects.map(s => <Badge key={s} tone='draft'>{s}</Badge>)}</span>
-            : <span className='vt-muted'>—</span>},
+            : <span className='vt-muted'>Chưa gán</span>},
         {key: 'created_at', header: 'Ngày tạo', emphasis: 'muted', render: t => <span className='vt-num'>{formatDate(t.created_at)}</span>},
         {key: 'status', header: 'Trạng thái', render: t => <AccountBadge status={t.status}/>},
         {key: 'actions', header: 'Thao tác', sticky: true, render: t => <span className='vt-mg-actions'>
+            <IconButton label={'Sửa môn phụ trách của ' + t.name} tipEnd onClick={() => setEditing(t)} icon={<icons.IconEdit size={18}/>}/>
             <Button size='sm' variant='ghost' className={t.locked ? undefined : 'vt-btn-danger-text'}
                     aria-label={(t.locked ? 'Mở khoá tài khoản ' : 'Khoá tài khoản ') + t.name}
                     onClick={() => setConfirmLock(t)}>{t.locked ? 'Mở khoá' : 'Khoá'}</Button>
@@ -184,6 +214,8 @@ export default function Teachers() {
 
         <CreateTeacherDialog open={creating} onClose={() => setCreating(false)}
                              onCreated={(t, pw) => { notify.success('Đã tạo tài khoản', t.name); setShown({name: t.name, email: t.email, password: pw}); }}/>
+
+        {editing && <SubjectsDialog teacher={editing} onClose={() => setEditing(null)}/>}
 
         <ConfirmDialog open={!!confirmLock} tone={confirmLock?.locked ? 'primary' : 'danger'} loading={lock.isPending}
                        title={confirmLock?.locked ? 'Mở khoá giáo viên?' : 'Khoá giáo viên?'}
