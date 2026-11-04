@@ -410,6 +410,6 @@
 .vt-exam-info-body { overflow-x: auto; }
 .vt-exam-info-body table { border-collapse: collapse; }
 @media (min-width: 1024px) {
-    .vt-exam-info { position: sticky; top: 100px; z-index: 5; border: 2px solid var(--vt-ink); border-radius: var(--vt-r-card-md);
+    .vt-exam-info { position: sticky; top: 96px; z-index: 5; border: 2px solid var(--vt-ink); border-radius: var(--vt-r-card-md);
         padding: 8px 16px 10px; font-size: 14px; margin-bottom: 8px; max-height: 40vh; }
 }
