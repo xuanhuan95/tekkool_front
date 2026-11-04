@@ -118,6 +118,7 @@ export function useBankPapers(bank: string, page: number) {
     return useQuery({
         queryKey: [...bankKeys.all, 'papers', bank, page],
         queryFn: () => Api.get<BankPapersPage>(`question_bank/papers?bank=${bank}&page=${page}&per_page=${PAPERS_PER_PAGE}`),
+        enabled: !!bank,
         placeholderData: keepPreviousData,
     });
 }

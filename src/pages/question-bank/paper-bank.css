@@ -1,0 +1,19 @@
+/* Whole-exam banks (canvas "Nguyên đề"): kind chip, structure chips, per-exam result rows, notices. */
+.nb-kind{display:inline-flex;font-size:12px;font-weight:600;padding:3px 9px;border-radius:var(--vt-r-chip);border:1.5px solid var(--vt-ink);white-space:nowrap}
+.nb-kind--paper{background:var(--vt-sun-soft);color:var(--vt-sun-ink)}
+.nb-alert{border:2px solid var(--vt-err);background:var(--vt-err-bg);border-radius:var(--vt-r-card-md);padding:12px 14px;display:flex;flex-direction:column;gap:6px;font-size:14px;line-height:1.5}
+.nb-alert b{color:var(--vt-err)}
+.nb-ok{border:2px solid var(--vt-ok-ink);background:var(--vt-ok-bg);border-radius:var(--vt-r-card-md);padding:12px 14px;font-size:14px;line-height:1.5}
+.nb-tbl{width:100%;border-collapse:collapse;font-size:14px}
+.nb-tbl th,.nb-tbl td{padding:7px 8px;text-align:left;border-top:1.5px solid var(--vt-line-option);vertical-align:top}
+.nb-tbl thead th{border-top:0;font-size:12px;color:var(--vt-muted);font-weight:600}
+.nb-tbl .bad{color:var(--vt-err);font-weight:700}
+.nb-scroll{overflow-x:auto}
+.nb-rows{display:flex;flex-direction:column;gap:10px}
+.nb-row{display:flex;gap:10px 14px;align-items:center;flex-wrap:wrap;padding:12px 14px;border:1.5px solid var(--vt-line-option);border-radius:var(--vt-r-card-md);background:var(--vt-card)}
+.nb-row.bad{border:2px solid var(--vt-err);background:var(--vt-err-bg)}
+.nb-row .nm{flex:1 1 180px;min-width:0;font-weight:700;overflow-wrap:anywhere}
+.nb-row .mt{font-size:13px;color:var(--vt-muted)}
+.nb-sig{display:flex;flex-wrap:wrap;gap:6px}
+.nb-sig span{font-size:12px;border:1.5px solid var(--vt-line-option);border-radius:var(--vt-r-chip);padding:2px 8px;background:var(--vt-paper)}
+.nb-note{font-size:13px;color:var(--vt-muted);margin:0}

@@ -108,7 +108,7 @@ export const missingTf = (exam: ImportedExam) => numberedUnits(exam).filter(x =>
 export const badTrueFalse = (exam: ImportedExam) => numberedUnits(exam).filter(x => isBadTrueFalse(x.unit)).length;
 
 /** SPT name of the kind of a question. */
-const kindOf = (q: ImportQuestion) =>
+export const kindOf = (q: ImportQuestion) =>
     isChoice(q) ? 'Trắc nghiệm' : q.type === 'TrueFalse' ? 'Đúng/Sai' : isClusterQuestion(q) ? 'Câu chùm' : q.type === 'FillBlank' ? 'Trả lời ngắn' : 'Tự luận';
 
 /** At load: remember how many units each Phần showed, to follow later deletions on top of the BE's own count (which leaves a câu chùm out of "câu"). */

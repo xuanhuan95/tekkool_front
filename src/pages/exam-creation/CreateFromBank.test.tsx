@@ -96,8 +96,8 @@ it('minutes follow the subject suggestion until the teacher edits the box', asyn
     expect(suggestedMinutes('Vật lí')).toBe(60);
     renderPage('/create-from-bank?bank=b2');
     await screen.findByText('Gợi ý cho Toán: 90 phút');
-    fireEvent.click(screen.getByText('Toán A · Toán · 4 khối ×'));
-    fireEvent.click(screen.getByText('Văn A · Ngữ văn · 6 khối'));
+    fireEvent.click(screen.getByText('Toán A · Toán · Theo khối · 4 khối ×'));
+    fireEvent.click(screen.getByText('Văn A · Ngữ văn · Theo khối · 6 khối'));
     await screen.findByText('Gợi ý cho Ngữ văn: 90 phút');
     fireEvent.change(screen.getByLabelText('Thời gian (phút)'), {target: {value: '45'}});
     expect(screen.queryByText(/Gợi ý cho/)).toBeNull();
@@ -113,4 +113,21 @@ it('with ?folder it saves into that folder and goes back to the subject', async 
     fireEvent.click(screen.getByText('Lưu đề'));
     await screen.findByText('TRANG MÔN');
     expect(post.mock.calls.find(c => c[0] === 'exam/create_from_bank')![1]).toMatchObject({folder: 'F1'});
+});
+
+it('whole-exam bank: chip shows kind + đề count, hides the structure, saves without structure', async () => {
+    const post = vi.spyOn(Api, 'post').mockResolvedValue({id: 'E1'});
+    vi.spyOn(Api, 'get').mockResolvedValue([{id: 'p1', name: 'SPT Hoá', subject: 'Hoá học', kind: 'paper', items: 6, blocks: 0},
+        {id: 'b2', name: 'Toán A', subject: 'Toán', kind: 'block', blocks: 4}]);
+    renderPage('/create-from-bank?bank=p1');
+    expect(await screen.findByText(/Kho có/)).toBeTruthy();
+    expect(screen.getByText(/SPT Hoá · Hoá học · Nguyên đề · 6 đề/)).toBeTruthy();
+    expect(screen.getByText(/Toán A · Toán · Theo khối · 4 khối/)).toBeTruthy();
+    expect(screen.queryByText('Cấu trúc đề')).toBeNull();
+    fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Tuần 1'}});
+    fireEvent.click(screen.getByText('Lưu đề'));
+    await screen.findByText('TRANG NGÂN HÀNG');
+    expect(post.mock.calls.find(c => c[0] === 'exam/create_from_bank')![1])
+        .toMatchObject({banks: ['p1'], name: 'Tuần 1', structure: undefined});
+    expect(post.mock.calls.some(c => c[0] === 'question_bank/capacity')).toBe(false);
 });

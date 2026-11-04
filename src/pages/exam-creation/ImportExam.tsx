@@ -12,6 +12,9 @@ import {uploadImages} from './imageUpload';
 import type {ImageCache} from './imageUpload';
 import {useFolders} from '../../queries/exams';
 import {bankKeys, useBankStock, useBanks} from '../../queries/questionBank';
+import PaperImportResult, {type PaperResult, type PaperSaveReply} from '../question-bank/PaperImportResult';
+import {useBankStandard} from '../question-bank/PaperStructure';
+import '../question-bank/paper-bank.css';
 import Api from '../../services/api';
 import {errorText, formatDecimal} from '../../lib/format';
 import {DESKTOP, useMediaQuery} from '../useMediaQuery';
@@ -347,8 +350,11 @@ export default function ImportExam() {
     const foldersQ = useFolders(!bankId);
     const banks = banksQ.data;
     const folders = foldersQ.data;
-    const stock = useBankStock(bankId).data;
     const bankInfo = bankId ? banks?.find(b => b.id === bankId) : undefined;
+    const paperBank = bankInfo?.kind === 'paper';   // whole exams go in as they are: no blocks, no stock
+    const stock = useBankStock(bankInfo && !paperBank ? bankId : null).data;
+    const standard = useBankStandard(paperBank ? bankId! : '');
+    const [result, setResult] = useState<PaperResult | null>(null);
     const folder = folderId ? folders?.find(f => f.id === folderId) : undefined;
 
     const fileRef = useRef<HTMLInputElement>(null);
@@ -389,6 +395,7 @@ export default function ImportExam() {
     const unseen = unseenSevere(issues, chosen.map(e => e.id), seen, renumbered).length;
     const blocker = (bankId ? problems : null) || (unseen ? 'unseen' : null);
     const busy = saving || reading;
+    const allRejected = !!result && result.papers.length === 0;
     const chosenIssues = chosen.flatMap(e => examIssues(issues, e.id, renumbered[e.id]));
     const sevenSeen = chosenIssues.filter(isSevere).length;   // none left unseen once `unseen` is 0
     const lightCount = chosenIssues.length - sevenSeen;
@@ -396,7 +403,7 @@ export default function ImportExam() {
     // From the picker and from a drop on the upload zone.
     const readFile = async (file: File) => {
         setFileName(file.name);
-        setExams([]); setIssues([]); setSeen({}); setRenumbered({}); setDuplicates({});
+        setExams([]); setIssues([]); setSeen({}); setRenumbered({}); setDuplicates({}); setResult(null);
         const bad = fileProblem(file);
         if (bad) { setProblem(bad); return; }
         // A .docx is a zip ("PK"): anything else would only cost a 15 s PDF conversion that cannot work.
@@ -498,12 +505,23 @@ export default function ImportExam() {
         setSaving(true); setProgress(0);
         let added = 0;
         let done = 0;
+        const out: PaperResult = {papers: [], rejected: [], total: bankInfo?.items ?? 0};
         try {
             // ponytail: sequential on purpose — 20 exams x 12 questions in parallel chokes a 2-core server.
             for (const source of chosen) {
                 // base64 images → image/upload first, so the exam sent is text only (nginx caps the body at 2MB)
                 const e = await uploadImages(source, images.current);
-                if (toBank) {
+                if (toBank && paperBank) {
+                    // One exam per call (2 MB body cap); a 409 carrying `rejected` = this exam does not match the bank's structure.
+                    try {
+                        const r = await Api.post<PaperSaveReply>('question_bank/save', {bank: bankId, papers: [e]});
+                        out.papers.push(...r.papers); out.rejected.push(...r.rejected); out.total = r.total;
+                    } catch (err) {
+                        const rejected = (err as Partial<PaperSaveReply>).rejected;
+                        if ((err as {code?: number}).code !== 409 || !rejected) throw err;
+                        out.rejected.push(...rejected);
+                    }
+                } else if (toBank) {
                     const r = await Api.post<{saved: number}>('question_bank/save', {...e, bank: bankId});
                     added += r.saved;
                 } else {
@@ -513,7 +531,9 @@ export default function ImportExam() {
                 }
                 setProgress(++done);
             }
-            if (toBank) {
+            if (toBank && paperBank) {
+                setResult(out);
+            } else if (toBank) {
                 notify.success(`Đã thêm ${added} khối vào ngân hàng. Số liệu sức chứa ở trên đã cập nhật.`);
             } else if (folderId) {
                 qc.invalidateQueries({queryKey: ['exam']});
@@ -527,6 +547,7 @@ export default function ImportExam() {
         } catch (err) {
             // keep what is already saved; the teacher sees which exam stopped it
             notify.error('Lưu thất bại: ' + chosen[done].name, errorText(err, 'Thử lại sau.'));
+            if (paperBank && (out.papers.length || out.rejected.length)) setResult(out);   // keep what is already saved on screen
         } finally {
             if (toBank) qc.invalidateQueries({queryKey: bankKeys.all});
             setSaving(false);
@@ -551,15 +572,15 @@ export default function ImportExam() {
             <div>
                 {!exams.length && !reading && <Link to={bankId ? '/question-bank' : '/'} className='vt-imp-link'>← {bankId ? 'Ngân hàng câu hỏi' : 'Môn & đề'}</Link>}
                 <PageTitle>Nhập đề từ file Word</PageTitle>
-                <MetaChips items={[exams.length > 0 && fileName, context]}/>
+                <MetaChips items={[exams.length > 0 && fileName, context, paperBank && <span className='nb-kind nb-kind--paper'>Nguyên đề</span>]}/>
             </div>
             {exams.length > 0 && !problem &&
-                <Button variant='secondary' disabled={busy} onClick={pickFile}>Chọn file khác</Button>}
+                <Button variant='secondary' disabled={busy} onClick={pickFile}>{result && !allRejected ? 'Nhập tiếp' : 'Chọn file khác'}</Button>}
         </div>
 
         <ol className='vt-imp-steps' aria-label='Các bước'>
             {['Tải lên', 'Xem trước', 'Lưu'].map((t, i) => {
-                const now = saving ? 2 : exams.length ? 1 : 0;
+                const now = saving || (result && !allRejected) ? 2 : exams.length ? 1 : 0;
                 return <li key={t} aria-current={i === now ? 'step' : undefined} className={cx(i === now && 'on')}>{i + 1} · {t}</li>;
             })}
         </ol>
@@ -600,7 +621,9 @@ export default function ImportExam() {
             </div>
         </Card>}
 
-        {exams.length > 0 && <Card>
+        {result && bankId && <PaperImportResult bankId={bankId} result={result} exams={exams} standard={standard} onPickFile={pickFile}/>}
+
+        {exams.length > 0 && !result && <Card>
             <div className='vt-imp-listhead'>
                 <label className='vt-imp-check'>
                     <input type='checkbox' checked={chosen.length === exams.length}
@@ -648,19 +671,21 @@ export default function ImportExam() {
             })}
         </Card>}
 
-        {exams.length > 0 && <Card className='vt-imp-bar' role='region' aria-label='Lưu đề'>
+        {exams.length > 0 && !result && <Card className='vt-imp-bar' role='region' aria-label='Lưu đề'>
             {bankId
                 ? <>
                     <Button variant='primary' loading={saving} loadingText={`Đang lưu ${progress + 1}/${chosen.length}…`}
                             disabled={!chosen.length || !!blocker || checking} onClick={() => save(true)}>
                         {direct('Lưu')} vào ngân hàng
                     </Button>
-                    <Button variant='secondary' disabled={!chosen.length || !!blocker || busy} onClick={() => save(false)}>
-                        {direct('Tạo thẳng')}
-                    </Button>
-                    <Button variant='secondary' loading={checking} disabled={!chosen.length || busy} onClick={checkDuplicates}>
-                        Kiểm tra trùng lặp
-                    </Button>
+                    {!paperBank && <>
+                        <Button variant='secondary' disabled={!chosen.length || !!blocker || busy} onClick={() => save(false)}>
+                            {direct('Tạo thẳng')}
+                        </Button>
+                        <Button variant='secondary' loading={checking} disabled={!chosen.length || busy} onClick={checkDuplicates}>
+                            Kiểm tra trùng lặp
+                        </Button>
+                    </>}
                 </>
                 : <Button variant='primary' loading={saving} loadingText={`Đang lưu ${progress + 1}/${chosen.length}…`}
                           disabled={!chosen.length || !!blocker || !folderId} onClick={() => save(false)}>
@@ -682,6 +707,7 @@ export default function ImportExam() {
                         ? <>Chọn môn học để tạo đề. Muốn lưu vào ngân hàng thì vào <Link to='/question-bank'>Ngân hàng câu hỏi</Link> chọn một ngân hàng rồi bấm “Nhập đề”.</>
                     : Object.keys(duplicates).length
                         ? `Có ${Object.keys(duplicates).length} câu trùng với ngân hàng — xem chip trên từng câu rồi tự quyết.`
+                    : paperBank ? 'Mỗi đề được lưu nguyên vẹn; đề phải cùng cấu trúc với ngân hàng.'
                     : bankId ? 'Vào ngân hàng: cắt thành khối để sau này rút đề ngẫu nhiên.' : ''}
             </span>
         </Card>}

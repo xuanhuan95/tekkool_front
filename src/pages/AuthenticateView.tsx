@@ -13,7 +13,7 @@ import ImportGuide from './exam-creation/ImportGuide';
 import DrawExam from './exam-creation/DrawExam';
 import CreateFromBank from './exam-creation/CreateFromBank';
 import BankList from './question-bank/BankList';
-import BankBlocks from './question-bank/BankBlocks';
+import BankView from './question-bank/BankView';
 import MySubmissions from './my/MySubmissions';
 import SubmissionDetail from './my/SubmissionDetail';
 import ToGrade from './my/ToGrade';
@@ -87,7 +87,7 @@ export default function AuthenticateView() {
               <Route path='/draw-exam/:subject' element={<DrawExam/>}/>
               <Route path='/draw-exam/bank/:bankId' element={<DrawExam/>}/>
               <Route path='/question-bank' element={<BankList/>}/>
-              <Route path='/question-bank/:bankId' element={<BankBlocks/>}/>
+              <Route path='/question-bank/:bankId' element={<BankView/>}/>
               <Route path='/packages' element={<Packages/>}/>
               {/* Students: the old list moved to /history (HS-LichSu); teachers keep the old screen. */}
               <Route path='/my-exams' element={isTeacher ? <MySubmissions/> : <Navigate to='/history' replace/>}/>

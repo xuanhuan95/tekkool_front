@@ -143,3 +143,5 @@ Rà soát và kết quả: `ra-soat-quy-tac-ui.md`. Điểm cần nhớ khi vi�
 
 
 SPT-99: ô "Số từ gợi ý" / "Độ dài mong muốn" và bộ đếm "n / max từ" của `Editor` đã bỏ ở mọi nơi (editor GV, import, màn làm bài HS). `data.max_words` / `max_chars` **vẫn được giữ trong dữ liệu** (`convertData`, đổi dạng câu ở import): BE xếp khối tự luận của ngân hàng Ngữ văn theo hai trường này.
+
+| `BankPapers` / `PaperStructure` / `PaperImportResult` (Nguyên đề) | Màn ngân hàng `kind:'paper'`: `signature(sections)` và `diff()` so cấu trúc từng đề với đề đầu tiên của ngân hàng (BE chỉ trả `message`); `BankBlocks.QuestionView` có prop `plain` (chỉ tô xanh đáp án, không chữ). `CreateFromBank`: chip hiện "Loại · N đề/khối"; chọn ngân hàng nguyên đề thì chọn **một mình**, ẩn Cấu trúc đề và Loại khối, gửi không `structure` |

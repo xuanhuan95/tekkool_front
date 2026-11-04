@@ -54,7 +54,23 @@ describe('BankList (GV-NganHang)', () => {
         await screen.findByRole('option', {name: 'Toán'});
         fireEvent.change(screen.getByLabelText('Môn'), {target: {value: 'Toán'}});
         fireEvent.click(screen.getByRole('button', {name: 'Tạo ngân hàng'}));
-        await waitFor(() => expect(api.post).toHaveBeenCalledWith('question_bank/create', {name: 'Toán 2', subject: 'Toán'}));
+        await waitFor(() => expect(api.post).toHaveBeenCalledWith('question_bank/create', {name: 'Toán 2', subject: 'Toán', kind: 'block'}));
+    });
+
+    it('whole-exam bank: counts đề, hides Xem nội dung at 0, and create sends kind=paper', async () => {
+        const api = mockApi({'question_bank/list': [{id: 'p1', name: 'SPT Hoá', subject: 'Hoá học', kind: 'paper', items: 6, blocks: 0},
+            {id: 'p2', name: 'SPT Lý', subject: 'Vật lí', kind: 'paper', items: 0, blocks: 0}], 'question_bank/subjects': ['Hoá học']}, {'question_bank/create': {id: 'n'}});
+        renderAt(<BankList/>);
+        await screen.findByText('SPT Hoá');
+        expect(screen.getByText('6')).toBeTruthy();
+        expect(screen.getAllByText('đề', {exact: false}).length).toBeGreaterThan(0);
+        expect(screen.getAllByText('Xem nội dung').length).toBe(1);
+        fireEvent.click(screen.getAllByRole('button', {name: '+ Ngân hàng mới'})[0]);
+        fireEvent.change(await screen.findByLabelText('Loại ngân hàng'), {target: {value: 'paper'}});
+        await screen.findByRole('option', {name: 'Hoá học'});
+        fireEvent.change(screen.getByLabelText('Môn'), {target: {value: 'Hoá học'}});
+        fireEvent.click(screen.getByRole('button', {name: 'Tạo ngân hàng'}));
+        await waitFor(() => expect(api.post).toHaveBeenCalledWith('question_bank/create', {name: 'Hoá học', subject: 'Hoá học', kind: 'paper'}));
     });
 
     it('load error shows Thử lại', async () => {

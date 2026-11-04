@@ -14,7 +14,8 @@ import './question-bank.css';
 const isChoiceType = (t: string) => t === 'MultipleChoice' || t === 'ErrorIdentify';
 
 /** SPT-73 · read-only question: prompt, options with the key marked, T/F statements, short answer, explanation. */
-function QuestionView({no, q}: {no: string; q: BankBlock['questions'][number]}) {
+/** `plain` (whole-exam banks): the correct option is only tinted, without the "Đáp án đúng" text. */
+export function QuestionView({no, q, plain}: {no: string; q: BankBlock['questions'][number]; plain?: boolean}) {
     const d = q.data;
     return <div className='vt-qbv-q'>
         <div className='vt-qbv-prompt'><b>{no}</b><div>{renderHTML(d.question)}</div>
@@ -27,7 +28,7 @@ function QuestionView({no, q}: {no: string; q: BankBlock['questions'][number]}) 
                 return <li key={a.id} className={on ? 'on' : undefined}>
                     <span className='vt-qbv-key'>{String.fromCharCode(65 + i)}.</span>
                     <div>{renderHTML(a.value)}</div>
-                    {on && <Badge tone='ok'>Đáp án đúng</Badge>}
+                    {on && !plain && <Badge tone='ok'>Đáp án đúng</Badge>}
                 </li>;
             })}
         </ul>}
