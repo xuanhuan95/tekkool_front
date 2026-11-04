@@ -6,11 +6,24 @@
 .vt-th-subject { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .vt-th-subject.is-active { border-color: var(--vt-blue, var(--vt-ink)); box-shadow: 0 0 0 2px var(--vt-blue, var(--vt-ink)); }
 .vt-th-subject-name { font-family: var(--vt-font-hand); font-weight: 700; font-size: 26px; line-height: 1.15; color: var(--vt-ink); text-decoration: none; overflow-wrap: anywhere; }
-.vt-th-menu { display: flex; flex-direction: column; width: 100%; border: 1.5px solid var(--vt-ink); border-radius: var(--vt-r-btn); background: var(--vt-paper, #fff); }
-.vt-th-menu button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; min-height: 44px; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
-.vt-th-menu button + button { border-top: 1.5px solid var(--vt-line, #e7e5e4); }
-.vt-th-menu button:hover { background: var(--vt-sun-soft); }
-.vt-th-menu span { font-size: 13px; color: var(--vt-muted); }
+.vt-th-anchor { position: relative; align-self: flex-start; }
+.vt-pop { position: absolute; z-index: 30; top: calc(100% + 8px); left: 0; width: 300px; display: flex; flex-direction: column;
+    background: var(--vt-card); border: var(--vt-border); border-radius: var(--vt-r-card-lg); box-shadow: var(--vt-shadow-ink); padding: 6px; box-sizing: border-box; }
+.vt-pop-title { font-size: 12px; font-weight: 600; color: var(--vt-muted); padding: 8px 10px 4px; }
+.vt-pop button { display: flex; align-items: flex-start; gap: 12px; padding: 10px; min-height: 52px; border: 0; background: none; font: inherit; text-align: left; border-radius: var(--vt-r-btn); color: var(--vt-ink); cursor: pointer; }
+.vt-pop button:hover { background: var(--vt-sun-soft); }
+.vt-pop button b, .vt-sheet button.row b { display: block; font-size: 15px; }
+.vt-pop span.d, .vt-sheet span.d { display: block; font-size: 13px; color: var(--vt-muted); font-weight: 400; }
+.vt-opt-ico { flex: 0 0 auto; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border: 1.5px solid var(--vt-ink); border-radius: var(--vt-r-btn); background: var(--vt-sun-soft); }
+.vt-scrim { position: fixed; inset: 0; z-index: 40; background: rgba(28, 25, 23, .45); display: flex; flex-direction: column; justify-content: flex-end; }
+.vt-sheet { background: var(--vt-card); color: var(--vt-ink); border: var(--vt-border); border-bottom: 0; border-radius: 20px 20px 0 0; padding: 10px 16px calc(20px + env(safe-area-inset-bottom));
+    display: flex; flex-direction: column; gap: 4px; box-sizing: border-box; }
+.vt-sheet-grab { width: 44px; height: 5px; border-radius: 3px; background: var(--vt-line-option); align-self: center; margin-bottom: 8px; }
+.vt-sheet-title { margin: 0 0 4px; font-family: var(--vt-font-hand); font-weight: 700; font-size: 24px; line-height: 1.15; }
+.vt-sheet button.row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; min-height: 60px; border: 0; border-top: 1.5px solid var(--vt-line-soft); background: none; font: inherit; text-align: left; color: var(--vt-ink); cursor: pointer; }
+.vt-sheet button.row:first-of-type { border-top: 0; }
+.vt-sheet button.row b { font-size: 16px; }
+.vt-sheet .vt-btn { margin-top: 8px; }
 .vt-th-exams { display: flex; flex-direction: column; gap: 12px; }
 .vt-th-exams-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
 .vt-th-exams-head h2 { margin: 0; font-family: var(--vt-font-hand); font-weight: 700; font-size: 26px; }

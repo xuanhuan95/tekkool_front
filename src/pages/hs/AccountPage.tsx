@@ -57,7 +57,7 @@ function RenameDialog({open, current, onClose}: {open: boolean; current: string;
 
 const EMPTY_PW: PasswordForm = {old: '', next: '', confirm: ''};
 
-function PasswordDialog({open, onClose}: {open: boolean; onClose: () => void}) {
+export function PasswordDialog({open, onClose}: {open: boolean; onClose: () => void}) {
     const [f, setF] = useState<PasswordForm>(EMPTY_PW);
     const [errs, setErrs] = useState<PasswordErrors>({});
     const [err, setErr] = useState<string>();
@@ -119,7 +119,7 @@ export default function AccountPage() {
     const name = profile.data?.name || authUser?.name || '';
     const email = profile.data?.email || authUser?.email || '';
 
-    return <div className='hs-page' style={{maxWidth: 720}}>
+    return <div className='hs-page'>
         <PageHead title='Tài khoản'/>
 
         <Card as='section' className='hs-card-pad' aria-label='Thông tin của bạn'>

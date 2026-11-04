@@ -1,7 +1,7 @@
 import {afterEach, describe, expect, it, vi} from 'vitest';
 import {fireEvent, screen, waitFor} from '@testing-library/react';
 
-import BankList from './BankList';
+import BankList, {defaultBankName} from './BankList';
 import {mockApi, renderAt} from '../manage/testutil';
 
 afterEach(() => vi.restoreAllMocks());
@@ -12,15 +12,23 @@ const banks = [
 ];
 
 describe('BankList (GV-NganHang)', () => {
-    it('empty bank: yellow box, Tạo đề locked, no Làm thử', async () => {
+    it('card has only Nhập đề / Xem nội dung / Xoá; empty bank says 0 khối; no note', async () => {
         mockApi({'question_bank/list': banks, 'question_bank/subjects': ['Toán']});
         renderAt(<BankList/>);
         await screen.findByText('Toán rỗng');
-        expect(screen.getByText('Chưa có khối nào — bấm Nhập đề để thêm.')).toBeTruthy();
-        expect(screen.getAllByText('Làm thử').length).toBe(1);
+        expect(screen.getAllByText('Nhập đề').length).toBe(2);
         expect(screen.getAllByText('Xem nội dung').length).toBe(1);
-        expect((screen.getAllByRole('button', {name: 'Tạo đề'})[0] as HTMLButtonElement).disabled).toBe(true);
-        expect(screen.getByText('khối câu hỏi', {exact: false})).toBeTruthy();
+        expect(screen.queryByText('Tạo đề')).toBeNull();
+        expect(screen.queryByText('Làm thử')).toBeNull();
+        expect(screen.queryByText(/sửa file Word/)).toBeNull();
+        expect(screen.getByText('0')).toBeTruthy();
+        expect(screen.getAllByText('khối câu hỏi', {exact: false}).length).toBe(2);
+    });
+
+    it('defaultBankName: subject, then "subject 2" when taken', () => {
+        expect(defaultBankName('Hoá học', [])).toBe('Hoá học');
+        expect(defaultBankName('Hoá học', ['Hoá học'])).toBe('Hoá học 2');
+        expect(defaultBankName('Hoá học', ['Hoá học', 'Hoá học 2'])).toBe('Hoá học 3');
     });
 
     it('delete asks in a modal (no window.confirm) and posts the id', async () => {
@@ -35,18 +43,18 @@ describe('BankList (GV-NganHang)', () => {
         expect(confirm).not.toHaveBeenCalled();
     });
 
-    it('create: subject is required, then posts name + subject', async () => {
-        const api = mockApi({'question_bank/list': [], 'question_bank/subjects': ['Toán', 'Ngữ văn']}, {'question_bank/create': {id: 'n'}});
+    it('create: subject is required; blank name falls back to the subject name (numbered if taken)', async () => {
+        const api = mockApi({'question_bank/list': [{id: 'b', name: 'Toán', subject: 'Toán', blocks: 1}],
+            'question_bank/subjects': ['Toán', 'Ngữ văn']}, {'question_bank/create': {id: 'n'}});
         renderAt(<BankList/>);
         fireEvent.click((await screen.findAllByRole('button', {name: '+ Ngân hàng mới'}))[0]);
-        fireEvent.change(await screen.findByLabelText('Tên ngân hàng'), {target: {value: 'Toán 12'}});
-        fireEvent.click(screen.getByRole('button', {name: 'Tạo ngân hàng'}));
+        fireEvent.click(await screen.findByRole('button', {name: 'Tạo ngân hàng'}));
         expect(await screen.findByText('Chưa chọn môn')).toBeTruthy();
         expect(api.post).not.toHaveBeenCalled();
         await screen.findByRole('option', {name: 'Toán'});
         fireEvent.change(screen.getByLabelText('Môn'), {target: {value: 'Toán'}});
         fireEvent.click(screen.getByRole('button', {name: 'Tạo ngân hàng'}));
-        await waitFor(() => expect(api.post).toHaveBeenCalledWith('question_bank/create', {name: 'Toán 12', subject: 'Toán'}));
+        await waitFor(() => expect(api.post).toHaveBeenCalledWith('question_bank/create', {name: 'Toán 2', subject: 'Toán'}));
     });
 
     it('load error shows Thử lại', async () => {
