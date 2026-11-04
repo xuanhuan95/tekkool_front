@@ -95,12 +95,13 @@ it('minutes follow the subject suggestion until the teacher edits the box', asyn
     expect(suggestedMinutes('Ngữ văn')).toBe(90);
     expect(suggestedMinutes('Vật lí')).toBe(60);
     renderPage('/create-from-bank?bank=b2');
-    await screen.findByText('Gợi ý cho Toán: 90 phút');
-    fireEvent.click(screen.getByText('Toán A · Toán · Theo khối · 4 khối ×'));
+    await waitFor(() => expect((screen.getByLabelText('Thời gian (phút)') as HTMLInputElement).value).toBe('90'));
+    fireEvent.click(screen.getByText('Toán A · Toán · Theo khối · 4 khối'));
     fireEvent.click(screen.getByText('Văn A · Ngữ văn · Theo khối · 6 khối'));
-    await screen.findByText('Gợi ý cho Ngữ văn: 90 phút');
+    await waitFor(() => expect((screen.getByLabelText('Thời gian (phút)') as HTMLInputElement).value).toBe('90'));
     fireEvent.change(screen.getByLabelText('Thời gian (phút)'), {target: {value: '45'}});
-    expect(screen.queryByText(/Gợi ý cho/)).toBeNull();
+    fireEvent.click(screen.getByText('Văn A · Ngữ văn · Theo khối · 6 khối'));
+    expect((screen.getByLabelText('Thời gian (phút)') as HTMLInputElement).value).toBe('45');
 });
 
 it('with ?folder it saves into that folder and goes back to the subject', async () => {

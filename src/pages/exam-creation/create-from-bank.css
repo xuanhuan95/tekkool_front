@@ -11,7 +11,7 @@
 .vt-cfb-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .vt-cfb-chip { min-height: 44px; padding: 0 14px; border: 1.5px solid var(--vt-line-option); border-radius: 999px; background: var(--vt-paper);
     font: inherit; font-size: 14px; cursor: pointer; }
-.vt-cfb-chip.on { background: var(--vt-title-bg); border-color: var(--vt-ink); font-weight: 600; }
+.vt-cfb-chip.on { background: var(--vt-action); border: 2px solid var(--vt-ink); font-weight: 600; }
 .vt-cfb-chip:disabled { opacity: .45; cursor: not-allowed; }
 .vt-cfb-title { display: flex; justify-content: space-between; align-items: baseline; }
 .vt-cfb-title span { font-size: 14px; color: var(--vt-muted); }

@@ -28,8 +28,9 @@ export default function PaperImportResult({bankId, result, exams, standard, onPi
             ? <div className='nb-ok'><b>Đã thêm {papers.length} đề vào ngân hàng.</b> Ngân hàng hiện có {total} đề, học sinh được rút ngẫu nhiên trong {total} đề này.</div>
             : <div className='nb-alert' role='alert'>
                 <b>{none ? 'Chưa lưu đề nào.' : `Đã lưu ${papers.length} đề · ${rejected.length} đề chưa được lưu.`}</b>
-                <span>{none && rejected.length === exams.length && exams.length > 1 ? `Cả ${exams.length} đề trong file đều chưa được lưu. Ngân hàng không thay đổi.` : none ? 'Ngân hàng không thay đổi.' : ''}
-                    {' '}{first.name} chưa được lưu: <b>{first.message}</b>{rejected.length > 1 && ` (và ${rejected.length - 1} đề khác)`}.</span>
+                {none && rejected.length === exams.length && exams.length > 1
+                    ? <span>Cả {exams.length} đề trong file đều khác cấu trúc chuẩn của ngân hàng. Ngân hàng không thay đổi.</span>
+                    : <span>{none ? 'Ngân hàng không thay đổi. ' : ''}{first.name} chưa được lưu: <b>{first.message}</b>{rejected.length > 1 && ` (và ${rejected.length - 1} đề khác)`}.</span>}
             </div>}
 
         {standard && rejected.length > 0 && <Card>

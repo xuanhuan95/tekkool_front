@@ -17,3 +17,5 @@
 .nb-sig{display:flex;flex-wrap:wrap;gap:6px}
 .nb-sig span{font-size:12px;border:1.5px solid var(--vt-line-option);border-radius:var(--vt-r-chip);padding:2px 8px;background:var(--vt-paper)}
 .nb-note{font-size:13px;color:var(--vt-muted);margin:0}
+.nb-serif{font-family:Georgia,'Times New Roman',serif;font-size:18px}
+@media (max-width:639px){.nb-head{flex-direction:column;align-items:flex-start}}

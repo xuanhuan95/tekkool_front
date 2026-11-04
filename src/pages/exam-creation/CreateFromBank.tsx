@@ -165,9 +165,7 @@ export default function CreateFromBank() {
                             <TextField label='Tên đề' placeholder='Ví dụ: Đề luyện thi — Ngữ văn' value={name}
                                        onChange={e => setName(e.target.value)} className='vt-cfb-name'/>
                             <TextField label='Thời gian (phút)' type='number' inputMode='numeric' min={0} value={minutes}
-                                       onChange={e => setTypedMinutes(Math.max(0, Number(e.target.value) || 0))}
-                                       hint={selectedSubject && typedMinutes === null
-                                           ? 'Gợi ý cho ' + selectedSubject + ': ' + suggestedMinutes(selectedSubject) + ' phút' : undefined}/>
+                                       onChange={e => setTypedMinutes(Math.max(0, Number(e.target.value) || 0))}/>
                         </div>
                         <div className='vt-cfb-banks' role='group' aria-label='Ngân hàng đề'>
                             <span className='vt-field-label'>Ngân hàng đề</span>
@@ -180,14 +178,10 @@ export default function CreateFromBank() {
                                         const off = !!selectedSubject && b.subject !== selectedSubject && !on;
                                         return <button key={b.id} type='button' aria-pressed={on} disabled={off}
                                                        className={cx('vt-cfb-chip', on && 'on')} onClick={() => toggleBank(b.id)}>
-                                            {b.name}{b.subject ? ' · ' + b.subject : ''} · {b.kind === 'paper' ? 'Nguyên đề' : 'Theo khối'} · {bankCount(b)} {b.kind === 'paper' ? 'đề' : 'khối'}{on ? ' ×' : ''}
+                                            {b.name}{b.subject ? ' · ' + b.subject : ''} · {b.kind === 'paper' ? 'Nguyên đề' : 'Theo khối'} · {bankCount(b)} {b.kind === 'paper' ? 'đề' : 'khối'}
                                         </button>;
                                     })}
                                 </div>}
-                            <p className='vt-cfb-hint'>
-                                {folder ? 'Đề lưu vào thư mục môn đang mở và học sinh thấy ngay.'
-                                    : 'Đề nằm ở "Đề ngoài thư mục" — chọn môn sau để học sinh thấy.'}
-                            </p>
                         </div>
                     </Card>
 

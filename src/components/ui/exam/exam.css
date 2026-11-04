@@ -405,4 +405,11 @@
 .vt-exam-info h2 { margin: 0 0 4px; font-size: 13px; font-weight: 700; color: var(--vt-sun-ink); display: flex; justify-content: space-between; gap: 8px; }
 .vt-exam-info h2 span { font-weight: 400; }
 .vt-exam-info-body p { margin: 0; }
-@media (min-width: 1024px) { .vt-exam-info { padding: 8px 24px 10px; font-size: 14px; } }
+/* Phone: at most ~35vh, scrolls inside; wide tables scroll sideways, nothing is cut. */
+.vt-exam-info { max-height: 35vh; overflow: auto; }
+.vt-exam-info-body { overflow-x: auto; }
+.vt-exam-info-body table { border-collapse: collapse; }
+@media (min-width: 1024px) {
+    .vt-exam-info { position: sticky; top: 100px; z-index: 5; border: 2px solid var(--vt-ink); border-radius: var(--vt-r-card-md);
+        padding: 8px 16px 10px; font-size: 14px; margin-bottom: 8px; max-height: 40vh; }
+}

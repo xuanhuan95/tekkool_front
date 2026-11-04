@@ -63,12 +63,13 @@ export default function BankPapers({bank}: {bank: BankSummary}) {
     const [page, setPage] = useState(1);
     const {data, isError, error, refetch, isFetching} = useBankPapers(bank.id, page);
     const standard = useBankStandard(bank.id);
-    const [openId, setOpenId] = useState<string | null>(null);
+    const [picked, setOpenId] = useState<string | null | undefined>(undefined);   // undefined = untouched: the first exam is open
     const [removing, setRemoving] = useState<BankPaperRow | null>(null);
     const remove = useDeletePaper();
+    const openId = picked === undefined ? (page === 1 ? data?.items[0]?.id ?? null : null) : picked;
     const total = data?.total ?? bank.items ?? 0;
     const pages = Math.max(1, Math.ceil(total / PAPERS_PER_PAGE));
-    const importLink = <Link to={'/import-exam?bank=' + bank.id} className={buttonClass({variant: 'primary'})}>Nhập đề</Link>;
+    const importLink = <Link to={'/import-exam?bank=' + bank.id} className={buttonClass({variant: 'secondary'})}>Nhập đề</Link>;
 
     const confirmDelete = () => {
         if (!removing) return;
@@ -85,7 +86,7 @@ export default function BankPapers({bank}: {bank: BankSummary}) {
 
     return <div className='vt-qb-page'>
         <Link to='/question-bank' className={buttonClass({variant: 'ghost'})}>← Ngân hàng câu hỏi</Link>
-        <div className='vt-qb-head'>
+        <div className='vt-qb-head nb-head'>
             <div>
                 <PageTitle>{bank.name}</PageTitle>
                 <div className='vt-chip-row'>
@@ -107,7 +108,7 @@ export default function BankPapers({bank}: {bank: BankSummary}) {
                                   description='Nhập file Word có một hoặc nhiều đề. Đề đầu tiên sẽ đặt cấu trúc chuẩn cho cả ngân hàng.' action={importLink}/>
                     : <>
                         {standard && <Card>
-                            <h3 className='vt-card-title'>Cấu trúc chuẩn</h3>
+                            <h3 className='vt-card-title nb-serif'>Cấu trúc chuẩn</h3>
                             <p className='nb-note'>Mọi đề trong ngân hàng cùng số phần, số câu từng phần, dạng câu và điểm từng câu.</p>
                             <Signature rows={standard}/>
                         </Card>}
