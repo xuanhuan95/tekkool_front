@@ -1,4 +1,4 @@
-import {Link, useNavigate, useSearchParams} from 'react-router-dom';
+import {Link, useSearchParams} from 'react-router-dom';
 
 import {Button, ProgressBar, WaveLine, buttonClass} from '../../components/ui';
 import {POLL_TOTAL_SECONDS, usePaymentStatus} from '../../queries/payment';
@@ -28,7 +28,6 @@ function OrderBox({inv, payment}: {inv: string | null; payment: Payment | null})
  * `&result=cancel|error` (SPT-58): POST payment/cancel once, then show whatever status the BE returns.
  */
 export default function PaymentResult() {
-    const navigate = useNavigate();
     const [params] = useSearchParams();
     const rawInv = params.get('inv');
     // Junk in the URL reads as 404 and never reaches the API.
@@ -40,7 +39,6 @@ export default function PaymentResult() {
     const {data: wallet} = useWallet(paid);
     const waiting = view === 'waiting' || view === 'timeout';
     const turns = payment ? orderTurns(payment) : null;
-    const packageId = payment?.items?.[0]?.target_id;
 
     let card;
     if (view === 'notfound') {
@@ -74,32 +72,18 @@ export default function PaymentResult() {
                 <span className='vt-pay-have'>Bạn có {wallet.remaining} lượt</span>}
             <Link to='/exams' className={buttonClass({variant: 'primary', block: true})}>Làm đề ngay</Link>
         </section>;
-    } else if (view === 'cancelled') {
+    } else if (view === 'cancelled' || view === 'failed') {   // FAILED reads like cancel (artboard HS-ThanhToan-Loi)
         card = <section role='status' className='vt-card vt-pay-state'>
             <span className='vt-pay-ring vt-pay-ring--muted' aria-hidden='true'>
                 <svg width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.6'
                      strokeLinecap='round'><path d='M7 7l10 10M17 7L7 17'/></svg>
             </span>
-            <h1 className='vt-pay-state-title'>{result === 'error' ? 'Thanh toán không thành công' : 'Đã huỷ thanh toán'}</h1>
+            <h1 className='vt-pay-state-title'>{result === 'error' || view === 'failed' ? 'Thanh toán không thành công' : 'Đã huỷ thanh toán'}</h1>
             <p className='vt-muted'>Đơn <b className='vt-pay-ink vt-num'>{inv}</b> đã huỷ. Muốn mua lại, hãy chọn gói để tạo
                 đơn mới. Nếu tài khoản vẫn bị trừ tiền, lượt sẽ tự cộng — xem ở Lịch sử mua gói.</p>
             <div className='vt-pay-2btn'>
                 <Link to='/packages' className={buttonClass({variant: 'primary'})}>Chọn gói khác</Link>
                 <Link to='/billing' className={buttonClass()}>Lịch sử mua gói</Link>
-            </div>
-        </section>;
-    } else if (view === 'failed') {
-        card = <section role='alert' className='vt-card vt-card--error vt-pay-state'>
-            <span className='vt-pay-ring vt-pay-ring--err' aria-hidden='true'>
-                <svg width='28' height='28' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.6'
-                     strokeLinecap='round'><path d='M7 7l10 10M17 7L7 17'/></svg>
-            </span>
-            <h1 className='vt-pay-state-title'>Thanh toán chưa thành công</h1>
-            <p className='vt-muted'>Giao dịch chưa hoàn tất. Nếu tài khoản đã bị trừ tiền, hãy liên hệ hỗ trợ
-                kèm mã đơn <b className='vt-pay-ink vt-num'>{inv}</b>.</p>
-            <div className='vt-pay-2btn'>
-                <Button variant='primary' onClick={() => navigate(packageId ? '/payment/' + packageId : '/packages')}>Thử lại</Button>
-                <Link to='/packages' className={buttonClass()}>Chọn gói khác</Link>
             </div>
         </section>;
     } else if (view === 'timeout') {

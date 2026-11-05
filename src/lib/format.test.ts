@@ -1,6 +1,6 @@
 import {describe, it, expect} from 'vitest';
 
-import {withSubject, errorText, formatDecimal, formatMinutes, formatTimeDate, formatDayMonth, formatIsoDayMonth, formatPoints, formatScore, minutesLeft, parseServerDate, plainText, score10} from './format';
+import {stripInfoPrefix, withSubject, errorText, formatDecimal, formatMinutes, formatTimeDate, formatDayMonth, formatIsoDayMonth, formatPoints, formatScore, minutesLeft, parseServerDate, plainText, score10} from './format';
 
 describe('format', () => {
     it('score on 10 with Vietnamese comma', () => {
@@ -67,4 +67,11 @@ it('withSubject does not repeat the subject already in the exam name', () => {
     expect(withSubject('Toán', 'Toán — Đề thi thử SPT số 3')).toBe('Toán — Đề thi thử SPT số 3');
     expect(withSubject(null, '<p>Đề 3</p>')).toBe('Đề 3');
     expect(withSubject('Toán', '', ' — ')).toBe('Toán');
+});
+
+it('stripInfoPrefix drops the leading "Cho biết", keeps tags and other text', () => {
+    expect(stripInfoPrefix('<p>Cho biết nguyên tử khối: H = 1</p>')).toBe('<p>Nguyên tử khối: H = 1</p>');
+    expect(stripInfoPrefix('Cho biết: H = 1')).toBe('H = 1');
+    expect(stripInfoPrefix('Nguyên tử khối: H = 1')).toBe('Nguyên tử khối: H = 1');
+    expect(stripInfoPrefix('<p>Biết rằng Cho biết x</p>')).toBe('<p>Biết rằng Cho biết x</p>');
 });

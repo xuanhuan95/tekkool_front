@@ -187,11 +187,13 @@ describe('PaymentResult (HS-ThanhToanCho / Xong)', () => {
         expect((Api.get as any).mock.calls.filter((c: string[]) => c[0] === 'payment/status/TK9').length).toBe(2);
     });
 
-    it('failed order offers retry on the same package and another package', async () => {
+    it('failed order reads like a cancel: new-order hint, history link, no retry', async () => {
         mockGet({'payment/status/': {...PAID, status: 'FAILED'}});
         wrap(<PaymentResult/>, '/payment/result?inv=TK9');
-        await screen.findByText('Thanh toán chưa thành công');
+        await screen.findByText('Thanh toán không thành công');
         expect(screen.getByText('TK9')).toBeTruthy();
+        expect(screen.queryByRole('button', {name: 'Thử lại'})).toBeNull();
+        expect(screen.getByRole('link', {name: 'Lịch sử mua gói'}).getAttribute('href')).toBe('/billing');
         expect(screen.getByRole('link', {name: 'Chọn gói khác'}).getAttribute('href')).toBe('/packages');
     });
 

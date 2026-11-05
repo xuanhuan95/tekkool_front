@@ -267,4 +267,8 @@ describe('ExamSharedInfo', () => {
         rerender(<ExamSharedInfo items={[]}/>);
         expect(container.firstChild).toBeNull();
     });
+    it('drops a leading "Cho biết" so the label is not repeated', () => {
+        const {container} = render(<ExamSharedInfo items={['<p>Cho biết nguyên tử khối: H = 1</p>']}/>);
+        expect(container.querySelector('.vt-exam-info-body')!.textContent).toBe('Nguyên tử khối: H = 1');
+    });
 });
