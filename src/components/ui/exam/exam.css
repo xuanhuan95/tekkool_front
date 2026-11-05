@@ -182,12 +182,12 @@
 .vt-q-prompt img { max-width: 100%; height: auto; }
 .vt-q-note { font-size: 13px; color: var(--vt-muted); }
 
-/* flag = icon button (tooltip "Xem lại sau"); marked = sun fill. Design DS-LamBai: icon 14px in a 28px box,
+/* flag = icon button (tooltip "Xem lại sau"); marked = sun fill. Design DS-LamBai: icon 14px in a 32px box (28 + 2×2 border),
    hit area stays 44px. The 28px box is ::before (::after is the tooltip). */
 .vt-flag.vt-iconbtn, .vt-flag.vt-iconbtn:hover, .vt-flag.vt-iconbtn:focus-visible { background: none; border-color: transparent; }
 .vt-flag.vt-iconbtn { color: var(--vt-muted); isolation: isolate; }
 .vt-flag.vt-iconbtn::before {
-    content: ''; position: absolute; top: 50%; left: 50%; width: 28px; height: 28px; box-sizing: border-box;
+    content: ''; position: absolute; top: 50%; left: 50%; width: 32px; height: 32px; box-sizing: border-box;
     transform: translate(-50%, -50%); background: var(--vt-card); border: 2px solid var(--vt-line-option);
     border-radius: var(--vt-r-btn); z-index: -1;
 }
@@ -222,7 +222,7 @@
 }
 .vt-option:disabled { cursor: default; }
 .vt-option-letter {
-    width: 28px; height: 28px; flex-shrink: 0; box-sizing: border-box;
+    width: 32px; height: 32px; flex-shrink: 0; box-sizing: border-box;
     border: 1.5px solid var(--vt-letter-ring); border-radius: 999px;
     display: flex; align-items: center; justify-content: center;
     font-size: 13px; font-weight: 600;

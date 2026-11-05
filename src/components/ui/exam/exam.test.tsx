@@ -138,7 +138,7 @@ describe('QuestionBlock — trả lời ngắn, tự luận, đánh dấu', () =
         fireEvent.click(flag);
         expect(on).toHaveBeenCalledTimes(1);
         rerender(<QuestionBlock kind='short' number={18} prompt='x' value='' onChange={() => {}} flagged onToggleFlag={on}/>);
-        expect(screen.getByRole('button', {name: 'Bỏ đánh dấu xem lại'})).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('button', {name: 'Đã đánh dấu xem lại'})).toHaveAttribute('aria-pressed', 'true');
     });
 });
 
