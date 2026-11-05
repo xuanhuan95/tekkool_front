@@ -159,6 +159,11 @@ export function plainText(html?: string | null): string {
     return text.replace(/\s+/g, ' ').trim();
 }
 
+/** Answer layout rule (H2): every answer ≤ 3 plain-text characters and none is an image → 4 columns, otherwise one per line. */
+export function optionsAreShort(htmls: string[]): boolean {
+    return htmls.every(h => !/<img/i.test(h) && plainText(h).length <= 3);
+}
+
 /** "Cho biết nguyên tử khối: H = 1" → "Nguyên tử khối: H = 1": the UI already prints the "Cho biết" label.
  *  The label may sit inside inline tags (`<b>Cho biết</b>: …`); tags it empties are dropped, the ":" and nbsp go too. */
 export function stripInfoPrefix(html: string): string {

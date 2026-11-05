@@ -29,6 +29,8 @@ export interface ChoiceOption { key: string; content: ReactNode }
 export interface ChoiceQuestionProps extends BaseProps {
     kind: 'choice';
     options: ChoiceOption[];
+    /** All answers short → 4 columns instead of one per line. */
+    short?: boolean;
     value: string | null | undefined;
     onChange: (key: string) => void;
 }
@@ -74,7 +76,7 @@ export interface ClusterQuestionProps extends BaseProps {
 export type QuestionBlockProps = ChoiceQuestionProps | TrueFalseQuestionProps | ShortQuestionProps | EssayQuestionProps
     | ClusterQuestionProps;
 
-function ChoiceAnswer({number, options, value, onChange, disabled}: ChoiceQuestionProps) {
+function ChoiceAnswer({number, options, short, value, onChange, disabled}: ChoiceQuestionProps) {
     const refs = useRef<Array<HTMLButtonElement | null>>([]);
     const selected = options.findIndex(o => o.key === value);
     // Roving tabindex: one Tab stop for the group, arrows move + select (WAI-ARIA radio group).
@@ -89,7 +91,7 @@ function ChoiceAnswer({number, options, value, onChange, disabled}: ChoiceQuesti
         refs.current[next]?.focus();
     };
     return <div role='radiogroup' aria-label={'Đáp án câu ' + number} aria-disabled={disabled || undefined}
-                className='vt-options' onKeyDown={onKeyDown}>
+                className={'vt-options' + (short ? ' vt-options--compact' : '')} onKeyDown={onKeyDown}>
         {options.map((o, i) => {
             const on = o.key === value;
             return <button key={o.key} ref={el => { refs.current[i] = el; }} type='button' role='radio'

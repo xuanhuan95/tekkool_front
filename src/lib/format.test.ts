@@ -1,6 +1,6 @@
 import {describe, it, expect} from 'vitest';
 
-import {stripInfoPrefix, withSubject, errorText, formatDecimal, formatMinutes, formatTimeDate, formatDayMonth, formatIsoDayMonth, formatPoints, formatScore, minutesLeft, parseServerDate, plainText, score10} from './format';
+import {optionsAreShort, stripInfoPrefix, withSubject, errorText, formatDecimal, formatMinutes, formatTimeDate, formatDayMonth, formatIsoDayMonth, formatPoints, formatScore, minutesLeft, parseServerDate, plainText, score10} from './format';
 
 describe('format', () => {
     it('score on 10 with Vietnamese comma', () => {
@@ -78,4 +78,19 @@ it('stripInfoPrefix drops the leading "Cho biết", keeps tags and other text', 
     expect(stripInfoPrefix('<b>Cho biết:</b>&nbsp;Nguyên tử khối')).toBe('Nguyên tử khối');
     expect(stripInfoPrefix('<p><i><b>Cho biết</b></i> : H = 1</p>')).toBe('<p>H = 1</p>');
     expect(stripInfoPrefix('<p>Biết rằng Cho biết x</p>')).toBe('<p>Biết rằng Cho biết x</p>');
+});
+
+describe('optionsAreShort', () => {
+    it('4 short answers → horizontal; exactly 3 chars still short, 4 is long', () => {
+        expect(optionsAreShort(['2', '6', '4', '8'])).toBe(true);
+        expect(optionsAreShort(['123', '1', '2', '3'])).toBe(true);
+        expect(optionsAreShort(['1234', '1', '2', '3'])).toBe(false);
+    });
+    it('strips tags and entities before counting', () => {
+        expect(optionsAreShort(['<p><b>1</b>&nbsp;2</p>', '<sup>2</sup>', 'a', 'b'])).toBe(true);
+        expect(optionsAreShort(['<span class="katex">1234</span>', '1', '2', '3'])).toBe(false);
+    });
+    it('an image is never short', () => {
+        expect(optionsAreShort(['<img src="a.png">', '1', '2', '3'])).toBe(false);
+    });
 });
