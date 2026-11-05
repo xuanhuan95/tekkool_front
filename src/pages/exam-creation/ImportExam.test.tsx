@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import {fireEvent, render, screen} from '@testing-library/react';
+import {fireEvent, render, screen, within} from '@testing-library/react';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
@@ -404,6 +404,20 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
         fireEvent.click(screen.getByText('Đánh số lại', {selector: 'button'}));
         expect(screen.queryByText('sau câu 5 là câu 7')).toBeNull();
     });
+
+    it('the dialog shows the current and the new numbering; "Giữ số như trong file" changes nothing', async () => {
+        mockPost();
+        renderScreen();
+        const gap = issue({code: 'NUMBER_GAP', level: 'warning', question_id: 'Q1', message: 'sau câu 5 là câu 7'});
+        await loadFile(examOf({...mc('Q1', 'Q1A'), source_no: 5}, {...mc('Q2', 'Q2A'), source_no: 7}), [gap]);
+        fireEvent.click(screen.getByText('Đánh số lại câu'));
+        expect(screen.getByText('5, 7')).toBeTruthy();
+        expect(screen.getByText('(nhảy qua 6)')).toBeTruthy();
+        expect(screen.getByText('1–2')).toBeTruthy();
+        fireEvent.click(screen.getByLabelText(/Giữ số như trong file/));
+        fireEvent.click(screen.getByText('Đánh số lại', {selector: 'button'}));
+        expect(screen.getAllByText('sau câu 5 là câu 7').length).toBeGreaterThan(0);
+    });
 });
 
 describe('ImportExam: Dán đáp án nhanh', () => {
@@ -420,7 +434,12 @@ describe('ImportExam: Dán đáp án nhanh', () => {
         fireEvent.click(screen.getByText('Xem trước'));
         await screen.findByText('Áp dụng 1 đáp án');
         expect(screen.getByText('Thêm mới')).toBeTruthy();
-        expect(screen.getByText('Câu 40: phần này chỉ có 1 câu')).toBeTruthy();
+        // chip row + table (Câu | Dạng | Hiện tại | Sẽ thành | Kết quả)
+        expect(screen.getByText('1 thêm mới')).toBeTruthy();
+        expect(screen.getByText('1 lỗi, sẽ bỏ qua')).toBeTruthy();
+        expect(within(screen.getByRole('table', {name: 'Xem trước đáp án'})).getAllByRole('columnheader').map(h => h.textContent)).toEqual(['Câu', 'Dạng', 'Hiện tại', 'Sẽ thành', 'Kết quả']);
+        expect(screen.getByText('phần này chỉ có 1 câu')).toBeTruthy();   // red row in the table, not a list below it
+        expect(screen.getByText('Câu 40')).toBeTruthy();
         // preview only: nothing written yet
         expect(saveButton().disabled).toBe(true);
 

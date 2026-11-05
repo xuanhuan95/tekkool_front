@@ -3,7 +3,7 @@ import {describe, expect, it} from 'vitest';
 import {
     badTrueFalse, countQuestions, examStats, fileProblem, importErrorText, missingKeys, removeQuestions, saveBlocker,
     setPassage, setType, toUnits,
-    missingTfStatements, splitOptions, answerCounts, answerFrame, applyPasted, examIssues, issueKey, missingNumbers, pasteRows, unseenSevere,
+    missingTfStatements, splitOptions, answerCounts, answerFrame, applyPasted, examIssues, issueKey, missingNumbers, pasteRows, sourceNumbering, unseenSevere,
     type ImportedExam, type ImportIssue, type ImportQuestion,
 } from './importRules';
 
@@ -88,12 +88,12 @@ describe('editing the preview payload', () => {
 describe('upload checks and messages', () => {
     it('refuses a non-docx or oversized file before uploading', () => {
         expect(fileProblem({name: 'de.pdf', size: 10})).toMatch(/Chỉ nhận file .docx/);
-        expect(fileProblem({name: 'de.docx', size: 11 * 1024 * 1024})).toBe('File quá lớn (tối đa 10 MB).');
+        expect(fileProblem({name: 'de.docx', size: 11 * 1024 * 1024})).toBe('File lớn hơn 10 MB. Tách mỗi file vài đề, hoặc nén ảnh trong Word.');
         expect(fileProblem({name: 'DE.DOCX', size: 1024})).toBeNull();
     });
 
     it('maps the backend messages and keeps unknown ones visible', () => {
-        expect(importErrorText('Khong doc duoc file: bad zip')).toMatch(/hỏng hoặc đang đặt mật khẩu/);
+        expect(importErrorText('Khong doc duoc file: bad zip')).toMatch(/Thử lưu lại bằng Word/);
         expect(importErrorText('Khong tim thay de nao trong file')).toMatch(/Câu 1/);
         expect(importErrorText('boom')).toBe('Không đọc được file: boom');
     });
@@ -209,5 +209,16 @@ describe('SPT-97: câu chùm in the preview', () => {
     it('groups the ý of one passageId into ONE unit, a plain FillBlank stays alone', () => {
         const units = toUnits([y('a', 'G1'), y('b', 'G1'), y('c', 'G1'), y('d', 'G1'), y('e', 'G2'), lone]);
         expect(units.map(u => u.questions.length)).toEqual([4, 1, 1]);
+    });
+});
+
+describe('sourceNumbering (IV2 Đánh số lại câu)', () => {
+    const at = (id: string, no?: number): ImportQuestion => ({...mc(id), source_no: no});
+    it('runs and the numbers the file jumps over', () => {
+        expect(sourceNumbering(exam(at('a', 1), at('b', 2), at('c', 4), at('d', 5), at('e', 8)))).toEqual({ranges: '1–2, 4–5, 8', skipped: [3, 6, 7]});
+    });
+    it('a jump longer than 10 is a numbering error, not skipped questions; no source numbers = empty', () => {
+        expect(sourceNumbering(exam(at('a', 1), at('b', 30))).skipped).toEqual([]);
+        expect(sourceNumbering(exam(mc('x')))).toEqual({ranges: '', skipped: []});
     });
 });

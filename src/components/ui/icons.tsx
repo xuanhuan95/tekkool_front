@@ -67,6 +67,7 @@ export const Spinner = ({size = 16}: P) =>
 /* Admin action icons (SPT-77), paths from design AD-*.dc.html. */
 export const IconLogout = ({size = 18}: P) =>
     <Line size={size}><path d='M10 4H5v16h5'/><path d='M15 8l4 4-4 4M19 12H9'/></Line>;
+export const IconTrash = ({size = 18}: P) => <Line size={size}><path d='M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3'/></Line>;
 export const IconArrowRight = ({size = 18}: P) => <Line size={size}><path d='M5 12h14M13 6l6 6-6 6'/></Line>;
 export const IconLock = ({size = 18, color}: P) =>
     <Line size={size} color={color}><rect x='5' y='11' width='14' height='9' rx='2'/><path d='M8 11V8a4 4 0 018 0v3'/></Line>;

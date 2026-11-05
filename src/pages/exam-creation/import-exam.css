@@ -29,8 +29,9 @@
 .vt-imp-q.bad-key { border-color: var(--vt-err); }
 .vt-imp-q.bad-tf { border-color: var(--vt-sun); }
 .vt-imp-q.flash { box-shadow: 0 0 0 3px var(--vt-sun); }
-.vt-imp-q-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.vt-imp-q-head b { font-size: 16px; }
+.vt-imp-q-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.vt-imp-q-title { display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; flex: 1 1 auto; min-width: 0; min-height: 44px; }
+.vt-imp-q-title b { font-family: var(--vt-font-hand); font-size: 24px; font-weight: 700; }
 .vt-imp-flag { font-size: 13px; font-weight: 700; }
 .vt-imp-flag.err { color: var(--vt-err); }
 .vt-imp-flag.warn { color: var(--vt-sun-ink); }
@@ -107,6 +108,8 @@
 .vt-imp-issue-text { flex: 1 1 260px; min-width: 0; font-size: 14px; line-height: 1.4; }
 .vt-imp-issue-acts { display: flex; align-items: center; gap: 4px 12px; flex-wrap: wrap; }
 .vt-imp-issues .vt-imp-h2 { font-size: 22px; margin-bottom: 4px; }
+.vt-imp-issues-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.vt-imp-back { min-height: 44px; display: inline-flex; align-items: center; text-decoration: underline; text-underline-offset: 3px; }
 
 .vt-imp-tools { display: flex; gap: 8px; flex-wrap: wrap; }
 .vt-imp-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; }
@@ -114,7 +117,7 @@
 .vt-imp-q.has-err { background: var(--vt-err-bg); border-color: var(--vt-err); }
 .vt-imp-missing { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 14px; font-size: 14px;
     border: 2px dashed var(--vt-err); background: var(--vt-err-bg); border-radius: var(--vt-r-btn); }
-.vt-imp-paste-sum { margin: 12px 0 8px; font-size: 14px; }
+.vt-imp-paste-sum { margin: 12px 0 8px; display: flex; flex-wrap: wrap; gap: 6px; }
 .vt-imp-paste-bad { margin: 8px 0 0; padding: 0; list-style: none; font-size: 14px; display: flex; flex-direction: column; gap: 6px; }
 
 .vt-guide { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 24px; align-items: start; }
@@ -139,9 +142,7 @@
     .vt-imp-steps li { padding: 3px 10px; white-space: nowrap; }
 }
 
-.vt-imp-paste-rows { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.vt-imp-paste-rows li { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; padding: 8px 12px; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); }
-.vt-imp-paste-change { flex-basis: 100%; font-size: 14px; word-break: break-word; }
+.vt-imp-paste-ta textarea { font-family: ui-monospace, monospace; font-size: 15px; }
 /* 44px touch area around the 22px radio / checkbox; the control itself keeps its look (rule 8) */
 .vt-imp-hit { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; cursor: pointer; flex-shrink: 0; }
 .vt-imp-body .vt-pill { min-height: 44px; }
@@ -150,7 +151,13 @@
 @media (max-width: 1023.98px) {
     /* Phone (B2): the save bar is one row of buttons + ONE line of hint, and the bank stock card steps aside. */
     .vt-imp-bar { gap: 6px 8px; padding: 8px 12px; }
-    .vt-imp-bar-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-basis: 100%; font-size: 12px; }
+    /* IV2-M-Goc: the reason is read first (wraps, never cut), then the save button full width */
+    .vt-imp-bar-hint { order: -1; flex-basis: 100%; font-size: 13px; line-height: 1.4; }
+    .vt-imp-bar > .vt-btn--primary { flex: 1 1 100%; }
+    .vt-imp-bar-more { display: none; }
+    /* IV2-M-Goc (bank mode): the save bar replaces the bottom menu */
+    .vt-imp-bar--bank { bottom: 0; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+    body:has(.vt-imp-bar--bank) .vt-bottomnav { display: none; }
     .vt-imp-bank .vt-imp-chips { display: none; }
     .vt-imp { padding-bottom: 150px; }
 }
@@ -158,7 +165,7 @@
 
 /* SPT-99: the question as on the paper, Sửa/Xoá icons, per-part counts, wide preview, button that looks like a link */
 button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; cursor: pointer; align-self: flex-start; }
-.vt-imp-q-acts { margin-left: auto; display: inline-flex; gap: 4px; }
+.vt-imp-q-acts { display: inline-flex; gap: 8px; flex-shrink: 0; }
 .vt-imp-stem { line-height: 1.6; }
 .vt-imp-key { padding: 6px 10px; border: 1.5px solid transparent; border-radius: var(--vt-r-btn); font-size: 14px; color: var(--vt-muted); }
 .vt-imp-key.on { background: var(--vt-ok-bg); border-color: var(--vt-ok-ink); color: var(--vt-ink); }
@@ -217,3 +224,33 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 .vt-imp-q.has-warn .vt-imp-q-issue { border-color: var(--vt-sun); }
 .vt-imp-q.has-err .vt-imp-q-issue { border-color: var(--vt-err); }
 .vt-imp-q-issue .vt-imp-issue-text { flex: 1 1 200px; }
+
+/* IV2 §3 Đánh số lại câu */
+.vt-imp-renum { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 14px; }
+.vt-imp-renum-box { flex: 1 1 160px; background: #f5f6ee; border: 1.5px solid #d6d3c4; border-radius: var(--vt-r-btn); padding: 8px 12px; font-size: 14px; }
+.vt-imp-renum-box.after { background: var(--vt-ok-bg); border-color: var(--vt-ok-ink); }
+.vt-imp-choices { display: flex; flex-direction: column; gap: 8px; }
+.vt-imp-choice { position: relative; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; min-height: 44px; box-sizing: border-box; cursor: pointer;
+    border: 1.5px solid var(--vt-line-option); background: #fff; border-radius: var(--vt-r-btn); }
+.vt-imp-choice.on { border: 2px solid var(--vt-ink); background: var(--vt-action); }
+.vt-imp-choice input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.vt-imp-choice-dot { width: 20px; height: 20px; border-radius: 999px; border: 2px solid var(--vt-ink); box-sizing: border-box; background: #fff; flex-shrink: 0; margin-top: 2px; }
+.vt-imp-choice.on .vt-imp-choice-dot { background: var(--vt-ink); }
+.vt-imp-choice b, .vt-imp-choice .vt-imp-hint { display: block; }
+.vt-imp-choice input:focus-visible + .vt-imp-choice-dot { box-shadow: var(--vt-focus); }
+
+/* IV2 §5 Đang đọc file, §6 Lỗi tải file */
+.vt-imp-reading { display: flex; flex-direction: column; gap: 10px; }
+.vt-imp-reading-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.vt-imp-reading-head b { font-family: var(--vt-font-hand); font-size: 22px; }
+.vt-imp-reading-bar { height: 8px; border-radius: 999px; background: #efefec; }
+.vt-imp-reading-bar div { width: 40%; height: 8px; border-radius: 999px; background: var(--vt-sun); }
+.vt-imp-reading-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.vt-imp-reading-grid i { height: 72px; background: #efefec; border-radius: 16px 11px 18px 10px / 10px 18px 11px 16px; }
+.vt-imp-reading-cols { display: flex; flex-wrap: wrap; gap: 12px; }
+.vt-imp-reading-cols i { flex: 1 1 200px; height: 200px; background: #efefec; border-radius: 22px 16px 24px 14px / 14px 24px 16px 22px; }
+.vt-imp-problem { background: var(--vt-card); border: 2px solid var(--vt-err); border-radius: var(--vt-r-card-lg); padding: 16px 20px;
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.vt-imp-problem-text { display: flex; flex-direction: column; gap: 4px; flex: 1 1 280px; }
+.vt-imp-problem-text b { font-family: var(--vt-font-hand); font-size: 22px; color: var(--vt-err); }
+.vt-imp-problem-text span { font-size: 14px; color: var(--vt-muted); line-height: 1.5; }

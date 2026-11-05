@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import {Badge, Button, Modal, TextArea} from '../../components/ui';
+import {Badge, Button, Modal, Table, TextArea} from '../../components/ui';
 import Api from '../../services/api';
 import {errorText} from '../../lib/format';
 import {answerFrame, pasteRows} from './importRules';
@@ -36,6 +36,14 @@ export default function PasteAnswers({exam, open, onClose, onApply}: {
 
     const rows = reply ? pasteRows(exam, reply.answers) : [];
     const count = (s: PasteRow['status']) => rows.filter(r => r.status === s).length;
+    // One row per question, then the lines the BE could not read as red rows ("Câu 40 … Không có Câu 40").
+    const tableRows = [
+        ...rows.map(r => ({key: 'q' + r.no, no: 'Câu ' + r.no, type: TYPE_NAME[r.type] || r.type, now: r.now || 'Chưa có', next: r.next, ...STATUS[r.status]})),
+        ...(reply?.issues || []).map((i, k) => {
+            const m = /^Câu (\d+)[:,]?\s*(.*)$/.exec(i.message);
+            return {key: 'e' + k, no: m ? 'Câu ' + m[1] : '—', type: '—', now: '—', next: '—', tone: 'err' as const, text: m ? m[2] || i.message : i.message};
+        }),
+    ];
     return <Modal open={open} onClose={close} title='Dán đáp án nhanh' size='md'
                   footer={<>
                       <Button variant='secondary' onClick={close}>Huỷ</Button>
@@ -45,25 +53,24 @@ export default function PasteAnswers({exam, open, onClose, onApply}: {
                           </Button>
                           : <Button variant='primary' loading={busy} disabled={!text.trim()} onClick={read}>Xem trước</Button>}
                   </>}>
-        <TextArea label='Chuỗi đáp án' value={text} rows={3} placeholder='1B 2C 3A 4D 21ĐSSĐ 25: 3,5'
-                  hint='Số câu theo thứ tự trên màn hình. Trắc nghiệm: 1B 2C 3A. Đúng/Sai: 21ĐSSĐ (4 ký tự). Trả lời ngắn: 25: 3,5 (có dấu hai chấm).'
-                  onChange={ev => { setText(ev.target.value); setReply(null); }}/>
+        <div className='vt-imp-paste-ta'>
+            <TextArea label='Chuỗi đáp án' value={text} rows={3} placeholder='1B 2C 3A 4D 21ĐSSĐ 25 3,5'
+                      hint='Số câu theo thứ tự trên màn hình. Trắc nghiệm: 1B 2C 3A. Đúng/Sai: 21ĐSSĐ (4 ký tự). Trả lời ngắn: 25 3,5.'
+                      onChange={ev => { setText(ev.target.value); setReply(null); }}/>
+        </div>
         {error && <p role='alert' className='vt-imp-flag err'>{error}</p>}
         {reply && <>
-            <p className='vt-imp-paste-sum'>
-                <b>{count('new')}</b> thêm mới · <b>{count('change')}</b> đổi · <b>{count('same')}</b> giữ nguyên · <b>{reply.issues.length}</b> lỗi, sẽ bỏ qua
+            <p className='vt-imp-paste-sum' aria-label='Tóm tắt xem trước'>
+                <Badge tone='ok'>{count('new')} thêm mới</Badge> <Badge tone='sun'>{count('change')} đổi</Badge>{' '}
+                <Badge tone='draft'>{count('same')} giữ nguyên</Badge> <Badge tone='err'>{reply.issues.length} lỗi, sẽ bỏ qua</Badge>
             </p>
-            {/* One card per question: a table loses its last columns at 390px. */}
-            {rows.length > 0 && <ul className='vt-imp-paste-rows' aria-label='Xem trước đáp án'>
-                {rows.map(r => <li key={r.no}>
-                    <b>Câu {r.no}</b> <span className='vt-imp-hint'>{TYPE_NAME[r.type] || r.type}</span>
-                    <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].text}</Badge>
-                    <span className='vt-imp-paste-change'>{r.now || 'Chưa có'} → <b>{r.next}</b></span>
-                </li>)}
-            </ul>}
-            {reply.issues.length > 0 && <ul className='vt-imp-paste-bad'>
-                {reply.issues.map((i, k) => <li key={k}><Badge tone='sun'>Bỏ qua</Badge> {i.message}</li>)}
-            </ul>}
+            {tableRows.length > 0 && <Table bare caption='Xem trước đáp án' rows={tableRows} rowKey={r => r.key} minWidth={520} columns={[
+                {key: 'no', header: 'Câu', render: r => <b>{r.no}</b>},
+                {key: 'type', header: 'Dạng', render: r => r.type},
+                {key: 'now', header: 'Hiện tại', render: r => r.now},
+                {key: 'next', header: 'Sẽ thành', render: r => <b>{r.next}</b>},
+                {key: 'st', header: 'Kết quả', render: r => <Badge tone={r.tone}>{r.text}</Badge>},
+            ]}/>}
         </>}
     </Modal>;
 }

@@ -99,6 +99,22 @@ export function numberedUnits(exam: ImportedExam): NumberedUnit[] {
     return exam.sections.flatMap(s => toUnits(s.questions)).map((unit, i) => ({unit, no: i + 1}));
 }
 
+/** Question numbers as printed in the file, "1–5, 7–27", and the numbers it jumps over (IV2 "Đánh số lại câu"). */
+export function sourceNumbering(exam: ImportedExam): {ranges: string; skipped: number[]} {
+    const nos = numberedUnits(exam).map(x => x.unit.questions[0].source_no).filter((n): n is number => n !== undefined);
+    const runs: Array<[number, number]> = [];
+    const skipped: number[] = [];
+    for (const n of nos) {
+        const last = runs[runs.length - 1];
+        if (last && n === last[1] + 1) last[1] = n;
+        else {
+            if (last && n > last[1] + 1 && n - last[1] <= 10) for (let k = last[1] + 1; k < n; k++) skipped.push(k);
+            runs.push([n, n]);
+        }
+    }
+    return {ranges: runs.map(([a, b]) => a === b ? String(a) : `${a}–${b}`).join(', '), skipped};
+}
+
 export const countQuestions = (exam: ImportedExam) => numberedUnits(exam).length;
 
 export const missingKeys = (exam: ImportedExam) => numberedUnits(exam).filter(x => isMissingKey(x.unit)).length;
@@ -177,9 +193,9 @@ export function saveBlocker(exams: ImportedExam[]): string | null {
 /** Backend upload messages (ASCII, no diacritics) → what a teacher can act on. */
 export function importErrorText(raw: string): string {
     const t = raw.toLowerCase();
-    if (t.includes('chi nhan file')) return 'Chỉ nhận file .docx. File .doc, .pdf hãy mở bằng Word rồi lưu lại dạng .docx.';
-    if (t.includes('qua lon')) return 'File quá lớn (tối đa 10 MB).';
-    if (t.includes('khong doc duoc file')) return 'Không đọc được file — file có thể bị hỏng hoặc đang đặt mật khẩu.';
+    if (t.includes('chi nhan file')) return 'Chỉ nhận file .docx. Nếu đề là .doc, mở trong Word rồi Lưu thành .docx.';
+    if (t.includes('qua lon')) return 'File lớn hơn 10 MB. Tách mỗi file vài đề, hoặc nén ảnh trong Word.';
+    if (t.includes('khong doc duoc file')) return 'Hệ thống không đọc được file này. Thử lưu lại bằng Word, hoặc xem lỗi thường gặp.';
     if (t.includes('khong tim thay de nao')) return "Không tìm thấy đề nào trong file — kiểm tra dòng mở câu dạng 'Câu 1.'";
     return 'Không đọc được file: ' + raw;
 }
