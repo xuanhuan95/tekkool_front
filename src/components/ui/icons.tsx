@@ -23,7 +23,7 @@ export const IconPencil = ({size = 18, color = 'var(--vt-sun-ink)'}: P) =>
 export const IconFlag = ({size = 14}: P) =>
     <Line size={size}><path d='M5 21V4h11l-2 4 2 4H5'/></Line>;
 export const IconFlagFilled = ({size = 14}: P) =>
-    <svg width={size} height={size} viewBox='0 0 24 24' fill='var(--vt-sun)' stroke='var(--vt-ink)' strokeWidth={1.6}
+    <svg width={size} height={size} viewBox='0 0 24 24' fill='var(--vt-sun)' stroke='var(--vt-sun-ink)' strokeWidth={1.6}
          strokeLinejoin='round' aria-hidden='true' focusable='false'><path d='M5 21V4h11l-2 4 2 4H5'/></svg>;
 export const IconGrid = ({size = 14}: P) =>
     <Line size={size} w={2.2}><path d='M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z'/></Line>;

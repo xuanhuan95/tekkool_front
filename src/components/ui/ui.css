@@ -321,8 +321,6 @@ textarea.vt-input { line-height: 1.5; padding: 10px 12px; resize: vertical; min-
 .vt-table-toolbar { padding: 14px 18px; border-bottom: 1.5px solid var(--vt-line-soft); }
 .vt-table-card { padding: 0; overflow: hidden; }
 .vt-table-card > .vt-table-state { padding: 16px 18px; }
-/* Text-button "Khoá" (design: underlined 14px 600 red, not an outlined button). */
-.vt-btn--ghost.vt-btn-danger-text, .vt-btn--ghost.vt-btn-danger-text:hover { color: var(--vt-err); }
 /* Edge hint: a soft ink fade on the side that still hides columns (QC B4). */
 .vt-table-scroll--left { box-shadow: inset 12px 0 10px -10px rgba(28, 25, 23, .35); }
 .vt-table-scroll--right { box-shadow: inset -12px 0 10px -10px rgba(28, 25, 23, .35); }
