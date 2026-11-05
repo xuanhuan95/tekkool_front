@@ -137,7 +137,7 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, seen, onSee,
         <div className='vt-imp-q-head'>
             <div className='vt-imp-q-title'>
                 <b>Câu {no}</b>
-                <Badge tone='title'>{QUESTION_TYPES.find(t => t.value === first.type)?.label || first.type}</Badge>
+                {!(noKey || noTf.length || badTf || issues.length) && <Badge tone='title'>{QUESTION_TYPES.find(t => t.value === first.type)?.label || first.type}</Badge>}
                 {noKey && <span className='vt-imp-flag err'>Chưa có đáp án đúng — sửa câu để chọn</span>}
                 {noTf.length > 0 && <span className='vt-imp-flag err'>Chưa đặt Đúng/Sai cho ý {noTf.join(', ')} — dùng “Dán đáp án nhanh” hoặc sửa file Word</span>}
                 {badTf && <span className='vt-imp-flag warn'>
@@ -425,7 +425,9 @@ export default function ImportExam() {
     const lightCount = chosenIssues.length - sevenSeen;
 
     // From the picker and from a drop on the upload zone.
+    const lastFile = useRef<File | null>(null);
     const readFile = async (file: File) => {
+        lastFile.current = file;
         setFileName(file.name);
         setExams([]); setIssues([]); setSeen({}); setRenumbered({}); setDuplicates({}); setResult(null);
         const bad = fileProblem(file);
@@ -633,9 +635,10 @@ export default function ImportExam() {
 
         {problem && <div role='alert' className='vt-imp-problem'>
             <div className='vt-imp-problem-text'>
-                <b>{problem.startsWith('Chỉ nhận') ? 'Chưa đúng loại file' : problem.startsWith('File quá lớn') ? 'File quá lớn' : 'Không đọc được file'}</b>
-                <span>{problem.replace(/^Không đọc được file: /, '')} <button type='button' className='vt-imp-link' onClick={() => setGuide('')}>Lỗi thường gặp</button></span>
+                <b>{problem.startsWith('Chỉ nhận') ? 'Chưa đúng loại file' : problem.startsWith('File lớn hơn') ? 'File quá lớn' : 'Không đọc được file'}</b>
+                <span>{problem.replace(/^Không đọc được file: /, '')}{problem.startsWith('Không đọc được') && <> <button type='button' className='vt-imp-link' onClick={() => setGuide('')}>Lỗi thường gặp</button></>}</span>
             </div>
+            {problem.startsWith('Không đọc được') && lastFile.current && <Button variant='secondary' onClick={() => readFile(lastFile.current!)}>Thử lại</Button>}
             <Button variant='secondary' onClick={pickFile}>Chọn file khác</Button>
         </div>}
 
@@ -708,7 +711,7 @@ export default function ImportExam() {
             })}
         </Card>}
 
-        {exams.length > 0 && !result && <Card className='vt-imp-bar' role='region' aria-label='Lưu đề'>
+        {exams.length > 0 && !result && <Card className={cx('vt-imp-bar', bankId && 'vt-imp-bar--bank')} role='region' aria-label='Lưu đề'>
             {bankId
                 ? <>
                     <Button variant='primary' loading={saving} loadingText={`Đang lưu ${progress + 1}/${chosen.length}…`}
@@ -733,7 +736,7 @@ export default function ImportExam() {
                         placeholder='Chọn môn' options={(folders || []).filter(f => !f.parent && !f.hidden).map(f => ({value: f.id, label: f.name}))}/>}
             <span className={cx('vt-imp-bar-hint', blocker && 'err')} role={blocker ? 'alert' : undefined}>
                 {unseen
-                    ? `Còn ${unseen} cảnh báo nặng chưa xem. Bấm “Đã xem, cho phép lưu” ở từng cảnh báo, hoặc sửa file Word rồi nhập lại.`
+                    ? <>{`Còn ${unseen} cảnh báo nặng chưa xem.`}<span className='vt-imp-bar-more'> Bấm “Đã xem, cho phép lưu” ở từng cảnh báo, hoặc sửa file Word rồi nhập lại.</span></>
                 : blocker
                     ? blocker + ' — sửa ngay trong đề, hoặc sửa file Word rồi nhập lại.'
                     : problems && !bankId

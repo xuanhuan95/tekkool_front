@@ -88,7 +88,7 @@ describe('editing the preview payload', () => {
 describe('upload checks and messages', () => {
     it('refuses a non-docx or oversized file before uploading', () => {
         expect(fileProblem({name: 'de.pdf', size: 10})).toMatch(/Chỉ nhận file .docx/);
-        expect(fileProblem({name: 'de.docx', size: 11 * 1024 * 1024})).toBe('File quá lớn (tối đa 10 MB).');
+        expect(fileProblem({name: 'de.docx', size: 11 * 1024 * 1024})).toBe('File lớn hơn 10 MB. Tách mỗi file vài đề, hoặc nén ảnh trong Word.');
         expect(fileProblem({name: 'DE.DOCX', size: 1024})).toBeNull();
     });
 

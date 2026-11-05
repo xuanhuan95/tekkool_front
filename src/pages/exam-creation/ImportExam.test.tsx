@@ -438,7 +438,8 @@ describe('ImportExam: Dán đáp án nhanh', () => {
         expect(screen.getByText('1 thêm mới')).toBeTruthy();
         expect(screen.getByText('1 lỗi, sẽ bỏ qua')).toBeTruthy();
         expect(within(screen.getByRole('table', {name: 'Xem trước đáp án'})).getAllByRole('columnheader').map(h => h.textContent)).toEqual(['Câu', 'Dạng', 'Hiện tại', 'Sẽ thành', 'Kết quả']);
-        expect(screen.getByText('Câu 40: phần này chỉ có 1 câu')).toBeTruthy();
+        expect(screen.getByText('phần này chỉ có 1 câu')).toBeTruthy();   // red row in the table, not a list below it
+        expect(screen.getByText('Câu 40')).toBeTruthy();
         // preview only: nothing written yet
         expect(saveButton().disabled).toBe(true);
 

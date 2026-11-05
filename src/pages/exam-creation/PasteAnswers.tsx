@@ -36,6 +36,14 @@ export default function PasteAnswers({exam, open, onClose, onApply}: {
 
     const rows = reply ? pasteRows(exam, reply.answers) : [];
     const count = (s: PasteRow['status']) => rows.filter(r => r.status === s).length;
+    // One row per question, then the lines the BE could not read as red rows ("Câu 40 … Không có Câu 40").
+    const tableRows = [
+        ...rows.map(r => ({key: 'q' + r.no, no: 'Câu ' + r.no, type: TYPE_NAME[r.type] || r.type, now: r.now || 'Chưa có', next: r.next, ...STATUS[r.status]})),
+        ...(reply?.issues || []).map((i, k) => {
+            const m = /^Câu (\d+)[:,]?\s*(.*)$/.exec(i.message);
+            return {key: 'e' + k, no: m ? 'Câu ' + m[1] : '—', type: '—', now: '—', next: '—', tone: 'err' as const, text: m ? m[2] || i.message : i.message};
+        }),
+    ];
     return <Modal open={open} onClose={close} title='Dán đáp án nhanh' size='md'
                   footer={<>
                       <Button variant='secondary' onClick={close}>Huỷ</Button>
@@ -56,16 +64,13 @@ export default function PasteAnswers({exam, open, onClose, onApply}: {
                 <Badge tone='ok'>{count('new')} thêm mới</Badge> <Badge tone='sun'>{count('change')} đổi</Badge>{' '}
                 <Badge tone='draft'>{count('same')} giữ nguyên</Badge> <Badge tone='err'>{reply.issues.length} lỗi, sẽ bỏ qua</Badge>
             </p>
-            {rows.length > 0 && <Table bare caption='Xem trước đáp án' rows={rows} rowKey={r => r.no} minWidth={520} columns={[
+            {tableRows.length > 0 && <Table bare caption='Xem trước đáp án' rows={tableRows} rowKey={r => r.key} minWidth={520} columns={[
                 {key: 'no', header: 'Câu', render: r => <b>{r.no}</b>},
-                {key: 'type', header: 'Dạng', render: r => TYPE_NAME[r.type] || r.type},
-                {key: 'now', header: 'Hiện tại', render: r => r.now || 'Chưa có'},
+                {key: 'type', header: 'Dạng', render: r => r.type},
+                {key: 'now', header: 'Hiện tại', render: r => r.now},
                 {key: 'next', header: 'Sẽ thành', render: r => <b>{r.next}</b>},
-                {key: 'st', header: 'Kết quả', render: r => <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].text}</Badge>},
+                {key: 'st', header: 'Kết quả', render: r => <Badge tone={r.tone}>{r.text}</Badge>},
             ]}/>}
-            {reply.issues.length > 0 && <ul className='vt-imp-paste-bad'>
-                {reply.issues.map((i, k) => <li key={k}><Badge tone='sun'>Bỏ qua</Badge> {i.message}</li>)}
-            </ul>}
         </>}
     </Modal>;
 }
