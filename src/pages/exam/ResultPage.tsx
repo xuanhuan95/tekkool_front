@@ -1,4 +1,3 @@
-import renderHTML from '../../components/SafeHtml';
 import {Link, useNavigate, useParams} from 'react-router-dom';
 
 import {Badge, Button, Card, ErrorState, PageTitle, SkeletonCard, buttonClass} from '../../components/ui';
@@ -7,6 +6,7 @@ import {useSubmission} from '../../queries/submissions';
 import type {ApiError} from '../../services/api';
 import {formatDecimal, formatMinutes, formatPoints, formatScore, formatTimeDate} from '../../lib/format';
 import {partRows, summarize} from './submissionView';
+import TeacherNote from './TeacherNote';
 import './results.css';
 
 export function loadError(e: unknown): string {
@@ -101,10 +101,7 @@ export default function ResultPage() {
             </span>
         </Card>}
 
-        {data.teacher_comment && <Card size='md'>
-            <span className='vt-rv-label'>Nhận xét của giáo viên</span>
-            <div className='vt-rv-comment'>{renderHTML(data.teacher_comment)}</div>
-        </Card>}
+        {data.teacher_comment && <TeacherNote html={data.teacher_comment}/>}
 
         <div className='vt-res-actions'>
             <Link to={'/review/' + data.id} className={buttonClass({variant: 'primary', block: true})}>Xem lại bài</Link>

@@ -34,6 +34,8 @@ export type EditorProps = {
     onPaste?: (e: {target: {innerText: string}}) => void;
     onKeyUp?: (e: React.KeyboardEvent<HTMLDivElement>) => void;
     onBlur?: () => void;
+    /** Fires on every keystroke (onChange is debounced 500ms): for badges that must follow typing. */
+    onLive?: (html: string) => void;
     disableReturn?: boolean;
     disableStyle?: boolean;
     /** student: toolbar with Σ (formula keyboard), no images. teacher (default): Σ and image insert. disableStyle hides the toolbar. */
@@ -47,7 +49,7 @@ export type EditorProps = {
 export function Editor(props: EditorProps) {
     const {
         text, placeholder, type, onChange, onToAnswerButton,
-        onPaste, onKeyUp, onBlur, disableReturn, disableStyle, refMedium,
+        onPaste, onKeyUp, onBlur, onLive, disableReturn, disableStyle, refMedium,
         variant = 'teacher', maxChars,
     } = props;
 
@@ -91,6 +93,10 @@ export function Editor(props: EditorProps) {
         ],
         content: text || '',
         editorProps: {
+            // "Gọn" (nhận xét chấm) has no table: a pasted table keeps its text, loses the grid.
+            transformPastedHTML: variant === 'compact'
+                ? (h: string) => h.replace(/<\/t[dh]>/gi, ' ').replace(/<\/tr>/gi, '<br>').replace(/<\/?(table|thead|tbody|tfoot|tr|th|td|colgroup|col|caption)\b[^>]*>/gi, '')
+                : undefined,
             // disableReturn: block line breaks for single-line boxes (answers).
             handleKeyDown: (_view: EditorView, event: KeyboardEvent) =>
                 disableReturn && event.key === 'Enter' ? (event.preventDefault(), true) : false,
@@ -113,6 +119,7 @@ export function Editor(props: EditorProps) {
         },
         // Merge consecutive keystrokes into one onChange call (keeps old behavior).
         onUpdate: ({editor}) => {
+            onLive?.(editor.getHTML());
             if (!onChange) return;
             if (timeout.current) clearTimeout(timeout.current);
             latest.current.html = editor.getHTML();

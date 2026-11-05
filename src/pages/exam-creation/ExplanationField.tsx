@@ -15,8 +15,10 @@ const Svg = ({children}: {children: ReactNode}) =>
  */
 export default function ExplanationField({unit, onChange}: {unit: Question[]; onChange: (id: string, data: {explanation: string}) => void}) {
     const first = unit[0];
-    const html: string = first.data.explanation || '';
-    const [open, setOpen] = useState(!!html);
+    const saved: string = first.data.explanation || '';
+    const [live, setLive] = useState<{id: string; html: string} | null>(null);
+    const html = live?.id === first.id ? live.html : saved;
+    const [open, setOpen] = useState(!!saved);
     const has = textLength(html) > 0 || /<img|data-latex/.test(html);
     const tooLong = textLength(html) > EXPLANATION_MAX;
     return <div className='vt-explain-field'>
@@ -27,7 +29,7 @@ export default function ExplanationField({unit, onChange}: {unit: Question[]; on
             <Svg><path d={open ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'}/></Svg>
         </button>
         {open && <div className={tooLong ? 'vt-explain-over' : undefined}>
-            <Editor key={first.id} variant='teacher' maxChars={EXPLANATION_MAX} text={html}
+            <Editor key={first.id} variant='teacher' maxChars={EXPLANATION_MAX} text={saved} onLive={(h: string) => setLive({id: first.id, html: h})}
                     placeholder='Viết lời giải từng bước. Học sinh chỉ thấy lời giải sau khi nộp bài.'
                     onChange={(v: string) => onChange(first.id, {explanation: v})}/>
             {tooLong && <div className='vt-explain-err'>

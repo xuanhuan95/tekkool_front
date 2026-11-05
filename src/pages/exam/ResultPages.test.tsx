@@ -111,15 +111,15 @@ describe('ReviewPage', () => {
         expect(within(q1).getByText('Bạn chọn')).toBeTruthy();
         expect(within(q1).getByText('Đáp án đúng')).toBeTruthy();
         // Wrong answer with an explanation: "Lời giải" open.
-        expect(within(q1).getByText('Lời giải').closest('details')).toHaveAttribute('open');
+        expect(within(q1).getByText('Xem lời giải').closest('details')).toHaveAttribute('open');
         expect(within(q1).getByText('Một cộng một bằng hai.')).toBeTruthy();
-        expect(within(screen.getByRole('article', {name: 'Câu 2'})).queryByText('Lời giải')).toBeNull();
+        expect(within(screen.getByRole('article', {name: 'Câu 2'})).queryByText('Xem lời giải')).toBeNull();
 
         const q3 = screen.getByRole('article', {name: 'Câu 3'});
         expect(within(q3).getByText('2 / 4 ý · 0,25 / 1')).toBeTruthy();
         expect(within(q3).getAllByLabelText('Sai')).toHaveLength(2);
 
-        expect(screen.getByRole('article', {name: 'Câu 4 · 1,5đ'})).toBeTruthy();
+        expect(screen.getByRole('article', {name: 'Câu 4 (tự luận)'})).toBeTruthy();
         expect(screen.getByText('Chờ giáo viên chấm')).toBeTruthy();
 
         fireEvent.click(screen.getByRole('tab', {name: 'Đúng'}));
@@ -127,7 +127,7 @@ describe('ReviewPage', () => {
         fireEvent.click(screen.getByRole('tab', {name: 'Sai'}));
         expect(screen.getAllByRole('article').map(a => a.getAttribute('aria-label'))).toEqual(['Câu 1', 'Câu 3']);
         fireEvent.click(screen.getByRole('tab', {name: 'Tự luận'}));
-        expect(screen.getAllByRole('article').map(a => a.getAttribute('aria-label'))).toEqual(['Câu 4 · 1,5đ']);
+        expect(screen.getAllByRole('article').map(a => a.getAttribute('aria-label'))).toEqual(['Câu 4 (tự luận)']);
     });
 });
 

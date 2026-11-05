@@ -17,7 +17,7 @@ export default function TableDialog({open, onClose, onInsert}: {open: boolean; o
     const [hover, setHover] = useState<{r: number; c: number} | null>(null);
     const r = hover ? hover.r : clamp(rows), c = hover ? hover.c : clamp(cols);
 
-    return <Modal open={open} onClose={onClose} title='Chèn bảng'
+    return <Modal open={open} onClose={onClose} title='Chèn bảng' mobileSheet showClose
                   footer={<>
                       <Button variant='secondary' onClick={onClose}>Huỷ</Button>
                       <Button variant='primary' onClick={() => { onInsert(clamp(rows), clamp(cols), header); onClose(); }}>Chèn bảng</Button>

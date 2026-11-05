@@ -144,7 +144,7 @@ export default function MathDialog({open, latex, onCancel, onDone}: Props) {
     const done = () => onDone(onChem ? toCe(chem) : toKatex(tex));
     const addChem = (t: string) => setChem(c => c + t);
 
-    return <Modal open={open} onClose={onCancel} title='Chèn công thức' size='md' showClose
+    return <Modal open={open} onClose={onCancel} title='Chèn công thức' size='md' showClose mobileSheet
                   footer={<>
                       <Button onClick={onCancel}>Huỷ</Button>
                       <Button variant='primary' disabled={!text.trim() || !!err} onClick={done}>Chèn công thức</Button>

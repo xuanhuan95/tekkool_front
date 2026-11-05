@@ -25,6 +25,8 @@
 .tt-morebtn { display: none; font-weight: 700; order: 50; }
 .tt-toolbar::after { content: ''; flex-basis: 100%; order: 60; display: none; }
 @media (max-width: 639.98px) {
+    /* tight gaps so 5 buttons + "…" (6 x 44px) fit the 284px option editor on a 390px phone */
+    .tt-toolbar { gap: 1px; padding: 4px; }
     .tt-item { order: var(--p); }
     .tt-sep { display: none; }
     .tt-morebtn { display: inline-flex; }
@@ -66,10 +68,12 @@
 .tt-math-field math-field { display: block; width: 100%; box-sizing: border-box; font-size: 24px; padding: 10px 12px;
     border: 2px solid var(--vt-ink, #1c1917); border-radius: 13px 9px 14px 8px / 8px 14px 9px 13px; background: #fff; }
 .tt-math-field math-field:focus-within { outline: none; box-shadow: inset 0 0 0 1.5px var(--vt-ink, #1c1917); }
-.tt-math-tabs { display: flex; gap: 6px; }
-.tt-math-tab { min-height: 36px; padding: 0 14px; border: 2px solid transparent; border-radius: 999px; background: none; font: inherit; font-weight: 600; cursor: pointer; }
+.tt-math-tabs { display: flex; gap: 6px; overflow-x: auto; }
+.tt-math-tab { flex: none; white-space: nowrap; min-height: 36px; padding: 0 14px; border: 2px solid transparent; border-radius: 999px; background: none; font: inherit; font-weight: 600; cursor: pointer; }
 .tt-math-tab.on { background: var(--vt-action, #d0e9fd); border-color: var(--vt-ink, #1c1917); }
 .tt-math-keys { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 8px; }
+.tt-math-keys--chars { grid-template-columns: repeat(6, 1fr); }
+.tt-math-keys--chars .tt-math-key { border-color: var(--vt-line-soft, #e7e5dc); }
 .tt-math-key { position: relative; min-height: 44px; border: 2px solid var(--vt-ink, #1c1917); border-radius: 13px 9px 14px 8px / 8px 14px 9px 13px;
     background: #fff; font: inherit; font-size: 18px; font-weight: 600; cursor: pointer; }
 .tt-math-key:hover { background: var(--vt-paper, #f5f6ee); }
@@ -135,7 +139,7 @@
 .tt-math-tabs--seg .tt-math-tab.on { background: #d0e9fd; }
 .tt-math-hint { font-size: 12px; font-weight: 600; color: #57534e; line-height: 1.4; }
 .tt-math-hint code { font-size: 11px; background: #f5f6ee; padding: 1px 4px; border-radius: 4px; }
-.tt-math-tpls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.tt-math-tpls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .tt-math-tpl { min-height: 64px; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #fff; border: 1.5px solid #d6d3c4; border-radius: 8px 5px 9px 4px / 4px 9px 5px 8px; font: inherit; color: #1c1917; cursor: pointer; box-sizing: border-box; }
 .tt-math-tpl.on { background: #d0e9fd; border-color: #1c1917; }
 .tt-math-tpl > span { font-size: 15px; line-height: 1.2; }

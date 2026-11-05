@@ -133,7 +133,7 @@ export default function Section({section, subject}: Props) {
 
                 <IconButton label='Xoá câu này' variant='outline' tipEnd icon={<icons.IconClose size={18}/>}
                             onClick={() => setRemoving(unit)}
-                            style={{position: 'absolute', right: '5px', zIndex: 999}}/>
+                            style={{position: 'absolute', right: '5px', zIndex: 2}}/>
 
                 <div id={question.id} className='q-unit-body' style={{marginBottom: '18px'}}>
                     {isTrueFalse

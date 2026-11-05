@@ -10,6 +10,7 @@ import {loadError} from './ResultPage';
 import {buildReview, filterReview, reviewBadge, summarize} from './submissionView';
 import type {ReviewFilter, ReviewItem} from './submissionView';
 import {AnswerImageThumbs} from './AnswerImages';
+import TeacherNote from './TeacherNote';
 import './results.css';
 
 const FILTERS: Array<{value: ReviewFilter; label: string}> = [
@@ -20,6 +21,8 @@ const FILTERS: Array<{value: ReviewFilter; label: string}> = [
 const TONE: Record<ReviewItem['status'], BadgeTone> = {
     correct: 'ok', wrong: 'err', partial: 'sun', pending: 'sun-strong', graded: 'ok',
 };
+
+const Book = () => <svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'><path d='M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5z'/><path d='M4 19a2 2 0 0 1 2-2h13'/></svg>;
 
 const tf = (v: boolean | null) => v === null ? '—' : v ? 'Đ' : 'S';
 
@@ -84,22 +87,31 @@ function TextBody({item}: {item: ReviewItem}) {
 }
 
 function ReviewCard({item}: {item: ReviewItem}) {
-    const title = item.kind === 'essay' ? `Câu ${item.number} · ${formatDecimal(item.maxScore)}đ` : `Câu ${item.number}`;
+    const essay = item.kind === 'essay';
+    const title = essay ? `Câu ${item.number} (tự luận)` : `Câu ${item.number}`;
     return <>
         {item.passage && <div className='vt-rv-passage'>{renderHTML(item.passage)}</div>}
         <Card as='article' className='vt-rv' aria-label={title}>
             <div className='vt-rv-head'>
                 <span className='vt-rv-num'>{title}</span>
-                <Badge tone={TONE[item.status]}>{reviewBadge(item)}</Badge>
+                {essay && item.status !== 'pending'
+                    ? <span className='vt-rv-badges'>
+                        <Badge tone='ok'>Đã chấm</Badge>
+                        <Badge tone='draft'>{formatDecimal(item.score || 0)} / {formatDecimal(item.maxScore)} điểm</Badge>
+                    </span>
+                    : <Badge tone={TONE[item.status]}>{reviewBadge(item)}</Badge>}
             </div>
             {item.prompt && <div className='vt-rv-prompt'>{renderHTML(item.prompt)}</div>}
             {item.kind === 'choice' && <ChoiceBody item={item}/>}
             {item.kind === 'truefalse' && <TrueFalseBody item={item}/>}
             {item.kind === 'cluster' && <ClusterBody item={item}/>}
             {(item.kind === 'short' || item.kind === 'essay') && <TextBody item={item}/>}
-            {item.comment && <div className='vt-rv-comment'><b>Giáo viên:</b> {renderHTML(item.comment)}</div>}
+            {item.comment && <TeacherNote html={item.comment}/>}
             {item.explanation && <details className='vt-rv-sol' open={item.status === 'wrong' || item.status === 'partial'}>
-                <summary>Lời giải</summary>
+                <summary>
+                    <Book/><span className='vt-rv-sol-show'>Xem lời giải</span><span className='vt-rv-sol-hide'>Ẩn lời giải</span>
+                    <svg className='vt-rv-sol-chev' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.4' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'><path d='M6 9l6 6 6-6'/></svg>
+                </summary>
                 <div className='vt-rv-solbody'>{renderHTML(item.explanation)}</div>
             </details>}
         </Card>

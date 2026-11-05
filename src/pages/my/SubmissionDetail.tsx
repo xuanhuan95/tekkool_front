@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {useParams} from 'react-router-dom';
+import {useNavigate, useParams} from 'react-router-dom';
 import {Button, Form, Header, Icon, Input, Label, Message, Segment} from 'semantic-ui-react';
 import {Card, ErrorState, MetaChips, notify} from '../../components/ui';
 
@@ -7,6 +7,7 @@ import Loading from '../../components/Loading';
 import {Editor} from '../../components/Editor';
 import {textLength} from '../../components/textLength';
 import renderHTML from '../../components/SafeHtml';
+import TeacherNote from '../exam/TeacherNote';
 import Api from '../../services/api';
 import {numToChar} from '../../services/tools';
 import {useAuthStore} from '../../stores/authStore';
@@ -39,6 +40,7 @@ type Draft = Record<string, string>;
  */
 export default function SubmissionDetail() {
     const {id} = useParams();
+    const navigate = useNavigate();
     const user = useAuthStore(s => s.user);
 
     const [sub, setSub] = useState<Sub | null>(null);
@@ -131,7 +133,9 @@ export default function SubmissionDetail() {
         const withMarks = !choices.length && !!a.images?.length;
         const marksByImage = Object.fromEntries((a.images || []).map(i => [i, markDraft[i] ?? marksOf(a.marks, i)]));
         const gradeForm = <Form className='sub-grade'>
+            <Header as='h3' className='sub-grade-title'>Chấm điểm</Header>
             <Form.Group inline>
+                <span className='sub-label'>Điểm</span>
                 <Form.Field>
                     <Input size='small' type='number' step='0.25' min={0} max={a.max_score}
                            label={'/ ' + a.max_score} labelPosition='right'
@@ -143,7 +147,7 @@ export default function SubmissionDetail() {
                            }}/>
                 </Form.Field>
             </Form.Group>
-            <div className='sub-label'>Nhận xét cho câu này (không bắt buộc)</div>
+            <div className='sub-label'>Nhận xét chấm (học sinh sẽ đọc)</div>
             <Editor variant='compact' maxChars={COMMENT_MAX} placeholder='Nhận xét cho câu này…' text={commentOf(a)}
                     onChange={(v: string) => {
                         setComments(c => ({...c, [a.question_id]: v}));
@@ -256,19 +260,17 @@ export default function SubmissionDetail() {
             {saveError && <Card tone='error' role='alert' className='margin-top'>
                 <b>Chưa lưu được</b>
                 <p>{saveError}</p>
-                <p>Điểm, nhận xét và dấu trên ảnh vẫn còn ở đây. Bấm “Lưu điểm” để thử lại.</p>
+                <p>Điểm, nhận xét và dấu trên ảnh vẫn còn ở đây. Bấm “Lưu điểm và nhận xét” để thử lại.</p>
             </Card>}
             <Button primary className='margin-top' onClick={save}
                     loading={saving} disabled={saving || tooLong || uploading}>
-                <Icon name='save'/> Lưu điểm
+                <Icon name='save'/> Lưu điểm và nhận xét
             </Button>
+            <Button basic className='margin-top' onClick={() => navigate(-1)}>Bỏ qua</Button>
             {saved && <span className='margin-left text-muted'>Đã lưu</span>}
         </Segment>}
 
         {!canGrade && sub.teacher_comment &&
-        <Message info>
-            <Message.Header>Nhận xét của giáo viên</Message.Header>
-            {renderHTML(sub.teacher_comment)}
-        </Message>}
+        <TeacherNote html={sub.teacher_comment}/>}
     </div>;
 }
