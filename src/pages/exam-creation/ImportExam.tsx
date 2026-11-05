@@ -633,7 +633,7 @@ export default function ImportExam() {
             <ErrorState title='Không tải được danh sách môn / ngân hàng' description={errorText(foldersQ.error || banksQ.error, 'Kiểm tra mạng rồi thử lại.')}
                         onRetry={() => { if (foldersQ.isError) foldersQ.refetch(); if (banksQ.isError) banksQ.refetch(); }}/>}
 
-        {problem && (() => { const unreadable = /không đọc được/.test(problem); return <div role='alert' className='vt-imp-problem'>
+        {problem && (() => { const unreadable = /không đọc được/i.test(problem); return <div role='alert' className='vt-imp-problem'>
             <div className='vt-imp-problem-text'>
                 <b>{problem.startsWith('Chỉ nhận') ? 'Chưa đúng loại file' : problem.startsWith('File lớn hơn') ? 'File quá lớn' : 'Không đọc được file'}</b>
                 <span>{problem.replace(/^Không đọc được file: /, '')}</span>
