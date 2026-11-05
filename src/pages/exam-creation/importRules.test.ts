@@ -93,7 +93,7 @@ describe('upload checks and messages', () => {
     });
 
     it('maps the backend messages and keeps unknown ones visible', () => {
-        expect(importErrorText('Khong doc duoc file: bad zip')).toMatch(/hỏng hoặc đang đặt mật khẩu/);
+        expect(importErrorText('Khong doc duoc file: bad zip')).toMatch(/Thử lưu lại bằng Word/);
         expect(importErrorText('Khong tim thay de nao trong file')).toMatch(/Câu 1/);
         expect(importErrorText('boom')).toBe('Không đọc được file: boom');
     });
