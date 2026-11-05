@@ -195,7 +195,7 @@ export function importErrorText(raw: string): string {
     const t = raw.toLowerCase();
     if (t.includes('chi nhan file')) return 'Chỉ nhận file .docx. Nếu đề là .doc, mở trong Word rồi Lưu thành .docx.';
     if (t.includes('qua lon')) return 'File lớn hơn 10 MB. Tách mỗi file vài đề, hoặc nén ảnh trong Word.';
-    if (t.includes('khong doc duoc file')) return 'Không đọc được file — file có thể bị hỏng hoặc đang đặt mật khẩu.';
+    if (t.includes('khong doc duoc file')) return 'Hệ thống không đọc được file này. Thử lưu lại bằng Word, hoặc xem lỗi thường gặp.';
     if (t.includes('khong tim thay de nao')) return "Không tìm thấy đề nào trong file — kiểm tra dòng mở câu dạng 'Câu 1.'";
     return 'Không đọc được file: ' + raw;
 }
