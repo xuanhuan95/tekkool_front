@@ -77,14 +77,14 @@ it('stripInfoPrefix drops the leading "Cho biết", keeps tags and other text', 
 });
 
 describe('optionsAreShort', () => {
-    it('4 short answers → horizontal; exactly 6 chars still short, 7 is long', () => {
+    it('4 short answers → horizontal; exactly 3 chars still short, 4 is long', () => {
         expect(optionsAreShort(['2', '6', '4', '8'])).toBe(true);
-        expect(optionsAreShort(['123456', '1', '2', '3'])).toBe(true);
-        expect(optionsAreShort(['1234567', '1', '2', '3'])).toBe(false);
+        expect(optionsAreShort(['123', '1', '2', '3'])).toBe(true);
+        expect(optionsAreShort(['1234', '1', '2', '3'])).toBe(false);
     });
     it('strips tags and entities before counting', () => {
-        expect(optionsAreShort(['<p><b>x</b>&nbsp;=&nbsp;1</p>', '<sup>2</sup>', 'a', 'b'])).toBe(true);
-        expect(optionsAreShort(['<span class="katex">1234567</span>', '1', '2', '3'])).toBe(false);
+        expect(optionsAreShort(['<p><b>1</b>&nbsp;2</p>', '<sup>2</sup>', 'a', 'b'])).toBe(true);
+        expect(optionsAreShort(['<span class="katex">1234</span>', '1', '2', '3'])).toBe(false);
     });
     it('an image is never short', () => {
         expect(optionsAreShort(['<img src="a.png">', '1', '2', '3'])).toBe(false);
