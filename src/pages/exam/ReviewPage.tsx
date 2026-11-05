@@ -97,7 +97,7 @@ function ReviewCard({item}: {item: ReviewItem}) {
             {item.kind === 'truefalse' && <TrueFalseBody item={item}/>}
             {item.kind === 'cluster' && <ClusterBody item={item}/>}
             {(item.kind === 'short' || item.kind === 'essay') && <TextBody item={item}/>}
-            {item.comment && <div className='vt-rv-comment'><b>Giáo viên:</b> {item.comment}</div>}
+            {item.comment && <div className='vt-rv-comment'><b>Giáo viên:</b> {renderHTML(item.comment)}</div>}
             {item.explanation && <details className='vt-rv-sol' open={item.status === 'wrong' || item.status === 'partial'}>
                 <summary>Lời giải</summary>
                 <div className='vt-rv-solbody'>{renderHTML(item.explanation)}</div>

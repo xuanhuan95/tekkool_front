@@ -7,6 +7,7 @@ import ShortAnswer from './questions/ShortAnswer';
 import TrueFalseBlock from './TrueFalseBlock';
 import {isChum, scoreData, toUnits} from './examRules';
 import ScoreField from './ScoreField';
+import ExplanationField from './ExplanationField';
 import ErrorIdentify from './questions/ErrorIdentify';
 import FreeAnswer from './questions/FreeAnswer';
 import Default from './Default';
@@ -147,6 +148,7 @@ export default function Section({section, subject}: Props) {
                             // SPT-97 câu chùm: every ý is its own FillBlank (question + answer), the passage is above.
                             : (isChum(unit) ? unit : [question]).map(q => <QuestionView key={q.id} question={q} section={section}
                                         setSectionState={setSectionState}/>)}
+                    <ExplanationField key={question.id} unit={unit} onChange={patchData}/>
                     <ScoreField unit={unit} subject={subject} onChange={setScore}/>
                 </div>
             </div>

@@ -13,6 +13,10 @@ import CheckItem from './CheckItem';
 import EditorToolbar from './EditorToolbar';
 import type {EditorVariant} from './EditorToolbar';
 import ImageDialog from './ImageDialog';
+import {textLength} from './textLength';
+import CharDialog from './CharDialog';
+import TableDialog from './TableDialog';
+import {imageFiles, useImageUploads} from './useImageUploads';
 import {Superscript, Subscript, Image, MathInline} from './RichExtras';
 
 import './Editor.css';
@@ -34,6 +38,8 @@ export type EditorProps = {
     disableStyle?: boolean;
     /** student: toolbar with Σ (formula keyboard), no images. teacher (default): Σ and image insert. disableStyle hides the toolbar. */
     variant?: EditorVariant;
+    /** Show "n / max ký tự" and mark the box red when over. Saving is the caller's call: see `textLength`. */
+    maxChars?: number;
     /** Shim for legacy code: NOT a React ref, see the useEffect below. */
     refMedium?: {current: any};
 };
@@ -42,7 +48,7 @@ export function Editor(props: EditorProps) {
     const {
         text, placeholder, type, onChange, onToAnswerButton,
         onPaste, onKeyUp, onBlur, disableReturn, disableStyle, refMedium,
-        variant = 'teacher',
+        variant = 'teacher', maxChars,
     } = props;
 
     const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -59,6 +65,12 @@ export function Editor(props: EditorProps) {
     // Σ dialog state: pos != null = editing the formula node at that position.
     const [math, setMath] = useState<{pos: number | null; latex: string} | null>(null);
     const [imageOpen, setImageOpen] = useState(false);
+    const [charsOpen, setCharsOpen] = useState(false);
+    const [tableOpen, setTableOpen] = useState(false);
+    const editorRef = useRef<ReturnType<typeof useEditor>>(null);
+    const uploads = useImageUploads(editorRef, variant === 'teacher', () => setImageOpen(true));
+    const addImages = useRef(uploads.add);
+    addImages.current = uploads.add;
     const editMath = useRef((pos: number, latex: string) => setMath({pos, latex}));
 
     const editor = useEditor({
@@ -73,7 +85,7 @@ export function Editor(props: EditorProps) {
             Placeholder.configure({placeholder: placeholder || ''}),
             CheckItem,
             Superscript, Subscript, Image,
-            // Tables come from Word import (SPT-93). No toolbar button: teachers edit the text inside cells, students never get a table.
+            // Tables: Word import (SPT-93) and the teacher's "Chèn bảng" button (SPT-115).
             Table, TableRow, TableHeader, TableCell,
             MathInline.configure({onEdit: (pos, latex) => editMath.current(pos, latex)}),
         ],
@@ -82,7 +94,16 @@ export function Editor(props: EditorProps) {
             // disableReturn: block line breaks for single-line boxes (answers).
             handleKeyDown: (_view: EditorView, event: KeyboardEvent) =>
                 disableReturn && event.key === 'Enter' ? (event.preventDefault(), true) : false,
-            handlePaste: () => {
+            // Image from the clipboard (also pasted from Word) or dropped in: upload, never keep as base64 / file://.
+            handleDrop: (_v, event: DragEvent) => {
+                const fs = imageFiles(event.dataTransfer?.files);
+                if (!fs.length) return false;
+                event.preventDefault();
+                return addImages.current(fs);
+            },
+            handlePaste: (_v: EditorView, event: ClipboardEvent) => {
+                const fs = imageFiles(event.clipboardData?.files);
+                if (fs.length) { event.preventDefault(); return addImages.current(fs); }
                 // Pasting past the limit goes in whole — the old version cut the excess here.
                 if (!onPaste) return false;
                 // Old code reads event.target.innerText -> wait until the paste finishes.
@@ -99,6 +120,8 @@ export function Editor(props: EditorProps) {
         },
         onBlur: () => { flush(); if (onBlur) onBlur(); },
     });
+
+    (editorRef as {current: typeof editor}).current = editor;
 
     // Shim: old code passes a ref through the PROP refMedium (not a React ref)
     // then calls refMedium.current.medium.setContent/getContent/elements[0].focus().
@@ -131,8 +154,15 @@ export function Editor(props: EditorProps) {
 
     return <div className='tt-editor' onKeyUp={onKeyUp}>
         {!disableStyle && <EditorToolbar editor={editor} variant={variant} type={type} onToAnswerButton={onToAnswerButton}
-                                         onSigma={() => setMath({pos: null, latex: ''})} onImage={() => setImageOpen(true)}/>}
+                                         onSigma={() => setMath({pos: null, latex: ''})} onImage={() => setImageOpen(true)}
+                                         onChars={() => setCharsOpen(true)} onTable={() => setTableOpen(true)}/>}
         <EditorContent editor={editor}/>
+        {uploads.view}
+        {maxChars !== undefined && editor && (() => {
+            const n = textLength(editor.getHTML());
+            return n > maxChars * 0.9 && <div className={'tt-count' + (n > maxChars ? ' over' : '')} role={n > maxChars ? 'alert' : undefined}>
+                {n.toLocaleString('vi-VN')} / {maxChars.toLocaleString('vi-VN')} ký tự{n > maxChars && ' — quá dài, rút gọn rồi lưu.'}</div>;
+        })()}
         {math && <Suspense fallback={null}>
             <MathDialog open latex={math.latex} onCancel={() => setMath(null)}
                         onDone={latex => {
@@ -143,6 +173,10 @@ export function Editor(props: EditorProps) {
                             setMath(null);
                         }}/>
         </Suspense>}
+        <CharDialog open={charsOpen} onClose={() => setCharsOpen(false)}
+                    onInsert={c => editor?.chain().focus().insertContent(c).run()}/>
+        <TableDialog open={tableOpen} onClose={() => setTableOpen(false)}
+                     onInsert={(rows, cols, header) => editor?.chain().focus().insertTable({rows, cols, withHeaderRow: header}).run()}/>
         {imageOpen && <ImageDialog open onClose={() => setImageOpen(false)}
                                    onInsert={src => editor?.chain().focus().insertContent({type: 'image', attrs: {src}}).run()}/>}
     </div>

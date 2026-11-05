@@ -1,13 +1,16 @@
 import {useEffect, useState} from 'react';
 import {useParams} from 'react-router-dom';
-import {Button, Form, Header, Icon, Input, Label, Message, Segment, TextArea} from 'semantic-ui-react';
+import {Button, Form, Header, Icon, Input, Label, Message, Segment} from 'semantic-ui-react';
 import {Card, ErrorState, MetaChips, notify} from '../../components/ui';
 
 import Loading from '../../components/Loading';
+import {Editor} from '../../components/Editor';
+import {textLength} from '../../components/textLength';
 import renderHTML from '../../components/SafeHtml';
 import Api from '../../services/api';
 import {numToChar} from '../../services/tools';
 import {useAuthStore} from '../../stores/authStore';
+import {useUploadStore} from '../../stores/uploadStore';
 import type {SubmissionAnswer, SubmissionDetail as Sub} from '../../types/submission';
 import {fmtDate, fmtDuration, ScoreLabel} from './fmt';
 import {formatDecimal} from '../../lib/format';
@@ -18,6 +21,9 @@ import type {Mark} from './imageMarks';
 
 /** 403 from the BE: only the teacher in charge of the exam's subject may open / grade it. */
 const NO_ACCESS = 'Bạn không phụ trách môn của đề này nên không xem và chấm được bài. Liên hệ Admin để được gán môn.';
+
+/** Teacher remark limit (spec §3, G7): counted on visible text. */
+const COMMENT_MAX = 2000;
 
 /** Scores/comments the teacher is typing, keyed by `question_id`. */
 type Draft = Record<string, string>;
@@ -67,6 +73,9 @@ export default function SubmissionDetail() {
 
     const commentOf = (a: SubmissionAnswer) =>
         comments[a.question_id] !== undefined ? comments[a.question_id] : (a.comment || '');
+
+    const tooLong = [teacherComment, ...Object.values(comments)].some(c => textLength(c) > COMMENT_MAX);
+    const uploading = useUploadStore(s => s.pending > 0);
 
     const save = async () => {
         const problem = Object.values(markDraft).map(markProblem).find(Boolean);
@@ -134,12 +143,12 @@ export default function SubmissionDetail() {
                            }}/>
                 </Form.Field>
             </Form.Group>
-            <TextArea rows={2} placeholder='Nhận xét cho câu này…'
-                      value={commentOf(a)}
-                      onChange={(_e, {value}) => {
-                          setComments(c => ({...c, [a.question_id]: String(value ?? '')}));
-                          setSaved(false);
-                      }}/>
+            <div className='sub-label'>Nhận xét cho câu này (không bắt buộc)</div>
+            <Editor variant='compact' maxChars={COMMENT_MAX} placeholder='Nhận xét cho câu này…' text={commentOf(a)}
+                    onChange={(v: string) => {
+                        setComments(c => ({...c, [a.question_id]: v}));
+                        setSaved(false);
+                    }}/>
         </Form>;
 
 
@@ -211,7 +220,7 @@ export default function SubmissionDetail() {
 
             {!grading && a.comment &&
             <Message size='tiny' info className='sub-comment'>
-                <Icon name='comment outline'/> {a.comment}
+                <Icon name='comment outline'/> {renderHTML(a.comment)}
             </Message>}
         </Segment>;
     };
@@ -237,12 +246,11 @@ export default function SubmissionDetail() {
         <Segment>
             <div className='sub-label'>Nhận xét cho cả bài</div>
             <Form>
-                <TextArea rows={3} value={teacherComment}
-                          placeholder='Nhận xét chung…'
-                          onChange={(_e, {value}) => {
-                              setTeacherComment(String(value ?? ''));
-                              setSaved(false);
-                          }}/>
+                <Editor variant='compact' maxChars={COMMENT_MAX} placeholder='Nhận xét chung…' text={teacherComment}
+                        onChange={(v: string) => {
+                            setTeacherComment(v);
+                            setSaved(false);
+                        }}/>
             </Form>
 
             {saveError && <Card tone='error' role='alert' className='margin-top'>
@@ -251,7 +259,7 @@ export default function SubmissionDetail() {
                 <p>Điểm, nhận xét và dấu trên ảnh vẫn còn ở đây. Bấm “Lưu điểm” để thử lại.</p>
             </Card>}
             <Button primary className='margin-top' onClick={save}
-                    loading={saving} disabled={saving}>
+                    loading={saving} disabled={saving || tooLong || uploading}>
                 <Icon name='save'/> Lưu điểm
             </Button>
             {saved && <span className='margin-left text-muted'>Đã lưu</span>}
@@ -260,7 +268,7 @@ export default function SubmissionDetail() {
         {!canGrade && sub.teacher_comment &&
         <Message info>
             <Message.Header>Nhận xét của giáo viên</Message.Header>
-            {sub.teacher_comment}
+            {renderHTML(sub.teacher_comment)}
         </Message>}
     </div>;
 }

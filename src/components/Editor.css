@@ -67,3 +67,25 @@
 .tt-math-key:hover { background: var(--vt-paper, #f5f6ee); }
 /* our palette replaces MathLive's own keyboard + menu buttons */
 .tt-math-field math-field::part(virtual-keyboard-toggle), .tt-math-field math-field::part(menu-toggle) { display: none; }
+
+/* Tables (SPT-115): scroll sideways inside the box instead of stretching the page */
+.tt-editor .ProseMirror table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: .4em 0; }
+.tt-editor .ProseMirror th, .tt-editor .ProseMirror td { min-width: 3em; padding: 4px 8px; border: 1.5px solid var(--vt-line-option, #d6d3c4); vertical-align: top; }
+.tt-editor .ProseMirror th { background: var(--vt-paper, #f5f6ee); font-weight: 700; text-align: left; }
+.tt-editor .ProseMirror .selectedCell { background: var(--vt-action, #d0e9fd); }
+.tt-tabletools { flex-basis: 100%; padding: 4px 0; background: #efe9fb; border-radius: 8px; }
+.tt-tbtn { min-height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; font: inherit; font-size: 14px; cursor: pointer; }
+.tt-tbtn:hover:not(:disabled) { background: #fff; }
+.tt-tbtn:disabled { opacity: .35; cursor: default; }
+.tt-table-size { display: flex; gap: 16px; }
+.tt-table-size input { width: 72px; margin-left: 8px; }
+
+/* Image upload cards + character counter */
+.tt-up { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 6px 8px; padding: 8px 10px; border: 1.5px solid var(--vt-line-option, #d6d3c4); border-radius: 8px; background: var(--vt-paper, #f5f6ee); font-size: 14px; }
+.tt-up.err { border-color: #db2828; background: #fff5f5; color: #9f1d1d; }
+.tt-up button { border: 0; background: none; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; min-height: 32px; }
+.tt-count { padding: 2px 11px 6px; font-size: 13px; color: #78716c; text-align: right; }
+.tt-count.over { color: #db2828; font-weight: 700; }
+.tt-math-chem { display: flex; flex-direction: column; gap: 8px; }
+.tt-math-chem-input { font: inherit; font-size: 18px; padding: 10px 12px; border: 2px solid var(--vt-ink, #1c1917); border-radius: 13px 9px 14px 8px / 8px 14px 9px 13px; }
+.tt-math-chem-prev { min-height: 48px; font-size: 22px; padding: 8px 12px; border: 1.5px dashed var(--vt-line-option, #d6d3c4); border-radius: 8px; }

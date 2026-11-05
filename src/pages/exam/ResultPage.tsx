@@ -1,3 +1,4 @@
+import renderHTML from '../../components/SafeHtml';
 import {Link, useNavigate, useParams} from 'react-router-dom';
 
 import {Badge, Button, Card, ErrorState, PageTitle, SkeletonCard, buttonClass} from '../../components/ui';
@@ -102,7 +103,7 @@ export default function ResultPage() {
 
         {data.teacher_comment && <Card size='md'>
             <span className='vt-rv-label'>Nhận xét của giáo viên</span>
-            <p className='vt-rv-comment'>{data.teacher_comment}</p>
+            <div className='vt-rv-comment'>{renderHTML(data.teacher_comment)}</div>
         </Card>}
 
         <div className='vt-res-actions'>
