@@ -182,11 +182,19 @@
 .vt-q-prompt img { max-width: 100%; height: auto; }
 .vt-q-note { font-size: 13px; color: var(--vt-muted); }
 
-/* flag = icon button (tooltip "Xem lại sau"); marked = sun fill */
-.vt-flag.vt-iconbtn { border-color: var(--vt-line-option); }
-.vt-flag.vt-iconbtn[aria-pressed='true'] { background: var(--vt-sun-soft); border-color: var(--vt-sun); }
-.vt-flag.vt-iconbtn:hover { background: var(--vt-paper); border-color: var(--vt-ink); }
-.vt-flag.vt-iconbtn[aria-pressed='true']:hover { background: var(--vt-sun-soft); }
+/* flag = icon button (tooltip "Xem lại sau"); marked = sun fill. Design DS-LamBai: icon 14px in a 28px box,
+   hit area stays 44px. The 28px box is ::before (::after is the tooltip). */
+.vt-flag.vt-iconbtn, .vt-flag.vt-iconbtn:hover, .vt-flag.vt-iconbtn:focus-visible { background: none; border-color: transparent; }
+.vt-flag.vt-iconbtn { color: var(--vt-muted); isolation: isolate; }
+.vt-flag.vt-iconbtn::before {
+    content: ''; position: absolute; top: 50%; left: 50%; width: 28px; height: 28px; box-sizing: border-box;
+    transform: translate(-50%, -50%); background: var(--vt-card); border: 2px solid var(--vt-line-option);
+    border-radius: var(--vt-r-btn); z-index: -1;
+}
+.vt-flag.vt-iconbtn:hover::before, .vt-flag.vt-iconbtn:focus-visible::before { background: var(--vt-paper); border-color: var(--vt-ink); }
+.vt-flag.vt-iconbtn[aria-pressed='true'] { color: var(--vt-sun-ink); }
+.vt-flag.vt-iconbtn[aria-pressed='true']::before,
+.vt-flag.vt-iconbtn[aria-pressed='true']:hover::before { background: var(--vt-sun-soft); border-color: var(--vt-sun); }
 
 /* Multiple choice */
 .vt-options { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }

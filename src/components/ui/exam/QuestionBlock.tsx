@@ -191,7 +191,7 @@ export default function QuestionBlock(props: QuestionBlockProps) {
             {onToggleFlag &&
                 <IconButton variant='outline' tipEnd className='vt-flag' aria-pressed={!!flagged} disabled={disabled}
                             label={flagged ? 'Bỏ đánh dấu xem lại' : 'Xem lại sau'}
-                            icon={flagged ? <IconFlagFilled size={18}/> : <IconFlag size={18}/>} onClick={onToggleFlag}/>}
+                            icon={flagged ? <IconFlagFilled size={14}/> : <IconFlag size={14}/>} onClick={onToggleFlag}/>}
         </div>
         {isValidElement(prompt) ? <div className='vt-q-prompt'>{prompt}</div> : <p className='vt-q-prompt'>{prompt}</p>}
         {props.kind === 'choice' && <ChoiceAnswer {...props}/>}
