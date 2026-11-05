@@ -135,7 +135,7 @@ export default function Section({section, subject}: Props) {
                             onClick={() => setRemoving(unit)}
                             style={{position: 'absolute', right: '5px', zIndex: 999}}/>
 
-                <div id={question.id} style={{marginBottom: '18px'}}>
+                <div id={question.id} className='q-unit-body' style={{marginBottom: '18px'}}>
                     {isTrueFalse
                         ? <TrueFalseBlock unit={unit} onPatch={patchData}
                                           onPassage={html => setPassage(passageId, html)}

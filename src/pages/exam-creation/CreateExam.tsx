@@ -16,7 +16,7 @@ import {useAuthStore} from '../../stores/authStore';
 import {useExamDraftStore} from '../../stores/examDraftStore';
 import {Editor} from "../../components/Editor";
 import {errorText} from '../../lib/format';
-import {backendProblems, examTotal, publishProblems, reviewHints, withDefaultScores} from './examRules';
+import {backendProblems, examTotal, explanationTooLong, publishProblems, reviewHints, withDefaultScores} from './examRules';
 import {useFolders} from '../../queries/exams';
 import {suggestedMinutes} from './CreateFromBank';
 import {Badge, Button, ConfirmDialog, ErrorState, IconButton, icons} from '../../components/ui';
@@ -88,7 +88,7 @@ export default function CreateExam() {
     // overwrites everything typed afterwards.
     // Q15: a draft saves even with errors (auto-save included); only Xuất bản / In are blocked.
     // Returns true when the exam is on the server.
-    const uploading = useUploadStore(s => s.pending > 0);
+    const uploading = useUploadStore(s => s.pending > 0) || explanationTooLong(exam?.sections ?? []);
     const save = async (successMsg: string | null, manual = true): Promise<boolean> => {
         const current = useExamDraftStore.getState().exam;
         if (!current) return false;
@@ -97,6 +97,11 @@ export default function CreateExam() {
         if (published && !manual) return false;
         // The BE drops images that are not uploaded yet: wait for them (Editor sets `pending`).
         if (useUploadStore.getState().pending > 0) return false;
+        // A Lời giải over the limit is never saved (the editor shows the red counter and message).
+        if (explanationTooLong(current.sections)) {
+            if (manual) toast.error('Có lời giải quá dài (trên 5.000 ký tự). Rút gọn rồi lưu lại.');
+            return false;
+        }
         try {
             await Api.post('exam/create', {...current, sections: withDefaultScores(current.sections, subject)});
         } catch (e) {

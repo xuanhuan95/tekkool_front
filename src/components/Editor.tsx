@@ -152,6 +152,16 @@ export function Editor(props: EditorProps) {
 
     useEffect(() => flush, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Caret into the first cell: inserted at the end of a paragraph, TipTap leaves it after the table.
+    const insertTable = (rows: number, cols: number, header: boolean) => {
+        if (!editor) return;
+        const from = editor.state.selection.from;
+        editor.chain().focus().insertTable({rows, cols, withHeaderRow: header}).run();
+        let at = -1;
+        editor.state.doc.descendants((n, pos) => { if (at < 0 && n.type.name === 'table' && pos >= from - 1) at = pos; return at < 0; });
+        if (at >= 0) editor.commands.setTextSelection(at + 4);
+    };
+
     return <div className='tt-editor' onKeyUp={onKeyUp}>
         {!disableStyle && <EditorToolbar editor={editor} variant={variant} type={type} onToAnswerButton={onToAnswerButton}
                                          onSigma={() => setMath({pos: null, latex: ''})} onImage={() => setImageOpen(true)}
@@ -176,7 +186,7 @@ export function Editor(props: EditorProps) {
         <CharDialog open={charsOpen} onClose={() => setCharsOpen(false)}
                     onInsert={c => editor?.chain().focus().insertContent(c).run()}/>
         <TableDialog open={tableOpen} onClose={() => setTableOpen(false)}
-                     onInsert={(rows, cols, header) => editor?.chain().focus().insertTable({rows, cols, withHeaderRow: header}).run()}/>
+                     onInsert={insertTable}/>
         {imageOpen && <ImageDialog open onClose={() => setImageOpen(false)}
                                    onInsert={src => editor?.chain().focus().insertContent({type: 'image', attrs: {src}}).run()}/>}
     </div>

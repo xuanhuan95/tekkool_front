@@ -3,12 +3,14 @@
 
 /* Toolbar (SPT-83, DS-Editor): 44px buttons, groups split by a thin rule; phones show B I U + Σ/image + "…" */
 .tt-toolbar {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 4px 6px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 4px 6px;
     border-bottom: 1.5px solid var(--vt-line-option, #e7e5dc); background: var(--vt-paper, #f5f6ee);
     border-radius: 11px 7px 12px 6px / 6px 12px 7px 11px;
 }
+.tt-item, .tt-sep { order: var(--w); }
+.tt-item { display: inline-flex; }
 .tt-group { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
-.tt-sep { width: 1.5px; height: 20px; margin: 0 4px; background: var(--vt-line-option, #d6d3c4); }
+.tt-sep { width: 1.5px; height: 20px; margin: 0 6px; background: var(--vt-line-option, #d6d3c4); }
 .tt-btn {
     position: relative; min-width: 44px; height: 44px; padding: 0 6px;
     display: inline-flex; align-items: center; justify-content: center;
@@ -20,11 +22,17 @@
 .tt-btn.active { background: var(--vt-action, #d0e9fd); }
 .tt-sigma { font-size: 20px; font-weight: 700; }
 .tt-sup { font-size: 14px; }
-.tt-morebtn { display: none; font-weight: 700; }
+.tt-morebtn { display: none; font-weight: 700; order: 50; }
+.tt-toolbar::after { content: ''; flex-basis: 100%; order: 60; display: none; }
 @media (max-width: 639.98px) {
+    .tt-item { order: var(--p); }
+    .tt-sep { display: none; }
     .tt-morebtn { display: inline-flex; }
-    .tt-more { display: none; flex-basis: 100%; }
-    .tt-toolbar.open .tt-more { display: flex; }
+    .tt-moreitem { display: none; }
+    .tt-toolbar.open .tt-moreitem { display: inline-flex; }
+    .tt-toolbar.open::after { display: block; }
+    /* the "Xoá câu này" X sits in its own strip above the question on phones, never on top of the toolbar */
+    .q-unit-body { padding-top: 44px; }
 }
 
 .tt-editor .ProseMirror { padding: 8px 11px; outline: none; min-height: 2.2em; }
@@ -73,12 +81,21 @@
 .tt-editor .ProseMirror th, .tt-editor .ProseMirror td { min-width: 3em; padding: 4px 8px; border: 1.5px solid var(--vt-line-option, #d6d3c4); vertical-align: top; }
 .tt-editor .ProseMirror th { background: var(--vt-paper, #f5f6ee); font-weight: 700; text-align: left; }
 .tt-editor .ProseMirror .selectedCell { background: var(--vt-action, #d0e9fd); }
-.tt-tabletools { flex-basis: 100%; padding: 4px 0; background: #efe9fb; border-radius: 8px; }
-.tt-tbtn { min-height: 36px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; font: inherit; font-size: 14px; cursor: pointer; }
-.tt-tbtn:hover:not(:disabled) { background: #fff; }
-.tt-tbtn:disabled { opacity: .35; cursor: default; }
-.tt-table-size { display: flex; gap: 16px; }
-.tt-table-size input { width: 72px; margin-left: 8px; }
+.tt-tabletools { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 4px; flex-basis: auto; order: 200; max-width: 100%; margin: 6px 0 2px; padding: 4px 8px; box-sizing: border-box;
+    background: #e5dcfb; border: 2px solid #1c1917; border-radius: 10px 7px 11px 6px / 6px 11px 7px 10px; box-shadow: 1px 2px 0 #1c1917; }
+.tt-tabletools .tt-sep { background: #d9dbcf; height: 22px; margin: 0 4px; display: inline-block; order: 0; }
+.tt-tabletools .tt-btn.wide { min-width: 72px; }
+.tt-tabletools .tt-btn.danger { color: #b42318; }
+.tt-tabletools .tt-btn.active { border: 1.5px solid #1c1917; }
+.tt-tabletools .tt-btn:disabled { opacity: .35; }
+.tt-table-hint { flex-basis: 100%; width: fit-content; margin: 2px 0 0; padding: 6px 10px; background: #1c1917; color: #fff; border-radius: 6px; font-size: 13px; order: 201; }
+.tt-table-label { text-align: right; font-weight: 700; font-size: 14px; color: #4a347f; }
+.tt-table-grid { display: grid; grid-template-columns: repeat(8, 26px); gap: 3px; width: fit-content; max-width: 100%; }
+.tt-table-cell { width: 26px; height: 26px; padding: 0; box-sizing: border-box; border: 1.5px solid #d6d3c4; background: #fff; border-radius: 3px; cursor: pointer; }
+.tt-table-cell.on { border-color: #1c1917; background: #d0e9fd; }
+.tt-table-header { display: flex; gap: 8px; align-items: center; min-height: 44px; font-size: 14px; font-weight: 600; }
+.tt-table-size { display: flex; gap: 8px; align-items: center; }
+.tt-table-size input { width: 56px; min-height: 36px; box-sizing: border-box; padding: 0 8px; font: inherit; font-size: 14px; border: 2px solid #1c1917; border-radius: 8px 5px 9px 4px / 4px 9px 5px 8px; background: #fff; }
 
 /* Image upload cards + character counter */
 .tt-up { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin: 6px 8px; padding: 8px 10px; border: 1.5px solid var(--vt-line-option, #d6d3c4); border-radius: 8px; background: var(--vt-paper, #f5f6ee); font-size: 14px; }
@@ -86,6 +103,52 @@
 .tt-up button { border: 0; background: none; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; min-height: 32px; }
 .tt-count { padding: 2px 11px 6px; font-size: 13px; color: #78716c; text-align: right; }
 .tt-count.over { color: #db2828; font-weight: 700; }
-.tt-math-chem { display: flex; flex-direction: column; gap: 8px; }
-.tt-math-chem-input { font: inherit; font-size: 18px; padding: 10px 12px; border: 2px solid var(--vt-ink, #1c1917); border-radius: 13px 9px 14px 8px / 8px 14px 9px 13px; }
-.tt-math-chem-prev { min-height: 48px; font-size: 22px; padding: 8px 12px; border: 1.5px dashed var(--vt-line-option, #d6d3c4); border-radius: 8px; }
+
+/* Lời giải row (DS-Editor-LoiGiai) */
+.vt-explain-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; margin-top: 12px; }
+.vt-explain-toggle { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 12px; box-sizing: border-box; text-align: left;
+    background: var(--vt-paper, #f5f6ee); border: 1.5px solid #d6d3c4; border-radius: 10px 7px 11px 6px / 6px 11px 7px 10px; font: inherit; color: #1c1917; cursor: pointer; }
+.vt-explain-toggle b { flex: 1; font-size: 15px; }
+.vt-explain-badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px; background: #fff; color: #57534e; border: 1.5px solid #d6d3c4; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.vt-explain-badge.has { background: #e7f6ec; color: #166534; border-color: #166534; }
+.vt-explain-over .tt-editor { border-color: #b42318; }
+.vt-explain-over .tt-count { color: #b42318; font-size: 12px; font-weight: 600; }
+.vt-explain-err { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; color: #b42318; font-size: 13px; font-weight: 600; line-height: 1.4; }
+
+/* Lời giải row (DS-Editor-LoiGiai) */
+.vt-explain-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; margin-top: 12px; }
+.vt-explain-toggle { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 0 12px; box-sizing: border-box; text-align: left;
+    background: var(--vt-paper, #f5f6ee); border: 1.5px solid #d6d3c4; border-radius: 10px 7px 11px 6px / 6px 11px 7px 10px; font: inherit; color: #1c1917; cursor: pointer; }
+.vt-explain-toggle b { flex: 1; font-size: 15px; }
+.vt-explain-badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px; background: #fff; color: #57534e; border: 1.5px solid #d6d3c4; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.vt-explain-badge.has { background: #e7f6ec; color: #166534; border-color: #166534; }
+.vt-explain-over .tt-editor { border-color: #b42318; }
+.vt-explain-over .tt-count { color: #b42318; font-size: 12px; font-weight: 600; }
+.vt-explain-err { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; color: #b42318; font-size: 13px; font-weight: 600; line-height: 1.4; }
+
+.tt-tabletools .tt-btn-txt { font-size: 12px; font-weight: 600; margin-left: 4px; }
+.tt-tabletools .tt-btn.wide { width: 72px; }
+
+/* DS-Editor-CongThuc */
+.tt-math-tabs--seg { gap: 4px; }
+.tt-math-tabs--seg .tt-math-tab { flex: 1; min-height: 44px; padding: 0; font-family: 'Patrick Hand', cursive; font-size: 20px; border: 2px solid #1c1917; background: #fff; border-radius: 8px 5px 9px 4px / 4px 9px 5px 8px; }
+.tt-math-tabs--seg .tt-math-tab.on { background: #d0e9fd; }
+.tt-math-hint { font-size: 12px; font-weight: 600; color: #57534e; line-height: 1.4; }
+.tt-math-hint code { font-size: 11px; background: #f5f6ee; padding: 1px 4px; border-radius: 4px; }
+.tt-math-tpls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.tt-math-tpl { min-height: 64px; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #fff; border: 1.5px solid #d6d3c4; border-radius: 8px 5px 9px 4px / 4px 9px 5px 8px; font: inherit; color: #1c1917; cursor: pointer; box-sizing: border-box; }
+.tt-math-tpl.on { background: #d0e9fd; border-color: #1c1917; }
+.tt-math-tpl > span { font-size: 15px; line-height: 1.2; }
+.tt-math-tpl small { font-size: 11px; font-weight: 600; color: #57534e; }
+.tt-math-chem-input, .tt-math-tex { min-height: 44px; box-sizing: border-box; padding: 8px 12px; border: 2px solid #1c1917; border-radius: 8px 5px 9px 4px / 4px 9px 5px 8px; background: #fff; color: #1c1917; font-size: 14px; }
+.tt-math-chem-input { font-family: ui-monospace, Menlo, monospace; }
+.tt-math-tex { font-family: ui-monospace, Menlo, monospace; }
+.tt-math-chem-input.bad, .tt-math-tex.bad { border-color: #b42318; }
+.tt-math-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.tt-math-chip { min-width: 44px; min-height: 44px; padding: 0 10px; border: 1.5px solid #1c1917; border-radius: 8px 5px 9px 4px / 4px 9px 5px 8px; background: #fff; font: inherit; font-size: 15px; cursor: pointer; }
+.tt-math-chip.small { min-height: 28px; padding: 0 10px; font-size: 11px; font-weight: 600; border-radius: 999px; border-color: #d6d3c4; }
+.tt-math-prev { min-height: 64px; border: 1.5px dashed #1c1917; background: #f5f6ee; border-radius: 10px 7px 11px 6px / 6px 11px 7px 10px; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; box-sizing: border-box; }
+.tt-math-prev small { font-size: 11px; font-weight: 700; color: #57534e; }
+.tt-math-prev > span { font-size: 22px; line-height: 1.4; overflow-x: auto; }
+.tt-math-err { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; background: #fef3f2; border: 1.5px solid #b42318; border-radius: 8px; color: #b42318; font-size: 12px; }
+.tt-math-err b { font-size: 13px; }
