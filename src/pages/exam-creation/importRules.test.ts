@@ -3,7 +3,7 @@ import {describe, expect, it} from 'vitest';
 import {
     badTrueFalse, countQuestions, examStats, fileProblem, importErrorText, missingKeys, removeQuestions, saveBlocker,
     setPassage, setType, toUnits,
-    missingTfStatements, splitOptions, answerCounts, answerFrame, applyPasted, examIssues, issueKey, missingNumbers, pasteRows, unseenSevere,
+    missingTfStatements, splitOptions, answerCounts, answerFrame, applyPasted, examIssues, issueKey, missingNumbers, pasteRows, sourceNumbering, unseenSevere,
     type ImportedExam, type ImportIssue, type ImportQuestion,
 } from './importRules';
 
@@ -209,5 +209,16 @@ describe('SPT-97: câu chùm in the preview', () => {
     it('groups the ý of one passageId into ONE unit, a plain FillBlank stays alone', () => {
         const units = toUnits([y('a', 'G1'), y('b', 'G1'), y('c', 'G1'), y('d', 'G1'), y('e', 'G2'), lone]);
         expect(units.map(u => u.questions.length)).toEqual([4, 1, 1]);
+    });
+});
+
+describe('sourceNumbering (IV2 Đánh số lại câu)', () => {
+    const at = (id: string, no?: number): ImportQuestion => ({...mc(id), source_no: no});
+    it('runs and the numbers the file jumps over', () => {
+        expect(sourceNumbering(exam(at('a', 1), at('b', 2), at('c', 4), at('d', 5), at('e', 8)))).toEqual({ranges: '1–2, 4–5, 8', skipped: [3, 6, 7]});
+    });
+    it('a jump longer than 10 is a numbering error, not skipped questions; no source numbers = empty', () => {
+        expect(sourceNumbering(exam(at('a', 1), at('b', 30))).skipped).toEqual([]);
+        expect(sourceNumbering(exam(mc('x')))).toEqual({ranges: '', skipped: []});
     });
 });

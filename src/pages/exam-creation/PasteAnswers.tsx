@@ -1,6 +1,6 @@
 import {useState} from 'react';
 
-import {Badge, Button, Modal, TextArea} from '../../components/ui';
+import {Badge, Button, Modal, Table, TextArea} from '../../components/ui';
 import Api from '../../services/api';
 import {errorText} from '../../lib/format';
 import {answerFrame, pasteRows} from './importRules';
@@ -45,22 +45,24 @@ export default function PasteAnswers({exam, open, onClose, onApply}: {
                           </Button>
                           : <Button variant='primary' loading={busy} disabled={!text.trim()} onClick={read}>Xem trước</Button>}
                   </>}>
-        <TextArea label='Chuỗi đáp án' value={text} rows={3} placeholder='1B 2C 3A 4D 21ĐSSĐ 25: 3,5'
-                  hint='Số câu theo thứ tự trên màn hình. Trắc nghiệm: 1B 2C 3A. Đúng/Sai: 21ĐSSĐ (4 ký tự). Trả lời ngắn: 25: 3,5 (có dấu hai chấm).'
-                  onChange={ev => { setText(ev.target.value); setReply(null); }}/>
+        <div className='vt-imp-paste-ta'>
+            <TextArea label='Chuỗi đáp án' value={text} rows={3} placeholder='1B 2C 3A 4D 21ĐSSĐ 25 3,5'
+                      hint='Số câu theo thứ tự trên màn hình. Trắc nghiệm: 1B 2C 3A. Đúng/Sai: 21ĐSSĐ (4 ký tự). Trả lời ngắn: 25 3,5.'
+                      onChange={ev => { setText(ev.target.value); setReply(null); }}/>
+        </div>
         {error && <p role='alert' className='vt-imp-flag err'>{error}</p>}
         {reply && <>
-            <p className='vt-imp-paste-sum'>
-                <b>{count('new')}</b> thêm mới · <b>{count('change')}</b> đổi · <b>{count('same')}</b> giữ nguyên · <b>{reply.issues.length}</b> lỗi, sẽ bỏ qua
+            <p className='vt-imp-paste-sum' aria-label='Tóm tắt xem trước'>
+                <Badge tone='ok'>{count('new')} thêm mới</Badge> <Badge tone='sun'>{count('change')} đổi</Badge>{' '}
+                <Badge tone='draft'>{count('same')} giữ nguyên</Badge> <Badge tone='err'>{reply.issues.length} lỗi, sẽ bỏ qua</Badge>
             </p>
-            {/* One card per question: a table loses its last columns at 390px. */}
-            {rows.length > 0 && <ul className='vt-imp-paste-rows' aria-label='Xem trước đáp án'>
-                {rows.map(r => <li key={r.no}>
-                    <b>Câu {r.no}</b> <span className='vt-imp-hint'>{TYPE_NAME[r.type] || r.type}</span>
-                    <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].text}</Badge>
-                    <span className='vt-imp-paste-change'>{r.now || 'Chưa có'} → <b>{r.next}</b></span>
-                </li>)}
-            </ul>}
+            {rows.length > 0 && <Table bare caption='Xem trước đáp án' rows={rows} rowKey={r => r.no} minWidth={520} columns={[
+                {key: 'no', header: 'Câu', render: r => <b>{r.no}</b>},
+                {key: 'type', header: 'Dạng', render: r => TYPE_NAME[r.type] || r.type},
+                {key: 'now', header: 'Hiện tại', render: r => r.now || 'Chưa có'},
+                {key: 'next', header: 'Sẽ thành', render: r => <b>{r.next}</b>},
+                {key: 'st', header: 'Kết quả', render: r => <Badge tone={STATUS[r.status].tone}>{STATUS[r.status].text}</Badge>},
+            ]}/>}
             {reply.issues.length > 0 && <ul className='vt-imp-paste-bad'>
                 {reply.issues.map((i, k) => <li key={k}><Badge tone='sun'>Bỏ qua</Badge> {i.message}</li>)}
             </ul>}

@@ -22,7 +22,7 @@ import {blockLabel} from './blockTypes';
 import {
     plain as plainText, applyPasted, badTrueFalse, countQuestions, examIssues, examStats, fileProblem, importErrorText, isBadTrueFalse, isChoice,
     isClusterQuestion, isMissingKey, isSevere, issueKey, missingKeys, missingNumbers, missingTfStatements, numberedUnits, partRows, patchData, patchQuestion, removeQuestions, replaceUnit,
-    saveBlocker, setPassage, setType, splitOptions, toUnits, withShownCounts, unseenSevere, TRUE_FALSE_STATEMENTS,
+    sourceNumbering, saveBlocker, setPassage, setType, splitOptions, toUnits, withShownCounts, unseenSevere, TRUE_FALSE_STATEMENTS,
     type DuplicateInfo, type ImportIssue, type ImportQuestion, type ImportedExam, type NumberedUnit, type PastedAnswers, type QuestionUnit, type Stash,
 } from './importRules';
 import {withDefaultScores} from './examRules';
@@ -135,18 +135,20 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, seen, onSee,
         {showPassage && first.data.passage !== undefined && <div className='vt-imp-passage'>{renderHTML(first.data.passage)}</div>}
 
         <div className='vt-imp-q-head'>
-            <b>Câu {no}</b>
-            <Badge tone='title'>{QUESTION_TYPES.find(t => t.value === first.type)?.label || first.type}</Badge>
-            {noKey && <span className='vt-imp-flag err'>Chưa có đáp án đúng — sửa câu để chọn</span>}
-            {noTf.length > 0 && <span className='vt-imp-flag err'>Chưa đặt Đúng/Sai cho ý {noTf.join(', ')} — dùng “Dán đáp án nhanh” hoặc sửa file Word</span>}
-            {badTf && <span className='vt-imp-flag warn'>
-                {unit.questions.length} ý — cần đủ {TRUE_FALSE_STATEMENTS} ý để chấm theo SPT
-            </span>}
-            {issues.map(i => <span key={issueKey(i)} className='vt-imp-chip'><LevelBadge issue={i}/> {issueLabel(i.code)}</span>)}
-            <DuplicateChip info={dup}/>
+            <div className='vt-imp-q-title'>
+                <b>Câu {no}</b>
+                <Badge tone='title'>{QUESTION_TYPES.find(t => t.value === first.type)?.label || first.type}</Badge>
+                {noKey && <span className='vt-imp-flag err'>Chưa có đáp án đúng — sửa câu để chọn</span>}
+                {noTf.length > 0 && <span className='vt-imp-flag err'>Chưa đặt Đúng/Sai cho ý {noTf.join(', ')} — dùng “Dán đáp án nhanh” hoặc sửa file Word</span>}
+                {badTf && <span className='vt-imp-flag warn'>
+                    {unit.questions.length} ý — cần đủ {TRUE_FALSE_STATEMENTS} ý để chấm theo SPT
+                </span>}
+                {issues.map(i => <span key={issueKey(i)} className='vt-imp-chip'><LevelBadge issue={i}/> {issueLabel(i.code)}</span>)}
+                <DuplicateChip info={dup}/>
+            </div>
             <span className='vt-imp-q-acts'>
-                <IconButton label={'Sửa câu ' + no} icon={<icons.IconEdit size={18}/>} onClick={() => setEditing(true)}/>
-                <IconButton label={'Xoá câu ' + no} tipEnd icon={<icons.IconClose size={18}/>} onClick={() => setConfirmRemove(true)}/>
+                <IconButton variant='outline' label={'Sửa câu ' + no} icon={<icons.IconEdit size={18}/>} onClick={() => setEditing(true)}/>
+                <IconButton variant='outline' className='vt-iconbtn--danger' label={'Xoá câu ' + no} tipEnd icon={<icons.IconTrash size={18}/>} onClick={() => setConfirmRemove(true)}/>
             </span>
             <ConfirmDialog open={confirmRemove} tone='danger' title={'Xoá câu ' + no + '?'} cancelLabel='Giữ lại' confirmLabel='Xoá câu'
                            message='Câu bị xoá khỏi bản nhập này. Muốn lấy lại thì chọn file Word và nhập lại.'
@@ -264,12 +266,11 @@ function ExamBody({onFix, exam, edit, duplicates, pdf, desktop, issues, seen, on
     };
     const viewSource = () => { setTab('src'); setTimeout(() => document.querySelector('.vt-imp-source')?.scrollIntoView({behavior: 'smooth'}), 0); };
     const after = numbered.length;
-    const skipped = missingNumbers(exam).map(g => 'Câu ' + g.no).join(', ');
 
     let no = 0;
     return <div className='vt-imp-body'>
         <SummaryBar exam={exam} issues={issues}/>
-        <IssueList issues={issues} seen={seen} onSee={onSee} jump={jump} onGo={go} onFix={onFix}/>
+        <IssueList compact={!desktop} issues={issues} seen={seen} onSee={onSee} jump={jump} onGo={go} onFix={onFix}/>
         {!desktop && <Tabs aria-label='Đã đọc hoặc bản gốc' block value={tab} onChange={setTab}
                            items={[{value: 'doc', label: 'Đã đọc'}, {value: 'src', label: 'Bản gốc'}]}/>}
         <div className='vt-imp-split'>
@@ -312,11 +313,34 @@ function ExamBody({onFix, exam, edit, duplicates, pdf, desktop, issues, seen, on
 
         <PasteAnswers exam={exam} open={pasting} onClose={() => setPasting(false)}
                       onApply={(a: PastedAnswers) => edit(e => applyPasted(e, a))}/>
-        <ConfirmDialog open={renumbering} title='Đánh số lại câu' cancelLabel='Huỷ' confirmLabel='Đánh số lại'
-                       message={<p>{skipped && <>Trong file số câu bị nhảy (thiếu {skipped}). </>}Sau khi đánh số lại: <b>1–{after}</b>, liên tục từ 1.
-                           Chỉ đổi số “Câu n”; nội dung và đáp án giữ nguyên, các cảnh báo nhảy số được bỏ qua.</p>}
-                       onCancel={() => setRenumbering(false)} onConfirm={() => { setRenumbering(false); onRenumber(); }}/>
+        {renumbering && <RenumberDialog open exam={exam} after={after}
+                        onClose={() => setRenumbering(false)} onConfirm={() => { setRenumbering(false); onRenumber(); }}/>}
     </div>;
+}
+
+/** IV2 §3: shows what the numbers are now and what they become; "Giữ số như trong file" changes nothing. */
+function RenumberDialog({open, exam, after, onClose, onConfirm}: {open: boolean; exam: ImportedExam; after: number; onClose: () => void; onConfirm: () => void}) {
+    const [keep, setKeep] = useState(false);
+    const {ranges, skipped} = sourceNumbering(exam);
+    const choice = (on: boolean, title: string, note: string) => <label className={cx('vt-imp-choice', keep === !on && 'on')}>
+        <input type='radio' name='renumber' checked={keep === !on} onChange={() => setKeep(!on)}/>
+        <span className='vt-imp-choice-dot' aria-hidden='true'/>
+        <span><b>{title}</b><span className='vt-imp-hint'>{note}</span></span>
+    </label>;
+    return <Modal open={open} onClose={onClose} title='Đánh số lại câu' size='md'
+                  footer={<><Button variant='secondary' onClick={onClose}>Huỷ</Button>
+                      <Button variant='primary' onClick={keep ? onClose : onConfirm}>Đánh số lại</Button></>}>
+        <div className='vt-imp-renum'>
+            <div className='vt-imp-renum-box'>Hiện tại<br/><b>{ranges || '—'}</b>
+                {skipped.length > 0 && <> <span className='vt-imp-hint'>(nhảy qua {skipped.join(', ')})</span></>}</div>
+            <span aria-hidden='true'><icons.IconArrowRight size={20}/></span>
+            <div className='vt-imp-renum-box after'>Sau khi đánh số lại<br/><b>1–{after}</b></div>
+        </div>
+        <div className='vt-imp-choices'>
+            {choice(true, 'Đánh số liên tục từ 1', 'Chỉ đổi số “Câu n”; nội dung và đáp án giữ nguyên.')}
+            {choice(false, 'Giữ số như trong file', 'Chỉ ghi chú chỗ bị nhảy số.')}
+        </div>
+    </Modal>;
 }
 
 function ExamInfoModal({exam, onClose, onJump}: {exam: ImportedExam | undefined; onClose: () => void; onJump: (x: NumberedUnit) => void}) {
@@ -433,7 +457,6 @@ export default function ImportExam() {
         }
     };
     // The answer of a cancelled read is dropped by the `seq` check above.
-    const cancelRead = () => { seq.current++; dropPdf(); setReading(false); setPdf({status: 'idle'}); setFileName(''); };
 
     // Leaving with a file read loses every edit and confirmation: ask (reload/close tab, and in-app links).
     const [leaveTo, setLeaveTo] = useState<string | null>(null);
@@ -576,10 +599,12 @@ export default function ImportExam() {
         <div className='vt-imp-head'>
             <div>
                 {!exams.length && !reading && <Link to={bankId ? '/question-bank' : '/'} className='vt-imp-link'>← {bankId ? 'Ngân hàng câu hỏi' : 'Môn & đề'}</Link>}
+                {!desktop && exams.length > 0 && !problem && <button type='button' className='vt-imp-link vt-imp-back' disabled={busy} onClick={pickFile}>
+                    ← {result && !allRejected ? 'Nhập tiếp' : 'Chọn file khác'}</button>}
                 <PageTitle>Nhập đề từ file Word</PageTitle>
                 <MetaChips items={[exams.length > 0 && fileName, context, paperBank && <span className='nb-kind nb-kind--paper'>Nguyên đề</span>]}/>
             </div>
-            {exams.length > 0 && !problem &&
+            {desktop && exams.length > 0 && !problem &&
                 <Button variant='secondary' disabled={busy} onClick={pickFile}>{result && !allRejected ? 'Nhập tiếp' : 'Chọn file khác'}</Button>}
         </div>
 
@@ -592,20 +617,27 @@ export default function ImportExam() {
 
         {!exams.length && !reading && !problem && <ImportUpload onFile={readFile} pick={pickFile} onGuide={() => setGuide('')}/>}
 
-        {reading && <Card className='vt-imp-drop' aria-live='polite'>
-            <h2>Đang đọc {fileName}…</h2>
-            <Skeleton height={14} width='70%'/><Skeleton height={14} width='50%'/>
-            <p>Bản gốc dựng song song, thường vài giây đến vài chục giây; file nhiều đề có thể lâu hơn nhiều.</p>
-            <Button variant='secondary' onClick={cancelRead}>Huỷ</Button>
-        </Card>}
+        {reading && <div className='vt-imp-reading' aria-busy='true' aria-live='polite'>
+            <div className='vt-imp-reading-head'>
+                <b>Đang đọc {fileName}…</b>
+                <span className='vt-imp-hint'>Bản gốc dựng song song, file nhiều đề có thể mất khoảng 15 giây.</span>
+            </div>
+            <div className='vt-imp-reading-bar' aria-hidden='true'><div/></div>
+            <div className='vt-imp-reading-grid' aria-hidden='true'><i/><i/><i/><i/></div>
+            <div className='vt-imp-reading-cols' aria-hidden='true'><i/><i/></div>
+        </div>}
 
         {(foldersQ.isError || banksQ.isError) &&
             <ErrorState title='Không tải được danh sách môn / ngân hàng' description={errorText(foldersQ.error || banksQ.error, 'Kiểm tra mạng rồi thử lại.')}
                         onRetry={() => { if (foldersQ.isError) foldersQ.refetch(); if (banksQ.isError) banksQ.refetch(); }}/>}
 
-        {problem && <ErrorState title={problem.startsWith('Chỉ nhận') ? 'Chưa đúng loại file' : problem.startsWith('File quá lớn') ? 'File quá lớn' : 'Không đọc được file'}
-                                retryLabel='Chọn file khác' onRetry={pickFile}
-                                description={<>{problem.replace(/^Không đọc được file: /, '')} <button type='button' className='vt-imp-link' onClick={() => setGuide('')}>Lỗi thường gặp</button></>}/>}
+        {problem && <div role='alert' className='vt-imp-problem'>
+            <div className='vt-imp-problem-text'>
+                <b>{problem.startsWith('Chỉ nhận') ? 'Chưa đúng loại file' : problem.startsWith('File quá lớn') ? 'File quá lớn' : 'Không đọc được file'}</b>
+                <span>{problem.replace(/^Không đọc được file: /, '')} <button type='button' className='vt-imp-link' onClick={() => setGuide('')}>Lỗi thường gặp</button></span>
+            </div>
+            <Button variant='secondary' onClick={pickFile}>Chọn file khác</Button>
+        </div>}
 
         {stock && total > 0 && <Card className='vt-imp-bank'>
             <div className='vt-imp-bank-head'>

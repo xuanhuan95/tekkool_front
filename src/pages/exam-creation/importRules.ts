@@ -99,6 +99,22 @@ export function numberedUnits(exam: ImportedExam): NumberedUnit[] {
     return exam.sections.flatMap(s => toUnits(s.questions)).map((unit, i) => ({unit, no: i + 1}));
 }
 
+/** Question numbers as printed in the file, "1–5, 7–27", and the numbers it jumps over (IV2 "Đánh số lại câu"). */
+export function sourceNumbering(exam: ImportedExam): {ranges: string; skipped: number[]} {
+    const nos = numberedUnits(exam).map(x => x.unit.questions[0].source_no).filter((n): n is number => n !== undefined);
+    const runs: Array<[number, number]> = [];
+    const skipped: number[] = [];
+    for (const n of nos) {
+        const last = runs[runs.length - 1];
+        if (last && n === last[1] + 1) last[1] = n;
+        else {
+            if (last && n > last[1] + 1 && n - last[1] <= 10) for (let k = last[1] + 1; k < n; k++) skipped.push(k);
+            runs.push([n, n]);
+        }
+    }
+    return {ranges: runs.map(([a, b]) => a === b ? String(a) : `${a}–${b}`).join(', '), skipped};
+}
+
 export const countQuestions = (exam: ImportedExam) => numberedUnits(exam).length;
 
 export const missingKeys = (exam: ImportedExam) => numberedUnits(exam).filter(x => isMissingKey(x.unit)).length;

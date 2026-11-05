@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import {Badge, Button, Card, cx} from '../../components/ui';
 import {formatDecimal} from '../../lib/format';
 import {fixAnchor} from './guideContent';
@@ -59,23 +61,34 @@ type ListProps = {
     onGo: (i: ImportIssue) => void;
     /** "Cách sửa": open the guide at this entry. */
     onFix: (anchor: string) => void;
+    /** Phone (IV2-M-Goc): starts collapsed to the first two warnings, each with just "Đến"; "Xem hết" opens the full list. */
+    compact?: boolean;
 };
 
 /** "Cần kiểm tra n chỗ": each warning with Đến câu / Cách sửa; a Nặng one also needs "Đã xem, cho phép lưu" before saving. */
-export function IssueList({issues, seen, onSee, jump, onGo, onFix}: ListProps) {
+export function IssueList({issues, seen, onSee, jump, onGo, onFix, compact}: ListProps) {
+    const [all, setAll] = useState(false);
     if (!issues.length) return null;
+    const short = !!compact && !all && issues.length > 2;
+    const shown = short ? issues.slice(0, 2) : issues;
     return <Card className='vt-imp-issues' as='section' aria-label='Cần kiểm tra'>
-        <h2 className='vt-imp-h2'>Cần kiểm tra {issues.length} chỗ</h2>
+        <div className='vt-imp-issues-head'>
+            <h2 className='vt-imp-h2'>Cần kiểm tra {issues.length} chỗ</h2>
+            {compact && issues.length > 2 && <button type='button' className='vt-imp-link' aria-expanded={!short} onClick={() => setAll(!all)}>
+                {short ? 'Xem hết' : 'Thu gọn'}</button>}
+        </div>
         <ul>
-            {issues.map(i => {
+            {shown.map(i => {
                 const where = jump(i), fix = fixAnchor(i.code), ok = seen[issueKey(i)];
                 return <li key={issueKey(i)}>
                     <LevelBadge issue={i}/>
                     <span className='vt-imp-issue-text'>{i.message}</span>
                     <span className='vt-imp-issue-acts'>
-                        {where && <Button variant='ghost' size='sm' onClick={() => onGo(i)}>Đến {where}</Button>}
-                        {fix && <button type='button' className='vt-imp-link' onClick={() => onFix(fix)}>Cách sửa</button>}
-                        {isSevere(i) && (ok
+                        {where && (short
+                            ? <button type='button' className='vt-imp-link' aria-label={'Đến ' + where} onClick={() => onGo(i)}>Đến</button>
+                            : <Button variant='ghost' size='sm' onClick={() => onGo(i)}>Đến {where}</Button>)}
+                        {!short && fix && <button type='button' className='vt-imp-link' onClick={() => onFix(fix)}>Cách sửa</button>}
+                        {!short && isSevere(i) && (ok
                             ? <Badge tone='ok'>Đã xem</Badge>
                             : <Button variant='secondary' size='sm' onClick={() => onSee(i)}>Đã xem, cho phép lưu</Button>)}
                     </span>
