@@ -3,7 +3,7 @@ import {memo} from 'react';
 import {QuestionBlock} from '../../components/ui';
 import renderHTML from '../../components/SafeHtml';
 import {Editor} from '../../components/Editor';
-import {formatDecimal} from '../../lib/format';
+import {formatDecimal, optionsAreShort} from '../../lib/format';
 import AnswerImages from './AnswerImages';
 import {choiceKey, choiceWrites, textValue, trueFalseValue, trueFalseWrites} from './paper';
 import type {PaperQuestion, RawAnswers} from './paper';
@@ -36,7 +36,7 @@ function QuestionView({question: q, answers, flagged, disabled, onToggleFlag, on
     const id = q.questionIds[0];
 
     if (q.kind === 'choice') {
-        return <QuestionBlock kind='choice' {...common}
+        return <QuestionBlock kind='choice' {...common} short={optionsAreShort(q.options.map(o => o.value))}
                               options={q.options.map(o => ({key: o.key, content: content(o.value)}))}
                               value={choiceKey(q, answers)}
                               onChange={key => onWrite(choiceWrites(q, key), 0)}/>;

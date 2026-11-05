@@ -190,6 +190,9 @@
 
 /* Multiple choice */
 .vt-options { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+.vt-options--compact { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.vt-options--compact .vt-option { justify-content: center; gap: 8px; padding: 0 6px; }
+.vt-options--compact .vt-option[aria-checked='true'] { padding: 0 5.5px; }
 .vt-option {
     font-family: var(--vt-font); font-size: 15px; font-weight: 400; line-height: 1.45;
     color: var(--vt-ink); text-align: left;
