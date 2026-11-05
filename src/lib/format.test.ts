@@ -73,5 +73,9 @@ it('stripInfoPrefix drops the leading "Cho biết", keeps tags and other text', 
     expect(stripInfoPrefix('<p>Cho biết nguyên tử khối: H = 1</p>')).toBe('<p>Nguyên tử khối: H = 1</p>');
     expect(stripInfoPrefix('Cho biết: H = 1')).toBe('H = 1');
     expect(stripInfoPrefix('Nguyên tử khối: H = 1')).toBe('Nguyên tử khối: H = 1');
+    expect(stripInfoPrefix('<b>Cho biết</b>: Nguyên tử khối: H = 1')).toBe('Nguyên tử khối: H = 1');
+    expect(stripInfoPrefix('<p><strong>Cho biết:</strong> nguyên tử khối: H = 1</p>')).toBe('<p>Nguyên tử khối: H = 1</p>');
+    expect(stripInfoPrefix('<b>Cho biết:</b>&nbsp;Nguyên tử khối')).toBe('Nguyên tử khối');
+    expect(stripInfoPrefix('<p><i><b>Cho biết</b></i> : H = 1</p>')).toBe('<p>H = 1</p>');
     expect(stripInfoPrefix('<p>Biết rằng Cho biết x</p>')).toBe('<p>Biết rằng Cho biết x</p>');
 });
