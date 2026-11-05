@@ -32,6 +32,7 @@ describe('Users = Học sinh (AD-NguoiDung)', () => {
         expect(screen.getByText('Tổng 1.284 học sinh')).toBeTruthy();
         expect(screen.getByText('Hiển thị 1–20 / 1.284 học sinh')).toBeTruthy();
         expect(api.get).toHaveBeenCalledWith('admin_users/list?group=student&page=1&limit=20');
+        expect(table.getByRole('columnheader', {name: 'Thao tác'})).toBeVisible();
         expect(table.queryByText('Vai trò')).toBeNull();
         expect(screen.queryByRole('tab')).toBeNull();
         expect(screen.queryByRole('button', {name: /Khoá/})).toBeNull();
@@ -176,6 +177,18 @@ describe('Transactions (AD-GiaoDich)', () => {
         expect(await screen.findByText('Chờ webhook quá 30 phút')).toBeTruthy();
         fireEvent.click(screen.getByRole('button', {name: 'Chờ webhook quá lâu (1)'}));
         await waitFor(() => expect(api.get).toHaveBeenCalledWith('admin_revenue/reconcile?type=pending_stale'));
+    });
+
+    it('reconcile tab: opening an order keeps the tab and the anomaly list, detail opens beside it', async () => {
+        mockApi({'admin_revenue/reconcile': {items: [{type: 'amount_mismatch', invoice_number: 'TK30', status: 'mismatch',
+            amount: 249000, received: 200000, user: null, created_at: '2026-10-21T12:40:00', message: 'Lệch số tiền'}],
+            total: 1, counts: {amount_mismatch: 1}}, 'admin_revenue/transaction/': DETAILTX});
+        renderAt(<Transactions/>, '/manage/transactions?tab=reconcile');
+        fireEvent.click(await screen.findByRole('button', {name: 'TK30'}));
+        const aside = within(await screen.findByRole('complementary', {name: 'Chi tiết đơn'}));
+        expect(aside.getByText('SePay báo về')).toBeTruthy();
+        expect(screen.getByRole('tab', {name: 'Đối soát'})).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('table', {name: 'Đơn lệch cần đối soát'})).toBeTruthy();   // list still there
     });
 
     it('timeline wording', () => {

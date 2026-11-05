@@ -122,7 +122,7 @@ function TxDetail({inv}: {inv: string}) {
     </Card>;
 }
 
-function ReconcileTab({onOpen}: {onOpen: (inv: string) => void}) {
+function ReconcileTab({inv, onOpen}: {inv: string | null; onOpen: (inv: string) => void}) {
     const [type, setType] = useState<AnomalyType | ''>('');
     const {data, error, refetch, isFetching} = useReconcile(type || undefined);
     // Counts come from the unfiltered list, so the chips keep their numbers while one is selected.
@@ -152,7 +152,7 @@ function ReconcileTab({onOpen}: {onOpen: (inv: string) => void}) {
                           onRetry={() => refetch()} retrying={isFetching}/>
             : !data ? <SkeletonCard label='Đang tải đối soát'/>
                 : <Table caption='Đơn lệch cần đối soát' columns={columns} rows={data.items} minWidth={1000}
-                         rowKey={(a, i) => a.type + a.invoice_number + i} empty='Không có đơn lệch nào. Mọi thứ khớp.'/>}
+                         rowKey={(a, i) => a.type + a.invoice_number + i} isHighlighted={a => a.invoice_number === inv} empty='Không có đơn lệch nào. Mọi thứ khớp.'/>}
     </div>;
 }
 
@@ -237,7 +237,7 @@ export default function Transactions() {
         </div>
         <PageColumns
             main={<div role='tabpanel' id={'tx-panel-' + tab} aria-labelledby={'tx-tab-' + tab}>
-                {tab === 'list' ? listTab : <ReconcileTab onOpen={i => set({tab: null, inv: i})}/>}
+                {tab === 'list' ? listTab : <ReconcileTab inv={inv} onOpen={i => set({inv: i})}/>}
             </div>}
             side={inv ? <TxDetail inv={inv}/>
                 : <Card className='vt-mg-stack'><CardTitle>Chi tiết đơn</CardTitle>
