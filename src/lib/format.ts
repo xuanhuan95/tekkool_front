@@ -159,6 +159,11 @@ export function plainText(html?: string | null): string {
     return text.replace(/\s+/g, ' ').trim();
 }
 
+/** "Cho biết nguyên tử khối: H = 1" → "Nguyên tử khối: H = 1": the UI already prints the "Cho biết" label (leading tags kept). */
+export function stripInfoPrefix(html: string): string {
+    return html.replace(/^((?:\s*<[^>]+>)*\s*)Cho biết\s*:?\s*(\S)/i, (_, head: string, c: string) => head + c.toUpperCase());
+}
+
 /**
  * Short sentence for an API error ({code, error}) or a thrown error:
  * server message if any; fetch failure (TypeError) → network sentence; Error.message; else fallback.

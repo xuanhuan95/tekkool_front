@@ -3,7 +3,7 @@ import {Link} from 'react-router-dom';
 
 import renderHTML from '../../components/SafeHtml';
 import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, PageTitle, SkeletonCard, buttonClass, notify} from '../../components/ui';
-import {errorText} from '../../lib/format';
+import {errorText, stripInfoPrefix} from '../../lib/format';
 import {PAPERS_PER_PAGE, useBankPaper, useBankPapers, useDeletePaper} from '../../queries/questionBank';
 import type {BankPaperRow, BankSummary} from '../../types/exam';
 import {toUnits, type ImportSection} from '../exam-creation/importRules';
@@ -21,7 +21,7 @@ function PaperBody({id}: {id: string}) {
     let no = 0;
     return <>
         {data.shared_info.map((h, i) => <div key={i} className='vt-imp-passage'>
-            <div className='vt-imp-passage-label'>Cho biết</div>{renderHTML(h)}
+            <div className='vt-imp-passage-label'>Cho biết</div>{renderHTML(stripInfoPrefix(h))}
         </div>)}
         {(data.sections as ImportSection[]).map(s => <div key={s.id} className='vt-qbv-list'>
             <b>{s.name}</b>

@@ -6,6 +6,7 @@ import Card from '../Card';
 import ProgressBar from '../ProgressBar';
 import {IconAlert, IconBack, IconSaved} from '../icons';
 import {cx} from '../cx';
+import {stripInfoPrefix} from '../../../lib/format';
 import renderHTML from '../../SafeHtml';
 import {WARN_SECONDS, formatClock, spokenClock} from './types';
 
@@ -66,7 +67,7 @@ export function ExamSharedInfo({items}: {items?: string[]}) {
     if (!items?.length) return null;
     return <aside className='vt-exam-info' aria-label='Cho biết'>
         <h2>Cho biết<span>luôn hiện</span></h2>
-        {items.map((h, i) => <div key={i} className='vt-exam-info-body'>{renderHTML(h)}</div>)}
+        {items.map((h, i) => <div key={i} className='vt-exam-info-body'>{renderHTML(stripInfoPrefix(h))}</div>)}
     </aside>;
 }
 

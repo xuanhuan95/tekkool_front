@@ -87,9 +87,7 @@ a.hs-subject:hover { color: var(--vt-ink); background: var(--vt-paper); }
 .hs-tips { display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.5; }
 .hs-tips > div { display: flex; gap: 8px; align-items: flex-start; }
 .hs-tips svg { flex-shrink: 0; margin-top: 3px; }
-.hs-start-bar { position: sticky; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 5;
-    padding: 12px 0 4px; background: linear-gradient(transparent, var(--vt-paper) 30%); }
-@media (min-width: 1024px) { .hs-start-bar { position: static; padding: 0; background: none; } }
+.hs-start-bar { padding: 12px 0 4px; }   /* in the flow, not sticky (artboard APP-student-exam-detail-*) */
 .hs-card-pad.vt-card { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
 
 /* Leaderboard */
