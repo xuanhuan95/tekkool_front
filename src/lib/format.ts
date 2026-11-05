@@ -164,9 +164,14 @@ export function optionsAreShort(htmls: string[]): boolean {
     return htmls.every(h => !/<img/i.test(h) && plainText(h).length <= 3);
 }
 
-/** "Cho biết nguyên tử khối: H = 1" → "Nguyên tử khối: H = 1": the UI already prints the "Cho biết" label (leading tags kept). */
+/** "Cho biết nguyên tử khối: H = 1" → "Nguyên tử khối: H = 1": the UI already prints the "Cho biết" label.
+ *  The label may sit inside inline tags (`<b>Cho biết</b>: …`); tags it empties are dropped, the ":" and nbsp go too. */
 export function stripInfoPrefix(html: string): string {
-    return html.replace(/^((?:\s*<[^>]+>)*\s*)Cho biết\s*:?\s*(\S)/i, (_, head: string, c: string) => head + c.toUpperCase());
+    const m = html.match(/^((?:\s*<[^>]+>)*\s*)Cho biết\s*:?((?:\s*<\/(?:b|strong|i|em|u|span)>)*)(?:\s|&nbsp;)*:?(?:\s|&nbsp;)*/i);
+    if (!m) return html;
+    let head = m[1] + m[2];
+    for (let prev = ''; prev !== head;) { prev = head; head = head.replace(/<(\w+)[^>]*>\s*<\/\1>/g, ''); }
+    return head + html.slice(m[0].length).replace(/^((?:<[^>]+>)*)(\S)/, (_, t: string, c: string) => t + c.toUpperCase());
 }
 
 /**

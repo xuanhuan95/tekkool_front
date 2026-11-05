@@ -20,9 +20,10 @@ function PaperBody({id}: {id: string}) {
     if (!data) return <SkeletonCard/>;
     let no = 0;
     return <>
-        {data.shared_info.map((h, i) => <div key={i} className='vt-imp-passage'>
-            <div className='vt-imp-passage-label'>Cho biết</div>{renderHTML(stripInfoPrefix(h))}
-        </div>)}
+        {data.shared_info.length > 0 && <div className='vt-imp-passage'>
+            <div className='vt-imp-passage-label'>Cho biết</div>
+            {data.shared_info.map((h, i) => <div key={i}>{renderHTML(stripInfoPrefix(h))}</div>)}
+        </div>}
         {(data.sections as ImportSection[]).map(s => <div key={s.id} className='vt-qbv-list'>
             <b>{s.name}</b>
             {toUnits(s.questions).map((u, k, all) => {

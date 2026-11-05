@@ -31,6 +31,15 @@ describe('BankPapers (Nguyên đề)', () => {
         expect(screen.queryByText('Đáp án đúng')).toBeNull();
     });
 
+    it('several shared_info items sit under ONE "Cho biết" label, the real <b>Cho biết</b>: prefix is stripped', async () => {
+        mockApi({...gets, 'question_bank/paper': {...paper, shared_info: ['<p><b>Cho biết</b>: Nguyên tử khối: H = 1</p>', '<p>Bảng A</p>', '<p>Bảng B</p>']}});
+        renderAt(<BankPapers bank={bank}/>);
+        fireEvent.click((await screen.findAllByRole('button', {name: 'Xem'}))[0]);
+        expect(await screen.findByText('Nguyên tử khối: H = 1')).toBeTruthy();
+        expect(screen.getAllByText('Cho biết').length).toBe(1);
+        expect(screen.getByText('Bảng B')).toBeTruthy();
+    });
+
     it('empty bank: Chưa có đề nào + Nhập đề, no standard card', async () => {
         mockApi({'question_bank/papers': {items: [], total: 0, page: 1, per_page: 20}});
         renderAt(<BankPapers bank={{...bank, items: 0}}/>);
