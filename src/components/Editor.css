@@ -139,7 +139,9 @@
 .tt-math-tabs--seg .tt-math-tab.on { background: #d0e9fd; }
 .tt-math-hint { font-size: 12px; font-weight: 600; color: #57534e; line-height: 1.4; }
 .tt-math-hint code { font-size: 11px; background: #f5f6ee; padding: 1px 4px; border-radius: 4px; }
-.tt-math-tpls { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.tt-math-tpls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+@media (min-width: 641px) { .tt-math-tpls { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.tt-math-tpl > span { max-width: 100%; overflow: hidden; }
 .tt-math-tpl { min-height: 64px; padding: 6px 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: #fff; border: 1.5px solid #d6d3c4; border-radius: 8px 5px 9px 4px / 4px 9px 5px 8px; font: inherit; color: #1c1917; cursor: pointer; box-sizing: border-box; }
 .tt-math-tpl.on { background: #d0e9fd; border-color: #1c1917; }
 .tt-math-tpl > span { font-size: 15px; line-height: 1.2; }
@@ -156,3 +158,6 @@
 .tt-math-prev > span { font-size: 22px; line-height: 1.4; overflow-x: auto; }
 .tt-math-err { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; background: #fef3f2; border: 1.5px solid #b42318; border-radius: 8px; color: #b42318; font-size: 12px; }
 .tt-math-err b { font-size: 13px; }
+
+/* Semantic's Sticky is z-index 800: it floated over the 20-high header on a phone. Keep it under header and modals. */
+.ui.ui.sticky { z-index: 10; }

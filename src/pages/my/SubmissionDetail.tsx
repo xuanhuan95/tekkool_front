@@ -160,6 +160,8 @@ export default function SubmissionDetail() {
             {showPassage &&
             <div className='sub-passage'>{renderHTML(a.passage || '')}</div>}
 
+            <div className={grading && !withMarks ? 'sub-split' : undefined}>
+            <div className='sub-split-main'>
             <div className='sub-answer-head'>
                 <b>Câu {idx + 1}</b>
                 {/* ponytail: dropped the Correct/Wrong label — the '1 / 1' score right next to it
@@ -220,7 +222,9 @@ export default function SubmissionDetail() {
                 <div className='sub-correct'>{renderHTML(String(a.correct))}</div>
             </div>}
 
+            </div>
             {grading && !withMarks && gradeForm}
+            </div>
 
             {!grading && a.comment &&
             <Message size='tiny' info className='sub-comment'>
@@ -262,11 +266,11 @@ export default function SubmissionDetail() {
                 <p>{saveError}</p>
                 <p>Điểm, nhận xét và dấu trên ảnh vẫn còn ở đây. Bấm “Lưu điểm và nhận xét” để thử lại.</p>
             </Card>}
+            <Button basic className='margin-top' onClick={() => navigate(-1)}>Bỏ qua</Button>
             <Button primary className='margin-top' onClick={save}
                     loading={saving} disabled={saving || tooLong || uploading}>
                 <Icon name='save'/> Lưu điểm và nhận xét
             </Button>
-            <Button basic className='margin-top' onClick={() => navigate(-1)}>Bỏ qua</Button>
             {saved && <span className='margin-left text-muted'>Đã lưu</span>}
         </Segment>}
 
