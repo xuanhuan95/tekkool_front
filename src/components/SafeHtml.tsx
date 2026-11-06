@@ -4,6 +4,7 @@ import type {DOMNode, Element} from 'html-react-parser';
 import DOMPurify from 'dompurify';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import 'katex/contrib/mhchem';
 
 // ponytail: replaces react-render-html (dead since 2018). Also filters XSS — exam
 // content is entered by teachers, and the old code rendered it raw so an injected

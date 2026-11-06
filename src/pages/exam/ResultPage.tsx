@@ -6,6 +6,7 @@ import {useSubmission} from '../../queries/submissions';
 import type {ApiError} from '../../services/api';
 import {formatDecimal, formatMinutes, formatPoints, formatScore, formatTimeDate} from '../../lib/format';
 import {partRows, summarize} from './submissionView';
+import TeacherNote from './TeacherNote';
 import './results.css';
 
 export function loadError(e: unknown): string {
@@ -100,10 +101,7 @@ export default function ResultPage() {
             </span>
         </Card>}
 
-        {data.teacher_comment && <Card size='md'>
-            <span className='vt-rv-label'>Nhận xét của giáo viên</span>
-            <p className='vt-rv-comment'>{data.teacher_comment}</p>
-        </Card>}
+        {data.teacher_comment && <TeacherNote html={data.teacher_comment}/>}
 
         <div className='vt-res-actions'>
             <Link to={'/review/' + data.id} className={buttonClass({variant: 'primary', block: true})}>Xem lại bài</Link>

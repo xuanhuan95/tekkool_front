@@ -1,3 +1,4 @@
+import {useUploadStore} from '../../stores/uploadStore';
 import {useEffect, useRef, useState} from 'react';
 import {useLocation, useParams} from 'react-router-dom';
 import Loading from '../../components/Loading';
@@ -15,7 +16,7 @@ import {useAuthStore} from '../../stores/authStore';
 import {useExamDraftStore} from '../../stores/examDraftStore';
 import {Editor} from "../../components/Editor";
 import {errorText} from '../../lib/format';
-import {backendProblems, examTotal, publishProblems, reviewHints, withDefaultScores} from './examRules';
+import {backendProblems, examTotal, explanationTooLong, publishProblems, reviewHints, withDefaultScores} from './examRules';
 import {useFolders} from '../../queries/exams';
 import {suggestedMinutes} from './CreateFromBank';
 import {Badge, Button, ConfirmDialog, ErrorState, IconButton, icons} from '../../components/ui';
@@ -87,12 +88,20 @@ export default function CreateExam() {
     // overwrites everything typed afterwards.
     // Q15: a draft saves even with errors (auto-save included); only Xuất bản / In are blocked.
     // Returns true when the exam is on the server.
+    const uploading = useUploadStore(s => s.pending > 0) || explanationTooLong(exam?.sections ?? []);
     const save = async (successMsg: string | null, manual = true): Promise<boolean> => {
         const current = useExamDraftStore.getState().exam;
         if (!current) return false;
         const published = current.status === 'published';
         // A published exam is live for students: never overwrite it silently in the background.
         if (published && !manual) return false;
+        // The BE drops images that are not uploaded yet: wait for them (Editor sets `pending`).
+        if (useUploadStore.getState().pending > 0) return false;
+        // A Lời giải over the limit is never saved (the editor shows the red counter and message).
+        if (explanationTooLong(current.sections)) {
+            if (manual) toast.error('Có lời giải quá dài (trên 5.000 ký tự). Rút gọn rồi lưu lại.');
+            return false;
+        }
         try {
             await Api.post('exam/create', {...current, sections: withDefaultScores(current.sections, subject)});
         } catch (e) {
@@ -253,11 +262,11 @@ export default function CreateExam() {
                         {published
                             ? <>
                                 <Button variant='secondary' onClick={askUnpublish}>Chuyển về nháp</Button>
-                                <Button onClick={() => save('Đã lưu thay đổi')}>Lưu thay đổi</Button>
+                                <Button disabled={uploading} onClick={() => save('Đã lưu thay đổi')}>Lưu thay đổi</Button>
                               </>
                             : <>
-                                <Button variant='secondary' onClick={() => save('Đã lưu nháp')}>Lưu nháp</Button>
-                                <Button onClick={publish}>Xuất bản</Button>
+                                <Button variant='secondary' disabled={uploading} onClick={() => save('Đã lưu nháp')}>Lưu nháp</Button>
+                                <Button disabled={uploading} onClick={publish}>Xuất bản</Button>
                               </>}
                     </Menu.Item>
                 </Menu.Menu>

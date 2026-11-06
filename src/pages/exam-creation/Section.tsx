@@ -7,6 +7,7 @@ import ShortAnswer from './questions/ShortAnswer';
 import TrueFalseBlock from './TrueFalseBlock';
 import {isChum, scoreData, toUnits} from './examRules';
 import ScoreField from './ScoreField';
+import ExplanationField from './ExplanationField';
 import ErrorIdentify from './questions/ErrorIdentify';
 import FreeAnswer from './questions/FreeAnswer';
 import Default from './Default';
@@ -132,9 +133,9 @@ export default function Section({section, subject}: Props) {
 
                 <IconButton label='Xoá câu này' variant='outline' tipEnd icon={<icons.IconClose size={18}/>}
                             onClick={() => setRemoving(unit)}
-                            style={{position: 'absolute', right: '5px', zIndex: 999}}/>
+                            style={{position: 'absolute', right: '5px', zIndex: 2}}/>
 
-                <div id={question.id} style={{marginBottom: '18px'}}>
+                <div id={question.id} className='q-unit-body' style={{marginBottom: '18px'}}>
                     {isTrueFalse
                         ? <TrueFalseBlock unit={unit} onPatch={patchData}
                                           onPassage={html => setPassage(passageId, html)}
@@ -147,6 +148,7 @@ export default function Section({section, subject}: Props) {
                             // SPT-97 câu chùm: every ý is its own FillBlank (question + answer), the passage is above.
                             : (isChum(unit) ? unit : [question]).map(q => <QuestionView key={q.id} question={q} section={section}
                                         setSectionState={setSectionState}/>)}
+                    <ExplanationField key={question.id} unit={unit} onChange={patchData}/>
                     <ScoreField unit={unit} subject={subject} onChange={setScore}/>
                 </div>
             </div>

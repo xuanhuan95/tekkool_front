@@ -1,6 +1,7 @@
 import {Mark, Node, mergeAttributes} from '@tiptap/core';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import 'katex/contrib/mhchem';
 
 // ponytail: Tiptap drops every tag not in its schema. Word import emits
 // x<sup>2</sup>, H<sub>2</sub>O, <img src="data:..."> and <span data-latex="...">

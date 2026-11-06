@@ -20,6 +20,8 @@ export interface ModalProps {
     size?: 'sm' | 'md';
     /** sheet: slides up from the bottom (mobile "Đi tới câu"). */
     placement?: 'center' | 'sheet';
+    /** Centered on wide screens, bottom sheet with a grab handle at <=640px (editor dialogs). */
+    mobileSheet?: boolean;
     /** Show the × in the corner (sheets). */
     showClose?: boolean;
     /** Element focused on open; defaults to the first focusable thing in the dialog. */
@@ -34,7 +36,7 @@ export interface ModalProps {
  * restored to the opener on close, Esc closes, page behind does not scroll.
  */
 export default function Modal({open, onClose, title, children, footer, size = 'sm', placement = 'center',
-                               showClose, initialFocus, className}: ModalProps) {
+                               mobileSheet, showClose, initialFocus, className}: ModalProps) {
     const titleId = useId();
     const box = useRef<HTMLDivElement>(null);
     // Latest onClose without re-running the open effect (which would steal focus on every render).
@@ -70,7 +72,7 @@ export default function Modal({open, onClose, title, children, footer, size = 's
     if (!open) return null;
 
     return createPortal(
-        <div className={cx('vt-overlay', placement === 'sheet' && 'vt-overlay--sheet')}
+        <div className={cx('vt-overlay', placement === 'sheet' && 'vt-overlay--sheet', mobileSheet && 'vt-overlay--msheet')}
              onMouseDown={e => { if (e.target === e.currentTarget) onClose?.(); }}>
             <div ref={box} role='dialog' aria-modal='true' aria-labelledby={titleId} tabIndex={-1}
                  className={cx('vt-modal', size === 'md' && 'vt-modal--md', className)}>

@@ -10,6 +10,7 @@ import {
     TextArea, TextField, ToastCard, WaveLine, buttonClass, notify,
 } from '../../components/ui';
 import type {Column, Status} from '../../components/ui';
+import {Editor} from '../../components/Editor';
 import DevExam from './DevExam';
 import './dev.css';
 
@@ -208,6 +209,13 @@ function Catalogue() {
                     {to: '/ranking', label: 'Xếp hạng'}, {to: '/packages', label: 'Gói thi'}]}
                               right={<><StudentStats stars={20} turns={7} title='Học sinh chăm'/><Avatar name='Minh Anh'/></>}/>
             </div>
+        </Section>
+        <Section title='Editor (SPT-115)' note='3 biến thể: teacher (soạn đề: bảng, ảnh, công thức, Hoá học, ký tự) · student (không ảnh, không bảng) · compact (B, I, danh sách, Σ). Thử dán / kéo thả ảnh vào ô teacher.'>
+            {(['teacher', 'student', 'compact'] as const).map(v => <div key={v} className='dev-frame'>
+                <b>{v}</b>
+                <Editor variant={v} maxChars={v === 'compact' ? 2000 : undefined} placeholder={'Ô ' + v + '…'}
+                        text={v === 'teacher' ? '<p>Phản ứng: <span data-latex="\\ce{2H2 + O2 -> 2H2O}"></span></p>' : ''}/>
+            </div>)}
         </Section>
         <Toaster position='top-right'/>
     </div>;

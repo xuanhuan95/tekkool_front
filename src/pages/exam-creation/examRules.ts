@@ -1,4 +1,10 @@
 import type {Question, Section} from './Default';
+import {textLength} from '../../components/textLength';
+
+/** Lời giải limit (SPT-115, counted on visible text). The editor shows the counter; Lưu is blocked while any question is over. */
+export const EXPLANATION_MAX = 5000;
+export const explanationTooLong = (sections: Section[]) =>
+    sections.some(s => s.questions.some(q => textLength(q.data?.explanation || '') > EXPLANATION_MAX));
 
 /** An SPT exam asks exactly 4 ý (a–d) per Đúng/Sai question; the backend refuses to save anything else (SPT-63). */
 export const TRUE_FALSE_STATEMENTS = 4;

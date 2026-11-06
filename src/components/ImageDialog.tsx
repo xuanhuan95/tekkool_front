@@ -7,9 +7,9 @@ import {Button, Modal} from './ui';
 
 export const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
-/** Client-side check shared with the answer-image area: image type and ≤ 2 MB (BE re-checks by magic bytes). */
+/** Client-side check shared with the answer-image area: JPG/PNG and ≤ 2 MB (BE re-checks by magic bytes). */
 export function imageProblem(file: {type: string; size: number}): string | null {
-    if (!file.type.startsWith('image/')) return 'Chỉ nhận file ảnh (JPG hoặc PNG).';
+    if (!/^image\/(png|jpeg)$/.test(file.type)) return 'Chỉ nhận ảnh JPG hoặc PNG.';
     if (file.size > MAX_IMAGE_BYTES) return 'Ảnh vượt 2 MB, chưa tải lên được.';
     return null;
 }

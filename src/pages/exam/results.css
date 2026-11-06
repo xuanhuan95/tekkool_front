@@ -92,15 +92,30 @@
 .vt-hist-of { font-size: 12px; color: var(--vt-muted); }
 
 /* "Lời giải" (SPT-60 explanation) */
-.vt-rv-sol { border-top: 1.5px solid var(--vt-line-soft); padding-top: 4px; }
-.vt-rv-sol > summary { font-size: 14px; font-weight: 600; min-height: 44px; display: flex; align-items: center; cursor: pointer; }
-.vt-rv-sol > summary::after { content: ' ▾'; margin-left: 4px; }
-.vt-rv-sol[open] > summary::after { content: ' ▴'; }
+/* Collapsible solution (HS-Editor-LoiGiai): bordered paper box, book icon, label, chevron */
+.vt-rv-sol { border: 2px solid var(--vt-ink); border-radius: var(--vt-r-btn); background: var(--vt-paper); overflow: hidden; }
+.vt-rv-sol > summary { font-size: 14px; font-weight: 700; min-height: 44px; padding: 0 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; list-style: none; }
 .vt-rv-sol > summary::-webkit-details-marker { display: none; }
-.vt-rv-solbody { font-size: 14px; line-height: 1.6; background: var(--vt-paper); border-radius: var(--vt-r-chip);
+.vt-rv-sol-chev { margin-left: auto; transition: transform .15s; }
+.vt-rv-sol[open] .vt-rv-sol-chev { transform: rotate(180deg); }
+.vt-rv-sol-hide, .vt-rv-sol[open] .vt-rv-sol-show { display: none; }
+.vt-rv-sol[open] .vt-rv-sol-hide { display: inline; }
+.vt-rv-solbody { font-size: 14px; line-height: 1.6; background: #fff; border-top: 1.5px solid var(--vt-line-soft);
                  padding: 10px 12px; overflow-wrap: anywhere; }
 .vt-rv-solbody img { max-width: 100%; height: auto; }
 .vt-hist-filters { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .vt-score-done { margin: 0; font-size: 16px; line-height: 1.5; }
 .vt-rv-clans { display: block; margin-top: 4px; font-size: 13px; }
+
+.vt-rv-badges { display: inline-flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+@media (min-width: 1024px) { .vt-rv-opts { display: grid; grid-template-columns: 1fr 1fr; } .vt-rv-opts > .vt-rv-hint { grid-column: 1 / -1; } }
+
+/* Teacher remark card (HS-Editor-NhanXet) */
+.vt-tnote { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--vt-title-bg);
+            border: 2px solid var(--vt-ink); border-radius: 13px 9px 14px 8px / 8px 14px 9px 13px; }
+.vt-tnote-head { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.vt-tnote-head .vt-avatar { width: 32px; height: 32px; font-size: 12px; background: #fff; }
+.vt-tnote-body { font-size: 15px; line-height: 1.6; overflow-wrap: anywhere; }
+.vt-tnote-body p { margin: 0 0 4px; }
+.vt-tnote-body ul, .vt-tnote-body ol { margin: 0; padding-left: 20px; }

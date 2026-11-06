@@ -1,3 +1,4 @@
+import {useUploadStore} from '../../stores/uploadStore';
 import {useMemo, useReducer, useState} from 'react';
 import type {ReactNode} from 'react';
 
@@ -24,6 +25,7 @@ type Props = {
  */
 export default function ImportQuestionModal({unit, no, header, onSave, onClose}: Props) {
     const [draft] = useState<ImportQuestion[]>(() => JSON.parse(JSON.stringify(unit.questions)));
+    const uploading = useUploadStore(s => s.pending > 0);
     const [, bump] = useReducer((n: number) => n + 1, 0);
     // The editor components only read `section.questions` (by id) and write back into it.
     const section = useMemo(() => ({id: '', exam: '', name: '', question_type: '', questions: draft}), [draft]);
@@ -37,7 +39,7 @@ export default function ImportQuestionModal({unit, no, header, onSave, onClose}:
     return <Modal open onClose={onClose} title={'Sửa câu ' + no} size='md' className='vt-imp-edit' showClose
                   footer={<>
                       <Button variant='secondary' onClick={onClose}>Huỷ</Button>
-                      <Button variant='primary' onClick={() => onSave(draft)}>Lưu câu</Button>
+                      <Button variant='primary' disabled={uploading} onClick={() => onSave(draft)}>Lưu câu</Button>
                   </>}>
         {header}
         {first.type === 'TrueFalse'
