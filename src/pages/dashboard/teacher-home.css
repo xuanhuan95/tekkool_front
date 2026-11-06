@@ -5,6 +5,8 @@
 .vt-th-subjects { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 16px; }
 .vt-th-subject { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
 .vt-th-subject.is-active { border-color: var(--vt-blue, var(--vt-ink)); box-shadow: 0 0 0 2px var(--vt-blue, var(--vt-ink)); }
+.vt-th-subject-meta { font-size: 14px; font-weight: 500; line-height: 1.3; color: var(--vt-muted); margin: -4px 0 0; }
+.vt-th-subject-meta--empty { font-weight: 400; }
 .vt-th-subject-name { font-family: var(--vt-font-hand); font-weight: 700; font-size: 26px; line-height: 1.15; color: var(--vt-ink); text-decoration: none; overflow-wrap: anywhere; }
 .vt-th-anchor { position: relative; align-self: flex-start; }
 .vt-pop { position: absolute; z-index: 30; top: calc(100% + 8px); left: 0; width: 300px; display: flex; flex-direction: column;

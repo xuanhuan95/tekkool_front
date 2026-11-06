@@ -78,9 +78,17 @@ function TeacherHome() {
     </div>;
 }
 
-function SubjectCard({subject, active}: {subject: Folder; active: boolean}) {
+/** "5 đề · 2 nháp" / "3 đề" / "Chưa có đề"; null when BE is old and sends no count (never claim "Chưa có đề" wrongly). */
+export function examCountText({exam_count: n, draft_count: d}: Pick<Folder, 'exam_count' | 'draft_count'>): string | null {
+    if (n == null) return null;
+    return n === 0 ? 'Chưa có đề' : n + ' đề' + (d ? ` · ${d} nháp` : '');
+}
+
+export function SubjectCard({subject, active}: {subject: Folder; active: boolean}) {
+    const meta = examCountText(subject);
     return <Card as='article' className={'vt-th-subject' + (active ? ' is-active' : '')}>
         <Link to={'/subject/' + subject.id} className='vt-th-subject-name' aria-current={active ? 'true' : undefined}>{subject.name}</Link>
+        {meta && <p className={'vt-th-subject-meta' + (subject.exam_count ? '' : ' vt-th-subject-meta--empty')}>{meta}</p>}
         {subject.hidden && <Badge tone='sun'>Môn đang ẩn — học sinh không thấy</Badge>}
         <CreateMenu subject={subject}/>
     </Card>;
@@ -142,7 +150,10 @@ function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: F
     const [pending, setPending] = useState<Pending | null>(null);
     const [busy, setBusy] = useState(false);
 
-    const refresh = () => qc.invalidateQueries({queryKey: ['exam', 'list']});
+    const refresh = () => {
+        qc.invalidateQueries({queryKey: ['exam', 'list']});
+        qc.invalidateQueries({queryKey: ['folder', 'list']}); // subject-card counts
+    };
     const run = async (fn: () => Promise<void>, failTitle: string) => {
         setBusy(true);
         try { await fn(); refresh(); }

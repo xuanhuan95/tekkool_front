@@ -5,6 +5,9 @@ export type Folder = {
     parent?: string | null;
     /** Admin-hidden subject (SPT-65). Admin sees every hidden subject; a teacher gets only the hidden subjects that still hold their exams. */
     hidden?: boolean;
+    /** Subject cards only (SPT-119): the teacher's own exams incl. child folders; absent on older BE. */
+    exam_count?: number;
+    draft_count?: number;
 };
 
 export type ExamStatus = 'draft' | 'published';
