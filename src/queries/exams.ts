@@ -29,6 +29,7 @@ export function useFolders(enabled = true) {
     return useQuery({
         queryKey: ['folder', 'list'],
         queryFn: () => Api.get<Folder[]>('folder/list'),
+        staleTime: 0, // exam counts change on other screens (create / import / editor), so refetch on every visit
         enabled,
     });
 }
