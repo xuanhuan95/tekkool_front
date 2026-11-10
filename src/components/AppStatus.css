@@ -1,0 +1,15 @@
+/* Màn bảo trì + dải phiên bản mới (SPT-124). Chép từ design/screens/APP-maintenance-*, APP-new-version-banner-*. */
+.vt-mt-card.vt-card { padding: 28px 20px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 16px; }
+.vt-mt-icon { width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; background: var(--vt-sun-soft); border: var(--vt-border); border-radius: var(--vt-r-card-md); color: var(--vt-sun-ink); }
+.vt-mt-lead { margin: 0; } /* title keeps Semantic's h1 margin: that is what the artboard renders */
+.vt-mt-title { font-family: var(--vt-font-hand); font-weight: 700; font-size: 32px; line-height: 1.05; }
+.vt-mt-lead { font-size: 15px; line-height: 1.5; color: var(--vt-muted); }
+.vt-mt-note { width: 100%; box-sizing: border-box; display: flex; gap: 10px; align-items: flex-start; text-align: left; padding: 12px 14px; font-size: 15px; line-height: 1.45; font-weight: 600; border: 2px solid var(--vt-ink); border-radius: var(--vt-r-btn); }
+.vt-mt-note svg { flex-shrink: 0; margin-top: 2px; }
+.vt-mt-note--msg { background: var(--vt-sun-soft); color: var(--vt-sun-ink); border-color: var(--vt-sun-ink); }
+.vt-mt-note--ok { background: var(--vt-ok-bg); color: var(--vt-ok-ink); border-color: var(--vt-ok-icon); font-weight: 500; }
+
+.vt-nv { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; padding: 8px 16px; background: var(--vt-action); border-bottom: var(--vt-border); font-size: 15px; font-weight: 600; color: var(--vt-ink); }
+.vt-nv svg { flex-shrink: 0; }
+.vt-nv-text { display: inline-flex; align-items: center; gap: 8px; }
+.vt-nv .vt-btn { min-height: 44px; padding: 6px 16px; background: var(--vt-card); }
