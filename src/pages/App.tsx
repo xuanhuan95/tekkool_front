@@ -4,6 +4,7 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {Toaster} from 'react-hot-toast';
 
 import Loading from '../components/Loading';
+import AppStatus from '../components/AppStatus';
 import {useAuthStore, watchSessionExpiry} from '../stores/authStore';
 
 import AuthenticateView from './AuthenticateView';
@@ -40,7 +41,7 @@ const queryClient = new QueryClient({
     },
 });
 
-export default function App() {
+function AppRoutes() {
     const ready = useAuthStore(s => s.ready);
     const user = useAuthStore(s => s.user);
     const init = useAuthStore(s => s.init);
@@ -63,4 +64,9 @@ export default function App() {
                     : <AuthenticateView/>}
         </div>
     </QueryClientProvider>;
+}
+
+/** Maintenance screen / new-version bar sit OUTSIDE the auth flow: they must work when the API is down. */
+export default function App() {
+    return <AppStatus><AppRoutes/></AppStatus>;
 }
