@@ -2,6 +2,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import type {ReactNode} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
 
+import Loading from './Loading';
 import {Button, Card} from './ui';
 import {POLL_MS, fetchMaintenance, fetchServerVersion, isNewVersion} from '../lib/appStatus';
 import type {Maintenance} from '../lib/appStatus';
@@ -72,6 +73,7 @@ export default function AppStatus({children}: {children: ReactNode}) {
     const pausedExam = useRef<string | null>(null);
     const [maintenance, setMaintenance] = useState<Maintenance | null>(null);
     const [stale, setStale] = useState(false);
+    const [checked, setChecked] = useState(false);
 
     const check = useCallback(async () => {
         const [m, v] = await Promise.all([fetchMaintenance(), fetchServerVersion()]);
@@ -83,6 +85,7 @@ export default function AppStatus({children}: {children: ReactNode}) {
             navigate('/exams/' + id, {replace: true});
         }
         setMaintenance(m);
+        setChecked(true);
         if (isNewVersion(v)) setStale(true);
     }, [navigate]);
 
@@ -97,6 +100,9 @@ export default function AppStatus({children}: {children: ReactNode}) {
     const exam = inExam(pathname);
     if (maintenance && exam) pausedExam.current = pathname.split('/')[2] ?? null;
     if (maintenance) return <MaintenanceScreen message={maintenance.message} inExam={exam} onRetry={check}/>;
+    // Hold the app until the first check is back: a hard load on /do-exam/* would otherwise open (and bill)
+    // an attempt during maintenance. Fetch errors/timeouts resolve to null, so this never hangs.
+    if (!checked) return <Loading/>;
     return <>
         {stale && !exam && <NewVersionBar/>}
         {children}

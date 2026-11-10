@@ -84,10 +84,18 @@ describe('<AppStatus>', () => {
         expect(await screen.findByText('tại /exams/abc')).toBeInTheDocument();
     });
 
+    it('lần kiểm đầu báo bảo trì: con không bao giờ được render (không mở lượt thi)', async () => {
+        vi.stubGlobal('fetch', fake({'/maintenance.json': reply({})}));
+        const Child = vi.fn(() => <p>nội dung app</p>);
+        render(<MemoryRouter initialEntries={['/do-exam/abc']}><AppStatus><Child/></AppStatus></MemoryRouter>);
+        await screen.findByText('Hệ thống đang bảo trì');
+        expect(Child).not.toHaveBeenCalled();
+    });
+
     it('không bảo trì: hiện app, không dải', async () => {
         vi.stubGlobal('fetch', fake({}));
         mount('/');
-        expect(screen.getByText('nội dung app')).toBeInTheDocument();
+        expect(await screen.findByText('nội dung app')).toBeInTheDocument();
         await waitFor(() => expect(fetch).toHaveBeenCalled());
         expect(screen.queryByText('Đã có phiên bản mới')).toBeNull();
     });

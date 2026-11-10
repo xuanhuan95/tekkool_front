@@ -7,7 +7,7 @@ export type Maintenance = {message: string | null};
 
 async function getJson(url: string, f: typeof fetch): Promise<Record<string, unknown> | null> {
     try {
-        const res = await f(url, {cache: 'no-store'});
+        const res = await f(url, {cache: 'no-store', signal: AbortSignal.timeout(5000)});
         if (!res.ok) return null;
         const body = await res.json();
         return body && typeof body === 'object' ? body : null;
