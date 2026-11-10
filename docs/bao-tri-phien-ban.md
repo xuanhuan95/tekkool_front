@@ -9,6 +9,7 @@ Code: `src/lib/appStatus.ts` (logic thuần), `src/components/AppStatus.tsx` (+ 
 - Có file, JSON đọc được, không có `"enabled": false` → hiện màn bảo trì thay cho app. `{"message": "..."}` là lời nhắn (có thể bỏ trống).
 - 404, lỗi mạng, hoặc 200 nhưng là HTML (nginx rơi về `index.html`) → coi như không bảo trì.
 - Đang ở `/do-exam/*`: thêm dòng "Lượt làm bài đang dở đã được trả lại" (BE reset lượt khi bật bảo trì).
+- Hết bảo trì mà tab đang ở `/do-exam/*`: chuyển (replace) về `/exams/<id>`, không vào lại phòng (tránh tự mở và trừ lượt khi học sinh vắng). Áp dụng cho poll, quay lại tab và nút "Thử lại".
 - Nút "Thử lại" kiểm tra lại ngay. FE **không** xử lý 503/504 của API.
 
 ## Phiên bản mới

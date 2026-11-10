@@ -1,6 +1,6 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import type {ReactNode} from 'react';
-import {useLocation} from 'react-router-dom';
+import {useLocation, useNavigate} from 'react-router-dom';
 
 import {Button, Card} from './ui';
 import {POLL_MS, fetchMaintenance, fetchServerVersion, isNewVersion} from '../lib/appStatus';
@@ -68,14 +68,23 @@ export function NewVersionBar() {
  */
 export default function AppStatus({children}: {children: ReactNode}) {
     const {pathname} = useLocation();
+    const navigate = useNavigate();
+    const pausedExam = useRef<string | null>(null);
     const [maintenance, setMaintenance] = useState<Maintenance | null>(null);
     const [stale, setStale] = useState(false);
 
     const check = useCallback(async () => {
         const [m, v] = await Promise.all([fetchMaintenance(), fetchServerVersion()]);
+        // Maintenance ended while the tab sat in an exam: do not re-enter it (that would open and bill a new
+        // attempt while the student is away). Send them to the exam's detail page to start again by choice.
+        if (!m && pausedExam.current) {
+            const id = pausedExam.current;
+            pausedExam.current = null;
+            navigate('/exams/' + id, {replace: true});
+        }
         setMaintenance(m);
         if (isNewVersion(v)) setStale(true);
-    }, []);
+    }, [navigate]);
 
     useEffect(() => {
         check();
@@ -86,6 +95,7 @@ export default function AppStatus({children}: {children: ReactNode}) {
     }, [check]);
 
     const exam = inExam(pathname);
+    if (maintenance && exam) pausedExam.current = pathname.split('/')[2] ?? null;
     if (maintenance) return <MaintenanceScreen message={maintenance.message} inExam={exam} onRetry={check}/>;
     return <>
         {stale && !exam && <NewVersionBar/>}

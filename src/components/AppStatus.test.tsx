@@ -1,5 +1,5 @@
 import {render, screen, waitFor} from '@testing-library/react';
-import {MemoryRouter} from 'react-router-dom';
+import {MemoryRouter, useLocation} from 'react-router-dom';
 import {afterEach, describe, expect, it, vi} from 'vitest';
 
 import AppStatus from './AppStatus';
@@ -70,6 +70,18 @@ describe('<AppStatus>', () => {
         vi.stubGlobal('fetch', fake({'/maintenance.json': reply({})}));
         mount('/do-exam/abc');
         expect(await screen.findByText(/đã được trả lại/)).toBeInTheDocument();
+    });
+
+    it('hết bảo trì khi đang ở phòng thi: về trang chi tiết đề, không vào lại phòng', async () => {
+        let on = true;
+        vi.stubGlobal('fetch', vi.fn(async (u: string) =>
+            u === '/maintenance.json' && on ? reply({}) : reply(null, false)));
+        const Where = () => <p>tại {useLocation().pathname}</p>;
+        render(<MemoryRouter initialEntries={['/do-exam/abc']}><AppStatus><Where/></AppStatus></MemoryRouter>);
+        await screen.findByText('Hệ thống đang bảo trì');
+        on = false;
+        screen.getByRole('button', {name: /Thử lại/}).click();
+        expect(await screen.findByText('tại /exams/abc')).toBeInTheDocument();
     });
 
     it('không bảo trì: hiện app, không dải', async () => {
