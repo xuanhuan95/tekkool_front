@@ -55,6 +55,7 @@ npx vitest run                                      # chạy test (npx vitest = 
 ```
 
 - Không đặt `VITE_API_URL` thì FE gọi `https://api.tekkool.com/api/` (production) — xem `src/settings.ts`.
+- `VITE_SENTRY_DSN` (SPT-134): DSN Sentry để báo lỗi runtime/render về Sentry. Để trống thì không khởi tạo Sentry (dev, test, e2e không gửi gì). Production được truyền qua build arg của `Dockerfile.front`. Không bật replay/tracing/PII; bỏ breadcrumb console.
 - Trang catalogue component: `http://localhost:3000/dev/ui` (chỉ có ở dev, không vào bản build).
 - Chạy kèm backend thật trên mongomock để thử end-to-end: `tests_qc/devstack/up.sh` trong repo backend.
 
