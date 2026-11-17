@@ -8,6 +8,7 @@ import {Avatar, Button, Card, Modal, PasswordField, Skeleton, SkeletonCard, Text
 import {IconCrown, IconEdit} from '../../components/ui/icons';
 import {useAuthStore} from '../../stores/authStore';
 import {useWallet} from '../../queries/wallet';
+import {MIN_PASSWORD} from '../auth/authLogic';
 import {PROFILE_KEY, useMeProfile, useSubjects, useUpdateExamSubjects} from '../../queries/student';
 import type {MeProfile} from '../../types/student';
 import {LoadError, PageHead, hsPath, titleHint} from './common';
@@ -157,7 +158,7 @@ export function PasswordDialog({open, onClose}: {open: boolean; onClose: () => v
             <PasswordField label='Mật khẩu hiện tại' autoComplete='current-password' value={f.old} error={errs.old}
                            onChange={e => set('old', e.target.value)}/>
             <PasswordField label='Mật khẩu mới' autoComplete='new-password' value={f.next} error={errs.next}
-                           hint='Ít nhất 6 ký tự.' onChange={e => set('next', e.target.value)}/>
+                           hint={'Ít nhất ' + MIN_PASSWORD + ' ký tự.'} onChange={e => set('next', e.target.value)}/>
             <PasswordField label='Nhập lại mật khẩu mới' autoComplete='new-password' value={f.confirm} error={errs.confirm}
                            onChange={e => set('confirm', e.target.value)}/>
         </form>

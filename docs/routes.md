@@ -4,7 +4,7 @@ Chọn view ở `src/pages/App.tsx`:
 
 | Trạng thái | View | File |
 |---|---|---|
-| Chưa đăng nhập | `AnonymousView` — `/` đăng nhập, `/register` đăng ký 2 bước (SPT-135: bước 2 chọn 3–7 môn, gửi `exam_subjects` trong `user/register`), còn lại → đăng nhập | `pages/AnonymousView.tsx` |
+| Chưa đăng nhập | `AnonymousView` — `/` đăng nhập, `/register` đăng ký 2 bước (SPT-135: bước 2 chọn 3–7 môn từ `user/exam_subjects_options` (token ẩn danh), gửi `exam_subjects` trong `user/register`; mật khẩu tối thiểu 8 ký tự), còn lại → đăng nhập | `pages/AnonymousView.tsx` |
 | Nhóm `visitor` | `VisitorView` (đề, kết quả, thanh toán, lịch sử) | `pages/VisitorView.tsx` |
 | Đã đăng nhập (HS, GV, Admin) | `AuthenticateView` | `pages/AuthenticateView.tsx` |
 | Mọi người (không cần đăng nhập) | `/design-system` (token cũ), `/dev/ui*` (chỉ dev) | `pages/DesignSystem.tsx`, `pages/dev/` |

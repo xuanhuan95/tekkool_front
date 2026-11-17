@@ -10,6 +10,16 @@ export function retryFlaky(count: number, e: unknown): boolean {
     return count < 1 && !(typeof code === 'number' && code >= 400 && code < 500);
 }
 
+/** Subjects for the register step 2 (anonymous token; `folder/subjects` needs a login). */
+export function useExamSubjectOptions(enabled = true) {
+    return useQuery({
+        queryKey: ['user', 'exam_subjects_options'],
+        queryFn: () => Api.get<{id: string; name: string}[]>('user/exam_subjects_options'),
+        enabled,
+        retry: retryFlaky,
+    });
+}
+
 export function useSubjects(enabled = true) {
     return useQuery({
         queryKey: ['folder', 'subjects'],

@@ -6,7 +6,7 @@ import Api from '../../services/api';
 import {useAuthStore} from '../../stores/authStore';
 import {Button, EmptyState, PasswordField, Skeleton, TextField} from '../../components/ui';
 import {IconAlert} from '../../components/ui/icons';
-import {useSubjects} from '../../queries/student';
+import {useExamSubjectOptions} from '../../queries/student';
 import {LoadError} from '../hs/common';
 import {SubjectPicker} from '../hs/SubjectPicker';
 import {pickStatus} from '../hs/subjects';
@@ -31,7 +31,7 @@ export default function Register() {
     const [busy, setBusy] = useState(false);
     const [step, setStep] = useState<1 | 2>(1);
     const [picked, setPicked] = useState<string[]>([]);
-    const subjects = useSubjects(step === 2);
+    const subjects = useExamSubjectOptions(step === 2);
 
     const set = <K extends keyof RegisterForm>(k: K, v: RegisterForm[K]) => {
         setForm(f => ({...f, [k]: v}));
