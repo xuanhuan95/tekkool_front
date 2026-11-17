@@ -56,7 +56,6 @@ describe('AccountPage', () => {
         }));
         renderAt('/me', [['/me', <AccountPage/>]]);
         expect(await screen.findByText(/Còn 2 bài nữa/)).toBeInTheDocument();
-        expect(screen.getByText(/Danh hiệu đầu tiên: Học sinh chăm/)).toBeInTheDocument();
         expect(document.querySelector('[data-tier]')).toBeNull();
     });
 

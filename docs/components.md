@@ -151,3 +151,11 @@ SPT-99: ô "Số từ gợi ý" / "Độ dài mong muốn" và bộ đếm "n / 
 
 - `pages/exam-creation/ExplanationField.tsx`: mục "Lời giải" thu gọn dưới mỗi câu (Editor teacher, tối đa 5.000 ký tự), ghi vào `data.explanation` của ý đầu của khối. Học sinh chỉ thấy sau khi nộp (BE).
 - `my/SubmissionDetail.tsx`: nhận xét từng câu và nhận xét cả bài dùng Editor `compact`, tối đa 2.000 ký tự, không bắt buộc; quá giới hạn thì nút "Lưu điểm và nhận xét" khoá; "Bỏ qua" thoát không lưu. Nhận xét hiển thị cho học sinh (`ReviewPage`, `ResultPage`, `SubmissionDetail`) bằng `exam/TeacherNote` (thẻ tím, avatar GV; BE chưa trả tên giáo viên chấm nên ghi "Nhận xét của giáo viên"); nhận xét cũ dạng chữ thường mất xuống dòng.
+
+## Trang chủ HS và chọn môn (SPT-135)
+
+- `pages/hs/subjects.ts`: nhận diện 12 môn từ tên thư mục (`subjectKey`, bỏ dấu), tổ hợp A00/A01/B00/C00/D01, luật chọn 3–7 môn (`toggleSubject`, `applyCombo`, `pickStatus`). Dùng ở Đăng ký bước 2 và Hồ sơ → Môn em thi.
+- `pages/hs/SubjectPicker.tsx`: lưới chọn môn + chọn nhanh theo tổ hợp (+ `SubjectIcon`, `sjClass` cho màu/icon từng môn). Thanh nút (Lưu/Huỷ/Tạo tài khoản) truyền qua `children`.
+- `pages/student/homeLogic.ts`: logic thuần của trang chủ (lời chào theo giờ VN, trạng thái chuỗi done/keep/zero, dải 7 ngày, mức vòng điểm, thống kê theo môn, chia "đang luyện"/"thử sức thêm", toạ độ chuỗi chấm).
+- `pages/student/home.css`: CSS port từ artboard (`c-*`, `bd*`, `sj*`, `ch-*`, `rg-*`, `mon-*`).
+- `AuthFrame` có thêm `step` (thanh "Bước n/2") và `wide`.

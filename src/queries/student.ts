@@ -1,4 +1,4 @@
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import Api from '../services/api';
 import type {ExamSummary, Folder} from '../types/exam';
@@ -10,10 +10,11 @@ export function retryFlaky(count: number, e: unknown): boolean {
     return count < 1 && !(typeof code === 'number' && code >= 400 && code < 500);
 }
 
-export function useSubjects() {
+export function useSubjects(enabled = true) {
     return useQuery({
         queryKey: ['folder', 'subjects'],
         queryFn: () => Api.get<SubjectSummary[]>('folder/subjects'),
+        enabled,
         retry: retryFlaky,
     });
 }
@@ -78,5 +79,17 @@ export function useMeProfile() {
         queryKey: PROFILE_KEY,
         queryFn: () => Api.get<MeProfile>('me/profile'),
         retry: retryFlaky,
+    });
+}
+
+/** SPT-136: replace the student's exam subjects (3–7 folder ids). Refreshes the profile (home + Hồ sơ read it). */
+export function useUpdateExamSubjects() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (ids: string[]) => Api.post<{exam_subjects: string[]}>('me/update_exam_subjects', {exam_subjects: ids}),
+        onSuccess: r => {
+            qc.setQueryData<MeProfile>(PROFILE_KEY, p => p && {...p, exam_subjects: r.exam_subjects});
+            qc.invalidateQueries({queryKey: PROFILE_KEY});
+        },
     });
 }

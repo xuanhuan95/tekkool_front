@@ -4,7 +4,7 @@ Chọn view ở `src/pages/App.tsx`:
 
 | Trạng thái | View | File |
 |---|---|---|
-| Chưa đăng nhập | `AnonymousView` — `/` đăng nhập, `/register` đăng ký, còn lại → đăng nhập | `pages/AnonymousView.tsx` |
+| Chưa đăng nhập | `AnonymousView` — `/` đăng nhập, `/register` đăng ký 2 bước (SPT-135: bước 2 chọn 3–7 môn, gửi `exam_subjects` trong `user/register`), còn lại → đăng nhập | `pages/AnonymousView.tsx` |
 | Nhóm `visitor` | `VisitorView` (đề, kết quả, thanh toán, lịch sử) | `pages/VisitorView.tsx` |
 | Đã đăng nhập (HS, GV, Admin) | `AuthenticateView` | `pages/AuthenticateView.tsx` |
 | Mọi người (không cần đăng nhập) | `/design-system` (token cũ), `/dev/ui*` (chỉ dev) | `pages/DesignSystem.tsx`, `pages/dev/` |
@@ -21,7 +21,7 @@ Artboard design: `design/screens/<Tên>.dc.html` (mobile 390px; `HS-Web-*` là b
 
 | Route | Màn | File | Artboard | API |
 |---|---|---|---|---|
-| `/` | Trang chủ | `pages/student/StudentHome.tsx` (qua `pages/dashboard/Dashboard.tsx`, HS → StudentHome) | HS-TrangChu, HS-Web-TrangChu | `payment/wallet`, `exam/in_progress`, `folder/subjects`, `ranking/week?limit=3`, `exam/my_submissions`, `me/profile` (danh hiệu) |
+| `/` | Trang chủ HS (SPT-135, canvas `APP-student-home-vC-*`): lời chào theo giờ VN, chuỗi tuần + 7 ngày, Môn đang luyện (môn đã chọn; thẻ "Làm tiếp" khi có bài làm dở), Thử sức thêm (chuỗi chấm), Bài làm gần đây (thời gian làm, hoàn thành, vòng điểm), HS chưa thi → khối rỗng. Cột phải ≥1024px: Top tuần + Danh hiệu (dính khi cuộn); <1024px chỉ Danh hiệu ở cuối. | `pages/student/StudentHome.tsx` + `homeLogic.ts` (qua `pages/dashboard/Dashboard.tsx`) | `exam/in_progress`, `folder/subjects`, `ranking/week?limit=8`, `exam/my_submissions` (`duration_sec`, `submitted_at`), `me/profile` (`exam_subjects`, `streak`, danh hiệu); số lượt ở header `payment/wallet` |
 | `/exams` (`?mon=<id>`) | Đề thi theo môn | `pages/hs/ExamsPage.tsx` | HS-DeThi | `folder/subjects`, `folder/children`, `exam/browse?folder=` (kèm `best_score/best_max`), `exam/in_progress` |
 | `/exams/:examId` | Chi tiết đề, bắt đầu / làm tiếp | `pages/hs/ExamDetailPage.tsx` | HS-ChiTietDe, HS-HetLuot | `exam/fetch/<id>` (`parts` = cấu trúc đề), `payment/wallet`, `exam/in_progress` |
 | `/do-exam/:examId` (`?lam_lai=1`) | Phòng thi cả đề | `pages/exam/TakeExam.tsx`, `ExamRoom.tsx` | HS-LamBai*, HS-DanhSachCau, HS-XacNhanNop, HS-Web-LamBai | `exam/during_test/<id>`, `exam/save_answer/<qid>`, `exam/submit/<id>` — xem [lam-bai.md](lam-bai.md) |
@@ -29,7 +29,7 @@ Artboard design: `design/screens/<Tên>.dc.html` (mobile 390px; `HS-Web-*` là b
 | `/review/:id` | Xem lại bài & lời giải. Câu tự luận có ảnh: bấm ảnh mở trình xem có dấu chấm của giáo viên (chỉ xem), ghi chú liệt kê dưới ảnh (SPT-84, [cham-tren-anh.md](cham-tren-anh.md)) | `pages/exam/ReviewPage.tsx` | HS-XemLai, CA-Web-HS-XemLai, CA-Mobile-HS-XemLai, CA-Mobile-HS-XemAnh | `exam/submission/<id>` |
 | `/history` | Lịch sử làm bài (lọc chờ chấm, môn) | `pages/exam/HistoryPage.tsx` | HS-LichSu | `exam/my_submissions` |
 | `/ranking` | Xếp hạng tuần / thành tích | `pages/hs/RankingPage.tsx` | HS-XepHang | `ranking/week`, `ranking/achievements` (mỗi dòng có `title`), `folder/subjects`, `me/profile` |
-| `/me` | Tài khoản (khung rộng như mọi màn, không còn `maxWidth: 720`; 04/11) | `pages/hs/AccountPage.tsx` | HS-TaiKhoan | `me/profile` (`title`, `title_next`), `me/ranking_privacy`, `me/update`, `me/change_password`, `payment/wallet` |
+| `/me` | Tài khoản (khung rộng như mọi màn, không còn `maxWidth: 720`; 04/11) | `pages/hs/AccountPage.tsx` | HS-TaiKhoan | `me/profile` (`title`, `title_next`, `exam_subjects`), `me/update_exam_subjects` (SPT-135: thẻ "Môn em thi" xem/sửa 3–7 môn, `/me#mon-em-thi` mở thẳng chế độ sửa), `folder/subjects`, `me/ranking_privacy`, `me/update`, `me/change_password`, `payment/wallet` |
 | `/packages` | Gói thi | `pages/pay/Packages.tsx` | HS-Goi | `package/list`, `payment/wallet` |
 | `/payment/:packageId` | Xác nhận thanh toán → chuyển SePay | `pages/payment/Payment.tsx` | HS-ThanhToan | `package/list`, `payment/checkout` (form POST sang SePay theo đúng thứ tự trường BE trả) |
 | `/payment/result?inv=[&result=cancel\|error]` | Chờ xác nhận / thành công / thất bại / đã huỷ / không tìm thấy đơn (403, 404: đơn người khác hoặc không tồn tại, SPT-61) | `pages/payment/PaymentResult.tsx` | HS-ThanhToanCho, HS-ThanhToanXong | `payment/status/<inv>` (hỏi lại định kỳ), `payment/cancel/<inv>` (khi có `result`), `payment/wallet` |
