@@ -37,7 +37,7 @@ export function SubjectIcon({name, small}: {name?: string | null; small?: boolea
     </span>;
 }
 
-export type PickSubject = {id: string; name: string; exams?: number};
+export type PickSubject = {id: string; name: string; exams: number};
 
 /**
  * "Chọn môn em thi" body shared by sign-up step 2 and Hồ sơ (edit): combos, tiles, then `children`

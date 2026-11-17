@@ -14,7 +14,7 @@ export function retryFlaky(count: number, e: unknown): boolean {
 export function useExamSubjectOptions(enabled = true) {
     return useQuery({
         queryKey: ['user', 'exam_subjects_options'],
-        queryFn: () => Api.get<{id: string; name: string}[]>('user/exam_subjects_options'),
+        queryFn: () => Api.get<{id: string; name: string; exams: number}[]>('user/exam_subjects_options'),
         enabled,
         retry: retryFlaky,
     });
