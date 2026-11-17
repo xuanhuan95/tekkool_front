@@ -73,6 +73,19 @@ export type MeProfile = {
     title?: StudentTitle | null;
     /** SPT-64: next tier hint, present even when `title` is null (students only). */
     title_next?: TitleHint | null;
+    /** SPT-136: folder ids of the subjects the student sits (3–7); old accounts / teachers: []. */
+    exam_subjects?: string[];
+    /** SPT-137: weekly practice streak (Mon–Sun, Vietnam time); teachers/Admin: null. */
+    streak?: Streak | null;
+};
+
+export type Streak = {
+    /** Weeks in a row. */
+    current: number;
+    best: number;
+    this_week_done: boolean;
+    /** 7 booleans Mon→Sun of the current week: that day has a submitted attempt. */
+    this_week: boolean[];
 };
 
 /** One row of `ranking/week` / `ranking/achievements` (core_ranking.rank_board). */

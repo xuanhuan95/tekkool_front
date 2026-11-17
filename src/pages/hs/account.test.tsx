@@ -12,9 +12,9 @@ import {useAuthStore} from '../../stores/authStore';
 describe('account logic', () => {
     it('validates password change', () => {
         expect(validatePassword({old: '', next: '123', confirm: '12'})).toEqual({
-            old: 'Nhập mật khẩu hiện tại.', next: 'Mật khẩu mới cần ít nhất 6 ký tự.', confirm: 'Mật khẩu nhập lại chưa khớp'});
-        expect(validatePassword({old: 'abcdef', next: 'abcdef', confirm: 'abcdef'}).next).toMatch(/khác/);
-        expect(validatePassword({old: 'abcdef', next: 'ghijkl', confirm: 'ghijkl'})).toEqual({});
+            old: 'Nhập mật khẩu hiện tại.', next: 'Mật khẩu mới cần ít nhất 8 ký tự.', confirm: 'Mật khẩu nhập lại chưa khớp'});
+        expect(validatePassword({old: 'abcdefgh', next: 'abcdefgh', confirm: 'abcdefgh'}).next).toMatch(/khác/);
+        expect(validatePassword({old: 'abcdefgh', next: 'ghijklmn', confirm: 'ghijklmn'})).toEqual({});
     });
     it('maps BE unaccented errors to fields', () => {
         expect(passwordApiError({code: 400, error: 'Mat khau hien tai khong dung'})).toEqual({field: 'old', message: 'Mật khẩu hiện tại chưa đúng.'});
@@ -56,7 +56,6 @@ describe('AccountPage', () => {
         }));
         renderAt('/me', [['/me', <AccountPage/>]]);
         expect(await screen.findByText(/Còn 2 bài nữa/)).toBeInTheDocument();
-        expect(screen.getByText(/Danh hiệu đầu tiên: Học sinh chăm/)).toBeInTheDocument();
         expect(document.querySelector('[data-tier]')).toBeNull();
     });
 
@@ -76,6 +75,21 @@ describe('AccountPage', () => {
         fireEvent.click(screen.getByRole('button', {name: 'Lưu'}));
         await waitFor(() => expect(post).toHaveBeenCalledWith('me/update', {name: 'Minh Anh'}));
         await waitFor(() => expect(useAuthStore.getState().user?.name).toBe('Minh Anh'));
+    });
+
+    it('exam subjects: a failed save shows the error and keeps the editor open', async () => {
+        get.mockImplementation(routeApi({
+            'me/profile': {...profile, exam_subjects: ['a', 'b', 'c']},
+            'payment/wallet': {bought: 10, used: 3, remaining: 7},
+            'folder/subjects': ['a', 'b', 'c', 'd'].map(id => ({id, name: 'Môn ' + id, exams: 1, done: 0})),
+        }));
+        post.mockRejectedValue({code: 400, error: 'Chọn từ 3 đến 7 môn'});
+        renderAt('/me', [['/me', <AccountPage/>]]);
+        fireEvent.click(await screen.findByRole('link', {name: 'Sửa'}));
+        fireEvent.click(await screen.findByRole('button', {name: 'Lưu'}));
+        expect(screen.queryByText('Hoặc chọn từng môn')).toBeNull();
+        expect(await screen.findByRole('alert')).toHaveTextContent('Chọn từ 3 đến 7 môn');
+        expect(screen.getByRole('button', {name: 'Lưu'})).toBeInTheDocument();
     });
 
     it('change password: wrong current password lands on that field', async () => {

@@ -50,7 +50,10 @@ describe('register', () => {
         const e = validateRegister({name: ' ', email: 'x', password: '123', password2: '12', agree: false});
         expect(Object.keys(e).sort()).toEqual(['agree', 'email', 'name', 'password', 'password2']);
         expect(e.password2).toBe('Mật khẩu nhập lại chưa khớp');
-        expect(validateRegister({name: 'A', email: 'a@b.vn', password: '123456', password2: '123456', agree: true})).toEqual({});
+        expect(validateRegister({name: 'A', email: 'a@b.vn', password: '12345678', password2: '12345678', agree: true})).toEqual({});
+    });
+    it('password needs 8 characters (BE SPT-131)', () => {
+        expect(validateRegister({name: 'A', email: 'a@b.vn', password: '1234567', password2: '1234567', agree: true}).password).toMatch(/8 ký tự/);
     });
     it('maps duplicate email', () => {
         expect(registerErrorMessage({code: 400, error: 'Email exists already'})).toMatch(/đã có tài khoản/);

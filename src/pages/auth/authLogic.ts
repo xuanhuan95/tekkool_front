@@ -73,7 +73,7 @@ export function registerErrorMessage(e: unknown): string {
     return text || 'Không tạo được tài khoản. Thử lại sau.';
 }
 
-export const MIN_PASSWORD = 6;   // BE: apis/user.py, apis/me.py
+export const MIN_PASSWORD = 8;   // BE: apis/user.py, apis/me.py
 
 export type RegisterForm = {name: string; email: string; password: string; password2: string; agree: boolean};
 export type RegisterErrors = Partial<Record<keyof RegisterForm, string>>;

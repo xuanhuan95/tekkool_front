@@ -1,19 +1,22 @@
-import {useState} from 'react';
-import type {FormEvent} from 'react';
-import {Link} from 'react-router-dom';
+import {useEffect, useRef, useState} from 'react';
+import type {FormEvent, ReactNode} from 'react';
+import {Link, useLocation} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 
 import Api from '../../services/api';
-import {Avatar, Button, Card, Modal, PasswordField, SkeletonCard, TextField, TitleChip, notify} from '../../components/ui';
+import {Avatar, Button, Card, Modal, PasswordField, Skeleton, SkeletonCard, TextField, TitleChip, notify} from '../../components/ui';
 import {IconCrown, IconEdit} from '../../components/ui/icons';
 import {useAuthStore} from '../../stores/authStore';
 import {useWallet} from '../../queries/wallet';
-import {PROFILE_KEY, useMeProfile} from '../../queries/student';
+import {MIN_PASSWORD} from '../auth/authLogic';
+import {PROFILE_KEY, useMeProfile, useSubjects, useUpdateExamSubjects} from '../../queries/student';
 import type {MeProfile} from '../../types/student';
 import {LoadError, PageHead, hsPath, titleHint} from './common';
 import {errorText} from '../../lib/format';
 import {passwordApiError, validateName, validatePassword} from './account';
 import type {PasswordErrors, PasswordForm} from './account';
+import {SubjectIcon, SubjectPicker, sjClass} from './SubjectPicker';
+import {pickStatus, sortSubjects} from './subjects';
 
 function RenameDialog({open, current, onClose}: {open: boolean; current: string; onClose: () => void}) {
     const qc = useQueryClient();
@@ -53,6 +56,63 @@ function RenameDialog({open, current, onClose}: {open: boolean; current: string;
                        onChange={e => { setName(e.target.value); setErr(undefined); }}/>
         </form>
     </Modal>;
+}
+
+/** "Môn em thi" (SPT-135): chips → edit (combos + tiles, Huỷ / Lưu) · never chosen → one nudge button. */
+function ExamSubjectsCard({saved, autoEdit}: {saved: string[]; autoEdit: boolean}) {
+    const subjects = useSubjects();
+    const save = useUpdateExamSubjects();
+    const [editing, setEditing] = useState(autoEdit);
+    const [draft, setDraft] = useState<string[]>([]);
+    const [err, setErr] = useState<string>();
+    const ref = useRef<HTMLElement>(null);
+    const list = subjects.data ?? [];
+    // ids BE still lists (a subject Admin hid later is simply not shown)
+    const mine = sortSubjects(list.filter(x => saved.includes(x.id)));
+
+    useEffect(() => { if (autoEdit) ref.current?.scrollIntoView?.({block: 'start'}); }, [autoEdit]);
+    const open = () => { setDraft(mine.map(x => x.id)); setErr(undefined); setEditing(true); };
+    const close = () => { setEditing(false); setErr(undefined); };
+    const submit = () => {
+        if (save.isPending || !pickStatus(draft.length).ok) return;
+        setErr(undefined);
+        save.mutate(draft, {
+            onSuccess: () => { notify.success('Đã lưu môn em thi'); setEditing(false); },
+            onError: ex => setErr(errorText(ex, 'Không lưu được. Thử lại sau.')),
+        });
+    };
+
+    const head = (action?: ReactNode) => <div className='hs-row'>
+        <div className='hs-col2'><h2 className='hs-h2' id='mon-em-thi'>Môn em thi</h2></div>{action}
+    </div>;
+    let body: ReactNode;
+    if (subjects.isPending) body = <>{head()}<Skeleton height={44} shape='card'/></>;
+    else if (subjects.isError) body = <>{head()}<LoadError error={subjects.error} onRetry={() => subjects.refetch()} what='danh sách môn'/></>;
+    else if (editing) body = <>
+        <div className='hs-col2'><h2 className='hs-h2' id='mon-em-thi'>Môn em thi</h2></div>
+        {err && <p role='alert' className='vt-field-error'>{err}</p>}
+        <SubjectPicker subjects={list} selected={draft} onChange={ids => { setDraft(ids); setErr(undefined); }} gridClass='mon-edit-grid' eachLabel={false}>
+            <div className='ch-bar'>
+                <span className='sp'/>
+                <a href='#mon-em-thi' className='vt-link' onClick={e => { e.preventDefault(); if (!save.isPending) close(); }}>Huỷ</a>
+                <Button variant='primary' disabled={!pickStatus(draft.length).ok} loading={save.isPending} loadingText='Đang lưu…'
+                        onClick={submit}>Lưu</Button>
+            </div>
+        </SubjectPicker>
+    </>;
+    else if (mine.length === 0) body = <>
+        <div className='mon-nudge'><h2 className='hs-h2' id='mon-em-thi'>Môn em thi</h2><b>Chưa chọn môn thi</b></div>
+        <span><Button variant='primary' onClick={open}>Chọn môn em thi</Button></span>
+    </>;
+    else body = <>
+        {head(<a href='#mon-em-thi' className='vt-link' onClick={e => { e.preventDefault(); open(); }}>Sửa</a>)}
+        <div className='mon-chips'>
+            {mine.map(x => <span key={x.id} className={'mon-chip ' + sjClass(x.name)}>
+                <SubjectIcon name={x.name} small/>{x.name}{x.exams === 0 && <em>Sắp có</em>}
+            </span>)}
+        </div>
+    </>;
+    return <section ref={ref} aria-labelledby='mon-em-thi' className='vt-card mon-card'>{body}</section>;
 }
 
 const EMPTY_PW: PasswordForm = {old: '', next: '', confirm: ''};
@@ -98,7 +158,7 @@ export function PasswordDialog({open, onClose}: {open: boolean; onClose: () => v
             <PasswordField label='Mật khẩu hiện tại' autoComplete='current-password' value={f.old} error={errs.old}
                            onChange={e => set('old', e.target.value)}/>
             <PasswordField label='Mật khẩu mới' autoComplete='new-password' value={f.next} error={errs.next}
-                           hint='Ít nhất 6 ký tự.' onChange={e => set('next', e.target.value)}/>
+                           hint={'Ít nhất ' + MIN_PASSWORD + ' ký tự.'} onChange={e => set('next', e.target.value)}/>
             <PasswordField label='Nhập lại mật khẩu mới' autoComplete='new-password' value={f.confirm} error={errs.confirm}
                            onChange={e => set('confirm', e.target.value)}/>
         </form>
@@ -113,6 +173,7 @@ export default function AccountPage() {
     const wallet = useWallet();
     const [dialog, setDialog] = useState<'rename' | 'password' | null>(null);
     const [leaving, setLeaving] = useState(false);
+    const autoEdit = useLocation().hash === '#mon-em-thi';
 
     const title = profile.data?.title ?? null;
     const next = titleHint(profile.data);
@@ -133,7 +194,7 @@ export default function AccountPage() {
             </div>
             {next && <div className='hs-row' style={{justifyContent: 'flex-start', flexWrap: 'nowrap', gap: 8}}>
                 <IconCrown size={16}/>
-                <span className='hs-meta'><b>{title ? 'Bậc tiếp theo' : 'Danh hiệu đầu tiên'}: {next.name}.</b> {next.hint}.</span>
+                <span className='hs-meta'>{next.hint}.</span>
             </div>}
         </Card>
 
@@ -150,6 +211,8 @@ export default function AccountPage() {
                 <Link to={hsPath.history} className='vt-link'>Lịch sử làm bài</Link>
             </nav>
         </Card>
+
+        {profile.data && profile.data.group === 'student' && <ExamSubjectsCard saved={profile.data.exam_subjects ?? []} autoEdit={autoEdit}/>}
 
         <section className='hs-sec' aria-labelledby='hs-settings'>
             <h2 id='hs-settings' className='hs-h2'>Cài đặt</h2>

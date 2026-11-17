@@ -4,15 +4,22 @@ import {Link, useNavigate} from 'react-router-dom';
 
 import Api from '../../services/api';
 import {useAuthStore} from '../../stores/authStore';
-import {Button, PasswordField, TextField} from '../../components/ui';
+import {Button, EmptyState, PasswordField, Skeleton, TextField} from '../../components/ui';
 import {IconAlert} from '../../components/ui/icons';
+import {useExamSubjectOptions} from '../../queries/student';
+import {LoadError} from '../hs/common';
+import {SubjectPicker} from '../hs/SubjectPicker';
+import {pickStatus} from '../hs/subjects';
 import {homeFor, loginWithRetry, MIN_PASSWORD, registerErrorMessage, validateRegister} from './authLogic';
 import type {LoginResult, RegisterErrors, RegisterForm} from './authLogic';
 import AuthFrame from './AuthFrame';
 
 const EMPTY: RegisterForm = {name: '', email: '', password: '', password2: '', agree: false};
 
-/** HS-DangKy (design D). Public sign-up is always a student (BE ignores ?type). */
+/**
+ * HS-DangKy (design D), 2 steps (SPT-135): 1 = account, 2 = choose 3–7 exam subjects, then create.
+ * Public sign-up is always a student (BE ignores ?type).
+ */
 export default function Register() {
     const navigate = useNavigate();
     const signIn = useAuthStore(s => s.signIn);
@@ -22,6 +29,9 @@ export default function Register() {
     const [errors, setErrors] = useState<RegisterErrors>({});
     const [err, setErr] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
+    const [step, setStep] = useState<1 | 2>(1);
+    const [picked, setPicked] = useState<string[]>([]);
+    const subjects = useExamSubjectOptions(step === 2);
 
     const set = <K extends keyof RegisterForm>(k: K, v: RegisterForm[K]) => {
         setForm(f => ({...f, [k]: v}));
@@ -29,18 +39,21 @@ export default function Register() {
         setErr(null);
     };
 
-    const submit = async (e: FormEvent) => {
+    const next = (e: FormEvent) => {
         e.preventDefault();
-        if (busy) return;
         const v = validateRegister(form);
         setErrors(v);
         if (Object.values(v).some(Boolean)) return;
+        setStep(2);
+    };
 
+    const submit = async () => {
+        if (busy || !pickStatus(picked.length).ok) return;
         setBusy(true);
         setErr(null);
         const email = form.email.trim();
         try {
-            await Api.post('user/register', {email, password: form.password, name: form.name.trim()});
+            await Api.post('user/register', {email, password: form.password, name: form.name.trim(), exam_subjects: picked});
         } catch (ex) {
             setErr(registerErrorMessage(ex));
             setBusy(false);
@@ -58,11 +71,32 @@ export default function Register() {
         }
     };
 
-    return <AuthFrame title='Tạo tài khoản'
-                      footer={<><span className='vt-muted'>Đã có tài khoản?</span>
-                          <Link to='/' className='vt-link'>Đăng nhập</Link></>}>
-        <form className='vt-auth-form' onSubmit={submit} noValidate>
+    const footer = <><span className='vt-muted'>Đã có tài khoản?</span><Link to='/' className='vt-link'>Đăng nhập</Link></>;
+
+    if (step === 2) {
+        const list = subjects.data ?? [];
+        const ok = pickStatus(picked.length).ok;
+        return <AuthFrame title='Chọn môn em thi' step={2} wide footer={footer}>
             {err && <div role='alert' className='vt-auth-alert'><IconAlert size={18}/><span>{err}</span></div>}
+            {subjects.isPending ? <div aria-busy='true'><Skeleton height={220} shape='card'/></div>
+                : subjects.isError ? <LoadError error={subjects.error} onRetry={() => subjects.refetch()} what='danh sách môn'/>
+                : list.length === 0 ? <EmptyState bare title='Chưa có môn thi nào' description='Giáo viên đang soạn đề, bạn quay lại sau nhé.'/>
+                : <SubjectPicker subjects={list} selected={picked} onChange={ids => { setPicked(ids); setErr(null); }}>
+                    <div className='ch-bar'>
+                        <span className='sp'/>
+                        <Button variant='primary' disabled={!ok} loading={busy} loadingText='Đang tạo…' onClick={submit}>Tạo tài khoản</Button>
+                    </div>
+                </SubjectPicker>}
+            <div className='rg-acts'>
+                {/* an <a href='#'> like the board: .vt-link only styles anchors */}
+                <a href='#' className='vt-link rg-back' aria-disabled={busy || undefined}
+                   onClick={e => { e.preventDefault(); if (!busy) { setStep(1); setErr(null); } }}>← Quay lại bước 1</a>
+            </div>
+        </AuthFrame>;
+    }
+
+    return <AuthFrame title='Tạo tài khoản' step={1} footer={footer}>
+        <form className='vt-auth-form' onSubmit={next} noValidate>
             <TextField label='Họ và tên' name='name' autoComplete='name' value={form.name} autoFocus
                        placeholder='Nguyễn Minh Anh' error={errors.name} onChange={e => set('name', e.target.value)}/>
             <TextField label='Email' type='email' name='email' autoComplete='email' value={form.email}
@@ -79,7 +113,7 @@ export default function Register() {
                 <span>Tôi đồng ý với điều khoản sử dụng và chính sách bảo mật.</span>
             </label>
             {errors.agree && <span className='vt-auth-check-err' role='alert'>{errors.agree}</span>}
-            <Button type='submit' variant='primary' block loading={busy} loadingText='Đang tạo…'>Tạo tài khoản</Button>
+            <Button type='submit' variant='primary' block>Tiếp tục →</Button>
         </form>
     </AuthFrame>;
 }
