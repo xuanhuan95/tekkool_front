@@ -87,6 +87,7 @@ describe('AccountPage', () => {
         renderAt('/me', [['/me', <AccountPage/>]]);
         fireEvent.click(await screen.findByRole('link', {name: 'Sửa'}));
         fireEvent.click(await screen.findByRole('button', {name: 'Lưu'}));
+        expect(screen.queryByText('Hoặc chọn từng môn')).toBeNull();
         expect(await screen.findByRole('alert')).toHaveTextContent('Chọn từ 3 đến 7 môn');
         expect(screen.getByRole('button', {name: 'Lưu'})).toBeInTheDocument();
     });

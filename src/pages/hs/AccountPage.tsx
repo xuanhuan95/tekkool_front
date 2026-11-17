@@ -91,7 +91,7 @@ function ExamSubjectsCard({saved, autoEdit}: {saved: string[]; autoEdit: boolean
     else if (editing) body = <>
         <div className='hs-col2'><h2 className='hs-h2' id='mon-em-thi'>Môn em thi</h2></div>
         {err && <p role='alert' className='vt-field-error'>{err}</p>}
-        <SubjectPicker subjects={list} selected={draft} onChange={ids => { setDraft(ids); setErr(undefined); }} gridClass='mon-edit-grid'>
+        <SubjectPicker subjects={list} selected={draft} onChange={ids => { setDraft(ids); setErr(undefined); }} gridClass='mon-edit-grid' eachLabel={false}>
             <div className='ch-bar'>
                 <span className='sp'/>
                 <a href='#mon-em-thi' className='vt-link' onClick={e => { e.preventDefault(); if (!save.isPending) close(); }}>Huỷ</a>

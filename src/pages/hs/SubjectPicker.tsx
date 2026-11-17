@@ -43,8 +43,8 @@ export type PickSubject = {id: string; name: string; exams?: number};
  * "Chọn môn em thi" body shared by sign-up step 2 and Hồ sơ (edit): combos, tiles, then `children`
  * (the button row). Controlled; 3–7 rules live in subjects.ts.
  */
-export function SubjectPicker({subjects, selected, onChange, gridClass = 'g3', children}: {
-    subjects: PickSubject[]; selected: string[]; onChange: (ids: string[]) => void; gridClass?: string; children?: ReactNode;
+export function SubjectPicker({subjects, selected, onChange, gridClass = 'g3', eachLabel = true, children}: {
+    subjects: PickSubject[]; selected: string[]; onChange: (ids: string[]) => void; gridClass?: string; eachLabel?: boolean; children?: ReactNode;
 }) {
     const list = sortSubjects(subjects);
     const st = pickStatus(selected.length);
@@ -56,7 +56,7 @@ export function SubjectPicker({subjects, selected, onChange, gridClass = 'g3', c
                 <b>{c.code}</b><span>{c.label}</span>
             </button>)}
         </div>
-        <p className='ch-lab' style={{margin: 0}}>Hoặc chọn từng môn</p>
+        {eachLabel && <p className='ch-lab' style={{margin: 0}}>Hoặc chọn từng môn</p>}
         <div className={'ch-grid ' + gridClass}>
             {list.map(s => {
                 const on = selected.includes(s.id);
