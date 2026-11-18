@@ -38,7 +38,7 @@ export function ReviewList({rows, openId, onOpen, onToggle, onToggleAll, blockBa
                         <span className='vt-rv-name'>{r.exam.name}</span>
                         <span className='vt-rv-meta'>· {blockBank ? `${r.blocks} khối` : `${r.questions} câu`}</span>
                     </button>
-                    <span className='vt-rv-badges'>
+                    <span className='vt-imp-marks'>
                         {r.note === 'exists' && <Badge tone='err'>Đã có</Badge>}
                         {r.note === 'other-bank' && <Badge tone='err'>Ở ngân hàng khác</Badge>}
                         {r.state === 'saved' && <Badge tone='ok'>Đã lưu</Badge>}

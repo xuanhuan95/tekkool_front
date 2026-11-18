@@ -36,15 +36,24 @@ const fromTemplate = (t: BankTemplate): Layout => (t.layout || []).map(g => ({
 type Draft = {name: string; layout: Layout; savedAt: number; template: string | null};
 const STEPS = ['Ngân hàng & đề mẫu', 'Khung đề', 'Xem trước & lưu'];
 const FIRST_TEMPLATES = 6;
-const bankName = (b: {name: string; kind?: string}) => `${b.name} — ${b.kind === 'paper' ? 'nguyên đề' : 'theo khối'}`;
+/** "Ngữ văn SPT — theo khối": the kind is added to the name, unless the teacher already typed it in the name. */
+const bankName = (b: {name: string; kind?: string}) => {
+    const kind = b.kind === 'paper' ? 'nguyên đề' : 'theo khối';
+    const bare = b.name.replace(new RegExp(`\\s*[—–-]\\s*${kind}\\s*$`, 'i'), '').trim();
+    return `${bare || b.name} — ${kind}`;
+};
+/** A sample exam is named "Đề số 3 - NGỮ VĂN" after import; the subject suffix is noise next to the subject chip. */
+const sampleName = (name: string, subject?: string) => subject
+    ? name.replace(new RegExp(`\\s*[-–—]\\s*${subject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i'), '') : name;
 /** "2 nhóm · 3 phần · 4 khối · 10 điểm": what copying this sample gives (points only when every phần has one). */
 const frameSummary = (t: BankTemplate) => {
     const parts = t.layout.flatMap(g => g.parts);
     const pts = parts.every(p => p.score != null) ? parts.reduce((n, p) => n + (p.score || 0), 0) : null;
     const at = t.created_at ? new Date(t.created_at) : null;
-    const day = at && !isNaN(at.getTime()) ? `nhập ${String(at.getDate()).padStart(2, '0')}/${String(at.getMonth() + 1).padStart(2, '0')}` : null;
-    return [`${t.layout.length} nhóm`, `${parts.length} phần`, `${t.block_count} khối`, pts != null && `${formatDecimal(pts)} điểm`, day].filter(Boolean).join(' · ');
+    const day = at && !isNaN(at.getTime()) ? `Nhập ${String(at.getDate()).padStart(2, '0')}/${String(at.getMonth() + 1).padStart(2, '0')}` : null;
+    return [day, `${t.layout.length} nhóm`, `${parts.length} phần`, `${t.block_count} khối`, pts != null && `${formatDecimal(pts)} điểm`].filter(Boolean).join(' · ');
 };
+const sameDay = (t: number) => new Date(t).toDateString() === new Date().toDateString();
 const hhmm = (t: number) => new Date(t).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'});
 
 /**
@@ -83,8 +92,11 @@ export default function CreateFromBank() {
     const bank = banks?.find(b => b.id === bankId);
     const paper = bank?.kind === 'paper';
     const folderName = (foldersQ.data || []).find(f => f.id === folder)?.name;
-    const visible = useMemo(() => !banks ? [] : !folderName ? banks : banks.filter(b => !b.subject
-        || normalize(b.subject).includes(normalize(folderName)) || normalize(folderName).includes(normalize(b.subject))), [banks, folderName]);
+    // Only the banks of this subject (a bank without subject has no say, so it stays).
+    const visible = useMemo(() => !banks ? [] : !folderName ? banks : banks.filter(b => !b.subject || normalize(b.subject) === normalize(folderName)), [banks, folderName]);
+    // Page opened without ?folder=: the subject (and its page) is the chosen bank's.
+    const subjectFolder = folder ? {id: folder, name: folderName} : (foldersQ.data || []).find(f => !f.parent && !!bank?.subject && normalize(f.name) === normalize(bank.subject));
+    const subject = subjectFolder?.name || bank?.subject;
 
     const tplQ = useBankTemplates(bank && !paper ? bank.id : '');
     const statsQ = useBankStats(bank && !paper ? bank.id : '');
@@ -96,6 +108,10 @@ export default function CreateFromBank() {
     const problem = frameProblem(layout, name);
     const lacking = shortages(layout, stock);
     const template = tplQ.data?.find(t => t.id === templateId);
+    const tplName = (t: {name: string}) => sampleName(t.name, subject);
+    // The creation day only tells two banks apart when they carry the same name (canvas shows none).
+    const sameName = (b: {name: string; kind?: string}) => visible.filter(x => bankName(x) === bankName(b)).length > 1;
+    const restoreTpl = restore?.template ? tplQ.data?.find(t => t.id === restore.template) : undefined;
 
     // Draft of the frame in the browser: F5 or a closed tab does not lose it. Keyed by bank + folder.
     const draftKey = `spt-cfb-draft:${bankId}:${folder}`;
@@ -142,7 +158,12 @@ export default function CreateFromBank() {
         if (wantedStep.current < 1 || !bank || paper || tplQ.isLoading) return;
         landing.current = wantedStep.current;
         wantedStep.current = 0;
-        next();
+        const d = readDraft();
+        if (!d) return start(null);
+        // Behind the question the page already is where it was (canvas create-restore): the saved frame, on its step.
+        setLayout(d.layout); setName(d.name || ''); setTemplateId(d.template); setSavedAt(d.savedAt);
+        setStep(landing.current);
+        setRestore(d);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [bank, paper, tplQ.isLoading]);
     useEffect(() => {
@@ -178,7 +199,8 @@ export default function CreateFromBank() {
         }
     };
 
-    const templates = (tplQ.data || []).filter(t => normalize(t.name).includes(normalize(query)));
+    const templates = (tplQ.data || []).filter(t => normalize(t.name).includes(normalize(query)))
+        .sort((a, b) => a.name.localeCompare(b.name, 'vi', {numeric: true}));
     const shown = showAll || query ? templates : templates.slice(0, FIRST_TEMPLATES);
     const runs = capQ.data && Object.keys(want).length ? capQ.data.capacity : null;
 
@@ -193,10 +215,10 @@ export default function CreateFromBank() {
                 : <div className='vt-cfb-banks' role='radiogroup' aria-label='Ngân hàng đề'>
                     {visible.map(b => <label key={b.id} className={cx('vt-cfb-bank', b.id === bankId && 'on')}>
                         <input type='radio' name='bank' checked={b.id === bankId} onChange={() => pickBank(b.id)}/>
-                        <span><b>{bankName(b)}</b><br/>
+                        <span><b>{bankName(b)}</b>
                             <small>{b.kind === 'paper'
-                                ? `Nguyên đề · ${bankCount(b)} đề${madeOn(b)}. Mỗi lượt rút nguyên một đề, không cần dựng khung.`
-                                : `Theo khối · ${bankCount(b)} khối${b.source_count ? ` · ${b.source_count} đề đã nhập` : ''}${madeOn(b)}. Mỗi khối trong khung rút ngẫu nhiên một khối cùng dạng.`}</small></span>
+                                ? `Nguyên đề · ${bankCount(b)} đề${sameName(b) ? madeOn(b) : ''}. Mỗi lượt rút nguyên một đề, không cần dựng khung.`
+                                : `Theo khối · ${bankCount(b)} khối${b.source_count ? ` · ${b.source_count} đề đã nhập` : ''}${sameName(b) ? madeOn(b) : ''}. Mỗi khối trong khung rút ngẫu nhiên một khối cùng dạng.`}</small></span>
                     </label>)}
                 </div>}
         </Card>
@@ -209,10 +231,10 @@ export default function CreateFromBank() {
                               onRetry={() => tplQ.refetch()} retrying={tplQ.isFetching}/>
                 : tplQ.isLoading ? <Loading/> : <>
                     {(tplQ.data || []).length > FIRST_TEMPLATES && <TextField label='Tìm đề mẫu' placeholder='Tên đề, ví dụ “Đề số 3”' value={query} onChange={e => setQuery(e.target.value)}/>}
-                    <div className='vt-cfb-banks' role='radiogroup' aria-label='Đề mẫu'>
+                    <div className='vt-cfb-banks vt-cfb-banks--grid' role='radiogroup' aria-label='Đề mẫu'>
                         {shown.map(t => <label key={t.id} className={cx('vt-cfb-bank', templateId === t.id && 'on')}>
                             <input type='radio' name='tpl' checked={templateId === t.id} onChange={() => setTemplateId(t.id)}/>
-                            <span><b>{t.name}</b><br/><small>{frameSummary(t)}</small></span>
+                            <span><b>{tplName(t)}</b><small>{frameSummary(t)}</small></span>
                         </label>)}
                     </div>
                     {!showAll && !query && templates.length > FIRST_TEMPLATES &&
@@ -221,7 +243,7 @@ export default function CreateFromBank() {
                     <div className='vt-cfb-banks' role='radiogroup' aria-label='Không dùng đề mẫu'>
                         <label className={cx('vt-cfb-bank', templateId === null && 'on')}>
                             <input type='radio' name='tpl' checked={templateId === null} onChange={() => setTemplateId(null)}/>
-                            <span><b>Không dùng đề mẫu</b><br/><small>Tự dựng khung từ trống: nhóm → phần → tiểu mục, chọn dạng khối và số lượng.</small></span>
+                            <span><b>Không dùng đề mẫu</b><small>Tự dựng khung từ trống: nhóm → phần → tiểu mục, chọn dạng khối và số lượng.</small></span>
                         </label>
                     </div>
                     {(tplQ.data || []).length === 0 && <p className='vt-cfb-hint'>Ngân hàng này chưa có đề mẫu — soạn khung từ đầu.</p>}
@@ -240,10 +262,10 @@ export default function CreateFromBank() {
 
         <div className='vt-cfb-bar'>
             {formError && <p className='vt-cfb-err' role='alert'>{formError}</p>}
-            {bank && !paper && <span className='vt-cfb-hint'>Ngân hàng <b>{bankName(bank)}</b> · {template ? <>đề mẫu <b>{template.name}</b></> : 'không dùng đề mẫu'}</span>}
+            {bank && !paper && <span className='vt-cfb-hint'>Ngân hàng <b>{bankName(bank)}</b> · {template ? <>đề mẫu <b>{tplName(template)}</b></> : 'không dùng đề mẫu'}</span>}
             {paper
                 ? <Button variant='primary' loading={save.isPending} disabled={save.isPending || bankCount(bank!) === 0} onClick={submit}>Lưu đề</Button>
-                : <Button variant='primary' disabled={!bank} onClick={next}>{bank ? (template ? `Tiếp: chép khung từ ${template.name}` : 'Tiếp: dựng khung từ trống') : 'Tiếp'}</Button>}
+                : <Button variant='primary' disabled={!bank} onClick={next}>{bank ? (template ? `Tiếp: chép khung từ ${tplName(template)}` : 'Tiếp: dựng khung từ trống') : 'Tiếp'}</Button>}
         </div>
     </>;
 
@@ -255,7 +277,7 @@ export default function CreateFromBank() {
                            onChange={e => setTypedMinutes(Math.max(0, Number(e.target.value) || 0))}/>
             </div>
             <div className='vt-cfb-tpl'>
-                <Badge tone='title'>{template ? `Khung chép từ ${template.name}` : 'Khung dựng từ trống'}</Badge>
+                <Badge tone='title'>{template ? `Khung chép từ ${tplName(template)}` : 'Khung dựng từ trống'}</Badge>
                 <Button variant='ghost' size='sm' onClick={() => setStep(0)}>Đổi đề mẫu</Button>
             </div>
             {savedAt && <p className='vt-cfb-hint'>Đã lưu nháp khung lúc {hhmm(savedAt)} · tải lại trang không mất</p>}
@@ -288,7 +310,7 @@ export default function CreateFromBank() {
         <LayoutPreview name={name.trim()} minutes={minutes} draw={drawQ}/>
         <div className='vt-cfb-bar'>
             {formError && <p className='vt-cfb-err' role='alert'>{formError}</p>}
-            <span className='vt-cfb-hint'>Lưu xong đề ở <b>Môn & đề{folderName || bank?.subject ? ` › ${folderName || bank?.subject}` : ''}</b>, trạng thái Nháp.</span>
+            <span className='vt-cfb-hint'>Lưu xong đề ở <b>Môn & đề{subject ? ` › ${subject}` : ''}</b>, trạng thái Nháp.</span>
             <Button variant='secondary' onClick={() => setStep(1)}>Quay lại sửa khung</Button>
             <Button variant='primary' loading={save.isPending} disabled={save.isPending || !drawQ.data || !!drawQ.data.shortage.length} onClick={submit}>Lưu đề nháp</Button>
         </div>
@@ -300,13 +322,9 @@ export default function CreateFromBank() {
     if (!banks) return <div className='vt-cfb'><Loading/></div>;
 
     return <div className='vt-cfb'>
-        {folder
-            ? <Link to={'/subject/' + folder} className={buttonClass({variant: 'ghost'})}>← Môn & đề{folderName ? ` › ${folderName}` : ''}</Link>
-            : bank
-                ? <Link to={'/question-bank/' + bank.id} className={buttonClass({variant: 'ghost'})}>← {bankName(bank)}</Link>
-                : <Link to='/question-bank' className={buttonClass({variant: 'ghost'})}>← Ngân hàng câu hỏi</Link>}
+        <Link to={subjectFolder ? '/subject/' + subjectFolder.id : '/'} className={buttonClass({variant: 'ghost'})}>← Môn & đề{subject ? ` › ${subject}` : ''}</Link>
         <PageTitle>Tạo đề từ ngân hàng</PageTitle>
-        <MetaChips items={[folderName || bank?.subject ? <>Môn <b>{folderName || bank?.subject}</b></> : null, bank && step > 0 ? bankName(bank) : null]}/>
+        <MetaChips items={[subject ? <>Môn <b>{subject}</b></> : null, bank && step > 0 ? bankName(bank) : null]}/>
         {!paper && <ol className='vt-cfb-steps' aria-label='Các bước'>
             {STEPS.map((s, i) => <li key={s} className={cx(i === step && 'on', i < step && 'done')} aria-current={i === step ? 'step' : undefined}>{i + 1} · {s}</li>)}
         </ol>}
@@ -314,10 +332,13 @@ export default function CreateFromBank() {
         {/* Esc / outside click = just close: the draft stays and we ask again next time. Only "Bắt đầu lại" deletes it. */}
         <Modal open={!!restore} onClose={() => setRestore(null)} title='Tiếp tục khung đang soạn dở?'
                footer={<>
-                   <Button variant='secondary' onClick={() => start(null)}>Bắt đầu lại</Button>
-                   <Button onClick={() => start(restore)}>Tiếp tục</Button>
+                   <Button variant='secondary' onClick={() => start(null)}>Bỏ, làm lại từ đầu</Button>
+                   <Button variant='primary' onClick={() => start(restore)}>Tiếp tục soạn</Button>
                </>}>
-            <p>{restore ? `Bạn đã soạn dở khung cho ngân hàng này (lưu lúc ${hhmm(restore.savedAt)}). Tiếp tục hay bắt đầu lại?` : ''}</p>
+            {restore && <>
+                <p>{restore.name ? `“${restore.name}”, ` : ''}{restoreTpl ? `chép từ ${tplName(restoreTpl)}` : 'dựng từ trống'}{bank ? `, ${bankName(bank)}` : ''}.</p>
+                <p className='vt-cfb-hint'>Tự lưu lúc {hhmm(restore.savedAt)} {sameDay(restore.savedAt) ? 'hôm nay' : `ngày ${new Date(restore.savedAt).toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'})}`} trên trình duyệt này.</p>
+            </>}
         </Modal>
     </div>;
 }

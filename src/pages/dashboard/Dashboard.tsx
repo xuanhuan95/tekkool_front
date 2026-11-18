@@ -12,7 +12,7 @@ import {useAuthStore} from '../../stores/authStore';
 import {useFolders, useSubjectExams} from '../../queries/exams';
 import type {ExamStatus, ExamSummary, Folder} from '../../types/exam';
 import Default from '../exam-creation/Default';
-import {IconBank, IconEdit, IconUploadDoc} from '../../components/ui/icons';
+import {IconBank, IconEdit, IconOk, IconUploadDoc} from '../../components/ui/icons';
 import {DESKTOP, useMediaQuery} from '../useMediaQuery';
 import StudentHome from '../student/StudentHome';
 import {stripAccents} from './subjectStyle';
@@ -236,9 +236,14 @@ function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: F
     if (!data && !isError) return <Loading/>; // lần đầu: cả khối đề là khối tải, chưa hiện tên môn / chip lọc
 
     return <section className='vt-th-exams' aria-busy={isFetching}>
+        {created?.length ? <div className='vt-th-newstrip' role='status'>
+            <IconOk/>
+            <div><b>Đã tạo {created.length} đề nháp trong {subject.name}</b>
+                <div>Các đề mới nằm đầu danh sách, đánh dấu “Mới tạo”. Xuất bản từng đề để học sinh thấy.</div></div>
+        </div> : null}
         <div className='vt-th-exams-head'>
             <h2>{subject.name}</h2>
-            <span>{all.length} đề · học sinh chỉ thấy đề đã xuất bản</span>
+            <span>{all.length} đề · {created?.length ? `${created.length} nháp mới` : 'học sinh chỉ thấy đề đã xuất bản'}</span>
             <div className='vt-th-filters'>
                 {([['all', 'Tất cả'], ['draft', 'Nháp'], ['published', 'Đã xuất bản']] as const).map(([k, label]) =>
                     <FilterChip key={k} selected={filter === k} onChange={() => setFilter(k)}>{label} · {count(k)}</FilterChip>)}

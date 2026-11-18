@@ -118,7 +118,7 @@ it('F5 keeps the draft: coming back offers to continue it, "Bắt đầu lại" 
     renderPage();
     fireEvent.click(await screen.findByText(/Tiếp: dựng khung từ trống/));
     expect(await screen.findByText('Tiếp tục khung đang soạn dở?')).toBeTruthy();
-    fireEvent.click(screen.getByText('Tiếp tục'));
+    fireEvent.click(screen.getByText('Tiếp tục soạn'));
     expect((await screen.findByPlaceholderText(/Đề luyện thi/) as HTMLInputElement).value).toBe('Dở dang');
 });
 

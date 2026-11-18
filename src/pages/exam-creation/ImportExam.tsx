@@ -408,6 +408,23 @@ export default function ImportExam() {
     const [saveErrors, setSaveErrors] = useState<{id: string; name: string; file: string; message: string}[]>([]);
     const [directOpen, setDirectOpen] = useState(false);
     const [moreOpen, setMoreOpen] = useState(false);
+    const moreBox = useRef<HTMLSpanElement>(null);
+    const moreBtn = useRef<HTMLButtonElement>(null);
+    // ⋯ menu by keyboard: opening moves focus to the first item; Esc or Tab closes and gives focus back to ⋯; a click outside closes.
+    useEffect(() => {
+        if (!moreOpen) return;
+        moreBox.current?.querySelector<HTMLButtonElement>('[role=menuitem]:not(:disabled)')?.focus();
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') { setMoreOpen(false); moreBtn.current?.focus(); }
+            // Tab inside the menu closes it and parks focus on ⋯ (the menu is the last stop of the bar: never drop focus to the page body).
+            else if (e.key === 'Tab' && moreBox.current?.contains(document.activeElement)) { e.preventDefault(); setMoreOpen(false); moreBtn.current?.focus(); }
+        };
+        const onDown = (e: MouseEvent) => { if (!moreBox.current?.contains(e.target as Node)) setMoreOpen(false); };
+        const onOut = (e: FocusEvent) => { if (e.relatedTarget && !moreBox.current?.contains(e.relatedTarget as Node)) setMoreOpen(false); };
+        const box = moreBox.current;
+        document.addEventListener('keydown', onKey); document.addEventListener('mousedown', onDown); box?.addEventListener('focusout', onOut);
+        return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onDown); box?.removeEventListener('focusout', onOut); };
+    }, [moreOpen]);
     const [directFolder, setDirectFolder] = useState('');
     // images already uploaded (data URI → path): a retry after a dropped connection skips them
     const images = useRef<ImageCache>(new Map());
@@ -707,7 +724,10 @@ export default function ImportExam() {
     // "Lưu lại n đề chưa lưu": after a first attempt, the exams still to go (other-bank ones are ticked off).
     const left = chosen.filter(e => state[e.id] !== 'saved' && !otherBank[e.id]).length;
     const retry = chosen.some(e => state[e.id] === 'saved' || state[e.id] === 'error');
+    // Canvas import-dup-checking keeps "Tạo thẳng" and "Lưu" live while checking: using one of them ends the check first.
+    const stopCheck = () => { cancelDup.current = true; setDupRun(null); };
     const openDirect = () => {
+        stopCheck();
         const same = (a?: string, b?: string) => !!a && !!b && a.normalize('NFC').trim().toLowerCase() === b.normalize('NFC').trim().toLowerCase();
         setDirectFolder(folders?.find(f => !f.parent && same(f.name, bankInfo?.subject))?.id || '');
         setDirectOpen(true);
@@ -757,7 +777,7 @@ export default function ImportExam() {
 
         {showPreview && !result && <>
             {dupRun && <BankAlert tone='info' spin title={`Đang kiểm trùng lặp… đề ${dupRun.at}/${dupRun.of}`}
-                                  acts={<Button variant='secondary' size='sm' onClick={() => { cancelDup.current = true; setDupRun(null); }}>Huỷ kiểm</Button>}>
+                                  acts={<Button variant='secondary' size='sm' onClick={stopCheck}>Huỷ kiểm</Button>}>
                 Đang so “{dupRun.name}” với ngân hàng và các đề vừa đọc. Vẫn xem và sửa đề được trong lúc chờ.
                 <div className='vt-bk-prog' role='progressbar' aria-label='Tiến độ kiểm trùng' aria-valuemin={0} aria-valuemax={100}
                      aria-valuenow={Math.round((dupRun.at - 1) / dupRun.of * 100)}><i style={{width: `${Math.round((dupRun.at - 1) / dupRun.of * 100)}%`}}/></div>
@@ -802,14 +822,14 @@ export default function ImportExam() {
 
             <Card className={cx('vt-imp-bar', bankId && 'vt-imp-bar--bank')} role='region' aria-label='Lưu đề'>
                 {bankId ? <>
-                    {!paperBank && desktop && <Button variant='secondary' disabled={!chosen.length || !!blocker || busy || checking} onClick={openDirect}>Tạo thẳng đề nháp…</Button>}
+                    {!paperBank && desktop && <Button variant='secondary' disabled={!chosen.length || !!blocker || busy} onClick={openDirect}>Tạo thẳng đề nháp…</Button>}
                     {!paperBank && <Button variant='secondary' disabled={!chosen.length || busy || checking} onClick={checkDuplicates}>{checking ? 'Đang kiểm…' : dupDone ? 'Kiểm lại' : 'Kiểm trùng lặp'}</Button>}
                     <Button variant='primary' loading={saving} loadingText={`Đang lưu ${Math.min(progress + 1, left)}/${left}…`}
-                            disabled={!left || !!blocker || checking} onClick={saveToBank}>
+                            disabled={!left || !!blocker} onClick={() => { stopCheck(); saveToBank(); }}>
                         {retry ? `Lưu lại ${left} đề` : `Lưu ${chosen.length} đề vào ngân hàng`}
                     </Button>
-                    {!paperBank && !desktop && <span className='vt-rv-more'>
-                        <IconButton variant='outline' label='Thêm lựa chọn' aria-expanded={moreOpen} icon={<span aria-hidden='true'>⋯</span>} onClick={() => setMoreOpen(o => !o)}/>
+                    {!paperBank && !desktop && <span className='vt-rv-more' ref={moreBox}>
+                        <IconButton ref={moreBtn} variant='outline' label='Thêm lựa chọn' aria-haspopup='menu' aria-expanded={moreOpen} icon={<span aria-hidden='true'>⋯</span>} onClick={() => setMoreOpen(o => !o)}/>
                         {moreOpen && <div className='vt-rv-menu' role='menu'>
                             <button type='button' role='menuitem' disabled={!chosen.length || !!blocker || busy} onClick={() => { setMoreOpen(false); openDirect(); }}>Tạo thẳng đề nháp…</button>
                         </div>}
@@ -830,6 +850,7 @@ export default function ImportExam() {
                     : problems && !bankId
                         ? problems + ' — vẫn tạo được đề nháp; phải sửa xong mới xuất bản được.'
                     : sevenSeen > 0 && !saving ? `Đã xem ${sevenSeen} cảnh báo nặng.${lightCount ? ` ${lightCount} cảnh báo nhẹ không chặn việc lưu.` : ''}`
+                    : dupRun ? <>Đang kiểm trùng… <b>{dupRun.at}/{dupRun.of}</b> đề</>
                     : saving ? 'Lưu lần lượt từng đề, đừng đóng trang.'
                     : bankId && retry && left > 0 ? `${left} đề chưa lưu`
                     : bankId && !paperBank && dupDone && dupCount > 0 && droppedNote !== 'Bỏ  trùng khi lưu' ? droppedNote

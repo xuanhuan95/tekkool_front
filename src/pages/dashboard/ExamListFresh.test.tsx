@@ -32,6 +32,18 @@ it('after "Tạo thẳng đề nháp" the subject opens on Nháp, new exams firs
     expect(screen.getAllByText('Mới tạo')).toHaveLength(1);
 });
 
+it('shows the "Đã tạo N đề nháp" banner only when exams were just created', async () => {
+    open({created: ['E3']});
+    const banner = (await screen.findByText('Đã tạo 1 đề nháp trong Ngữ văn')).closest('[role=status]')!;
+    expect(banner.textContent).toMatch(/Xuất bản từng đề/);
+});
+
+it('no banner when opening the subject normally', async () => {
+    open();
+    await screen.findByRole('table');
+    expect(screen.queryByText(/Đã tạo \d+ đề nháp/)).toBeNull();
+});
+
 it('opening the subject normally shows all exams with no "Mới tạo"', async () => {
     open();
     await screen.findByRole('table');

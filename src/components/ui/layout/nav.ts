@@ -54,7 +54,7 @@ export const ADMIN_NAV: NavItem[] = [
 
 /** Teacher (spec-giao-vien §1, Q11): no Tổng quan screen; '/' is Môn & đề. */
 export const TEACHER_NAV: NavItem[] = [
-    {to: '/', label: 'Môn & đề', end: true, also: ['/subject', '/create-exam', '/edit-exam', '/import-exam', '/create-from-bank?folder='], not: ['/import-exam?bank=']},
-    {to: '/question-bank', label: 'Ngân hàng câu hỏi', also: ['/create-from-bank', '/draw-exam', '/import-exam?bank='], not: ['/create-from-bank?folder=']},
+    {to: '/', label: 'Môn & đề', end: true, also: ['/subject', '/create-exam', '/edit-exam', '/import-exam', '/create-from-bank'], not: ['/import-exam?bank=']},
+    {to: '/question-bank', label: 'Ngân hàng câu hỏi', also: ['/draw-exam', '/import-exam?bank=']},
     {to: '/to-grade', label: 'Chấm bài', also: ['/my-exams']},
 ];

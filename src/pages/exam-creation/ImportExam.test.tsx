@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import {fireEvent, render, screen, within} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
@@ -365,6 +365,23 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
         expect(saveButton().disabled).toBe(false);
         expect(draft.disabled).toBe(false);
         expect(screen.getByText(/Đã xem 1 cảnh báo nặng. 1 cảnh báo nhẹ không chặn/)).toBeTruthy();
+    });
+
+    it('phone ⋯ menu: opening focuses the item, Esc and Tab close it and park focus on ⋯', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(EXAM, []);
+        const more = screen.getByLabelText('Thêm lựa chọn');
+        fireEvent.click(more);
+        const item = screen.getByRole('menuitem');
+        expect(document.activeElement).toBe(item);
+        fireEvent.keyDown(item, {key: 'Escape'});
+        await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+        expect(document.activeElement).toBe(more);
+        fireEvent.click(more);
+        fireEvent.keyDown(screen.getByRole('menuitem'), {key: 'Tab'});
+        await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+        expect(document.activeElement).toBe(more);
     });
 
     it('draft-only screen (no bank): the gate applies there too', async () => {
