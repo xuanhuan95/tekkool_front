@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Link, useNavigate, useParams} from 'react-router-dom';
+import {Link, useLocation, useNavigate, useParams} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 import striptags from 'striptags';
 
@@ -145,7 +145,10 @@ function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: F
     const qc = useQueryClient();
     const wide = useMediaQuery('(min-width: 768px)');
     const {data, isError, error, isFetching, refetch} = useSubjectExams(subject.id, folders);
-    const [filter, setFilter] = useState<Filter>('all');
+    // "Tạo thẳng đề nháp" from the import screen lands here with the new ids: show Nháp, new ones first and marked "Mới tạo".
+    const created = (useLocation().state as {created?: string[]} | null)?.created;
+    const fresh = (e: ExamSummary) => !!created?.includes(e.id);
+    const [filter, setFilter] = useState<Filter>(created?.length ? 'draft' : 'all');
     const [pending, setPending] = useState<Pending | null>(null);
     const [busy, setBusy] = useState(false);
 
@@ -202,7 +205,8 @@ function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: F
 
     const all = data || [];
     const matched = q ? all.filter(e => stripAccents(examName(e)).includes(stripAccents(q))) : all;
-    const rows = matched.filter(e => filter === 'all' || (filter === 'draft') === !isPublished(e));
+    const rows = matched.filter(e => filter === 'all' || (filter === 'draft') === !isPublished(e))
+        .sort((a, b) => Number(fresh(b)) - Number(fresh(a)));   // stable: the rest keep their order
     const count = (f: Filter) => matched.filter(e => f === 'all' || (f === 'draft') === !isPublished(e)).length;
 
     const actions = (e: ExamSummary) => <div className='vt-th-actions'>
@@ -223,7 +227,7 @@ function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: F
     </div>;
 
     const columns: Column<ExamSummary>[] = [
-        {key: 'name', header: 'Tên đề', emphasis: 'strong', render: examName},
+        {key: 'name', header: 'Tên đề', emphasis: 'strong', render: e => <>{examName(e)}{fresh(e) && <> <Badge tone='ok'>Mới tạo</Badge></>}</>},
         {key: 'status', header: 'Trạng thái', render: e => <StatusBadge status={isPublished(e) ? 'published' : 'draft'}/>},
         {key: 'duration', header: 'Thời gian', render: e => e.duration ? `${e.duration} phút` : 'Không giới hạn'},
         {key: 'actions', header: 'Thao tác', render: actions},
@@ -253,7 +257,7 @@ function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: F
                 {wide
                     ? <Table caption={'Đề của môn ' + subject.name} columns={columns} rows={rows} rowKey={e => e.id} minWidth={820}/>
                     : <ul className='vt-th-cards'>{rows.map(e => <li key={e.id}><Card>
-                        <b>{examName(e)}</b>
+                        <b>{examName(e)}</b>{fresh(e) && <> <Badge tone='ok'>Mới tạo</Badge></>}
                         <StatusBadge status={isPublished(e) ? 'published' : 'draft'}/>
                         <p>{e.duration ? `${e.duration} phút` : 'Không giới hạn'} · Môn {subject.name}</p>
                         <div className='vt-th-actions'>
