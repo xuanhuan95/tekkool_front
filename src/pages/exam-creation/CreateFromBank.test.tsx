@@ -24,8 +24,15 @@ function mock(stock: Record<string, number> = {reading: 3, essay: 1}) {
         return BANKS;
     });
     return vi.spyOn(Api, 'post').mockImplementation(async (url: string) =>
-        url === 'question_bank/capacity' ? {capacity: 1, per_type: stock, slots: {}, bottleneck: null} : {id: 'E1'});
+        url === 'question_bank/capacity' ? {capacity: 1, per_type: stock, slots: {}, bottleneck: null}
+        : url === 'exam/preview_layout' ? draw()
+        : {id: 'E1'});
 }
+
+// One trial draw as the BE sends it: a framed section (first_no + titles), no answers.
+const draw = (over: Record<string, unknown> = {}) => ({points_total: 10, shortage: [], sections: [{
+    id: 'S1', name: 'x', first_no: 1, group_title: 'A. TRẮC NGHIỆM', part_title: 'Phần I (6 điểm)', part_lead: 'Trả lời từ câu 1 đến câu 2.', sub_title: 'Đọc văn bản 1',
+    questions: [{id: 'Q1', type: 'MultipleChoice', data: {question: '<p>Người kể là ai?</p>', answers: [{id: 'a1', value: 'Tôi'}, {id: 'a2', value: 'Mẹ'}]}}]}], ...over});
 
 const renderPage = (path = '/create-from-bank?bank=b1') => render(
     <QueryClientProvider client={new QueryClient({defaultOptions: {queries: {retry: false}}})}>
@@ -73,7 +80,8 @@ it('copies the sample frame, computes the numbers itself and saves the frame as 
 
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: ' Đề thử '}});
     fireEvent.click(screen.getByText('Xem trước'));
-    fireEvent.click(await screen.findByText('Lưu đề'));
+    await screen.findByText('A. TRẮC NGHIỆM');
+    fireEvent.click(screen.getByText('Lưu đề'));
 
     await screen.findByText('TRANG NGÂN HÀNG');
     const body = post.mock.calls.find(c => c[0] === 'exam/create_from_bank')![1] as {layout: {parts: {numbering: string; score?: number}[]}[]};
@@ -121,7 +129,8 @@ it('with ?folder it saves into that folder and goes back to the subject', async 
     await copyTemplate();
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề X'}});
     fireEvent.click(screen.getByText('Xem trước'));
-    fireEvent.click(await screen.findByText('Lưu đề'));
+    await screen.findByText('A. TRẮC NGHIỆM');
+    fireEvent.click(screen.getByText('Lưu đề'));
     await screen.findByText('TRANG MÔN');
     expect(post.mock.calls.find(c => c[0] === 'exam/create_from_bank')![1]).toMatchObject({folder: 'F1'});
 });
@@ -147,4 +156,31 @@ it('Esc on the "continue draft?" dialog closes it and KEEPS the draft', async ()
     fireEvent.keyDown(document, {key: 'Escape'});
     await waitFor(() => expect(screen.queryByText('Tiếp tục khung đang soạn dở?')).toBeNull());
     expect(localStorage.getItem('spt-cfb-draft:b1:')).toContain('Giữ lại');
+});
+
+it('step 3 shows one real draw (titles from the BE), "Rút lần khác" draws again, a shortage locks "Lưu đề"', async () => {
+    const post = mock();
+    renderPage();
+    await copyTemplate();
+    fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề'}});
+    fireEvent.click(screen.getByText('Xem trước'));
+    expect(await screen.findByText('A. TRẮC NGHIỆM')).toBeTruthy();
+    expect(screen.getByText('Phần I (6 điểm)')).toBeTruthy();
+    expect(screen.getByText('Người kể là ai?')).toBeTruthy();
+    const calls = () => post.mock.calls.filter(c => c[0] === 'exam/preview_layout').length;
+    expect(calls()).toBe(1);
+    fireEvent.click(screen.getByText('Rút lần khác'));
+    await waitFor(() => expect(calls()).toBe(2));
+});
+
+it('step 3: the bank is short → says which type, no draw shown, "Lưu đề" locked', async () => {
+    const post = mock();
+    post.mockImplementation(async (url: string) => url === 'question_bank/capacity' ? {capacity: 1, per_type: {reading: 3, essay: 1}, slots: {}, bottleneck: null}
+        : url === 'exam/preview_layout' ? {sections: [], points_total: 0, shortage: [{block_type: 'reading', name: 'Đọc hiểu', need: 2, have: 1}]} : {id: 'E1'});
+    renderPage();
+    await copyTemplate();
+    fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề'}});
+    fireEvent.click(screen.getByText('Xem trước'));
+    expect(await screen.findByText(/Đọc hiểu: cần 2, ngân hàng có 1/)).toBeTruthy();
+    expect((screen.getByText('Lưu đề') as HTMLButtonElement).disabled).toBe(true);
 });

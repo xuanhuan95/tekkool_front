@@ -2,7 +2,7 @@ import {keepPreviousData, useMutation, useQuery, useQueryClient} from '@tanstack
 
 import Api from '../services/api';
 import type {Layout} from '../pages/exam-creation/layoutRules';
-import type {BankBlocksPage, BankCapacity, BankKind, BankPaper, BankPapersPage, BankStats, BankSummary, StructureSlot} from '../types/exam';
+import type {BankBlocksPage, BankCapacity, TestSection, BankKind, BankPaper, BankPapersPage, BankStats, BankSummary, StructureSlot} from '../types/exam';
 
 export const bankKeys = {
     all: ['question_bank'] as const,
@@ -64,6 +64,18 @@ export function useBankTemplates(bankId: string) {
         queryKey: [...bankKeys.all, 'templates', bankId],
         queryFn: () => Api.get<BankTemplate[]>('question_bank/templates?bank=' + bankId),
         enabled: !!bankId,
+    });
+}
+
+/** `exam/preview_layout`: one trial draw as the student gets it (no answers, titles and numbers already set by the BE). */
+export type LayoutDraw = {sections: TestSection[]; points_total: number; shortage: {block_type: string; name: string; need: number; have: number}[]};
+/** Runs when `enabled` (step 3). `refetch()` = "Rút lần khác" (another draw); the same frame keeps its draw while you stay on the page. */
+export function usePreviewLayout(bank: string, layout: Layout, enabled: boolean) {
+    return useQuery({
+        queryKey: [...bankKeys.all, 'preview-layout', bank, JSON.stringify(layout)],
+        queryFn: () => Api.post<LayoutDraw>('exam/preview_layout', {bank, layout}),
+        enabled: enabled && !!bank,
+        staleTime: Infinity, retry: false,
     });
 }
 

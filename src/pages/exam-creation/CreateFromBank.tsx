@@ -3,7 +3,7 @@ import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 
 import {Button, Card, CardTitle, EmptyState, ErrorState, Modal, PageTitle, TextField, buttonClass, cx, notify, Loading} from '../../components/ui';
 import {errorText} from '../../lib/format';
-import {useBankCapacity, useBankStats, useBankTemplates, useBanks, useCreateFromBank} from '../../queries/questionBank';
+import {useBankCapacity, useBankStats, useBankTemplates, useBanks, useCreateFromBank, usePreviewLayout} from '../../queries/questionBank';
 import type {BankTemplate} from '../../queries/questionBank';
 import {bankCount} from '../question-bank/BankList';
 import {useFolders} from '../../queries/exams';
@@ -75,6 +75,7 @@ export default function CreateFromBank() {
     const want = needs(layout);
     const capQ = useBankCapacity(bank && !paper && Object.keys(want).length ? [bank.id] : [], want);
     const minutes = typedMinutes ?? suggestedMinutes(bank?.subject);
+    const drawQ = usePreviewLayout(bankId, layout, step === 2 && !paper);
     const problem = frameProblem(layout, name);
     const lacking = shortages(layout, stock);
     const template = tplQ.data?.find(t => t.id === templateId);
@@ -234,11 +235,11 @@ export default function CreateFromBank() {
     </>;
 
     const previewStep = <>
-        <LayoutPreview layout={layout} name={name.trim()} minutes={minutes}/>
+        <LayoutPreview name={name.trim()} minutes={minutes} draw={drawQ}/>
         <div className='vt-cfb-bar'>
             {formError && <p className='vt-cfb-err' role='alert'>{formError}</p>}
             <Button variant='ghost' onClick={() => setStep(1)}>← Sửa khung</Button>
-            <Button variant='primary' loading={save.isPending} disabled={save.isPending} onClick={submit}>Lưu đề</Button>
+            <Button variant='primary' loading={save.isPending} disabled={save.isPending || !drawQ.data || !!drawQ.data.shortage.length} onClick={submit}>Lưu đề</Button>
         </div>
     </>;
 

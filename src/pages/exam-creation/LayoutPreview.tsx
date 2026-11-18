@@ -1,41 +1,51 @@
-import {useState} from 'react';
+import {Fragment, useMemo} from 'react';
 
-import {Card, cx} from '../../components/ui';
-import {blockLabel} from './blockTypes';
-import {fill, needs, numbering} from './layoutRules';
-import type {Layout} from './layoutRules';
+import {Button, Card, ErrorState, Loading, ExamSection} from '../../components/ui';
+import Passage from '../../components/Passage';
+import {errorText} from '../../lib/format';
+import {buildPaper} from '../exam/paper';
+import QuestionView from '../exam/QuestionView';
+import type {LayoutDraw} from '../../queries/questionBank';
+import type {TestExam} from '../../types/exam';
+import type {Question as LegacyQuestion} from './Default';
 
-/** Step 3: the frame as the student will see it. Numbers filled in; "Tô số tự tính" shows which ones the screen computed. */
-export default function LayoutPreview({layout, name, minutes}: {layout: Layout; name: string; minutes: number}) {
-    const [mark, setMark] = useState(false);
-    const num = numbering(layout);
-    const total = Object.values(needs(layout)).reduce((a, b) => a + b, 0);
-    const text = (t: string, r: {from: number; to: number} | null) => {
-        const out = fill(t, r);
-        return mark && t !== out ? <mark className='vt-cfb-mark'>{out}</mark> : out;
-    };
-    return <Card className='vt-cfb-preview' as='section' aria-label='Xem trước đề'>
+type Query = {data?: LayoutDraw; isError: boolean; error: unknown; isFetching: boolean; refetch: () => unknown};
+
+const noop = () => undefined;
+
+/**
+ * Step 3: ONE trial draw from the bank, drawn by the BE exactly as a student's attempt (titles, numbers, no answers).
+ * "Rút lần khác" draws again; every attempt of a student is a different draw of the same frame.
+ */
+export default function LayoutPreview({name, minutes, draw}: {name: string; minutes: number; draw: Query}) {
+    const {data, isError, error, isFetching, refetch} = draw;
+    const paper = useMemo(() => data && !data.shortage.length ? buildPaper({id: 'preview', sections: data.sections} as TestExam) : null, [data]);
+
+    if (isError) return <ErrorState title='Chưa rút thử được đề' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
+                                    onRetry={() => refetch()} retrying={isFetching}/>;
+    if (!data) return <Card as='section' aria-label='Xem trước đề'><Loading/></Card>;
+    if (data.shortage.length) return <Card as='section' aria-label='Xem trước đề'>
+        <p className='vt-cfb-err' role='alert'>Ngân hàng chưa đủ khối để rút thử:</p>
+        <ul>{data.shortage.map(s => <li key={s.block_type}>{s.name}: cần {s.need}, ngân hàng có {s.have}.</li>)}</ul>
+        <p className='vt-cfb-hint'>Quay lại sửa khung hoặc nhập thêm đề vào ngân hàng.</p>
+    </Card>;
+
+    return <Card className='vt-cfb-preview' as='section' aria-label='Xem trước đề' aria-busy={isFetching}>
         <div className='vt-cfb-row'>
             <div><h2 className='vt-cfb-pname'>{name}</h2>
-                <p className='vt-cfb-hint'>{minutes} phút · {total} khối · khoảng {num.total} câu</p></div>
-            <label className='vt-imp-check'>
-                <input type='checkbox' checked={mark} onChange={e => setMark(e.target.checked)}/> Tô số tự tính
-            </label>
+                <p className='vt-cfb-hint'>Thời gian làm bài: {minutes} phút · {data.points_total} điểm · {paper?.questions.length ?? 0} câu</p></div>
+            <Button variant='secondary' loading={isFetching} loadingText='Đang rút…' onClick={() => refetch()}>Rút lần khác</Button>
         </div>
-        {layout.map((g, gi) => <div key={gi} className='vt-cfb-pgroup'>
-            {g.title && <h3>{g.title}</h3>}
-            {g.parts.map((p, pi) => {
-                const pr = num.parts[gi][pi];
-                return <div key={pi} className='vt-cfb-ppart'>
-                    <h4>{p.title}{p.score ? ` (${p.score} điểm)` : ''}</h4>
-                    {(p.description || p.lead) && <p>{p.description ? p.description : text(p.lead, pr)}</p>}
-                    <ul>{p.items.map((it, ii) => <li key={ii} className={cx('vt-cfb-pitem')}>
-                        {it.title && <b>{text(it.title, num.items[gi][pi][ii])} </b>}
-                        {it.count} khối {blockLabel(it.block_type)} · rút ngẫu nhiên
-                    </li>)}</ul>
-                </div>;
-            })}
-        </div>)}
-        <p className='vt-cfb-hint'>Khối thật được rút khi học sinh bấm làm bài; số câu chính xác tính lại sau khi rút.</p>
+        <div className='nb-ok' role='note'>
+            <b>Đây là một lần rút thử.</b> Mỗi lượt thi học sinh rút một đề khác: cùng khung, khối khác. Đáp án không hiện ở đây.
+        </div>
+        {paper?.parts.map(part => <ExamSection key={part.id} id={'pv-' + part.id} title={part.title} group={part.groupTitle} lead={part.lead} sub={part.subTitle}>
+            {part.questions.map(q => <Fragment key={q.questionIds[0]}>
+                {q.kind !== 'truefalse' && <Passage question={q.raw as unknown as LegacyQuestion}
+                                                    prev={q.rawPrev as unknown as LegacyQuestion | undefined}
+                                                    questions={part.rawQuestions as unknown as LegacyQuestion[]}/>}
+                <QuestionView question={q} answers={{}} flagged={false} disabled onToggleFlag={noop} onWrite={noop} textDelayMs={0}/>
+            </Fragment>)}
+        </ExamSection>)}
     </Card>;
 }
