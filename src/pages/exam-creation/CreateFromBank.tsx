@@ -2,7 +2,7 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 
 import {Badge, Button, Card, CardTitle, EmptyState, ErrorState, MetaChips, Modal, PageTitle, TextField, buttonClass, cx, icons, notify, Loading} from '../../components/ui';
-import {errorText, formatDecimal} from '../../lib/format';
+import {errorText, formatDecimal, stripPoints} from '../../lib/format';
 import {useBankCapacity, useBankStats, useBankTemplates, useBanks, useCreateFromBank, usePreviewLayout} from '../../queries/questionBank';
 import type {BankTemplate} from '../../queries/questionBank';
 import {bankCount} from '../question-bank/BankList';
@@ -27,7 +27,7 @@ export const suggestedMinutes = (subject?: string) =>
 const fromTemplate = (t: BankTemplate): Layout => (t.layout || []).map(g => ({
     title: g.title || '',
     parts: (g.parts || []).map(p => ({
-        title: (p.title || '').replace(/\s*\(\s*[\d.,]+\s*điểm\s*\)\s*$/i, ''), lead: p.lead || '', description: p.description || null, score: p.score ?? null,
+        title: stripPoints(p.title || ''), lead: p.lead || '', description: p.description || null, score: p.score ?? null,
         numbering: p.numbering === 'restart' ? 'restart' as const : 'continue' as const,
         items: (p.items || []).map(i => ({title: i.title || '', block_type: i.block_type, count: i.count || 1})),
     })),

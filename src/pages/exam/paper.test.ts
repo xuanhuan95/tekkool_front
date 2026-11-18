@@ -182,7 +182,7 @@ describe('exam drawn with a frame (first_no, titles)', () => {
     });
 
     it('titles: group + lead + sub only on the first section; a tiểu mục without part_title has no heading', () => {
-        expect(paper.parts[0]).toMatchObject({groupTitle: 'A. TRẮC NGHIỆM', title: 'PHẦN I (3 điểm)', lead: 'Trả lời từ câu 1 đến câu 2', subTitle: 'I.1 Đọc văn bản'});
+        expect(paper.parts[0]).toMatchObject({groupTitle: 'A. TRẮC NGHIỆM', title: 'PHẦN I', lead: 'Trả lời từ câu 1 đến câu 2', subTitle: 'I.1 Đọc văn bản'});
         expect(paper.parts[1].groupTitle).toBeUndefined();
         expect(paper.parts[2]).toMatchObject({title: '', subTitle: 'Viết bài'});
     });

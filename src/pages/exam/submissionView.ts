@@ -1,6 +1,6 @@
 import type {ServerMark} from '../my/imageMarks';
 import type {Submission, SubmissionAnswer, SubmissionDetail, SubmissionSection} from '../../types/submission';
-import {formatDecimal, score10} from '../../lib/format';
+import {formatDecimal, score10, stripPoints} from '../../lib/format';
 import {kindOf} from './paper';
 import type {QuestionKind} from './paper';
 import {stripQuestionLabel, stripStatementLabel} from './stripLabel';
@@ -120,7 +120,7 @@ export function buildReview(answers: SubmissionAnswer[], sections?: SubmissionSe
         const s = sections[si], n = seen.get(si) || 0;
         seen.set(si, n + 1);
         const text = (t?: string | null) => (t || '').trim() || undefined;
-        const heading = n === 0 ? {group: text(s.group_title), part: text(s.part_title), score: typeof s.part_score === 'number' ? s.part_score : undefined, lead: text(s.part_lead), sub: text(s.sub_title)} : undefined;
+        const heading = n === 0 ? {group: text(s.group_title), part: text(stripPoints(s.part_title || '')), score: typeof s.part_score === 'number' ? s.part_score : undefined, lead: text(s.part_lead), sub: text(s.sub_title)} : undefined;
         return {...it, number: s.first_no + n, heading: heading && Object.values(heading).some(v => v !== undefined) ? heading : undefined};
     });
 }

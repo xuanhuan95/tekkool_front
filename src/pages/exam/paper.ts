@@ -1,5 +1,6 @@
 import type {TestExam, TestQuestion, TestSection} from '../../types/exam';
 import type {TrueFalseValue} from '../../components/ui';
+import {stripPoints} from '../../lib/format';
 import {stripQuestionLabel, stripStatementLabel} from './stripLabel';
 
 /*
@@ -194,7 +195,7 @@ export function buildPaper(exam: TestExam): Paper {
             subTitle: stripHtml(section.sub_title) || undefined,
             framed: framed || undefined,
             partScore: framed && typeof section.part_score === 'number' ? section.part_score : undefined,
-            title: framed ? stripHtml(section.part_title) || (section.group_title || section.sub_title ? '' : partTitle(section, parts.length, kind)) : partTitle(section, parts.length, kind),
+            title: framed ? stripPoints(stripHtml(section.part_title)) || (section.group_title || section.sub_title ? '' : partTitle(section, parts.length, kind)) : partTitle(section, parts.length, kind),
             kind,
             questions,
             rawQuestions: raws,

@@ -123,6 +123,18 @@ it('a lead with number chips is one box: the chips sit between the text pieces a
     expect([...box.querySelectorAll('.vt-cfb-num')].map(e => e.textContent)).toEqual(['1', '10']);
 });
 
+it('typing a letter right after a number chip inserts a space so it never sticks to the number', async () => {
+    mock();
+    renderPage();
+    await copyTemplate();
+    const box = screen.getAllByRole('group', {name: 'Lời dẫn'})[0];
+    const tail = within(box).getByLabelText('Lời dẫn (đoạn 3)');
+    fireEvent.change(tail, {target: {value: 'Mỗi câu hỏi'}});
+    expect((within(box).getByLabelText('Lời dẫn (đoạn 3)') as HTMLTextAreaElement).value).toBe(' Mỗi câu hỏi');
+    fireEvent.change(within(box).getByLabelText('Lời dẫn (đoạn 3)'), {target: {value: '. Mỗi'}});
+    expect((within(box).getByLabelText('Lời dẫn (đoạn 3)') as HTMLTextAreaElement).value).toBe('. Mỗi');
+});
+
 it('a frame asking for more blocks than the bank has says so at the tiểu mục and locks "Xem trước"', async () => {
     mock({reading: 1, essay: 1});
     renderPage();

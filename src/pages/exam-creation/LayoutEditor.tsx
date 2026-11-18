@@ -15,7 +15,9 @@ export function Inline({value, onChange, range, label, placeholder}:
     {value: string; onChange: (v: string) => void; range: Range; label: string; placeholder?: string}) {
     const parts = pieces(value);
     const box = useRef<HTMLDivElement>(null);
-    const set = (k: number, text: string) => onChange(parts.map((p, i) => i === k ? text.replace(/\s*\n\s*/g, ' ') : p).join(''));
+    // A piece right after a number chip must not start with a letter/digit: it would stick to the number ("câu 10Mỗi").
+    const gap = (i: number, t: string) => i > 0 && isToken(parts[i - 1]) && /^[\p{L}\p{N}]/u.test(t) ? ' ' + t : t;
+    const set = (k: number, text: string) => onChange(parts.map((p, i) => i === k ? gap(i, text.replace(/\s*\n\s*/g, ' ')) : p).join(''));
     // A click on the empty end of the box lands the cursor in the last piece, like a real text field.
     const focusEnd = (e: MouseEvent) => {
         if (e.target !== box.current) return;
