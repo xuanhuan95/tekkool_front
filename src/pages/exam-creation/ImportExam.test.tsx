@@ -396,7 +396,7 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
 
     it('"Đánh số lại" drops the number-jump warnings of that exam', async () => {
         mockPost();
-        renderScreen();
+        renderScreen('/import-exam?folder=F1');
         const gap = issue({code: 'NUMBER_GAP', level: 'warning', question_id: 'Q1', message: 'sau câu 5 là câu 7'});
         await loadFile(EXAM, [gap]);
         expect(screen.getAllByText('sau câu 5 là câu 7').length).toBeGreaterThan(0);
@@ -407,7 +407,7 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
 
     it('the dialog shows the current and the new numbering; "Giữ số như trong file" changes nothing', async () => {
         mockPost();
-        renderScreen();
+        renderScreen('/import-exam?folder=F1');
         const gap = issue({code: 'NUMBER_GAP', level: 'warning', question_id: 'Q1', message: 'sau câu 5 là câu 7'});
         await loadFile(examOf({...mc('Q1', 'Q1A'), source_no: 5}, {...mc('Q2', 'Q2A'), source_no: 7}), [gap]);
         fireEvent.click(screen.getByText('Đánh số lại câu'));
@@ -417,6 +417,18 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
         fireEvent.click(screen.getByLabelText(/Giữ số như trong file/));
         fireEvent.click(screen.getByText('Đánh số lại', {selector: 'button'}));
         expect(screen.getAllByText('sau câu 5 là câu 7').length).toBeGreaterThan(0);
+    });
+});
+
+describe('ImportExam: bank screen (B2, B3, B4)', () => {
+    it('into a bank: no "Thông tin đề", no "Đánh số lại câu", no "Đáp án đúng" badge, a tick instead', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile();
+        expect(screen.queryByText('Thông tin đề')).toBeNull();
+        expect(screen.queryByText('Đánh số lại câu')).toBeNull();
+        expect(screen.queryByText('Đáp án đúng')).toBeNull();
+        expect(screen.getByText('(đáp án đúng)')).toBeTruthy();
     });
 });
 

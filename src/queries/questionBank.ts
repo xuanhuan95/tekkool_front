@@ -88,6 +88,15 @@ export function useBankStock(bankId: string | null) {
     });
 }
 
+/** Blocks per type of ONE bank (A1: the "Dạng khối" filter only lists the types the bank really has). */
+export function useBankStats(bankId: string) {
+    return useQuery({
+        queryKey: [...bankKeys.all, 'stats', bankId],
+        queryFn: () => Api.get<BankStats>('question_bank/stats?bank=' + bankId),
+        enabled: !!bankId,
+    });
+}
+
 export const BLOCKS_PER_PAGE = 20;
 
 /** SPT-73: one page of a bank's blocks. The previous page stays on screen while the next loads (no flicker on filter/page). */

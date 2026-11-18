@@ -5,9 +5,8 @@ import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 
 import renderHTML from '../../components/SafeHtml';
-import {Badge, Button, Card, ConfirmDialog, ErrorState, IconButton, MetaChips, Modal, PageTitle, Select, Loading, Table, Tabs, TextField, buttonClass, cx, icons, notify}
+import {Badge, Button, Card, ConfirmDialog, ErrorState, IconButton, MetaChips, Modal, PageTitle, Select, Loading, Tabs, TextField, buttonClass, cx, icons, notify}
     from '../../components/ui';
-import type {Column} from '../../components/ui';
 import {uploadImages} from './imageUpload';
 import type {ImageCache} from './imageUpload';
 import {useFolders} from '../../queries/exams';
@@ -20,10 +19,10 @@ import {errorText, formatDecimal} from '../../lib/format';
 import {DESKTOP, useMediaQuery} from '../useMediaQuery';
 import {blockLabel} from './blockTypes';
 import {
-    plain as plainText, applyPasted, badTrueFalse, countQuestions, examIssues, examStats, fileProblem, importErrorText, isBadTrueFalse, isChoice,
+    plain as plainText, applyPasted, badTrueFalse, countQuestions, examIssues, fileProblem, importErrorText, isBadTrueFalse, isChoice,
     isClusterQuestion, isMissingKey, isSevere, issueKey, missingKeys, missingNumbers, missingTfStatements, numberedUnits, partRows, patchData, patchQuestion, removeQuestions, replaceUnit,
     sourceNumbering, saveBlocker, setPassage, setType, splitOptions, toUnits, withShownCounts, unseenSevere, TRUE_FALSE_STATEMENTS,
-    type DuplicateInfo, type ImportIssue, type ImportQuestion, type ImportedExam, type NumberedUnit, type PastedAnswers, type QuestionUnit, type Stash,
+    type DuplicateInfo, type ImportIssue, type ImportQuestion, type ImportedExam, type PastedAnswers, type QuestionUnit, type Stash,
 } from './importRules';
 import {withDefaultScores} from './examRules';
 import {issueLabel} from './guideContent';
@@ -182,7 +181,7 @@ function UnitCard({unit, no, edit, showPassage, duplicates, issues, seen, onSee,
                     <div key={a.id} className={cx('vt-imp-answer', first.data.correctAnswerId === a.id && 'on')}>
                         <span className='vt-imp-answer-key'>{keyOf(i)}</span>
                         <div className='vt-imp-answer-body'>{renderHTML(a.value)}</div>
-                        {first.data.correctAnswerId === a.id && <span className='vt-imp-answer-label'>Đáp án đúng</span>}
+                        {first.data.correctAnswerId === a.id && <><span className='vt-qbv-tick' aria-hidden='true'><icons.IconCheckCircle size={20} color='var(--vt-ok-ink)'/></span><span className='vt-sr-only'>(đáp án đúng)</span></>}
                     </div>)}
                 {first.type === 'FillBlank' && <div className={cx('vt-imp-key', plainText(String(first.data.answer ?? '')) && 'on')}>
                     {plainText(String(first.data.answer ?? '')) ? <>Đáp án: <b>{renderHTML(String(first.data.answer))}</b></> : 'Chưa có đáp án'}
@@ -227,9 +226,11 @@ type BodyProps = {
     onFix: (anchor: string) => void; exam: ImportedExam; edit: Edit; duplicates: Record<string, DuplicateInfo>; pdf: PdfState; desktop: boolean;
     issues: ImportIssue[]; seen: Record<string, boolean>; onSee: (i: ImportIssue) => void;
     renumbered: boolean; onRenumber: () => void;
+    /** B3: into a bank the numbers are redone when an exam is drawn, so the button is only for direct creation. */
+    canRenumber: boolean;
 };
 
-function ExamBody({onFix, exam, edit, duplicates, pdf, desktop, issues, seen, onSee, renumbered, onRenumber}: BodyProps) {
+function ExamBody({onFix, exam, edit, duplicates, pdf, desktop, issues, seen, onSee, renumbered, onRenumber, canRenumber}: BodyProps) {
     const [tab, setTab] = useState<'doc' | 'src'>('doc');
     const [pasting, setPasting] = useState(false);
     const [renumbering, setRenumbering] = useState(false);
@@ -282,7 +283,7 @@ function ExamBody({onFix, exam, edit, duplicates, pdf, desktop, issues, seen, on
                 <div className='vt-imp-col-head'>Đề đã đọc · sửa tại chỗ</div>
                 <div className='vt-imp-tools'>
                     <Button variant='secondary' size='sm' onClick={() => setPasting(true)}>Dán đáp án nhanh</Button>
-                    <Button variant='secondary' size='sm' disabled={renumbered} onClick={() => setRenumbering(true)}>Đánh số lại câu</Button>
+                    {canRenumber && <Button variant='secondary' size='sm' disabled={renumbered} onClick={() => setRenumbering(true)}>Đánh số lại câu</Button>}
                 </div>
                 {exam.sections.map((s, si) => <div key={s.id} className='vt-imp-col'>
                     <h3 className='vt-imp-section' id={'imp-' + s.id}>
@@ -343,24 +344,6 @@ function RenumberDialog({open, exam, after, onClose, onConfirm}: {open: boolean;
     </Modal>;
 }
 
-function ExamInfoModal({exam, onClose, onJump}: {exam: ImportedExam | undefined; onClose: () => void; onJump: (x: NumberedUnit) => void}) {
-    const stats = exam ? examStats(exam) : null;
-    type Row = [string, NumberedUnit[]];
-    const columns: Column<Row>[] = [
-        {key: 'label', header: 'Thông tin', render: r => r[0]},
-        {key: 'n', header: 'Số lượng', align: 'center', render: r => r[1].length},
-        {key: 'list', header: 'Danh sách các câu', render: r => r[1].map(x =>
-            <button key={x.unit.id} type='button' className='vt-imp-jump' onClick={() => onJump(x)}>Câu {x.no}</button>)},
-    ];
-    return <Modal open={!!exam} onClose={onClose} title='Thông tin đề' size='md'
-                  footer={<Button variant='secondary' onClick={onClose}>Đóng</Button>}>
-        {stats && <>
-            <p>Tổng số câu trong đề: <b>{stats.total} câu</b></p>
-            <Table<Row> className='vt-imp-info' caption='Thông tin đề' columns={columns} rows={stats.rows} rowKey={r => r[0]} bare/>
-        </>}
-    </Modal>;
-}
-
 export default function ImportExam() {
     const [params] = useSearchParams();
     const bankId = params.get('bank');
@@ -394,7 +377,6 @@ export default function ImportExam() {
     const [picked, setPicked] = useState<Record<string, boolean>>({});
     // ponytail: ONE exam open at a time — each edit box is a TipTap view; 20 exams x 60 boxes would choke the browser.
     const [openId, setOpenId] = useState<string | null>(null);
-    const [infoId, setInfoId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
     const [progress, setProgress] = useState(0);
     const [duplicates, setDuplicates] = useState<Record<string, DuplicateInfo>>({});
@@ -494,17 +476,6 @@ export default function ImportExam() {
     const toggleAll = () => {
         const all = exams.every(e => picked[e.id]);
         setPicked(Object.fromEntries(exams.map(e => [e.id, !all])));
-    };
-
-    const jumpTo = (examId: string, x: NumberedUnit) => {
-        setInfoId(null); setOpenId(examId);
-        setTimeout(() => {
-            const el = document.getElementById('imp-' + x.unit.id);
-            if (!el) return;
-            el.scrollIntoView({behavior: 'smooth', block: 'center'});
-            el.classList.add('flash');
-            setTimeout(() => el.classList.remove('flash'), 1200);
-        }, 0);
     };
 
     // Optional: an empty bank measures 0 anyway. Numbers only, never blocks saving.
@@ -701,13 +672,12 @@ export default function ImportExam() {
                             {/* a collapsed exam hides its chips — count them here to know which to open */}
                             {dupCount > 0 && <Badge tone='sun'>{dupCount} câu trùng</Badge>}
                         </span>
-                        <Button variant='ghost' size='sm' onClick={() => setInfoId(exam.id)}>Thông tin đề</Button>
                         <Button variant='secondary' size='sm' aria-expanded={open}
                                 onClick={() => setOpenId(open ? null : exam.id)}>{open ? 'Thu gọn' : 'Xem & sửa'}</Button>
                     </div>
                     {open && <ExamBody onFix={setGuide} exam={exam} edit={patchExam(exam.id)} duplicates={duplicates} pdf={pdf} desktop={desktop}
                                        issues={mine} seen={seen} onSee={i => setSeen(m => ({...m, [issueKey(i)]: true}))}
-                                       renumbered={!!renumbered[exam.id]} onRenumber={() => setRenumbered(m => ({...m, [exam.id]: true}))}/>}
+                                       canRenumber={!bankId} renumbered={!!renumbered[exam.id]} onRenumber={() => setRenumbered(m => ({...m, [exam.id]: true}))}/>}
                 </div>;
             })}
         </Card>}
@@ -763,7 +733,5 @@ export default function ImportExam() {
                        }}/>
 
         <GuideModal open={guide !== null} at={guide || undefined} onClose={() => setGuide(null)}/>
-        <ExamInfoModal exam={exams.find(e => e.id === infoId)} onClose={() => setInfoId(null)}
-                       onJump={x => infoId && jumpTo(infoId, x)}/>
     </div>;
 }

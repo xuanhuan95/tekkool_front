@@ -2,20 +2,20 @@ import {useEffect, useState} from 'react';
 import {Link, useParams} from 'react-router-dom';
 
 import renderHTML from '../../components/SafeHtml';
-import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, MetaChips, PageTitle, Select, Loading, TextField, buttonClass, notify, Refreshable}
+import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, MetaChips, PageTitle, Select, Loading, TextField, buttonClass, icons, notify, Refreshable}
     from '../../components/ui';
 import {errorText} from '../../lib/format';
-import {BLOCKS_PER_PAGE, useBankBlocks, useBanks, useDeleteBlock} from '../../queries/questionBank';
+import {BLOCKS_PER_PAGE, useBankBlocks, useBankStats, useBanks, useDeleteBlock} from '../../queries/questionBank';
 import type {BankBlock} from '../../types/exam';
-import {BLOCK_LABELS} from '../exam-creation/blockTypes';
+import {blockLabel} from '../exam-creation/blockTypes';
 import '../exam-creation/import-exam.css';   // passage / explanation styles shared with the import screen
 import './question-bank.css';
 
 const isChoiceType = (t: string) => t === 'MultipleChoice' || t === 'ErrorIdentify';
 
 /** SPT-73 · read-only question: prompt, options with the key marked, T/F statements, short answer, explanation. */
-/** `plain` (whole-exam banks): the correct option is only tinted, without the "Đáp án đúng" text. */
-export function QuestionView({no, q, plain}: {no: string; q: BankBlock['questions'][number]; plain?: boolean}) {
+/** B4: the correct option is tinted + a tick; no "Đáp án đúng" badge (screen readers get a hidden text). */
+export function QuestionView({no, q}: {no: string; q: BankBlock['questions'][number]}) {
     const d = q.data;
     return <div className='vt-qbv-q'>
         <div className='vt-qbv-prompt'><b>{no}</b><div>{renderHTML(d.question)}</div>
@@ -28,7 +28,7 @@ export function QuestionView({no, q, plain}: {no: string; q: BankBlock['question
                 return <li key={a.id} className={on ? 'on' : undefined}>
                     <span className='vt-qbv-key'>{String.fromCharCode(65 + i)}.</span>
                     <div>{renderHTML(a.value)}</div>
-                    {on && !plain && <Badge tone='ok'>Đáp án đúng</Badge>}
+                    {on && <><span className='vt-qbv-tick' aria-hidden='true'><icons.IconCheckCircle size={20} color='var(--vt-ok-ink)'/></span><span className='vt-sr-only'>(đáp án đúng)</span></>}
                 </li>;
             })}
         </ul>}
@@ -80,6 +80,7 @@ export default function BankBlocks() {
     const [removing, setRemoving] = useState<BankBlock | null>(null);
     const remove = useDeleteBlock();
     const {data, isError, error, refetch, isFetching} = useBankBlocks(bankId, page, type, q);
+    const perType = useBankStats(bankId).data?.per_type || {};
 
     // Search runs 350ms after the last keystroke; any filter change goes back to page 1.
     useEffect(() => {
@@ -117,7 +118,7 @@ export default function BankBlocks() {
 
         <div className='vt-qbv-filters'>
             <Select label='Dạng khối' value={type} onChange={e => { setType(e.target.value); setPage(1); }}
-                    options={[{value: '', label: 'Tất cả dạng'}, ...Object.entries(BLOCK_LABELS).map(([value, label]) => ({value, label}))]}/>
+                    options={[{value: '', label: 'Tất cả dạng'}, ...Object.entries(perType).filter(([, n]) => n > 0).map(([value, n]) => ({value, label: `${blockLabel(value)} · ${n} khối`}))]}/>
             <TextField label='Tìm trong câu hỏi' placeholder='Tìm chữ trong câu, đáp án, ngữ liệu' value={typed}
                        onChange={e => setTyped(e.target.value)}/>
         </div>
