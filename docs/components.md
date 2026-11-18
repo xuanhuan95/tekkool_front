@@ -154,8 +154,9 @@ SPT-99: ô "Số từ gợi ý" / "Độ dài mong muốn" và bộ đếm "n / 
 
 ## Trang chủ HS và chọn môn (SPT-135)
 
-- `pages/hs/subjects.ts`: nhận diện 12 môn từ tên thư mục (`subjectKey`, bỏ dấu), tổ hợp A00/A01/B00/C00/D01, luật chọn 3–7 môn (`toggleSubject`, `applyCombo`, `pickStatus`). Dùng ở Đăng ký bước 2 và Hồ sơ → Môn em thi.
+- `pages/hs/subjects.ts`: nhận diện 12 môn từ tên thư mục (`subjectKey`, bỏ dấu), tổ hợp A00/A01/B00/C00/D01, luật chọn 3–7 môn (`toggleSubject`, `applyCombo`, `comboPressed`, `comboBlocked`, `pickStatus`). Dùng ở Đăng ký bước 2 và Hồ sơ → Môn em thi.
 - `pages/hs/SubjectPicker.tsx`: lưới chọn môn + chọn nhanh theo tổ hợp (+ `SubjectIcon`, `sjClass` cho màu/icon từng môn). Thanh nút (Lưu/Huỷ/Tạo tài khoản) truyền qua `children`.
+- **Chọn nhiều tổ hợp (SPT-138):** tổ hợp bật/tắt độc lập. Bấm tổ hợp chưa sáng → CỘNG môn của nó vào lựa chọn; tổ hợp sáng khi đủ mọi môn của nó (nhiều tổ hợp sáng cùng lúc); bấm tổ hợp đang sáng → bỏ môn của nó, trừ môn còn thuộc tổ hợp sáng khác. Cộng mà vượt 7 môn thì không cộng: tổ hợp đó mờ (`aria-disabled="true"`, bấm không tác dụng) và hiện dòng "Tối đa 7 môn — bỏ bớt môn để thêm tổ hợp này." dưới hàng tổ hợp. Test: `subjects.test.ts`, `SubjectPicker.test.tsx`.
 - `pages/student/homeLogic.ts`: logic thuần của trang chủ (lời chào theo giờ VN, trạng thái chuỗi done/keep/zero, dải 7 ngày, mức vòng điểm, thống kê theo môn, chia "đang luyện"/"thử sức thêm", toạ độ chuỗi chấm).
 - `pages/student/home.css`: CSS port từ artboard (`c-*`, `bd*`, `sj*`, `ch-*`, `rg-*`, `mon-*`).
 - `AuthFrame` có thêm `step` (thanh "Bước n/2") và `wide`.

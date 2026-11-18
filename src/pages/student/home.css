@@ -153,6 +153,8 @@
 .c-combo:active{transform:translate(1px,2px);box-shadow:0 0 0 var(--vt-ink)}
 .c-combo[aria-pressed="true"]{background:var(--vt-sun);box-shadow:2px 3px 0 var(--vt-ink)}
 .c-combo[aria-pressed="true"] span{color:var(--vt-ink)}
+.c-combo[aria-disabled="true"]{opacity:.45;cursor:not-allowed;box-shadow:none;background:var(--vt-track)}
+.c-combo[aria-disabled="true"]:hover{transform:none}
 .c-more-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;padding:2px 4px 0}
 .c-more{display:flex;align-items:center;gap:10px;box-sizing:border-box;min-height:64px;padding:8px 12px;background:var(--vt-card);border:2px solid var(--vt-ink);border-radius:var(--vt-r-card-md);box-shadow:2px 3px 0 var(--vt-ink);color:var(--vt-ink);text-decoration:none;transition:transform .15s ease,box-shadow .15s ease}
 .c-more:hover{color:var(--vt-ink);transform:translateY(-3px);box-shadow:3px 6px 0 var(--vt-ink)}
@@ -307,3 +309,24 @@
 .mon-edit-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media (max-width:1023.98px){.ch-grid.g3,.mon-edit-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.vt-auth{padding-top:32px}}
 .ch-bar{background:none;border:0;box-shadow:none;padding:0}
+/* SPT-138 (artboards v2 18/11): compact greeting banner + 2-column subject grid on tablet */
+.c-banner.vt-card{grid-template-columns:minmax(0,1fr) 92px;gap:16px;padding:18px 24px}
+.c-hello{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px 20px}
+.c-hello .hs-head{grid-column:1/-1}
+.c-hello .hs-head-title{font-size:32px}
+.c-banner .c-sk{max-width:none}
+.c-mascot{height:112px}
+.c-mascot svg{width:84px;height:104px}
+@media (max-width:1023.98px){
+  .c-banner.vt-card{grid-template-columns:minmax(0,1fr) 72px;gap:12px;padding:16px 18px}
+  .c-hello .hs-head-title{font-size:28px;max-width:none}
+  .c-mascot{position:relative;right:auto;top:auto;width:auto;height:92px}
+  .c-mascot svg{width:66px;height:80px}
+}
+@media (max-width:599.98px){
+  .c-banner.vt-card{grid-template-columns:minmax(0,1fr);padding:14px 16px 16px}
+  .c-hello{grid-template-columns:minmax(0,1fr);gap:10px}
+  .c-hello .hs-head-title{font-size:26px}
+  .c-mascot{display:none}
+}
+@media (min-width:600px) and (max-width:1023.98px){.c-grid,.c-layout .c-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

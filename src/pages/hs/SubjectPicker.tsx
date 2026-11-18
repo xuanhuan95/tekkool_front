@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 
-import {COMBOS, applyCombo, comboPressed, pickStatus, sortSubjects, subjectKey, toggleSubject} from './subjects';
+import {COMBOS, applyCombo, comboBlocked, comboPressed, pickStatus, sortSubjects, subjectKey, toggleSubject} from './subjects';
 import type {SubjectKey} from './subjects';
 import '../student/home.css';
 
@@ -51,11 +51,16 @@ export function SubjectPicker({subjects, selected, onChange, gridClass = 'g3', e
     return <>
         <p className='ch-lab' style={{margin: 0}}>Chọn nhanh theo tổ hợp</p>
         <div className='c-combos' role='group' aria-label='Tổ hợp môn' style={{margin: 0}}>
-            {COMBOS.map(c => <button key={c.code} type='button' className='c-combo' aria-pressed={comboPressed(c, selected, list)}
-                                     onClick={() => onChange(applyCombo(c, selected, list))}>
-                <b>{c.code}</b><span>{c.label}</span>
-            </button>)}
+            {COMBOS.map(c => {
+                const blocked = comboBlocked(c, selected, list);
+                return <button key={c.code} type='button' className='c-combo' aria-pressed={comboPressed(c, selected, list)}
+                               aria-disabled={blocked ? true : undefined} onClick={() => !blocked && onChange(applyCombo(c, selected, list))}>
+                    <b>{c.code}</b><span>{c.label}</span>
+                </button>;
+            })}
         </div>
+        {COMBOS.some(c => comboBlocked(c, selected, list)) &&
+            <p className='ch-note' role='status' style={{color: 'var(--vt-err)'}}>Tối đa 7 môn — bỏ bớt môn để thêm tổ hợp này.</p>}
         {eachLabel && <p className='ch-lab' style={{margin: 0}}>Hoặc chọn từng môn</p>}
         <div className={'ch-grid ' + gridClass}>
             {list.map(s => {

@@ -60,7 +60,7 @@ const MASCOT = <svg width='150' height='170' viewBox='0 0 120 150' aria-hidden='
         <circle cx='74' cy='72' r='3.6' fill='#fb7185' stroke='none' opacity='.75'/>
     </g></svg>;
 
-/** Greeting + weekly streak + main CTA. `streak` null (still loading / old BE) → no streak block. */
+/** Greeting + weekly streak (SPT-138: no CTA button, subjects below lead to the exams). `streak` null (still loading / old BE) → no streak block. */
 function Banner({name, streak}: {name?: string; streak?: Streak | null}) {
     const now = new Date();
     const week = streak ? weekStrip(streak.this_week, now) : null;
@@ -84,9 +84,6 @@ function Banner({name, streak}: {name?: string; streak?: Streak | null}) {
                     {state === 'zero' && <p className='c-sk-note'>Làm 1 bài tuần này để bắt đầu chuỗi</p>}
                 </div>
             </div>}
-            <div className='c-row'>
-                <Link className='vt-btn vt-btn--primary cta-lg' aria-label='Vào thi' to={hsPath.exams()}>Vào thi →</Link>
-            </div>
         </div>
         <div className='c-mascot' aria-hidden='true'>{MASCOT}</div>
     </section>;
@@ -160,7 +157,7 @@ function SubjectSections({chosen}: {chosen: string[]}) {
     const orphan = doing && !practising.some(s => doingFor(s)) ? doing : null;
     return <>
         <section className='hs-sec'>
-            {head('Môn đang luyện', <Link className='vt-link' to={hsPath.me + '#mon-em-thi'}>Sửa</Link>)}
+            {head('Môn đang luyện')}
             {practising.length === 0 && !orphan
                 ? <EmptyState title='Em chưa chọn môn nào' description='Chọn môn em thi để trang chủ gợi ý đúng việc cần làm.'/>
                 : !anyAttempt && !doing

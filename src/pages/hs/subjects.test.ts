@@ -1,6 +1,6 @@
 import {describe, it, expect} from 'vitest';
 
-import {COMBOS, MAX_SUBJECTS, applyCombo, comboPressed, pickStatus, sortSubjects, subjectKey, toggleSubject} from './subjects';
+import {COMBOS, MAX_SUBJECTS, applyCombo, comboBlocked, comboPressed, pickStatus, sortSubjects, subjectKey, toggleSubject} from './subjects';
 
 const NAMES = ['Toán', 'Ngữ văn', 'Tiếng Anh', 'Vật lý', 'Hóa học', 'Sinh học', 'Lịch sử', 'Địa lý'];
 const subjects = NAMES.map((name, i) => ({id: 's' + i, name}));
@@ -42,13 +42,52 @@ describe('choose 3–7 subjects', () => {
         expect(pickStatus(6).ok).toBe(true);
         expect(pickStatus(7)).toMatchObject({ok: true, full: true, note: 'Đã đủ 7 môn.'});
     });
-    it('combo selects exactly its 3 subjects; pressing it again clears; missing subject → no change', () => {
-        const a00 = COMBOS.find(c => c.code === 'A00')!;
-        const picked = applyCombo(a00, ['zzz'], subjects);
-        expect(picked.sort()).toEqual([id('Toán'), id('Vật lý'), id('Hóa học')].sort());
-        expect(comboPressed(a00, picked, subjects)).toBe(true);
-        expect(applyCombo(a00, picked, subjects)).toEqual([]);
-        const b00 = COMBOS.find(c => c.code === 'B00')!;
-        expect(applyCombo(b00, ['k'], subjects.filter(s => s.name !== 'Sinh học'))).toEqual(['k']);
+    const combo = (code: string) => COMBOS.find(c => c.code === code)!;
+    const ids = (...n: string[]) => n.map(id).sort();
+    const sorted = (a: string[]) => [...a].sort();
+
+    it('combo not pressed: ADDS its subjects and keeps the ones already chosen', () => {
+        const picked = applyCombo(combo('A00'), [id('Tiếng Anh')], subjects);
+        expect(sorted(picked)).toEqual(ids('Tiếng Anh', 'Toán', 'Vật lý', 'Hóa học'));
+        expect(picked[0]).toBe(id('Tiếng Anh'));   // earlier ticks keep their place
+        expect(comboPressed(combo('A00'), picked, subjects)).toBe(true);
+    });
+    it('two combos stay pressed together (A00 + B00 = 4 subjects)', () => {
+        const sel = applyCombo(combo('B00'), applyCombo(combo('A00'), [], subjects), subjects);
+        expect(sorted(sel)).toEqual(ids('Toán', 'Vật lý', 'Hóa học', 'Sinh học'));
+        expect(comboPressed(combo('A00'), sel, subjects)).toBe(true);
+        expect(comboPressed(combo('B00'), sel, subjects)).toBe(true);
+        expect(comboPressed(combo('A01'), sel, subjects)).toBe(false);   // Anh missing
+    });
+    it('pressed combo removes its subjects but keeps those still in another pressed combo', () => {
+        const both = applyCombo(combo('B00'), applyCombo(combo('A00'), [], subjects), subjects);
+        const noA = applyCombo(combo('A00'), both, subjects);   // Toán + Hóa stay (B00), Lý goes
+        expect(sorted(noA)).toEqual(ids('Toán', 'Hóa học', 'Sinh học'));
+        expect(comboPressed(combo('B00'), noA, subjects)).toBe(true);
+        expect(applyCombo(combo('B00'), noA, subjects)).toEqual([]);
+        // a hand-ticked subject outside the combo is not touched
+        expect(applyCombo(combo('A00'), applyCombo(combo('A00'), [id('Lịch sử')], subjects), subjects)).toEqual([id('Lịch sử')]);
+    });
+    it('combo whose subject does not exist: no change, never pressed or blocked', () => {
+        const noBio = subjects.filter(s => s.name !== 'Sinh học');
+        expect(applyCombo(combo('B00'), ['k'], noBio)).toEqual(['k']);
+        expect(comboPressed(combo('B00'), [id('Toán'), id('Hóa học')], noBio)).toBe(false);
+        expect(comboBlocked(combo('B00'), Array.from({length: 7}, (_, i) => 'x' + i), noBio)).toBe(false);
+    });
+    it('adding a combo that would pass 7 subjects is refused; that combo is blocked, the pressed ones are not', () => {
+        // Toán, Văn, Anh, Lý, Hóa, Sinh, Sử = 7 (the max7 artboard)
+        const seven = [id('Toán'), id('Ngữ văn'), id('Tiếng Anh'), id('Vật lý'), id('Hóa học'), id('Sinh học'), id('Lịch sử')];
+        expect(comboBlocked(combo('C00'), seven, subjects)).toBe(true);   // needs Địa
+        expect(applyCombo(combo('C00'), seven, subjects)).toEqual(seven);
+        for (const code of ['A00', 'A01', 'B00', 'D01']) {
+            expect(comboPressed(combo(code), seven, subjects)).toBe(true);
+            expect(comboBlocked(combo(code), seven, subjects)).toBe(false);
+        }
+        // 6 chosen, C00 needs Sử + Địa → 8: blocked
+        expect(comboBlocked(combo('C00'), seven.slice(0, 6), subjects)).toBe(true);
+        // 5 chosen incl. Văn, C00 needs only Sử + Địa → exactly 7: allowed
+        const five = [id('Toán'), id('Ngữ văn'), id('Tiếng Anh'), id('Vật lý'), id('Hóa học')];
+        expect(comboBlocked(combo('C00'), five, subjects)).toBe(false);
+        expect(applyCombo(combo('C00'), five, subjects)).toHaveLength(7);
     });
 });
