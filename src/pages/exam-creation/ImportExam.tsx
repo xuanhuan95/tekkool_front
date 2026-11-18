@@ -398,6 +398,7 @@ export default function ImportExam() {
     type DupDone = {compared: number; existing: Record<string, {bank: string; bank_name: string; name?: string | null; source_file?: string | null; imported_at?: string | null; same_bank: boolean; count: number}>};
     const [dupRun, setDupRun] = useState<{at: number; of: number; name: string} | null>(null);
     const [dupDone, setDupDone] = useState<DupDone | null>(null);
+    const [dupClean, setDupClean] = useState<Record<string, boolean>>({});   // exams already compared this run that came out clean
     const cancelDup = useRef(false);
     const checking = dupRun !== null;
     // Duplicate blocks are NOT saved unless the teacher ticks "Vẫn lưu" (key = exam id + block id).
@@ -589,7 +590,7 @@ export default function ImportExam() {
     // Optional: an empty bank measures 0 anyway. Numbers only, never blocks saving. Cancel keeps nothing half-done.
     const checkDuplicates = async () => {
         cancelDup.current = false;
-        setDupDone(null);
+        setDupDone(null); setDupClean({});
         const merged: Record<string, DuplicateInfo> = {};
         const existing: DupDone['existing'] = {};
         let compared = 0;
@@ -603,6 +604,7 @@ export default function ImportExam() {
                 Object.assign(merged, r.duplicates || {});
                 compared = Math.max(compared, r.compared || 0);
                 if (r.existing) existing[e.id] = r.existing;
+                setDupClean(c => ({...c, [e.id]: !Object.keys(r.duplicates || {}).length && !r.existing}));
             }
             setDuplicates(merged); setDupDone({compared, existing}); setKeepDup({});
             // An exam the bank already has is ticked off (tick it again to save it anyway).
@@ -735,7 +737,8 @@ export default function ImportExam() {
     const rows: ReviewRow[] = exams.map(e => {
         const mine = examIssues(issues, e.id, renumbered[e.id]);
         const ex = dupDone?.existing[e.id];
-        return {exam: e, file: fileOf.current[e.id]?.name || '', picked: !!picked[e.id], questions: countQuestions(e), blocks: blocksOf(e).length,
+        const check = !dupRun || !picked[e.id] ? undefined : chosen[dupRun.at - 1]?.id === e.id ? 'running' as const : dupClean[e.id] ? 'clear' as const : undefined;
+        return {exam: e, check, file: fileOf.current[e.id]?.name || '', picked: !!picked[e.id], questions: countQuestions(e), blocks: blocksOf(e).length,
             severe: mine.filter(isSevere).length, light: mine.filter(i => !isSevere(i)).length + badTrueFalse(e), missing: missingKeys(e),
             dupBlocks: bankDups.filter(d => d.exam === e.id).length, sameInImport: impDups.filter(d => d.exam === e.id).length,
             state: state[e.id], note: otherBank[e.id] || (ex && !ex.same_bank) ? 'other-bank' : ex ? 'exists' : undefined};

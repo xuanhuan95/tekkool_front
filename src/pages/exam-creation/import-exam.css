@@ -296,6 +296,9 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 .vt-rv-meta { color: var(--vt-muted); font-size: 14px; margin-left: 4px; }
 .vt-imp-marks { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px; }
 .vt-imp-marks:empty { display: none; }
+/* While checking (canvas import-dup-checking): the spinner / "Không trùng" sits on the name's row, right-aligned. */
+.vt-rv-item:has(.vt-imp-marks--check) { grid-template-columns: 44px minmax(0, 1fr) auto; }
+.vt-imp-marks--check { grid-column: 3; grid-row: 1; justify-content: flex-end; }
 .vt-rv-count { margin: 8px 0; color: var(--vt-muted); font-weight: 600; }
 .vt-rv-sum { margin: 12px 0; }
 .vt-rv-sum-scroll { overflow-x: auto; }

@@ -34,9 +34,13 @@
 .vt-cfb-type-text small.short { color: var(--vt-err); font-weight: 700; }
 .vt-cfb-capacity { display: flex; flex-direction: column; gap: 10px; }
 .vt-cfb-capacity p { margin: 0; font-size: 14px; }
-.vt-cfb-capacity.low { background: var(--vt-err-bg); }
-.vt-cfb-capacity.mid { background: var(--vt-sun-soft); }
-.vt-cfb-capacity.high { background: var(--vt-ok-bg); }
+/* Artboard vt-bk-big / vt-bk-warn / vt-bk-legend / vt-bk-saved */
+.vt-cfb-big { font-size: 28px; font-weight: 700; line-height: 1.1; }
+.vt-cfb-capacity .vt-cfb-big + p { margin-top: 4px; color: var(--vt-muted); }
+.vt-cfb-warn { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; font-weight: 600; color: var(--vt-err); }
+.vt-cfb-warn svg { flex-shrink: 0; margin-top: 2px; }
+.vt-cfb-legend { display: flex; gap: 8px; align-items: center; margin: 0; font-size: 13px; color: var(--vt-muted); }
+.vt-cfb-saved { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; color: var(--vt-muted); }
 .vt-cfb-runs { display: flex; align-items: center; gap: 12px; }
 .vt-cfb-runs b { font-family: var(--vt-font-hand); font-size: 48px; line-height: 1; }
 .vt-cfb-runs span { font-size: 13px; color: var(--vt-muted); }
@@ -94,12 +98,22 @@
 .vt-cfb-err { margin: 6px 0 0; font-size: 14px; color: var(--vt-err); font-weight: 700; }
 .vt-cfb-moves { display: inline-flex; gap: 4px; }
 .vt-cfb-lead { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-.vt-cfb-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; width: 100%; }
-.vt-cfb-inline .vt-input { flex: 1 1 120px; min-width: 0; }
-.vt-cfb-num { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; min-height: 36px; padding: 0 8px; box-sizing: border-box;
-    border: 2px dashed var(--vt-ink); border-radius: 999px; font-weight: 700; background: var(--vt-title-bg); }
+/* One box for a line with number chips (artboard vt-bk-lead / vt-bk-var). Text pieces are borderless fields sized by a mirror span, so they wrap. */
+.vt-cfb-inline { display: block; width: 100%; box-sizing: border-box; min-height: 46px; padding: 10px 12px; border: 1.5px solid var(--vt-ink); border-radius: var(--vt-r-btn);
+    background: var(--vt-card); font-size: 15px; line-height: 1.9; cursor: text; }
+.vt-cfb-inline:focus-within { box-shadow: inset 0 0 0 1.5px var(--vt-ink); }   /* same thicker border as .vt-input:focus-visible (rule 2) */
+.vt-cfb-seg-text { display: inline-grid; max-width: 100%; min-width: 12px; vertical-align: baseline; }
+.vt-cfb-seg-text > span, .vt-cfb-seg-text > textarea { grid-area: 1 / 1; font: inherit; line-height: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
+.vt-cfb-seg-text > span { visibility: hidden; }
+.vt-cfb-seg-text > textarea { width: 0; min-width: 100%; height: 100%; margin: 0; padding: 0; border: 0; outline: 0; resize: none; overflow: hidden; background: transparent; color: inherit; }
+.vt-cfb-seg-text > textarea::placeholder { color: var(--vt-muted); }
+.vt-cfb-seg-text:only-child { display: grid; width: 100%; }
+.vt-cfb-num { display: inline-block; padding: 0 7px; margin: 0 1px; border-radius: 6px; background: var(--vt-action); border: 1.5px dashed var(--vt-ink);
+    font-weight: 700; line-height: 1.5; font-variant-numeric: tabular-nums; }
 .vt-cfb-stock { width: 100%; border-collapse: collapse; font-size: 14px; }
-.vt-cfb-stock th, .vt-cfb-stock td { text-align: left; padding: 4px 8px; }
+.vt-cfb-stock th, .vt-cfb-stock td { text-align: left; padding: 6px 10px; border: 1px solid var(--vt-ink); }   /* artboard: every cell boxed */
+.vt-cfb-stock th:not(:first-child), .vt-cfb-stock td { text-align: right; font-variant-numeric: tabular-nums; }
+.vt-cfb-stock tbody th { font-weight: 400; }
 .vt-cfb-stock tr.short td, .vt-cfb-stock tr.short th { color: var(--vt-err); font-weight: 700; }
 .vt-cfb-preview { display: flex; flex-direction: column; gap: 12px; width: 100%; }
 .vt-cfb-pname { margin: 0; font-size: 18px; font-weight: 700; text-transform: uppercase; }

@@ -1,5 +1,5 @@
 import {useEffect, useId, useRef, useState} from 'react';
-import type {ReactNode} from 'react';
+import type {MouseEvent, ReactNode} from 'react';
 
 import {Button, IconButton, Select, TextField, cx, icons} from '../../components/ui';
 import {BLOCK_LABELS, blockLabel} from './blockTypes';
@@ -7,19 +7,32 @@ import {edit, fill, insertNumbers, isToken, newGroup, newItem, newPart, numberin
 import type {Layout, Range} from './layoutRules';
 
 /**
- * A line of text with number tokens: typed pieces are inputs, `{from}`/`{to}` are chips showing the number the screen
- * computes (dashed border = not typed by hand). Editing a piece never touches the chips.
+ * A line of text with number tokens, drawn as ONE box (artboard `vt-bk-lead`): typed pieces are borderless fields that grow
+ * with their text and wrap, `{from}`/`{to}` are chips showing the number the screen computes (dashed border = not typed by hand).
+ * Editing a piece never touches the chips.
  */
 export function Inline({value, onChange, range, label, placeholder}:
     {value: string; onChange: (v: string) => void; range: Range; label: string; placeholder?: string}) {
     const parts = pieces(value);
-    const set = (k: number, text: string) => onChange(parts.map((p, i) => i === k ? text : p).join(''));
-    return <div className='vt-cfb-inline' role='group' aria-label={label}>
+    const box = useRef<HTMLDivElement>(null);
+    const set = (k: number, text: string) => onChange(parts.map((p, i) => i === k ? text.replace(/\s*\n\s*/g, ' ') : p).join(''));
+    // A click on the empty end of the box lands the cursor in the last piece, like a real text field.
+    const focusEnd = (e: MouseEvent) => {
+        if (e.target !== box.current) return;
+        e.preventDefault();
+        const fields = box.current.querySelectorAll('textarea');
+        fields[fields.length - 1]?.focus();
+    };
+    return <div ref={box} className='vt-cfb-inline' role='group' aria-label={label} onMouseDown={focusEnd}>
         {parts.map((p, k) => isToken(p)
-            ? <span key={k} className='vt-cfb-num' title='Số câu tự tính theo khung'>{fill(p, range)}</span>
-            : <input key={k} className='vt-input' value={p} aria-label={parts.length > 1 ? `${label} (đoạn ${k / 2 + 1})` : label}
-                     placeholder={parts.length === 1 ? placeholder : undefined} maxLength={500}
-                     size={Math.max(2, p.length)} onChange={e => set(k, e.target.value)}/>)}
+            ? <span key={k} className='vt-cfb-num' title='Số câu tự tính lại sau khi rút'>{fill(p, range)}</span>
+            : <span key={k} className='vt-cfb-seg-text'>
+                <span aria-hidden='true'>{p || (parts.length === 1 ? placeholder : '') || ' '}{/\s$/.test(p) ? '' : ' '}</span>
+                <textarea rows={1} value={p} aria-label={parts.length > 1 ? `${label} (đoạn ${k / 2 + 1})` : label}
+                          placeholder={parts.length === 1 ? placeholder : undefined} maxLength={500}
+                          onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
+                          onChange={e => set(k, e.target.value)}/>
+            </span>)}
     </div>;
 }
 
@@ -47,7 +60,7 @@ function RowMenu({what, up, down, remove}: {what: string; up?: () => void; down?
 type Props = {layout: Layout; onChange: (l: Layout) => void; stock: Record<string, number>; bankId: string};
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV'];
-const roman = (n: number) => ROMAN[n] || String(n);
+export const roman = (n: number) => ROMAN[n] || String(n);
 
 /** Two-way switch (artboard `vt-bk-seg`): the pressed one is ink on paper. */
 function Segmented({label, value, options, onChange}: {label: string; value: string; options: {value: string; label: string}[]; onChange: (v: string) => void}) {
@@ -134,7 +147,7 @@ export default function LayoutEditor({layout, onChange, stock, bankId}: Props) {
                             return <div key={ii} className={cx('vt-cfb-subitem', lack && 'lack')}>
                                 <Level tag={tag}>
                                     <span className='vt-cfb-grow'/>
-                                    <IconButton variant='ghost' tipEnd label={`Xoá tiểu mục ${no}.${ii + 1}`} disabled={p.items.length < 2} icon={<icons.IconTrash size={18}/>}
+                                    <IconButton variant='ghost' tipEnd label={`Xoá tiểu mục ${no}.${ii + 1}`} disabled={p.items.length < 2} icon={<icons.IconClose size={18}/>}
                                                 onClick={() => onChange(edit.part(layout, gi, pi, x => ({...x, items: x.items.filter((_y, j) => j !== ii)})))}/>
                                 </Level>
                                 <div className='vt-field'>

@@ -34,7 +34,7 @@ export default function LayoutPreview({name, minutes, draw}: {name: string; minu
     return <>
         <BankAlert tone='info' title='Đây là một lần rút thử'
                    acts={<Button variant='secondary' size='sm' loading={isFetching} loadingText='Đang rút…' onClick={() => refetch()}>Rút lần khác</Button>}>
-            Mỗi lượt thi học sinh rút một đề khác: cùng khung, khối khác. Đáp án không hiện ở đây.
+            Mỗi lượt thi học sinh rút một đề khác: cùng khung, khối khác.
         </BankAlert>
         <Card className='vt-cfb-preview' as='section' aria-label='Xem trước đề' aria-busy={isFetching}>
         <div>

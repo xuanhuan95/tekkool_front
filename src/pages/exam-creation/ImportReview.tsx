@@ -7,6 +7,8 @@ export type ReviewRow = {
     exam: ImportedExam; file: string; picked: boolean; questions: number; blocks: number;
     severe: number; light: number; missing: number; dupBlocks: number; sameInImport: number;
     state?: 'saved' | 'error' | 'pending';
+    /** While the duplicate check runs: this exam is being compared now / came out clean (artboard import-dup-checking). */
+    check?: 'running' | 'clear';
     note?: 'exists' | 'other-bank';
 };
 
@@ -38,7 +40,9 @@ export function ReviewList({rows, openId, onOpen, onToggle, onToggleAll, blockBa
                         <span className='vt-rv-name'>{r.exam.name}</span>
                         <span className='vt-rv-meta'>· {blockBank ? `${r.blocks} khối` : `${r.questions} câu`}</span>
                     </button>
-                    <span className='vt-imp-marks'>
+                    <span className={cx('vt-imp-marks', r.check && 'vt-imp-marks--check')}>
+                        {r.check === 'running' && <span className='vt-bk-spin' role='status' aria-label={`Đang kiểm ${r.exam.name}`}/>}
+                        {r.check === 'clear' && <Badge tone='ok'>Không trùng</Badge>}
                         {r.note === 'exists' && <Badge tone='err'>Đã có</Badge>}
                         {r.note === 'other-bank' && <Badge tone='err'>Ở ngân hàng khác</Badge>}
                         {r.state === 'saved' && <Badge tone='ok'>Đã lưu</Badge>}

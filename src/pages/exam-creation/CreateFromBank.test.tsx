@@ -78,7 +78,7 @@ it('copies the sample frame, computes the numbers itself and saves the frame as 
     fireEvent.click(screen.getByLabelText('Xoá tiểu mục I.2'));   // back to the sample
 
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: ' Đề thử '}});
-    fireEvent.click(screen.getByText('Xem trước'));
+    fireEvent.click(screen.getByText('Xem trước như học sinh'));
     await screen.findByText('A. TRẮC NGHIỆM');
     fireEvent.click(screen.getByText('Lưu đề nháp'));
 
@@ -89,13 +89,47 @@ it('copies the sample frame, computes the numbers itself and saves the frame as 
     expect(body.layout[0].parts[0].score).toBe(6);
 });
 
+it('copying a sample fills the name in ("Đề luyện SPT <môn> — rút từ ngân hàng") and the teacher can change it', async () => {
+    mock();
+    renderPage();
+    await copyTemplate();
+    const input = screen.getByPlaceholderText(/Đề luyện thi/) as HTMLInputElement;
+    expect(input.value).toBe('Đề luyện SPT Ngữ văn — rút từ ngân hàng');
+    fireEvent.change(input, {target: {value: 'Tên khác'}});
+    expect(input.value).toBe('Tên khác');
+});
+
+it('step 2 saves straight from the side card (no bottom bar); the card shows the runs and the two buttons', async () => {
+    const post = mock();
+    renderPage();
+    await copyTemplate();
+    expect(await screen.findByText('1 lượt')).toBeTruthy();
+    expect(screen.getByText('mỗi học sinh làm được khoảng 1 lần không lặp khối')).toBeTruthy();
+    expect(document.querySelector('.vt-cfb-bar')).toBeNull();
+    expect(screen.getByLabelText('Xoá tiểu mục I.1')).toBeTruthy();
+    fireEvent.click(screen.getByText('Lưu đề nháp'));
+    await screen.findByText('TRANG NGÂN HÀNG');
+    expect(post.mock.calls.find(c => c[0] === 'exam/create_from_bank')![1]).toMatchObject({name: 'Đề luyện SPT Ngữ văn — rút từ ngân hàng'});
+});
+
+it('a lead with number chips is one box: the chips sit between the text pieces and typing never moves them', async () => {
+    mock();
+    renderPage();
+    await copyTemplate();
+    const box = screen.getAllByRole('group', {name: 'Lời dẫn'})[0];
+    expect(box.querySelectorAll('.vt-cfb-num')).toHaveLength(2);
+    expect(box.querySelectorAll('textarea')).toHaveLength(3);
+    fireEvent.change(within(box).getByLabelText('Lời dẫn (đoạn 2)'), {target: {value: ' tới câu '}});
+    expect([...box.querySelectorAll('.vt-cfb-num')].map(e => e.textContent)).toEqual(['1', '10']);
+});
+
 it('a frame asking for more blocks than the bank has says so at the tiểu mục and locks "Xem trước"', async () => {
     mock({reading: 1, essay: 1});
     renderPage();
     await copyTemplate();
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề'}});
     expect(await screen.findByText(/Ngân hàng chỉ có 1 khối/)).toBeTruthy();
-    expect((screen.getByText('Xem trước') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText('Xem trước như học sinh') as HTMLButtonElement).disabled).toBe(true);
 });
 
 it('an empty frame says why it cannot go on', async () => {
@@ -104,7 +138,7 @@ it('an empty frame says why it cannot go on', async () => {
     fireEvent.click(await screen.findByText(/Tiếp: dựng khung từ trống/));
     await screen.findAllByLabelText('Tên phần');
     expect(screen.getByText('Chưa đặt tên đề và chưa chọn dạng khối.')).toBeTruthy();
-    expect((screen.getByText('Xem trước') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText('Xem trước như học sinh') as HTMLButtonElement).disabled).toBe(true);
 });
 
 it('F5 keeps the draft: coming back offers to continue it, "Bắt đầu lại" drops it', async () => {
@@ -127,7 +161,7 @@ it('with ?folder it saves into that folder and goes back to the subject', async 
     renderPage('/create-from-bank?bank=b1&folder=F1');
     await copyTemplate();
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề X'}});
-    fireEvent.click(screen.getByText('Xem trước'));
+    fireEvent.click(screen.getByText('Xem trước như học sinh'));
     await screen.findByText('A. TRẮC NGHIỆM');
     fireEvent.click(screen.getByText('Lưu đề nháp'));
     await screen.findByText('TRANG MÔN');
@@ -162,7 +196,7 @@ it('step 3 shows one real draw (titles from the BE), "Rút lần khác" draws ag
     renderPage();
     await copyTemplate();
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề'}});
-    fireEvent.click(screen.getByText('Xem trước'));
+    fireEvent.click(screen.getByText('Xem trước như học sinh'));
     expect(await screen.findByText('A. TRẮC NGHIỆM')).toBeTruthy();
     expect(screen.getByText('Phần I (6 điểm)')).toBeTruthy();
     expect(screen.getByText('Người kể là ai?')).toBeTruthy();
@@ -179,7 +213,7 @@ it('step 3: the bank is short → says which type, no draw shown, "Lưu đề" l
     renderPage();
     await copyTemplate();
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề'}});
-    fireEvent.click(screen.getByText('Xem trước'));
+    fireEvent.click(screen.getByText('Xem trước như học sinh'));
     expect(await screen.findByText(/Đọc hiểu: cần 2, ngân hàng có 1/)).toBeTruthy();
     expect((screen.getByText('Lưu đề nháp') as HTMLButtonElement).disabled).toBe(true);
 });
@@ -190,7 +224,7 @@ it('after saving it lands on Môn & đề of the exam subject, not the bank list
     renderPage('/create-from-bank?bank=b1&folder=F7');
     await copyTemplate();
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề mới'}});
-    fireEvent.click(screen.getByText('Xem trước'));
+    fireEvent.click(screen.getByText('Xem trước như học sinh'));
     await screen.findByText('A. TRẮC NGHIỆM');
     fireEvent.click(screen.getByText('Lưu đề nháp'));
     await screen.findByText('TRANG MÔN');

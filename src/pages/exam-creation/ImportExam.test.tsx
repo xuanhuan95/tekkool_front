@@ -830,6 +830,20 @@ describe('ImportExam: bank import flow v2 (BF-01, BF-07, BF-12, BF-15, B7)', () 
         expect(sent.map(b => b.id)).toEqual(['E2', 'E1']);
     });
 
+    it('while checking, an exam already compared and clean says "Không trùng" and the one being compared spins (canvas import-dup-checking)', async () => {
+        let release: (v: unknown) => void = () => undefined;
+        mockPost({'question_bank/check_duplicates': (b: any) => b.id === 'E1' ? {duplicates: {}, compared: 40, existing: null} : new Promise(r => { release = r; })});
+        renderScreen();
+        two(EXAM, E2);
+        await screen.findByText(/2 đề — đã chọn 2/);
+        fireEvent.click(screen.getByText(/Kiểm trùng lặp/));
+        await screen.findByText('Không trùng');
+        expect(screen.getByRole('status', {name: 'Đang kiểm Đề thử 2'})).toBeTruthy();
+        release({duplicates: {}, compared: 40, existing: null});
+        await screen.findByText(/Không có khối nào trùng/);
+        expect(screen.queryByText('Không trùng')).toBeNull();   // the badge belongs to the running check only
+    });
+
     it('BF-15: a 409 naming another bank is explained with a link and the exam is ticked off', async () => {
         mockPost({'question_bank/save': () => { throw {code: 409, error: 'Đề đã có ở ngân hàng khác', bank: {id: 'B7', name: 'NH Lý'}}; }});
         renderScreen();

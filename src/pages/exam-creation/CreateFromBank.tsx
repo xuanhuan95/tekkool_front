@@ -1,14 +1,14 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 
-import {Badge, Button, Card, CardTitle, EmptyState, ErrorState, MetaChips, Modal, PageTitle, TextField, buttonClass, cx, notify, Loading} from '../../components/ui';
+import {Badge, Button, Card, CardTitle, EmptyState, ErrorState, MetaChips, Modal, PageTitle, TextField, buttonClass, cx, icons, notify, Loading} from '../../components/ui';
 import {errorText, formatDecimal} from '../../lib/format';
 import {useBankCapacity, useBankStats, useBankTemplates, useBanks, useCreateFromBank, usePreviewLayout} from '../../queries/questionBank';
 import type {BankTemplate} from '../../queries/questionBank';
 import {bankCount} from '../question-bank/BankList';
 import {useFolders} from '../../queries/exams';
-import {blockLabel} from './blockTypes';
-import LayoutEditor from './LayoutEditor';
+import {BLOCK_LABELS, blockLabel} from './blockTypes';
+import LayoutEditor, {roman} from './LayoutEditor';
 import LayoutPreview from './LayoutPreview';
 import {emptyLayout, frameProblem, needs, shortages, toPayload} from './layoutRules';
 import type {Layout} from './layoutRules';
@@ -140,6 +140,8 @@ export default function CreateFromBank() {
         else {
             localStorage.removeItem(draftKey);
             setLayout(template ? fromTemplate(template) : emptyLayout());
+            // The sample brings a name with it (artboard create-template); the teacher may change it.
+            if (template && !name.trim()) setName(`Đề luyện SPT${subject ? ' ' + subject : ''} — rút từ ngân hàng`);
             setSavedAt(null);
         }
         setFormError(null);
@@ -269,6 +271,21 @@ export default function CreateFromBank() {
         </div>
     </>;
 
+    const shortLabel = (t: string) => blockLabel(t).replace(/\s*\(.*\)$/, '');
+    const types = Object.keys(BLOCK_LABELS).filter(t => (stock[t] || 0) > 0 || want[t]);
+    const missing = lacking.reduce((n, x) => n + x.need - x.have, 0);
+    // "Tiểu mục I.3": the first row that asks for more blocks than the bank has (numbered like the editor does).
+    const lackAt = (() => {
+        let part = 0;
+        for (const g of layout) for (const p of g.parts) {
+            part++;
+            const i = p.items.findIndex(it => it.block_type && (stock[it.block_type] || 0) < it.count);
+            if (i >= 0) return `${roman(part)}.${i + 1}`;
+        }
+        return '';
+    })();
+    const blocked = !!problem || lacking.length > 0;
+
     const frameStep = <>
         <Card>
             <div className='vt-cfb-info'>
@@ -277,32 +294,33 @@ export default function CreateFromBank() {
                            onChange={e => setTypedMinutes(Math.max(0, Number(e.target.value) || 0))}/>
             </div>
             <div className='vt-cfb-tpl'>
-                <Badge tone='title'>{template ? `Khung chép từ ${tplName(template)}` : 'Khung dựng từ trống'}</Badge>
-                <Button variant='ghost' size='sm' onClick={() => setStep(0)}>Đổi đề mẫu</Button>
+                <Badge tone={template ? 'title' : 'draft'}>{template ? `Khung chép từ ${tplName(template)}` : 'Không dùng đề mẫu'}</Badge>
+                <Button variant='ghost' size='sm' onClick={() => setStep(0)}>{template ? 'Đổi đề mẫu' : 'Chọn đề mẫu'}</Button>
             </div>
-            {savedAt && <p className='vt-cfb-hint'>Đã lưu nháp khung lúc {hhmm(savedAt)} · tải lại trang không mất</p>}
+            {savedAt && <p className='vt-cfb-saved'><icons.IconSaved size={14}/>Đã lưu nháp khung lúc {hhmm(savedAt)} · tải lại trang không mất</p>}
         </Card>
-        <p className='vt-cfb-hint'><span className='vt-cfb-num'>10</span> Số câu tự tính lại sau khi rút. Gõ chữ quanh ô thoải mái, ô số giữ nguyên.</p>
+        <p className='vt-cfb-legend'><span className='vt-cfb-num' title='Số câu tự tính lại sau khi rút'>10</span><span>Số câu tự tính lại sau khi rút. Gõ chữ quanh ô thoải mái, ô số giữ nguyên.</span></p>
         <div className='vt-cfb-layout'>
         <div className='vt-cfb-main'><LayoutEditor layout={layout} onChange={setLayout} stock={stock} bankId={bankId}/></div>
-        <div className='vt-cfb-side'><Card size='md' className={cx('vt-cfb-capacity', runs === null ? '' : runs <= 0 || lacking.length ? 'low' : runs < 3 ? 'mid' : 'high')}>
+        <div className='vt-cfb-side'><Card size='md' className='vt-cfb-capacity'>
             <CardTitle>Kho có đủ không?</CardTitle>
             {statsQ.isError && <p className='vt-cfb-err' role='alert'>Không tải được kho khối của ngân hàng.</p>}
-            {Object.keys(want).length === 0
-                ? <p className='vt-cfb-hint'>Chọn dạng khối cho tiểu mục để xem kho có đủ không.</p>
-                : <table className='vt-cfb-stock'>
-                    <thead><tr><th>Dạng khối</th><th>Kho</th><th>Mỗi đề cần</th></tr></thead>
-                    <tbody>{Object.entries(want).map(([t, n]) => <tr key={t} className={(stock[t] || 0) < n ? 'short' : ''}>
-                        <th scope='row'>{blockLabel(t)}</th><td>{stock[t] || 0}</td><td>{n}</td></tr>)}</tbody>
-                </table>}
-            {runs !== null && !lacking.length && <p><b>{runs}</b> lần làm không lặp cho mỗi học sinh.</p>}
-            {lacking.length > 0 && <p>Thiếu khối. Bớt khối hoặc <Link to={`/import-exam?bank=${bankId}`}>nhập thêm đề</Link>.</p>}
+            {types.length > 0 && <table className='vt-cfb-stock'>
+                <thead><tr><th>Dạng khối</th><th>Kho</th><th>Mỗi đề cần</th></tr></thead>
+                <tbody>{types.map(t => <tr key={t} className={(stock[t] || 0) < (want[t] || 0) ? 'short' : ''}>
+                    <th scope='row'>{shortLabel(t)}</th><td>{stock[t] || 0}</td><td>{want[t] || 0}</td></tr>)}</tbody>
+            </table>}
+            <div>
+                <div className='vt-cfb-big'>{lacking.length > 0 ? `Thiếu ${missing} khối` : runs !== null ? `${runs} lượt` : '—'}</div>
+                <p>{lacking.length > 0 ? 'chưa rút được đề nào' : runs !== null ? `mỗi học sinh làm được khoảng ${runs} lần không lặp khối`
+                    : 'Chọn dạng khối cho tiểu mục để xem kho đủ cho bao nhiêu lượt.'}</p>
+            </div>
+            {blocked && <p className='vt-cfb-warn' role='status'><icons.IconWarn size={18}/>
+                <span>{lacking.length > 0 ? <>Thiếu {missing} khối {shortLabel(lacking[0].type)}{lackAt && ` (Tiểu mục ${lackAt})`}. Sửa xong mới lưu được. <Link to={`/import-exam?bank=${bankId}`}>Nhập thêm đề</Link></> : problem}</span></p>}
+            {formError && <p className='vt-cfb-err' role='alert'>{formError}</p>}
+            <Button variant='secondary' block icon={<icons.IconEye size={18}/>} disabled={blocked} onClick={() => setStep(2)}>Xem trước như học sinh</Button>
+            <Button variant='primary' size='lg' block loading={save.isPending} disabled={blocked || save.isPending} onClick={submit}>Lưu đề nháp</Button>
         </Card></div>
-        </div>
-        <div className='vt-cfb-bar'>
-            {(problem || lacking.length > 0) && <p className='vt-cfb-hint' role='status'>{problem || 'Ngân hàng chưa đủ khối cho khung này.'}</p>}
-            <Button variant='ghost' onClick={() => setStep(0)}>← Quay lại</Button>
-            <Button variant='primary' disabled={!!problem || lacking.length > 0} onClick={() => setStep(2)}>Xem trước</Button>
         </div>
     </>;
 
