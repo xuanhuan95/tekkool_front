@@ -30,7 +30,12 @@ export type ImportedExam = {
     stats?: ImportStats;
     /** Each line of the original text, already escaped by the backend. */
     source?: string[];
+    /** «Cho biết» boxes (HTML): shared by the whole exam, which a block bank cannot keep. */
+    shared_info?: string[];
 };
+
+/** BE refuses it for a block bank (BF-04): text left after stripping tags and blanks. */
+export const hasSharedInfo = (e: ImportedExam) => (e.shared_info || []).some(h => h.replace(/<[^>]*>|&nbsp;/g, ' ').trim() !== '');
 
 /** Duplicate-check result for ONE question — `question_bank/check_duplicates`. */
 export type DuplicateInfo = {

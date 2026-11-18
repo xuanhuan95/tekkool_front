@@ -20,7 +20,7 @@ import {DESKTOP, useMediaQuery} from '../useMediaQuery';
 import {blockLabel} from './blockTypes';
 import {
     plain as plainText, applyPasted, badTrueFalse, countQuestions, examIssues, fileProblem, importErrorText, isBadTrueFalse, isChoice,
-    isClusterQuestion, isMissingKey, isSevere, issueKey, missingKeys, missingNumbers, missingTfStatements, numberedUnits, partRows, patchData, patchQuestion, removeQuestions, replaceUnit,
+    hasSharedInfo, isClusterQuestion, isMissingKey, isSevere, issueKey, missingKeys, missingNumbers, missingTfStatements, numberedUnits, partRows, patchData, patchQuestion, removeQuestions, replaceUnit,
     sourceNumbering, saveBlocker, setPassage, setType, splitOptions, toUnits, withShownCounts, unseenSevere, TRUE_FALSE_STATEMENTS,
     type DuplicateInfo, type ImportIssue, type ImportQuestion, type ImportedExam, type PastedAnswers, type QuestionUnit, type Stash,
 } from './importRules';
@@ -349,6 +349,9 @@ function RenumberDialog({open, exam, after, onClose, onConfirm}: {open: boolean;
     </Modal>;
 }
 
+/** Files handed to the next bank (BF-04 "Nhập vào … nguyên đề"): the page stays mounted, so state alone would not carry them. */
+let handoff: File[] = [];
+
 export default function ImportExam() {
     const [params] = useSearchParams();
     const bankId = params.get('bank');
@@ -366,6 +369,8 @@ export default function ImportExam() {
     const paperBank = bankInfo?.kind === 'paper';   // whole exams go in as they are: no blocks, no stock
     const stock = useBankStock(bankInfo && !paperBank ? bankId : null).data;
     const standard = useBankStandard(paperBank ? bankId! : '');
+    // BF-04: the whole-exam bank of the same subject, where a «Cho biết» file belongs
+    const paperTarget = bankInfo && !paperBank ? banks?.find(b => b.kind === 'paper' && b.subject === bankInfo.subject) || null : null;
     const [result, setResult] = useState<PaperResult | null>(null);
     const folder = folderId ? folders?.find(f => f.id === folderId) : undefined;
 
@@ -462,15 +467,23 @@ export default function ImportExam() {
         try {
             const res = await Api.upload<{exams: ImportedExam[]; issues?: ImportIssue[]}>('import_docx/preview', file);
             if (!mounted.current) return;
-            const fresh = res.exams.filter(e => !known.has(e.id));
+            // BF-04: a block bank cannot keep «Cho biết» → those exams stay out, the file says why and points to a whole-exam bank
+            const sharedOut = bankId && !paperBank ? res.exams.filter(hasSharedInfo) : [];
+            const fresh = res.exams.filter(e => !known.has(e.id) && !sharedOut.includes(e));
+            if (sharedOut.length && !fresh.length) {
+                patchRow(key, {status: 'error', shared: sharedOut.length, problem: 'shared_info'});
+                return;
+            }
             fresh.forEach(e => { known.add(e.id); fileOf.current[e.id] = file; });
             // Tick ALL by default: untick a few beats re-picking 20.
             setPicked(p => ({...p, ...Object.fromEntries(fresh.map(e => [e.id, true]))}));
             setOpenId(o => o || (fresh.length ? fresh[0].id : null));
             setExams(es => [...es, ...fresh.map(withShownCounts)]);
             setIssues(is => [...is, ...(res.issues || [])]);
-            patchRow(key, {status: 'ok', exams: fresh.length, skipped: res.exams.length - fresh.length,
-                questions: fresh.reduce((n, e) => n + countQuestions(e), 0)});
+            patchRow(key, {status: 'ok', exams: fresh.length, skipped: res.exams.length - fresh.length - sharedOut.length, shared: sharedOut.length,
+                questions: fresh.reduce((n, e) => n + countQuestions(e), 0),
+                blocks: fresh.reduce((n, e) => n + blocksOf(e).length, 0),
+                cluster: fresh.some(e => e.sections.some(s => s.questions.some(isClusterQuestion)))});
         } catch (e) {
             if (mounted.current) patchRow(key, {status: 'error', problem: importErrorText(errorText(e, 'không rõ nguyên nhân'))});
         }
@@ -492,6 +505,18 @@ export default function ImportExam() {
         const pdfNow = list.length === 1 && !exams.length;
         for (const row of rows) await readOne(row, known, pdfNow);
     };
+    const goPaper = () => {
+        if (!paperTarget) return;
+        handoff = files.filter(f => f.status === 'error' && f.shared).map(f => f.file);
+        goTo('/import-exam?bank=' + paperTarget.id);
+    };
+    useEffect(() => {
+        if (!handoff.length || !bankId || !banks) return;
+        const list = handoff;
+        handoff = [];
+        readFiles(list, true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [bankId, banks]);
     // One file, read without error: straight to the preview, as before.
     useEffect(() => {
         if (!previewing && files.length === 1 && files[0].status === 'ok' && exams.length) setPreviewing(true);
@@ -712,10 +737,11 @@ export default function ImportExam() {
         {!showPreview && !result && <ImportUpload compact={files.length > 0} onFiles={readFiles} pick={pickFile} onGuide={() => setGuide('')}/>}
 
         {!showPreview && !result && files.length > 0 &&
-            <ImportFiles rows={files} onGuide={() => setGuide('')} onPreview={() => setPreviewing(true)}
+            <ImportFiles rows={files} blockBank={!!bankId && !paperBank} onGuide={() => setGuide('')} onPreview={() => setPreviewing(true)}
                          onRemove={key => setFiles(fs => fs.filter(f => f.key !== key))}
                          onRetry={key => { const f = files.find(x => x.key === key); if (f) { replacing.current = key; readFiles([f.file]); } }}
-                         onReplace={key => { replacing.current = key; pickFile(); }}/>}
+                         onReplace={key => { replacing.current = key; pickFile(); }}
+                         paperTarget={paperTarget} onGoPaper={goPaper}/>}
 
         {(foldersQ.isError || banksQ.isError) &&
             <ErrorState title='Không tải được danh sách môn / ngân hàng' description={errorText(foldersQ.error || banksQ.error, 'Kiểm tra mạng rồi thử lại.')}

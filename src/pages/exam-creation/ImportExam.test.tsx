@@ -824,3 +824,28 @@ describe('ImportExam: bank import flow v2 (BF-01, BF-07, BF-12, BF-15, B7)', () 
         expect(screen.getByText(/không cắt khối và không kiểm trùng khối/)).toBeTruthy();
     });
 });
+
+describe('ImportExam: BF-04 «Cho biết» into a block bank', () => {
+    const withInfo = {...EXAM, shared_info: ['<p>H = 1; O = 16</p>']};
+    const pick = () => fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['PK'], 'Hoa-De_01.docx')]}});
+
+    it('the file is refused with the reason and a button to the whole-exam bank of the same subject; nothing is saved', async () => {
+        (Api.get as any).mockImplementation(async (url: string) => url === 'question_bank/list'
+            ? [{id: 'B1', name: 'Toán — theo khối', subject: 'Toán', blocks: 0}, {id: 'B2', name: 'Toán — nguyên đề', subject: 'Toán', kind: 'paper', items: 3, blocks: 0}] : []);
+        vi.spyOn(Api, 'upload').mockResolvedValue({exams: [withInfo], issues: []});
+        const sent = mockPost();
+        renderScreen();
+        pick();
+        expect(await screen.findByText(/Đề có khối “Cho biết”/)).toBeTruthy();
+        expect(screen.getByText('Nhập vào “Toán — nguyên đề”')).toBeTruthy();
+        expect((screen.getByText(/Xem trước 0 đề/).closest('button') as HTMLButtonElement).disabled).toBe(true);
+        expect(sent).toHaveLength(0);
+    });
+
+    it('with no whole-exam bank for the subject it says how to make one', async () => {
+        vi.spyOn(Api, 'upload').mockResolvedValue({exams: [withInfo], issues: []});
+        renderScreen();
+        pick();
+        expect(await screen.findByText('Tạo ngân hàng nguyên đề')).toBeTruthy();
+    });
+});
