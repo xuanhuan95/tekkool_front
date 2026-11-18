@@ -145,6 +145,8 @@ export type BankPaper = {id: string; name: string; bank: string; duration: numbe
 export type BankBlock = {
     id: string; block_type: string; block_type_name: string; question_type: string; count: number;
     passage?: string | null;
+    /** Name of the exam it was imported from; blocks saved before this field are null. */
+    source?: string | null;
     questions: {id: string; type: string; data: Record<string, any>}[];
 };
 export type BankBlocksPage = {total: number; page: number; per_page: number; blocks: BankBlock[]};

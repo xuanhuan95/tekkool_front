@@ -113,12 +113,13 @@ export function useBankStats(bankId: string) {
 export const BLOCKS_PER_PAGE = 20;
 
 /** SPT-73: one page of a bank's blocks. The previous page stays on screen while the next loads (no flicker on filter/page). */
-export function useBankBlocks(bank: string, page: number, blockType: string, q: string) {
+export function useBankBlocks(bank: string, page: number, blockType: string, q: string, since = '') {
     const qs = new URLSearchParams({bank, page: String(page), per_page: String(BLOCKS_PER_PAGE)});
     if (blockType) qs.set('block_type', blockType);
     if (q) qs.set('q', q);
+    if (since) qs.set('since', since);   // "Chỉ khối vừa nhập": ISO time the save started
     return useQuery({
-        queryKey: [...bankKeys.all, 'blocks', bank, page, blockType, q],
+        queryKey: [...bankKeys.all, 'blocks', bank, page, blockType, q, since],
         queryFn: () => Api.get<BankBlocksPage>('question_bank/blocks?' + qs.toString()),
         placeholderData: keepPreviousData,
     });

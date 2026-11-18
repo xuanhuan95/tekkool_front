@@ -596,10 +596,13 @@ export default function ImportExam() {
         ({id: source.id, name: source.name, file: fileOf.current[source.id]?.name || '', message: errorText(err, 'Thử lại sau.')});
 
     // Into the bank. Whole-exam banks send one batch; block banks save exam by exam and keep an outcome per exam (BF-07).
+    const sinceRef = useRef('');
     const saveToBank = async () => {
         const list = chosen.filter(e => state[e.id] !== 'saved' && !otherBank[e.id]);
         if (!list.length || blocker) return;
         setSaving(true); setProgress(0); setSaveErrors([]);
+        // Kept across "Lưu lại" retries so the list screen can show everything this import added.
+        if (!sinceRef.current) sinceRef.current = new Date().toISOString();
         let done = 0;
         const out: PaperResult = {papers: [], rejected: [], total: bankInfo?.items ?? 0};
         try {
@@ -650,7 +653,8 @@ export default function ImportExam() {
             setSaveErrors(fails);
             if (!fails.length && !otherNow) {
                 notify.success(`Đã thêm ${added} khối vào ngân hàng ${bankInfo?.name || ''}.`.trim());
-                goTo('/question-bank/' + bankId, {imported: {exams: list.length, blocks: added}});
+                goTo('/question-bank/' + bankId, {imported: {exams: list.length, blocks: added, since: sinceRef.current,
+                    files: Array.from(new Set(list.map(e => fileOf.current[e.id]?.name).filter(Boolean))) as string[]}});
             }
         } catch (err) {
             notify.error('Lưu thất bại: ' + list[Math.min(done, list.length - 1)].name, errorText(err, 'Thử lại sau.'));

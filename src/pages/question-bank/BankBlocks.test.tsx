@@ -80,3 +80,26 @@ describe('BankBlocks (SPT-73)', () => {
         expect(await screen.findByText('Bạn không có quyền')).toBeTruthy();
     });
 });
+
+describe('BankBlocks after an import (BF-03)', () => {
+    const since = '2026-11-18T10:00:00.000Z';
+    const open = () => render(
+        <QueryClientProvider client={new QueryClient({defaultOptions: {queries: {retry: false}}})}>
+            <MemoryRouter initialEntries={[{pathname: '/question-bank/B1', state: {imported: {exams: 2, blocks: 7, since, files: ['Van-01.docx']}}}]}>
+                <Routes><Route path='/question-bank/:bankId' element={<BankBlocks/>}/></Routes>
+            </MemoryRouter>
+        </QueryClientProvider>);
+
+    it('opens on "Chỉ khối vừa nhập": sends since, marks the blocks, shows the source; "Tất cả đề" drops since', async () => {
+        const api = mockApi({'question_bank/list': [], 'question_bank/stats': {per_type: {}},
+            'question_bank/blocks': page([{...single, source: 'Đề số 21'}])});
+        open();
+        await screen.findByText('Mới nhập');
+        expect(screen.getByText('Từ Đề số 21')).toBeTruthy();
+        expect(screen.getByText(/Từ 1 file: Van-01.docx/)).toBeTruthy();
+        expect(api.get).toHaveBeenCalledWith('question_bank/blocks?bank=B1&page=1&per_page=20&since=' + encodeURIComponent(since));
+        fireEvent.change(screen.getByLabelText('Nguồn'), {target: {value: ''}});
+        await waitFor(() => expect(api.get).toHaveBeenLastCalledWith('question_bank/blocks?bank=B1&page=1&per_page=20'));
+        expect(screen.queryByText('Mới nhập')).toBeNull();
+    });
+});
