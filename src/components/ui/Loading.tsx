@@ -39,8 +39,9 @@ const INK = <svg className='ld-line' width='132' height='10' viewBox='0 0 132 10
 </svg>;
 
 export interface LoadingProps {
-    /** page: the content area inside the app frame. boot: first open, no frame yet — logo + the same block, centred. */
-    variant?: 'page' | 'boot';
+    /** page: the content area inside the app frame. boot: first open, no frame yet — logo + the same block, centred.
+     *  inline: a block inside an already visible page (no min-height, 24px padding). */
+    variant?: 'page' | 'boot' | 'inline';
     className?: string;
 }
 
@@ -52,13 +53,13 @@ export interface LoadingProps {
 export default function Loading({variant = 'page', className}: LoadingProps) {
     const shown = useAfter(LOADING_DELAY_MS);
     const slow = useAfter(LOADING_SLOW_MS);
-    const block = <div className={cx('ld', variant === 'page' && 'ld--page', className)} role='status' aria-live='polite'>
+    const block = <div className={cx('ld', variant === 'page' && 'ld--page', variant === 'inline' && 'ld--inline', className)} role='status' aria-live='polite'>
         {shown && <>
             <div className='ld-art' aria-hidden='true'>{INK}{PEN}</div>
             <p className='ld-text'>{slow ? 'Mạng hơi chậm, chờ thêm chút nhé…' : 'Đang tải…'}</p>
         </>}
     </div>;
-    if (variant === 'page') return block;
+    if (variant !== 'boot') return block;
     return <div className='vt-paper ld-boot'>
         {shown && <span className='vt-logo' aria-hidden='true'>viettestpro</span>}
         {block}

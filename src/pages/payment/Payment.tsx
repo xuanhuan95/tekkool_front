@@ -64,7 +64,7 @@ export default function Payment() {
         body = <ErrorState title='Không tải được thông tin gói' description={errorText(loadError, 'Kiểm tra mạng rồi thử lại.')}
                            onRetry={() => refetch()} retrying={isFetching}/>;
     } else if (!packages) {
-        body = <Loading/>;
+        body = <Loading variant='inline'/>;
     } else if (!pkg) {
         body = <ErrorState title='Không tìm thấy gói này' description='Gói có thể đã ngừng bán. Chọn một gói khác nhé.'/>;
     } else {

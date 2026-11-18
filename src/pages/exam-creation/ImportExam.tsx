@@ -52,7 +52,7 @@ type PdfState = {status: 'idle' | 'loading' | 'ready' | 'none'; url?: string};
  */
 function SourcePdf({pdf, desktop}: {pdf: PdfState; desktop: boolean}) {
     if (pdf.status === 'loading') return <div className='vt-src-empty' aria-live='polite'>
-        <Loading/>
+        <Loading variant='inline'/>
         <p>Đang dựng bản gốc từ file Word… thường vài giây đến vài chục giây; file nhiều đề có thể lâu hơn nhiều, thậm chí không dựng được. Đề đã đọc vẫn dùng bình thường.</p>
     </div>;
     if (pdf.status === 'ready' && pdf.url) return <>

@@ -86,7 +86,7 @@ function ExamSubjectsCard({saved, autoEdit}: {saved: string[]; autoEdit: boolean
         <div className='hs-col2'><h2 className='hs-h2' id='mon-em-thi'>Môn em thi</h2></div>{action}
     </div>;
     let body: ReactNode;
-    if (subjects.isPending) body = <>{head()}<Loading/></>;
+    if (subjects.isPending) body = <>{head()}<Loading variant='inline'/></>;
     else if (subjects.isError) body = <>{head()}<LoadError error={subjects.error} onRetry={() => subjects.refetch()} what='danh sách môn'/></>;
     else if (editing) body = <>
         <div className='hs-col2'><h2 className='hs-h2' id='mon-em-thi'>Môn em thi</h2></div>
@@ -216,7 +216,7 @@ export default function AccountPage() {
 
         <section className='hs-sec' aria-labelledby='hs-settings'>
             <h2 id='hs-settings' className='hs-h2'>Cài đặt</h2>
-            {profile.isPending ? <Loading/>
+            {profile.isPending ? <Loading variant='inline'/>
                 : profile.isError ? <LoadError error={profile.error} onRetry={() => profile.refetch()} what='cài đặt tài khoản'/>
                 : <Card flush className='hs-settings'>
                     <button type='button' className='hs-setting' onClick={() => setDialog('rename')}>

@@ -29,6 +29,12 @@ describe('Loading (SPT-139)', () => {
         expect(screen.queryByText('Đang tải…')).toBeNull();
     });
 
+    it('inline variant has no page min-height class', () => {
+        render(<Loading variant='inline'/>);
+        expect(screen.getByRole('status')).toHaveClass('ld--inline');
+        expect(screen.getByRole('status')).not.toHaveClass('ld--page');
+    });
+
     it('boot variant adds the logo after the delay', () => {
         const {container} = render(<Loading variant='boot'/>);
         expect(container.querySelector('.vt-logo')).toBeNull();
