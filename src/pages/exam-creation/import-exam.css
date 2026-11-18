@@ -326,6 +326,7 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 .vt-bk-alert--err { background: var(--vt-err-bg); }
 .vt-bk-alert--sun { background: var(--vt-sun-soft); }
 .vt-bk-alert--info { background: var(--vt-action); }
+.vt-bk-alert--info > svg { color: var(--vt-ink); }
 .vt-bk-alert-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .vt-bk-alert-main > b { font-size: 15px; }
 .vt-bk-alert-text { font-size: 14px; }
@@ -336,3 +337,10 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 .vt-bk-dupitem b { font-size: 15px; }
 .vt-bk-check { display: flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 600; }
 .vt-bk-check input { width: 20px; height: 20px; accent-color: var(--vt-ink); }
+
+/* Dup check running (R2-05): spinner + progress bar inside the info alert. */
+.vt-bk-spin { flex-shrink: 0; width: 20px; height: 20px; margin-top: 1px; border: 3px solid var(--vt-ink); border-top-color: transparent; border-radius: 50%; animation: vt-bk-spin 0.8s linear infinite; }
+@keyframes vt-bk-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .vt-bk-spin { animation: none; } }
+.vt-bk-prog { height: 8px; margin-top: 8px; border: 1.5px solid var(--vt-ink); border-radius: 999px; background: var(--vt-paper); overflow: hidden; }
+.vt-bk-prog > i { display: block; height: 100%; background: var(--vt-ink); }

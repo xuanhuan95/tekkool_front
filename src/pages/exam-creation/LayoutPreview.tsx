@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 
 import {Button, Card, ErrorState, Loading, ExamSection} from '../../components/ui';
+import {BankAlert} from './ImportAlerts';
 import Passage from '../../components/Passage';
 import {errorText} from '../../lib/format';
 import {buildPaper} from '../exam/paper';
@@ -30,14 +31,15 @@ export default function LayoutPreview({name, minutes, draw}: {name: string; minu
         <p className='vt-cfb-hint'>Quay lại sửa khung hoặc nhập thêm đề vào ngân hàng.</p>
     </Card>;
 
-    return <Card className='vt-cfb-preview' as='section' aria-label='Xem trước đề' aria-busy={isFetching}>
-        <div className='vt-cfb-row'>
-            <div><h2 className='vt-cfb-pname'>{name}</h2>
-                <p className='vt-cfb-hint'>Thời gian làm bài: {minutes} phút · {data.points_total} điểm · {paper?.questions.length ?? 0} câu</p></div>
-            <Button variant='secondary' loading={isFetching} loadingText='Đang rút…' onClick={() => refetch()}>Rút lần khác</Button>
-        </div>
-        <div className='nb-ok' role='note'>
-            <b>Đây là một lần rút thử.</b> Mỗi lượt thi học sinh rút một đề khác: cùng khung, khối khác. Đáp án không hiện ở đây.
+    return <>
+        <BankAlert tone='info' title='Đây là một lần rút thử'
+                   acts={<Button variant='secondary' size='sm' loading={isFetching} loadingText='Đang rút…' onClick={() => refetch()}>Rút lần khác</Button>}>
+            Mỗi lượt thi học sinh rút một đề khác: cùng khung, khối khác. Đáp án không hiện ở đây.
+        </BankAlert>
+        <Card className='vt-cfb-preview' as='section' aria-label='Xem trước đề' aria-busy={isFetching}>
+        <div>
+            <h2 className='vt-cfb-pname'>{name}</h2>
+            <p className='vt-cfb-hint'>Thời gian làm bài: {minutes} phút · {data.points_total} điểm · {paper?.questions.length ?? 0} câu</p>
         </div>
         {paper?.parts.map(part => <ExamSection key={part.id} id={'pv-' + part.id} title={part.title} group={part.groupTitle} lead={part.lead} sub={part.subTitle}>
             {part.questions.map(q => <Fragment key={q.questionIds[0]}>
@@ -47,5 +49,6 @@ export default function LayoutPreview({name, minutes, draw}: {name: string; minu
                 <QuestionView question={q} answers={{}} flagged={false} disabled onToggleFlag={noop} onWrite={noop} textDelayMs={0}/>
             </Fragment>)}
         </ExamSection>)}
-    </Card>;
+        </Card>
+    </>;
 }

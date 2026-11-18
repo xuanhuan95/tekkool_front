@@ -395,7 +395,7 @@ export default function ImportExam() {
     const [progress, setProgress] = useState(0);
     const [duplicates, setDuplicates] = useState<Record<string, DuplicateInfo>>({});
     // Kiểm trùng (BF-12, B7): progress + cancel, and a result that stays on screen.
-    type DupDone = {compared: number; existing: Record<string, {bank: string; bank_name: string; name?: string | null; same_bank: boolean; count: number}>};
+    type DupDone = {compared: number; existing: Record<string, {bank: string; bank_name: string; name?: string | null; source_file?: string | null; imported_at?: string | null; same_bank: boolean; count: number}>};
     const [dupRun, setDupRun] = useState<{at: number; of: number; name: string} | null>(null);
     const [dupDone, setDupDone] = useState<DupDone | null>(null);
     const cancelDup = useRef(false);
@@ -757,10 +757,12 @@ export default function ImportExam() {
         {result && bankId && <PaperImportResult bankId={bankId} result={result} exams={exams} standard={standard} onPickFile={pickFile}/>}
 
         {showPreview && !result && <>
-            {dupRun && <div className='vt-rv-banner' role='status'>
-                <span><b>Đang kiểm trùng đề {dupRun.at}/{dupRun.of}</b> · {dupRun.name}</span>
-                <Button variant='secondary' size='sm' onClick={() => { cancelDup.current = true; setDupRun(null); }}>Huỷ</Button>
-            </div>}
+            {dupRun && <BankAlert tone='info' spin title={`Đang kiểm trùng lặp… đề ${dupRun.at}/${dupRun.of}`}
+                                  acts={<Button variant='secondary' size='sm' onClick={() => { cancelDup.current = true; setDupRun(null); }}>Huỷ kiểm</Button>}>
+                Đang so “{dupRun.name}” với ngân hàng và các đề vừa đọc. Vẫn xem và sửa đề được trong lúc chờ.
+                <div className='vt-bk-prog' role='progressbar' aria-label='Tiến độ kiểm trùng' aria-valuemin={0} aria-valuemax={100}
+                     aria-valuenow={Math.round((dupRun.at - 1) / dupRun.of * 100)}><i style={{width: `${Math.round((dupRun.at - 1) / dupRun.of * 100)}%`}}/></div>
+            </BankAlert>}
             {paperBank && <BankAlert tone='info' title='Ngân hàng nguyên đề lưu nguyên cả đề, không cắt khối'>
                 Vì vậy ở đây không có “Kiểm trùng lặp” và “Tạo thẳng đề”. Đề lệch cấu trúc với ngân hàng sẽ được báo và không lưu.
             </BankAlert>}
@@ -802,7 +804,7 @@ export default function ImportExam() {
             <Card className={cx('vt-imp-bar', bankId && 'vt-imp-bar--bank')} role='region' aria-label='Lưu đề'>
                 {bankId ? <>
                     {!paperBank && desktop && <Button variant='secondary' disabled={!chosen.length || !!blocker || busy || checking} onClick={openDirect}>Tạo thẳng đề nháp…</Button>}
-                    {!paperBank && <Button variant='secondary' loading={checking} loadingText='Đang kiểm…' disabled={!chosen.length || busy} onClick={checkDuplicates}>{dupDone ? 'Kiểm lại' : 'Kiểm trùng lặp'}</Button>}
+                    {!paperBank && <Button variant='secondary' disabled={!chosen.length || busy || checking} onClick={checkDuplicates}>{checking ? 'Đang kiểm…' : dupDone ? 'Kiểm lại' : 'Kiểm trùng lặp'}</Button>}
                     <Button variant='primary' loading={saving} loadingText={`Đang lưu ${Math.min(progress + 1, left)}/${left}…`}
                             disabled={!left || !!blocker || checking} onClick={saveToBank}>
                         {retry ? `Lưu lại ${left} đề` : `Lưu ${chosen.length} đề vào ngân hàng`}

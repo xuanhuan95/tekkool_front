@@ -12,6 +12,8 @@ import LayoutEditor from './LayoutEditor';
 import LayoutPreview from './LayoutPreview';
 import {emptyLayout, frameProblem, needs, shortages, toPayload} from './layoutRules';
 import type {Layout} from './layoutRules';
+import {dayMonth} from './ImportAlerts';
+import './import-exam.css';   // .vt-bk-alert styles shared with the import screen
 import './create-from-bank.css';
 
 // Compare folder name with the bank's subject, ignoring accents and case: folder "Văn" still matches "Ngữ văn".
@@ -50,6 +52,9 @@ const hhmm = (t: number) => new Date(t).toLocaleTimeString('vi-VN', {hour: '2-di
  * on each attempt the BE draws the blocks the frame asks for, avoiding blocks the student has seen, and renumbers
  * the questions (`{from}`/`{to}`). A whole-exam bank needs no frame: name + minutes, save.
  */
+/** " · tạo 15/11" for the bank card; empty when the date is missing. */
+const madeOn = (b: {created_at?: string}) => dayMonth(b.created_at) ? ` · tạo ${dayMonth(b.created_at)}` : '';
+
 export default function CreateFromBank() {
     const [params, setParams] = useSearchParams();
     const navigate = useNavigate();
@@ -190,8 +195,8 @@ export default function CreateFromBank() {
                         <input type='radio' name='bank' checked={b.id === bankId} onChange={() => pickBank(b.id)}/>
                         <span><b>{bankName(b)}</b><br/>
                             <small>{b.kind === 'paper'
-                                ? `Nguyên đề · ${bankCount(b)} đề. Mỗi lượt rút nguyên một đề, không cần dựng khung.`
-                                : `Theo khối · ${bankCount(b)} khối${b.source_count ? ` · ${b.source_count} đề đã nhập` : ''}. Mỗi khối trong khung rút ngẫu nhiên một khối cùng dạng.`}</small></span>
+                                ? `Nguyên đề · ${bankCount(b)} đề${madeOn(b)}. Mỗi lượt rút nguyên một đề, không cần dựng khung.`
+                                : `Theo khối · ${bankCount(b)} khối${b.source_count ? ` · ${b.source_count} đề đã nhập` : ''}${madeOn(b)}. Mỗi khối trong khung rút ngẫu nhiên một khối cùng dạng.`}</small></span>
                     </label>)}
                 </div>}
         </Card>
@@ -256,8 +261,9 @@ export default function CreateFromBank() {
             {savedAt && <p className='vt-cfb-hint'>Đã lưu nháp khung lúc {hhmm(savedAt)} · tải lại trang không mất</p>}
         </Card>
         <p className='vt-cfb-hint'><span className='vt-cfb-num'>10</span> Số câu tự tính lại sau khi rút. Gõ chữ quanh ô thoải mái, ô số giữ nguyên.</p>
-        <LayoutEditor layout={layout} onChange={setLayout} stock={stock} bankId={bankId}/>
-        <Card size='md' className={cx('vt-cfb-capacity', runs === null ? '' : runs <= 0 || lacking.length ? 'low' : runs < 3 ? 'mid' : 'high')}>
+        <div className='vt-cfb-layout'>
+        <div className='vt-cfb-main'><LayoutEditor layout={layout} onChange={setLayout} stock={stock} bankId={bankId}/></div>
+        <div className='vt-cfb-side'><Card size='md' className={cx('vt-cfb-capacity', runs === null ? '' : runs <= 0 || lacking.length ? 'low' : runs < 3 ? 'mid' : 'high')}>
             <CardTitle>Kho có đủ không?</CardTitle>
             {statsQ.isError && <p className='vt-cfb-err' role='alert'>Không tải được kho khối của ngân hàng.</p>}
             {Object.keys(want).length === 0
@@ -269,7 +275,8 @@ export default function CreateFromBank() {
                 </table>}
             {runs !== null && !lacking.length && <p><b>{runs}</b> lần làm không lặp cho mỗi học sinh.</p>}
             {lacking.length > 0 && <p>Thiếu khối. Bớt khối hoặc <Link to={`/import-exam?bank=${bankId}`}>nhập thêm đề</Link>.</p>}
-        </Card>
+        </Card></div>
+        </div>
         <div className='vt-cfb-bar'>
             {(problem || lacking.length > 0) && <p className='vt-cfb-hint' role='status'>{problem || 'Ngân hàng chưa đủ khối cho khung này.'}</p>}
             <Button variant='ghost' onClick={() => setStep(0)}>← Quay lại</Button>
@@ -294,7 +301,9 @@ export default function CreateFromBank() {
     return <div className='vt-cfb'>
         {folder
             ? <Link to={'/subject/' + folder} className={buttonClass({variant: 'ghost'})}>← Môn & đề{folderName ? ` › ${folderName}` : ''}</Link>
-            : <Link to='/question-bank' className={buttonClass({variant: 'ghost'})}>← Ngân hàng câu hỏi</Link>}
+            : bank
+                ? <Link to={'/question-bank/' + bank.id} className={buttonClass({variant: 'ghost'})}>← {bankName(bank)}</Link>
+                : <Link to='/question-bank' className={buttonClass({variant: 'ghost'})}>← Ngân hàng câu hỏi</Link>}
         <PageTitle>Tạo đề từ ngân hàng</PageTitle>
         <MetaChips items={[folderName || bank?.subject ? <>Môn <b>{folderName || bank?.subject}</b></> : null, bank && step > 0 ? bankName(bank) : null]}/>
         {!paper && <ol className='vt-cfb-steps' aria-label='Các bước'>

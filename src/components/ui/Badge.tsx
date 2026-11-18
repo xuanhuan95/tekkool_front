@@ -1,3 +1,4 @@
+import {cloneElement, isValidElement} from 'react';
 import type {ButtonHTMLAttributes, HTMLAttributes, ReactNode} from 'react';
 
 import {IconCheck} from './icons';
@@ -19,7 +20,7 @@ export default function Badge({tone = 'draft', className, ...rest}: BadgeProps) 
 export function MetaChips({items, className}: {items: Array<ReactNode | false | null | undefined>; className?: string}) {
     const shown = items.filter(x => x !== false && x != null && x !== '');
     if (!shown.length) return null;
-    return <div className={cx('vt-chip-row', className)}>{shown.map((x, i) => <Badge key={i}>{x}</Badge>)}</div>;
+    return <div className={cx('vt-chip-row', className)}>{shown.map((x, i) => isValidElement(x) && x.type === Badge ? cloneElement(x, {key: i}) : <Badge key={i}>{x}</Badge>)}</div>;
 }
 
 /** Statuses used across screens, with the wording from the design. */

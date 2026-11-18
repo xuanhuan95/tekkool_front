@@ -6,9 +6,9 @@ import {blocksOf, type BlockDup} from './dupRules';
 import type {ImportedExam, MatchSource} from './importRules';
 
 /** Persistent notice on the import screen (artboard `vt-bk-alert`): sun = duplicates, err = save failed, info = explanation. */
-export function BankAlert({tone, role = 'status', title, children, acts}: {tone: 'sun' | 'err' | 'info'; role?: 'status' | 'alert'; title: string; children?: ReactNode; acts?: ReactNode}) {
+export function BankAlert({tone, role = 'status', title, children, acts, spin}: {tone: 'sun' | 'err' | 'info'; role?: 'status' | 'alert'; title: string; children?: ReactNode; acts?: ReactNode; spin?: boolean}) {
     return <div role={role} className={cx('vt-bk-alert', 'vt-bk-alert--' + tone)}>
-        {tone === 'err' ? <icons.IconAlert size={20}/> : <icons.IconWarn size={20}/>}
+        {spin ? <span className='vt-bk-spin' aria-hidden='true'/> : tone === 'err' ? <icons.IconAlert size={20}/> : <icons.IconWarn size={20}/>}
         <div className='vt-bk-alert-main'>
             <b>{title}</b>
             {children && <div className='vt-bk-alert-text'>{children}</div>}
@@ -18,7 +18,7 @@ export function BankAlert({tone, role = 'status', title, children, acts}: {tone:
 }
 
 /** "15/11" from an ISO time (local day); empty when missing or unreadable. */
-const dayMonth = (iso?: string | null) => {
+export const dayMonth = (iso?: string | null) => {
     const t = iso ? new Date(iso) : null;
     return t && !isNaN(t.getTime()) ? `${String(t.getDate()).padStart(2, '0')}/${String(t.getMonth() + 1).padStart(2, '0')}` : '';
 };
@@ -39,7 +39,7 @@ function range(exam: ImportedExam, ids: string[]) {
     return a === b ? `câu ${a}` : `câu ${a}–${b}`;
 }
 
-export type ExistingExam = {bank: string | null; bank_name: string | null; name?: string | null; same_bank: boolean; count: number};
+export type ExistingExam = {bank: string | null; bank_name: string | null; name?: string | null; source_file?: string | null; imported_at?: string | null; same_bank: boolean; count: number};
 
 type DupProps = {
     bankId: string; exams: ImportedExam[]; bankDups: BlockDup[]; impDups: BlockDup[]; existing: Record<string, ExistingExam>;
@@ -67,10 +67,17 @@ export function DupPanel({bankId, exams, bankDups, impDups, existing, keepDup, o
     };
     return <BankAlert tone='sun' title={title} acts={<Button variant='ghost' size='sm' disabled={busy} onClick={onRecheck}>Kiểm lại</Button>}>
         <div className='vt-bk-dup'>
-            {same.map(([id, e]) => <div key={id} className='vt-bk-dupitem'>
-                <b>{exams.find(x => x.id === id)?.name} đã có trong ngân hàng này</b>
-                <span>Đã có {e.count} câu của đề này trong ngân hàng{e.name && <>, trùng với <Link className='vt-imp-link' to={'/question-bank/' + bankId}>{e.name}</Link></>}. Đã bỏ chọn đề này.</span>
-            </div>)}
+            {same.map(([id, e]) => {
+                const exam = exams.find(x => x.id === id);
+                const src: MatchSource = {source_name: e.name || bankDups.find(d => d.exam === id)?.source?.source_name, source_file: e.source_file, imported_at: e.imported_at};
+                const all = exam ? blocksOf(exam).length : 0;
+                return <div key={id} className='vt-bk-dupitem'>
+                    <b>{exam?.name} đã có trong ngân hàng này</b>
+                    <span>{src.source_name
+                        ? <>Trùng toàn bộ {all} khối với <Source bankId={bankId} s={src}/>.</>
+                        : `Đã có ${e.count} câu của đề này trong ngân hàng.`} Đã bỏ chọn đề này.</span>
+                </div>;
+            })}
             {bankDups.map(d => card(d, true))}
             {impDups.map(d => card(d, false))}
         </div>
