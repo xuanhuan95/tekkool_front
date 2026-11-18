@@ -1,8 +1,7 @@
 import {useEffect, useState} from 'react';
 import {Link, useSearchParams} from 'react-router-dom';
 
-import {Button, Card, CardTitle, DateField, EmptyState, ErrorState, FilterChip, PageColumns, PageTitle, Select, SkeletonCard, Table, Tabs,
-    TextField, buttonClass, icons} from '../../components/ui';
+import {Button, Card, CardTitle, DateField, EmptyState, ErrorState, FilterChip, PageColumns, PageTitle, Select, Table, Tabs, TextField, buttonClass, icons, Loading, Refreshable} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useReconcile, useReconcileOrder, useTransaction, useTransactions} from '../../queries/manage';
 import type {Anomaly, AnomalyType, ReconcileResponse, ReconcileResultKind, TimelineEvent, Transaction, TxStatus} from '../../queries/manage';
@@ -85,7 +84,7 @@ function TxDetail({inv}: {inv: string}) {
     const {data: t, error, refetch, isFetching} = useTransaction(inv);
     if (error) return <ErrorState title='Không tải được đơn' description={errorText(error, 'Thử lại sau.')}
                                   onRetry={() => refetch()} retrying={isFetching}/>;
-    if (!t) return <SkeletonCard label='Đang tải đơn'/>;
+    if (!t) return <Loading/>;
 
     return <Card as='aside' aria-label='Chi tiết đơn' className='vt-mg-stack'>
         <span className='vt-mg-stat-label'>Chi tiết đơn</span>
@@ -150,7 +149,7 @@ function ReconcileTab({inv, onOpen}: {inv: string | null; onOpen: (inv: string) 
         {error && !data
             ? <ErrorState title='Không tải được danh sách đối soát' description={errorText(error, 'Thử lại sau.')}
                           onRetry={() => refetch()} retrying={isFetching}/>
-            : !data ? <SkeletonCard label='Đang tải đối soát'/>
+            : !data ? <Loading/>
                 : <Table caption='Đơn lệch cần đối soát' columns={columns} rows={data.items} minWidth={1000}
                          rowKey={(a, i) => a.type + a.invoice_number + i} isHighlighted={a => a.invoice_number === inv} empty='Không có đơn lệch nào. Mọi thứ khớp.'/>}
     </div>;
@@ -168,6 +167,8 @@ export default function Transactions() {
     const [q, setQ] = useState(params.get('q') || '');
     const query = useDebounced(q.trim());
     const {data, error, refetch, isFetching} = useTransactions({status, from, to, q: query, page, limit: LIMIT}, tab === 'list');
+
+    const rec = useReconcile(undefined, tab === 'reconcile'); // cùng key với ReconcileTab; để biết lúc vào tab lần đầu
 
     const set = (patch: Record<string, string | null>) => {
         const next = new URLSearchParams(params);
@@ -217,14 +218,17 @@ export default function Transactions() {
         {error && !data
             ? <div className='vt-table-state'><ErrorState title='Không tải được giao dịch' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                           onRetry={() => refetch()} retrying={isFetching}/></div>
-            : !data ? <div className='vt-table-state'><SkeletonCard label='Đang tải giao dịch'/></div>
-                : <Table bare caption='Danh sách giao dịch' columns={columns} rows={data.items} rowKey={t => t.invoice_number}
-                         minWidth={980} isHighlighted={t => t.invoice_number === inv} empty='Không có giao dịch khớp bộ lọc'/>}
+            : !data ? <Loading/>
+                : <Refreshable><Table bare caption='Danh sách giao dịch' columns={columns} rows={data.items} rowKey={t => t.invoice_number}
+                         minWidth={980} isHighlighted={t => t.invoice_number === inv} empty='Không có giao dịch khớp bộ lọc'/></Refreshable>}
         </Card>
         {data && <>
                     <Pager page={data.page} limit={data.limit} total={data.total} unit='đơn' onPage={p => set({page: String(p)})}/>
                 </>}
     </div>;
+
+    // Lần đầu vào: cả vùng nội dung là khối tải, chưa hiện tiêu đề / tab.
+    if (tab === 'list' ? !data && !error : !rec.data && !rec.error) return <div className='vt-mg-page'><Loading/></div>;
 
     return <div className='vt-mg-page'>
         <div className='vt-mg-head'>

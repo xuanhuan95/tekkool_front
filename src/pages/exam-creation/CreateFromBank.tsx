@@ -2,8 +2,7 @@ import {useRef, useState} from 'react';
 import type {CSSProperties, DragEvent} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 
-import {Button, Card, CardTitle, ErrorState, PageTitle, SkeletonCard, TextField, buttonClass, cx,
-    notify} from '../../components/ui';
+import {Button, Card, CardTitle, ErrorState, PageTitle, TextField, buttonClass, cx, notify, Loading} from '../../components/ui';
 import {errorText} from '../../lib/format';
 import {useBankCapacity, useBanks, useCreateFromBank} from '../../queries/questionBank';
 import {bankCount} from '../question-bank/BankList';
@@ -157,7 +156,7 @@ export default function CreateFromBank() {
         ? <ErrorState title='Không tải được danh sách ngân hàng' description={errorText(banksQ.error, 'Kiểm tra mạng rồi thử lại.')}
                       onRetry={() => banksQ.refetch()} retrying={banksQ.isFetching}/>
         : !banks
-            ? <div className='vt-cfb-layout'><SkeletonCard/><SkeletonCard/></div>
+            ? <Loading/>
             : <div className='vt-cfb-layout'>
                 <div className='vt-cfb-main'>
                     <Card>
@@ -273,6 +272,8 @@ export default function CreateFromBank() {
                     </Card>
                 </div>
             </div>;
+
+    if (!banks && !banksQ.isError) return <div className='vt-cfb'><Loading/></div>; // lần đầu: cả vùng nội dung là khối tải
 
     return <div className='vt-cfb'>
         <Link to='/question-bank' className={buttonClass({variant: 'ghost'})}>← Ngân hàng câu hỏi</Link>

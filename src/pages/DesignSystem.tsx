@@ -1,7 +1,7 @@
 import {useEffect, useState, type CSSProperties, type ReactNode} from 'react';
 import {Button, Icon, Label} from 'semantic-ui-react';
 
-import Loading from '../components/Loading';
+import {Loading} from '../components/ui';
 import {blockLabel, BLOCK_STYLES} from './exam-creation/blockTypes';
 import './design-system.css';
 

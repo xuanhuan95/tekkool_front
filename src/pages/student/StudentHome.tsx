@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 import {Link} from 'react-router-dom';
 
-import {EmptyState, Skeleton, SkeletonCard} from '../../components/ui';
+import {EmptyState, Loading} from '../../components/ui';
 import {initialsOf, Medal} from '../../components/ui/Avatar';
 import {useAuthStore} from '../../stores/authStore';
 import {useInProgress} from '../../queries/inProgress';
@@ -142,8 +142,7 @@ function SubjectSections({chosen}: {chosen: string[]}) {
     const head = (title: string, action?: ReactNode) => <div className='hs-row'>
         <div className='hs-col2'><h2 className='hs-h2'>{title}</h2></div>{action}</div>;
 
-    if (q.isPending) return <section className='hs-sec' aria-busy='true'>{head('Môn đang luyện')}
-        <div className='c-grid'>{Array.from({length: 3}, (_, i) => <Skeleton key={i} height={72} shape='card'/>)}</div></section>;
+    if (q.isPending) return <section className='hs-sec'>{head('Môn đang luyện')}<Loading/></section>;
     if (q.isError) return <section className='hs-sec'>{head('Môn đang luyện')}
         <LoadError error={q.error} onRetry={() => q.refetch()} what='danh sách môn'/></section>;
     if (q.data.length === 0) return <section className='hs-sec'>{head('Môn đang luyện')}
@@ -176,7 +175,7 @@ function RecentSection() {
     const q = useMySubmissions();
     const head = <div className='hs-row'><h2 className='hs-h2'>Bài làm gần đây</h2>
         {q.data && q.data.length > 0 && <Link className='vt-link' to={hsPath.history}>Xem lịch sử</Link>}</div>;
-    if (q.isPending) return <section className='hs-sec' aria-busy='true'>{head}<SkeletonCard/></section>;
+    if (q.isPending) return null;   // one loading block per screen: the subjects section carries it
     if (q.isError) return <section className='hs-sec'>{head}<LoadError error={q.error} onRetry={() => q.refetch()} what='bài làm gần đây'/></section>;
     const rows = q.data.slice(0, RECENT);
     if (rows.length === 0) return <section className='hs-sec'>{head}
@@ -221,7 +220,7 @@ function RankRow({e, name}: {e: BoardEntry; name: string}) {
 
 function WeekTop({myName}: {myName?: string}) {
     const q = useBoard('week', null, TOP_LIMIT);
-    if (q.isPending) return <SkeletonCard label='Đang tải xếp hạng'/>;
+    if (q.isPending) return null;
     if (q.isError) return null;   // side widget: the full board has its own error state
     const b: Board = q.data;
     const name = (e: BoardEntry) => e.is_me ? 'Em · ' + (greetName(myName) || 'bạn') : e.name;

@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
 
-import {Button, Card, EmptyState, FilterChip, Medal, PageColumns, SkeletonCard, Tabs, TitleChip, buttonClass} from '../../components/ui';
+import {Button, Card, EmptyState, FilterChip, Medal, PageColumns, Tabs, TitleChip, buttonClass, Loading, Refreshable} from '../../components/ui';
 import {useAuthStore} from '../../stores/authStore';
 import {useBoard, useSubjects} from '../../queries/student';
 import type {BoardKind} from '../../queries/student';
@@ -44,15 +44,13 @@ function MeCard({board, kind}: {board: Board; kind: BoardKind}) {
     </section>;
 }
 
-function BoardPanel({kind, folder}: {kind: BoardKind; folder: string | null}) {
-    const [limit, setLimit] = useState(PAGE);
-    const q = useBoard(kind, folder, limit);
-    if (q.isPending) return <><SkeletonCard label='Đang tải bảng xếp hạng'/></>;
+function BoardPanel({kind, q, limit, onMore}: {kind: BoardKind; q: ReturnType<typeof useBoard>; limit: number; onMore: () => void}) {
     if (q.isError) return <LoadError error={q.error} onRetry={() => q.refetch()} what='bảng xếp hạng'/>;
     const b = q.data;
+    if (!b) return null;
     return <>
-        <MeCard board={b} kind={kind}/>
-        {b.entries.length === 0
+        <Refreshable><MeCard board={b} kind={kind}/></Refreshable>
+        <Refreshable>{b.entries.length === 0
             ? <EmptyState title={kind === 'week' ? 'Tuần này chưa có ai trên bảng' : 'Chưa có thành tích nào'}
                           description='Hoàn thành một đề để ghi tên mình lên bảng.'
                           action={<Link to={hsPath.exams()} className={buttonClass({variant: 'primary'})}>Làm đề ngay</Link>}/>
@@ -63,9 +61,9 @@ function BoardPanel({kind, folder}: {kind: BoardKind; folder: string | null}) {
                 <ol className='hs-board' aria-label={kind === 'week' ? 'Bảng tuần' : 'Bảng thành tích'}>
                     {b.entries.map((e, i) => <Row key={i + ':' + e.name} e={e} kind={kind}/>)}
                 </ol>
-            </Card>}
+            </Card>}</Refreshable>
         {b.total > b.entries.length && limit < MAX &&
-            <Button variant='secondary' onClick={() => setLimit(MAX)} loading={q.isFetching}>Xem thêm</Button>}
+            <Button variant='secondary' onClick={onMore} loading={q.isFetching}>Xem thêm</Button>}
     </>;
 }
 
@@ -74,6 +72,13 @@ export default function RankingPage() {
     const [kind, setKind] = useState<BoardKind>('week');
     const [folder, setFolder] = useState<string | null>(null);
     const subjects = useSubjects();
+    const scope = kind + (folder || '');
+    const [expanded, setExpanded] = useState(''); // bảng đã bấm "Xem thêm"; đổi tab/môn thì về PAGE mà không remount
+    const limit = expanded === scope ? MAX : PAGE;
+    const q = useBoard(kind, folder, limit);
+
+    // Lần đầu: cả vùng nội dung là khối tải, chưa hiện tiêu đề / tab / chip lọc.
+    if (q.isPending) return <Loading/>;
 
     const filters = <div role='group' aria-label='Lọc theo môn' className='hs-chips'>
         <FilterChip selected={folder === null} onChange={() => setFolder(null)}>Tất cả môn</FilterChip>
@@ -82,7 +87,7 @@ export default function RankingPage() {
     </div>;
 
     const board = <div className='hs-page' id={'hs-rank-panel-' + kind} role='tabpanel' aria-labelledby={'hs-rank-tab-' + kind}>
-        <BoardPanel key={kind + (folder || '')} kind={kind} folder={folder}/>
+        <BoardPanel kind={kind} q={q} limit={limit} onMore={() => setExpanded(scope)}/>
     </div>;
 
     return <div className='hs-page'>

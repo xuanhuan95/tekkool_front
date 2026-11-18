@@ -297,8 +297,9 @@ export function useReconcileOrder() {
     });
 }
 
-export function useReconcile(type?: string) {
+export function useReconcile(type?: string, enabled = true) {
     return useQuery({
+        enabled,
         queryKey: ['manage', 'reconcile', type || ''],
         queryFn: () => Api.get<ReconcileList>('admin_revenue/reconcile' + qs({type})),
         placeholderData: keepPreviousData,

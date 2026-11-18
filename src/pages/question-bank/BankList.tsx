@@ -1,8 +1,7 @@
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
 
-import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, Modal, PageTitle, Select, SkeletonCard, TextField,
-    buttonClass, notify} from '../../components/ui';
+import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, Modal, PageTitle, Select, TextField, buttonClass, notify, Loading} from '../../components/ui';
 import {errorText} from '../../lib/format';
 import {useBankSubjects, useBanks, useCreateBank, useRemoveBank} from '../../queries/questionBank';
 import type {BankKind, BankSummary} from '../../types/exam';
@@ -24,6 +23,8 @@ export default function BankList() {
 
     const openCreate = <Button variant='primary' onClick={() => setCreating(true)}>+ Ngân hàng mới</Button>;
 
+    if (!banks && !isError) return <div className='vt-qb-page'><Loading/></div>; // lần đầu: cả vùng nội dung là khối tải
+
     return <div className='vt-qb-page'>
         <div className='vt-qb-head'>
             <div>
@@ -36,7 +37,7 @@ export default function BankList() {
             ? <ErrorState title='Không tải được danh sách ngân hàng.' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                           onRetry={() => refetch()} retrying={isFetching}/>
             : !banks
-                ? <div className='vt-qb-grid'><SkeletonCard/><SkeletonCard/></div>
+                ? <Loading/>
                 : banks.length === 0
                     ? <EmptyState title='Chưa có ngân hàng nào'
                                   description='Tạo một ngân hàng cho môn học, rồi nhập đề Word vào đó.' action={openCreate}/>

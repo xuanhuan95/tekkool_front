@@ -5,7 +5,7 @@ import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 
 import renderHTML from '../../components/SafeHtml';
-import {Badge, Button, Card, ConfirmDialog, ErrorState, IconButton, MetaChips, Modal, PageTitle, Select, Skeleton, Table, Tabs, TextField, buttonClass, cx, icons, notify}
+import {Badge, Button, Card, ConfirmDialog, ErrorState, IconButton, MetaChips, Modal, PageTitle, Select, Loading, Table, Tabs, TextField, buttonClass, cx, icons, notify}
     from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {uploadImages} from './imageUpload';
@@ -52,7 +52,7 @@ type PdfState = {status: 'idle' | 'loading' | 'ready' | 'none'; url?: string};
  */
 function SourcePdf({pdf, desktop}: {pdf: PdfState; desktop: boolean}) {
     if (pdf.status === 'loading') return <div className='vt-src-empty' aria-live='polite'>
-        <Skeleton height={14} width='60%'/><Skeleton height={220} shape='card'/>
+        <Loading variant='inline'/>
         <p>Đang dựng bản gốc từ file Word… thường vài giây đến vài chục giây; file nhiều đề có thể lâu hơn nhiều, thậm chí không dựng được. Đề đã đọc vẫn dùng bình thường.</p>
     </div>;
     if (pdf.status === 'ready' && pdf.url) return <>

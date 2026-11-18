@@ -1,6 +1,6 @@
 import {Link, useParams} from 'react-router-dom';
 
-import {Avatar, Badge, Button, Card, ErrorState, PageTitle, SkeletonCard, buttonClass} from '../../components/ui';
+import {Avatar, Badge, Button, Card, ErrorState, PageTitle, buttonClass, Loading} from '../../components/ui';
 import {useUserDetail} from '../../queries/manage';
 import {errorText, formatDate, formatDateTime, formatMoney} from '../../lib/format';
 import {orderName, orderStatus} from '../pay/order';
@@ -15,12 +15,14 @@ export default function StudentDetail() {
     const {data: u, error, refetch, isFetching} = useUserDetail(id);
     const {askLock, askReset, dialogs} = useAccountActions();
 
+    if (!u && !error) return <div className='vt-mg-page'><Loading/></div>; // lần đầu: cả vùng nội dung là khối tải
+
     return <div className='vt-mg-page'>
         <Link to='/manage/users' className={buttonClass({variant: 'ghost'}) + ' vt-mg-back'}>← Học sinh</Link>
         <PageTitle>Chi tiết học sinh</PageTitle>
         {error && !u
             ? <ErrorState title='Không tải được học sinh' description={errorText(error, 'Thử lại sau.')} onRetry={() => refetch()} retrying={isFetching}/>
-            : !u ? <SkeletonCard label='Đang tải chi tiết'/>
+            : !u ? <Loading/>
             : <Card as='aside' aria-label='Chi tiết học sinh' className='vt-mg-stack vt-mg-detail'>
                 <div className='vt-mg-person'>
                     <Avatar name={u.name} size={40}/>

@@ -1,7 +1,6 @@
 import {useUploadStore} from '../../stores/uploadStore';
 import {useEffect, useRef, useState} from 'react';
 import {useLocation, useParams} from 'react-router-dom';
-import Loading from '../../components/Loading';
 import {Segment, Icon, Menu, Modal, Grid, Sticky, Input} from 'semantic-ui-react';
 import toast from 'react-hot-toast';
 
@@ -19,7 +18,7 @@ import {errorText} from '../../lib/format';
 import {backendProblems, examTotal, explanationTooLong, publishProblems, reviewHints, withDefaultScores} from './examRules';
 import {useFolders} from '../../queries/exams';
 import {suggestedMinutes} from './CreateFromBank';
-import {Badge, Button, ConfirmDialog, ErrorState, IconButton, icons} from '../../components/ui';
+import {Badge, Button, ConfirmDialog, ErrorState, IconButton, icons, Loading} from '../../components/ui';
 
 const MAX_SHOWN = 6;
 

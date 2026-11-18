@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useLocation, useNavigate, useParams} from 'react-router-dom';
 
-import {Button, ErrorState, SkeletonCard} from '../../components/ui';
+import {Button, ErrorState, Loading} from '../../components/ui';
 import OutOfTurnsModal from '../../components/OutOfTurnsModal';
 import {fetchDuringTest, isRecentSubmission} from '../../queries/examSession';
 import type {ApiError} from '../../services/api';
@@ -102,7 +102,7 @@ export default function TakeExam() {
     return <div className='vt-plain vt-exam'>
         <div className='vt-exam-body vt-exam-status'>
             {state.kind === 'loading'
-                ? <SkeletonCard label='Đang mở đề thi'/>
+                ? <Loading/>
                 : <ErrorState title='Chưa mở được đề thi' description={state.message} onRetry={load}/>}
             {state.kind === 'error' &&
                 <Button variant='secondary' onClick={() => navigate('/')}>Về trang chủ</Button>}

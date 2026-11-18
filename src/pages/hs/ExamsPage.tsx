@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {Link, useSearchParams} from 'react-router-dom';
 
-import {Badge, Card, EmptyState, SegmentedControl, Skeleton, SkeletonCard, buttonClass} from '../../components/ui';
+import {Badge, Card, EmptyState, SegmentedControl, buttonClass, Loading, Refreshable} from '../../components/ui';
 import {useInProgress} from '../../queries/inProgress';
 import {useSubjectExams, useSubjects} from '../../queries/student';
 import type {SubjectSummary} from '../../types/student';
@@ -22,11 +22,10 @@ function SubjectChips({subjects, value, onChange}: {subjects: SubjectSummary[]; 
     </div>;
 }
 
-function ExamList({subject, filter}: {subject: SubjectSummary; filter: ExamFilter}) {
-    const q = useSubjectExams(subject.id);
+function ExamList({subject, filter, q}: {subject: SubjectSummary; filter: ExamFilter; q: ReturnType<typeof useSubjectExams>}) {
     const {data: cont} = useInProgress();
-    if (q.isPending) return <div className='hs-exams' aria-busy='true'><SkeletonCard/><SkeletonCard/></div>;
     if (q.isError) return <LoadError error={q.error} onRetry={() => q.refetch()} what={'đề môn ' + subject.name}/>;
+    if (!q.data) return <Loading/>;
     const list = filterExams(q.data, filter, cont);
     if (q.data.length === 0)
         return <EmptyState title={'Môn ' + subject.name + ' chưa có đề'} description='Giáo viên đang soạn, bạn chọn môn khác nhé.'/>;
@@ -56,10 +55,11 @@ export default function ExamsPage() {
     const [filter, setFilter] = useState<ExamFilter>('all');
     const subjects = useSubjects();
     const head = <PageHead title='Đề thi'/>;
+    const selId = (subjects.data?.find(s => s.id === params.get('mon')) || subjects.data?.[0])?.id;
+    const exams = useSubjectExams(selId);
 
-    if (subjects.isPending) return <div className='hs-page'>{head}
-        <div className='hs-chips' aria-busy='true'>{[1, 2, 3, 4].map(i => <Skeleton key={i} width={90} height={44} shape='btn'/>)}</div>
-        <SkeletonCard/></div>;
+    // Lần đầu: cả vùng nội dung là khối tải, chưa hiện tiêu đề / chip / bộ lọc.
+    if (subjects.isPending || (!subjects.isError && selId && exams.isPending)) return <Loading/>;
     if (subjects.isError) return <div className='hs-page'>{head}
         <LoadError error={subjects.error} onRetry={() => subjects.refetch()} what='danh sách môn'/></div>;
     if (subjects.data.length === 0) return <div className='hs-page'>{head}
@@ -74,8 +74,8 @@ export default function ExamsPage() {
             <SegmentedControl aria-label='Lọc đề' items={FILTERS} value={filter} onChange={setFilter}/>
             <span className='hs-meta vt-num'>{sel.exams} đề</span>
         </div>
-        <div id='hs-exams-panel' role='tabpanel' aria-labelledby={'mon-' + sel.id}>
-            <ExamList key={sel.id} subject={sel} filter={filter}/>
-        </div>
+        <Refreshable id='hs-exams-panel' role='tabpanel' aria-labelledby={'mon-' + sel.id}>
+            <ExamList subject={sel} filter={filter} q={exams}/>
+        </Refreshable>
     </div>;
 }

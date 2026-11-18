@@ -1,6 +1,6 @@
 import {Link} from 'react-router-dom';
 
-import {Badge, EmptyState, ErrorState, MetaChips, PageTitle, SkeletonCard, buttonClass, icons} from '../../components/ui';
+import {Badge, EmptyState, ErrorState, MetaChips, PageTitle, buttonClass, icons, Loading} from '../../components/ui';
 import {usePaymentHistory} from '../../queries/payment';
 import type {Payment} from '../../types/payment';
 import {errorText, formatDateTime, formatMoney} from '../../lib/format';
@@ -27,6 +27,8 @@ export default function PurchaseHistory() {
     const {data: orders, error, refetch, isFetching} = usePaymentHistory();
     const sum = orders ? purchaseSummary(orders) : null;
 
+    if (!orders && !error) return <div className='vt-paper vt-pay'><Loading/></div>;
+
     return <div className='vt-paper vt-pay'>
         <Link to='/packages' className={buttonClass({variant: 'ghost'}) + ' vt-pay-back'}>
             <icons.IconBack size={16}/> Gói thi
@@ -39,9 +41,7 @@ export default function PurchaseHistory() {
         {error
             ? <ErrorState title='Không tải được lịch sử' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                           onRetry={() => refetch()} retrying={isFetching}/>
-            : !orders
-                ? <div className='vt-pay-list'><SkeletonCard label='Đang tải lịch sử'/></div>
-                : !orders.length
+            : !orders || !orders.length
                     ? <EmptyState title='Chưa mua gói nào' description='Mua gói để có lượt làm đề thi thử.'
                                   action={<Link to='/packages' className={buttonClass({variant: 'primary'})}>Xem gói thi</Link>}/>
                     : <>

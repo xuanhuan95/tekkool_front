@@ -34,7 +34,6 @@
 .vt-th-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .vt-th-move { min-height: 36px; max-width: 130px; border: 1.5px solid var(--vt-line, #d6d3d1); border-radius: var(--vt-r-btn); background: transparent; font: inherit; font-size: 13px; }
 .vt-th-del { color: var(--vt-err); }
-.vt-th-loading { opacity: .4; pointer-events: none; }
 .vt-th-cards { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .vt-th-cards .vt-card { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .vt-th-cards b { overflow-wrap: anywhere; }

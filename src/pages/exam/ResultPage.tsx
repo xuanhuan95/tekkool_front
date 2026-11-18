@@ -1,6 +1,6 @@
 import {Link, useNavigate, useParams} from 'react-router-dom';
 
-import {Badge, Button, Card, ErrorState, PageTitle, SkeletonCard, buttonClass} from '../../components/ui';
+import {Badge, Button, Card, ErrorState, PageTitle, buttonClass, Loading} from '../../components/ui';
 import {IconStar} from '../../components/ui/icons';
 import {useSubmission} from '../../queries/submissions';
 import type {ApiError} from '../../services/api';
@@ -25,7 +25,7 @@ export default function ResultPage() {
     const navigate = useNavigate();
     const {data, error, isPending, refetch, isFetching} = useSubmission(id);
 
-    if (isPending) return <div className='vt-res'><SkeletonCard label='Đang tải kết quả'/><SkeletonCard/></div>;
+    if (isPending) return <Loading/>;
     if (error || !data) {
         return <div className='vt-res'>
             <ErrorState title='Chưa xem được kết quả' description={loadError(error)} onRetry={() => refetch()} retrying={isFetching}/>

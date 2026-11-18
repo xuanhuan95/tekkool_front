@@ -1,4 +1,4 @@
-import type {CSSProperties, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 
 import Button from './Button';
 import Card from './Card';
@@ -45,32 +45,6 @@ export function ErrorState({title, description, onRetry, retryLabel = 'Thử l�
             <span className='vt-error-title'><IconWarn/>{title}</span>
             {description && <span className='vt-error-desc'>{description}</span>}
             {onRetry && <Button variant='secondary' onClick={onRetry} loading={retrying}>{retryLabel}</Button>}
-        </div>
-    </Card>;
-}
-
-export interface SkeletonProps {
-    width?: CSSProperties['width'];
-    height?: CSSProperties['height'];
-    shape?: 'chip' | 'btn' | 'card' | 'pill';
-    className?: string;
-}
-
-/** Grey #EFEFEC block. Loading = these blocks, never a spinner in the middle of the page. */
-export function Skeleton({width = '100%', height = 12, shape = 'chip', className}: SkeletonProps) {
-    return <span aria-hidden='true' className={cx('vt-skel', shape !== 'chip' && 'vt-skel--' + shape, className)}
-                 style={{width, height}}/>;
-}
-
-/** Ready-made loading card (title, two lines, progress, button) — the canvas "Đang tải". */
-export function SkeletonCard({label = 'Đang tải', className}: {label?: string; className?: string}) {
-    return <Card flush className={className}>
-        <div className='vt-skel-card' aria-busy='true' role='status' aria-label={label}>
-            <Skeleton width='70%' height={22}/>
-            <Skeleton height={12}/>
-            <Skeleton width='85%' height={12}/>
-            <Skeleton height={8} shape='pill'/>
-            <Skeleton width='60%' height={44} shape='btn'/>
         </div>
     </Card>;
 }

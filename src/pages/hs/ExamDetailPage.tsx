@@ -1,6 +1,6 @@
 import {Link, useNavigate, useParams, useSearchParams} from 'react-router-dom';
 
-import {Button, Card, ErrorState, PageColumns, SkeletonCard, buttonClass} from '../../components/ui';
+import {Button, Card, ErrorState, PageColumns, buttonClass, Loading} from '../../components/ui';
 import {IconBack, IconCheck, IconTicket} from '../../components/ui/icons';
 import {useInProgress} from '../../queries/inProgress';
 import {useWallet} from '../../queries/wallet';
@@ -82,7 +82,7 @@ export default function ExamDetailPage() {
     const monParam = params.get('mon') || undefined;
     const back = <Link to={hsPath.exams(monParam)} className='hs-back'><IconBack size={18}/>Danh sách đề</Link>;
 
-    if (meta.isPending) return <div className='hs-page'>{back}<SkeletonCard/><SkeletonCard/></div>;
+    if (meta.isPending) return <div className='hs-page'>{back}<Loading/></div>;
     if (meta.isError) {
         const code = (meta.error as {code?: number}).code;
         return <div className='hs-page'>{back}

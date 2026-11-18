@@ -446,11 +446,6 @@ textarea.vt-input { line-height: 1.5; padding: 10px 12px; resize: vertical; min-
 .vt-error-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; color: var(--vt-err); }
 .vt-error-desc { font-size: 14px; line-height: 1.5; color: var(--vt-muted); }
 .vt-error .vt-btn { align-self: flex-start; margin-top: 4px; }
-.vt-skel { display: block; background: var(--vt-track); border-radius: var(--vt-r-chip); }
-.vt-skel--btn { border-radius: var(--vt-r-btn); }
-.vt-skel--card { border-radius: var(--vt-r-card-lg); }
-.vt-skel--pill { border-radius: 999px; }
-.vt-skel-card { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
 
 /* ---------- Progress ---------- */
 .vt-progress { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
@@ -552,8 +547,6 @@ table:not([class]) :is(th, td) > p { margin: 0; }
     outline: none !important;
 }
 
-/* <Loading/>: skeleton page (rule 10). */
-.vt-loading-page { max-width: 960px; margin: 0 auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 16px; box-sizing: border-box; }
 /* Native form controls outside .vt-input keep the same rule: only a thicker border. */
 :is(select, textarea, input:not([type=checkbox], [type=radio])):focus-visible:not(.vt-input, .vt-essay-text) {
     outline: none; box-shadow: inset 0 0 0 1.5px var(--vt-ink);
@@ -564,3 +557,42 @@ table:not([class]) :is(th, td) > p { margin: 0; }
     color: var(--vt-ink) !important; text-decoration: underline; text-underline-offset: 3px; font-weight: 600 !important;
 }
 .exam-resume a { display: flex; align-items: center; min-height: 44px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- Loading chung (SPT-139): bút chì viết + "Đang tải…" ---------- */
+.ld{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}
+.ld-art{position:relative;width:150px;height:68px;transform:scale(1.25);margin:9px 0}
+.ld-line{position:absolute;left:8px;top:52px;overflow:visible}
+.ld-line path{fill:none;stroke:var(--vt-ink);stroke-width:2.5;stroke-linecap:round;
+  stroke-dasharray:100;stroke-dashoffset:100;animation:ld-ink 1.8s linear infinite}
+.ld-pen{position:absolute;left:-10px;top:0;transform-origin:17.6px 57.6px;animation:ld-pen 1.8s linear infinite}
+.ld-text{font-family:var(--vt-font-hand);font-weight:700;font-size:22px;line-height:1.2;color:var(--vt-muted);margin:0}
+@keyframes ld-pen{
+  0%{transform:translate(0,0) rotate(0)}
+  12.5%{transform:translate(22px,-1.5px) rotate(-3deg)}
+  25%{transform:translate(43px,1px) rotate(2deg)}
+  37.5%{transform:translate(65px,-1.5px) rotate(-3deg)}
+  50%{transform:translate(87px,1px) rotate(2deg)}
+  62.5%{transform:translate(108px,-1.5px) rotate(-3deg)}
+  75%{transform:translate(130px,0) rotate(0);animation-timing-function:ease-in-out}
+  100%{transform:translate(0,0) rotate(0)}
+}
+@keyframes ld-ink{0%{stroke-dashoffset:100;opacity:1}75%{stroke-dashoffset:0;opacity:1}90%{stroke-dashoffset:0;opacity:0}100%{stroke-dashoffset:100;opacity:0}}
+/* vùng nội dung trong khung app */
+.ld--page{min-height:420px;padding:48px 16px}
+.ld--inline{padding:24px}
+@media (min-width:1024px){.ld--page{min-height:520px}}
+/* lần mở app đầu tiên */
+.ld-boot{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:24px;box-sizing:border-box}
+.ld-boot .vt-logo{font-size:40px;min-height:0}
+@media (min-width:1024px){.ld-boot .vt-logo{font-size:48px}}
+/* tải lại khi đã có dữ liệu: bút dạ quang chạy dọc đường kẻ header + nội dung cũ mờ đi */
+.wv-hl{fill:none;stroke:var(--vt-sun);stroke-width:7;stroke-linecap:round;stroke-dasharray:18 82;
+  stroke-dashoffset:18;animation:wv-hl 1.4s ease-in-out infinite}
+@keyframes wv-hl{to{stroke-dashoffset:-100}}
+.is-refreshing{opacity:.55;pointer-events:none;transition:opacity .2s}
+@media (prefers-reduced-motion:reduce){
+  .ld-pen,.ld-line path,.wv-hl{animation:none}
+  .ld-pen{transform:translate(130px,0)}
+  .ld-line path{stroke-dashoffset:0;opacity:1}
+  .wv-hl{stroke-dasharray:none;opacity:.6}
+}

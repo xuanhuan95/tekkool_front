@@ -1,10 +1,9 @@
 import {Component} from 'react';
-import Loading from '../../components/Loading';
 import {Link} from 'react-router-dom';
 import withRouter from '../../withRouter';
 import type {RouterProps} from '../../withRouter';
 import {Header, Icon, Segment, Table} from 'semantic-ui-react';
-import {ErrorState, MetaChips} from '../../components/ui';
+import {ErrorState, MetaChips, Loading} from '../../components/ui';
 import Api from '../../services/api';
 import type {Submission} from '../../types/submission';
 import {fmtDate, fmtDuration, ScoreLabel} from './fmt';

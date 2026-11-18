@@ -3,7 +3,7 @@ import {useLocation} from 'react-router-dom';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {Toaster} from 'react-hot-toast';
 
-import Loading from '../components/Loading';
+import {Loading} from '../components/ui';
 import AppStatus from '../components/AppStatus';
 import {useAuthStore, watchSessionExpiry} from '../stores/authStore';
 
@@ -51,22 +51,21 @@ function AppRoutes() {
 
     // Component catalogue: no data, so no login needed (designers, probe).
     if (DesignSystem && pathname === '/design-system') return <Suspense fallback={null}><DesignSystem/></Suspense>;
-    if (DevUi && pathname.startsWith('/dev/ui')) return <Suspense fallback={<Loading/>}><DevUi/></Suspense>;
-    if (!ready) return <Loading/>;
+    if (DevUi && pathname.startsWith('/dev/ui')) return <Suspense fallback={<Loading variant='boot'/>}><DevUi/></Suspense>;
+    if (!ready) return <Loading variant='boot'/>;
 
-    return <QueryClientProvider client={queryClient}>
-        <div id='App'>
-            <Toaster position='bottom-right'/>
-            {!user
-                ? <AnonymousView/>
-                : user.group === 'visitor'
-                    ? <VisitorView/>
-                    : <AuthenticateView/>}
-        </div>
-    </QueryClientProvider>;
+    return <div id='App'>
+        <Toaster position='bottom-right'/>
+        {!user
+            ? <AnonymousView/>
+            : user.group === 'visitor'
+                ? <VisitorView/>
+                : <AuthenticateView/>}
+    </div>;
 }
 
 /** Maintenance screen / new-version bar sit OUTSIDE the auth flow: they must work when the API is down. */
 export default function App() {
-    return <AppStatus><AppRoutes/></AppStatus>;
+    // The provider wraps everything: the headers (also in /dev/ui) read the global fetching state.
+    return <QueryClientProvider client={queryClient}><AppStatus><AppRoutes/></AppStatus></QueryClientProvider>;
 }

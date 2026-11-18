@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {Link, useLocation} from 'react-router-dom';
 
 import WaveLine from '../WaveLine';
+import {useRefreshing} from '../Refreshing';
 import StatPill from '../StatPill';
 import {cx} from '../cx';
 import {isNavActive} from './nav';
@@ -22,6 +23,7 @@ export interface HeaderStickyProps {
 /** Sticky header on paper with the hand-drawn wave underneath (DS-Header.dc.html). */
 export default function HeaderSticky({variant, nav, navLabel = 'Menu chính', right, logoTo = '/', className}: HeaderStickyProps) {
     const {pathname} = useLocation();
+    const refreshing = useRefreshing();
     const logo = <Link to={logoTo} className='vt-logo' aria-label='viettestpro — Trang chủ'>viettestpro</Link>;
 
     if (variant === 'mobile') {
@@ -30,7 +32,7 @@ export default function HeaderSticky({variant, nav, navLabel = 'Menu chính', ri
                 {logo}
                 {right && <div className='vt-header-right'>{right}</div>}
             </div>
-            <WaveLine variant='mobile'/>
+            <WaveLine variant='mobile' busy={refreshing}/>
         </header>;
     }
 
@@ -44,7 +46,7 @@ export default function HeaderSticky({variant, nav, navLabel = 'Menu chính', ri
                 </nav>}
             {right && <div className='vt-header-right'>{right}</div>}
         </div>
-        <WaveLine variant='web' className='vt-wave--web'/>
+        <WaveLine variant='web' className='vt-wave--web' busy={refreshing}/>
     </header>;
 }
 

@@ -1,4 +1,4 @@
-import {useQueries, useQuery, useQueryClient} from '@tanstack/react-query';
+import {keepPreviousData, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import Api from '../services/api';
 import type {ExamSummary, Folder} from '../types/exam';
@@ -37,16 +37,11 @@ export function useFolders(enabled = true) {
 /** A subject's exams, including those filed in its child folders (exam/list?folder= is not recursive). */
 export function useSubjectExams(subjectId: string, folders: Folder[]) {
     const ids = [subjectId, ...folders.filter(f => f.parent === subjectId).map(f => f.id)];
-    const results = useQueries({queries: ids.map(id => ({
-        queryKey: [...EXAMS_KEY, id],
-        queryFn: () => Api.get<ExamSummary[]>('exam/list?folder=' + id),
-    }))});
-    return {
-        data: results.some(r => !r.data) ? undefined : results.flatMap(r => r.data as ExamSummary[]),
-        isError: results.some(r => r.isError),
-        error: results.find(r => r.isError)?.error,
-        isFetching: results.some(r => r.isFetching),
-        refetch: () => results.forEach(r => r.refetch()),
-    };
+    const q = useQuery({
+        queryKey: [...EXAMS_KEY, 'subject', ids],
+        queryFn: async () => (await Promise.all(ids.map(id => Api.get<ExamSummary[]>('exam/list?folder=' + id)))).flat(),
+        placeholderData: keepPreviousData, // đổi môn: giữ danh sách cũ
+    });
+    return {data: q.data, isError: q.isError, error: q.error, isFetching: q.isFetching, refetch: q.refetch};
 }
 

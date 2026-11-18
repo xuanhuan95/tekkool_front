@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 import {Link, useParams} from 'react-router-dom';
 
-import {Badge, Card, EmptyState, ErrorState, MetaChips, PageTitle, SkeletonCard, Tabs, buttonClass} from '../../components/ui';
+import {Badge, Card, EmptyState, ErrorState, MetaChips, PageTitle, Tabs, buttonClass, Loading} from '../../components/ui';
 import type {BadgeTone} from '../../components/ui';
 import renderHTML from '../../components/SafeHtml';
 import {useSubmission} from '../../queries/submissions';
@@ -128,7 +128,7 @@ export default function ReviewPage() {
     const [filter, setFilter] = useState<ReviewFilter>('all');
     const items = useMemo(() => buildReview(data?.answers || []), [data]);
 
-    if (isPending) return <div className='vt-res'><SkeletonCard label='Đang tải bài làm'/><SkeletonCard/></div>;
+    if (isPending) return <Loading/>;
     if (error || !data) {
         return <div className='vt-res'>
             <ErrorState title='Chưa xem được bài làm' description={loadError(error)} onRetry={() => refetch()} retrying={isFetching}/>
