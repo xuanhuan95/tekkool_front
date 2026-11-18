@@ -44,7 +44,9 @@ describe('StudentHome (phone)', () => {
         expect(screen.getByRole('img', {name: /^Tuần \d+(\/\d+)?–\d+\/\d+(\/\d+)?, đã luyện 2 ngày$/})).toBeInTheDocument();
         expect(await screen.findByText('1 lượt · cao nhất 9')).toBeInTheDocument();
         expect(screen.getByText('1 lượt · chờ chấm')).toBeInTheDocument();
-        expect(screen.getByRole('link', {name: 'Sửa'})).toHaveAttribute('href', '/me#mon-em-thi');
+        // SPT-138: no "Sửa" link next to "Môn đang luyện", no "Vào thi" button in the banner
+        expect(screen.queryByRole('link', {name: 'Sửa'})).toBeNull();
+        expect(screen.queryByRole('link', {name: 'Vào thi'})).toBeNull();
         // "Thử sức thêm": Vật lý open, Sinh học not yet
         expect(screen.getByRole('link', {name: /Vật lý/})).toHaveAttribute('href', '/exams?mon=phys');
         expect(screen.getByText('Sắp có')).toBeInTheDocument();

@@ -64,10 +64,16 @@ export function comboIds(combo: Combo, subjects: Named[]): string[] | null {
     return ids.every(Boolean) ? ids as string[] : null;
 }
 
-/** Combo button is "pressed" when the selection is exactly its subjects. */
+/** Combo button is "pressed" when every one of its subjects is selected (several combos can be pressed at once). */
 export function comboPressed(combo: Combo, selected: string[], subjects: Named[]): boolean {
     const ids = comboIds(combo, subjects);
-    return !!ids && ids.length === selected.length && ids.every(id => selected.includes(id));
+    return !!ids && ids.every(id => selected.includes(id));
+}
+
+/** Combo that is not pressed and whose missing subjects would push the selection past 7: shown dimmed, click ignored. */
+export function comboBlocked(combo: Combo, selected: string[], subjects: Named[]): boolean {
+    const ids = comboIds(combo, subjects);
+    return !!ids && !comboPressed(combo, selected, subjects) && new Set([...selected, ...ids]).size > MAX_SUBJECTS;
 }
 
 /** Tick / untick one subject. Ticking beyond 7 is ignored. Order of ticking is kept. */
@@ -76,11 +82,21 @@ export function toggleSubject(selected: string[], id: string): string[] {
     return selected.length >= MAX_SUBJECTS ? selected : [...selected, id];
 }
 
-/** Click a combo: select exactly its subjects; click the pressed combo again: clear. */
+/**
+ * Click a combo. Not pressed: ADD its subjects to the selection (unchanged when that would exceed 7).
+ * Pressed: remove its subjects, except those that still belong to another pressed combo.
+ */
 export function applyCombo(combo: Combo, selected: string[], subjects: Named[]): string[] {
     const ids = comboIds(combo, subjects);
     if (!ids) return selected;
-    return comboPressed(combo, selected, subjects) ? [] : ids;
+    if (!comboPressed(combo, selected, subjects)) {
+        return comboBlocked(combo, selected, subjects) ? selected : [...selected, ...ids.filter(id => !selected.includes(id))];
+    }
+    const kept = new Set<string>();
+    for (const other of COMBOS) {
+        if (other !== combo && comboPressed(other, selected, subjects)) comboIds(other, subjects)!.forEach(id => kept.add(id));
+    }
+    return selected.filter(id => !ids.includes(id) || kept.has(id));
 }
 
 export type PickStatus = {ok: boolean; full: boolean; note: string | null; tone: 'err' | 'muted'};
