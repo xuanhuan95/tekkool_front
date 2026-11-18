@@ -5,14 +5,19 @@ export interface NavItem {
     end?: boolean;
     /** Other path prefixes that belong to this tab (result/review/history → "Đề thi"). */
     also?: string[];
+    /** Paths (may carry a `?query`) that do NOT belong to this tab even if the prefix matches. */
+    not?: string[];
 }
 
 const under = (pathname: string, base: string) => pathname === base || pathname.startsWith(base.replace(/\/$/, '') + '/');
+/** `base` or `base?query`: the query part must appear in the current search string. */
+const at = (pathname: string, search: string, p: string) => { const [base, q] = p.split('?'); return under(pathname, base) && (!q || search.includes(q)); };
 
 /** Is `item` the current tab for `pathname`? Same rule as NavLink, plus `also` prefixes. */
-export function isNavActive(item: NavItem, pathname: string): boolean {
+export function isNavActive(item: NavItem, pathname: string, search = ''): boolean {
+    if ((item.not || []).some(p => at(pathname, search, p))) return false;
     const own = item.end ? pathname === item.to : under(pathname, item.to);
-    return own || (item.also || []).some(p => under(pathname, p));
+    return own || (item.also || []).some(p => at(pathname, search, p));
 }
 
 /*
@@ -49,7 +54,7 @@ export const ADMIN_NAV: NavItem[] = [
 
 /** Teacher (spec-giao-vien §1, Q11): no Tổng quan screen; '/' is Môn & đề. */
 export const TEACHER_NAV: NavItem[] = [
-    {to: '/', label: 'Môn & đề', end: true, also: ['/subject', '/create-exam', '/edit-exam', '/import-exam']},
-    {to: '/question-bank', label: 'Ngân hàng câu hỏi', also: ['/create-from-bank', '/draw-exam']},
+    {to: '/', label: 'Môn & đề', end: true, also: ['/subject', '/create-exam', '/edit-exam', '/import-exam'], not: ['/import-exam?bank=']},
+    {to: '/question-bank', label: 'Ngân hàng câu hỏi', also: ['/create-from-bank', '/draw-exam', '/import-exam?bank=']},
     {to: '/to-grade', label: 'Chấm bài', also: ['/my-exams']},
 ];

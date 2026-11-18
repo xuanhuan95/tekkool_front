@@ -42,7 +42,7 @@ export function ReviewList({rows, openId, onOpen, onToggle, onToggleAll, blockBa
                         {r.note === 'exists' && <Badge tone='err'>Đã có</Badge>}
                         {r.note === 'other-bank' && <Badge tone='err'>Ở ngân hàng khác</Badge>}
                         {r.state === 'saved' && <Badge tone='ok'>Đã lưu</Badge>}
-                        {r.state === 'error' && <Badge tone='err'>Lỗi khi lưu</Badge>}
+                        {r.state === 'error' && <Badge tone='err'>Lỗi</Badge>}
                         {r.state === 'pending' && <Badge tone='draft'>Chưa lưu</Badge>}
                         {r.dupBlocks > 0 && <Badge tone='sun'>{r.dupBlocks} khối trùng</Badge>}
                         {r.sameInImport > 0 && <Badge tone='sun'>Trùng nhau</Badge>}

@@ -59,7 +59,7 @@ function mockPost(over: Record<string, (body?: any) => unknown> = {}) {
     return sent;
 }
 
-const saveButton = () => screen.getByText(/^Lưu (lại )?1 đề/).closest('button')!;
+const saveButton = () => within(document.querySelector('.vt-imp-bar') as HTMLElement).getByText(/^Lưu (lại )?1 đề/).closest('button')!;
 
 beforeEach(() => {
     vi.restoreAllMocks();
@@ -90,7 +90,7 @@ describe('ImportExam: feedback', () => {
         vi.spyOn(Api, 'upload').mockResolvedValue({exams: [EXAM, {...EXAM, id: 'E2', name: 'Đề thử 2'}], issues: []});
         fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['PK'], 'de.docx')]}});
         await screen.findByText(/2 đề — đã chọn 2/);
-        fireEvent.click(screen.getByText(/^Lưu 2 đề$/).closest('button')!);
+        fireEvent.click(screen.getByText(/^Lưu 2 đề vào ngân hàng$/).closest('button')!);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         expect(sent[0].bank).toBe('B1');
         expect(sent[0].papers.map((p: any) => p.id)).toEqual(['E1', 'E2']);
@@ -108,7 +108,7 @@ describe('ImportExam: feedback', () => {
 
         up.mockRejectedValueOnce(new TypeError('fetch'));
         fireEvent.click(saveButton());
-        const alert = await screen.findByText(/Chưa lưu được 1 đề/);
+        const alert = await screen.findByText(/Đã lưu 0\/1 đề\. 1 đề chưa lưu/);
         expect(alert.closest('[role=alert]')!.textContent).toContain('kết nối');
         expect(sent).toHaveLength(0);
 
@@ -125,10 +125,11 @@ describe('ImportExam: feedback', () => {
         await loadFile();
         fireEvent.click(saveButton());
         // BF-07: the error stays on the page and names the exam and the file; the exam row says it was not saved
-        const alert = (await screen.findByText(/Chưa lưu được 1 đề/)).closest('[role=alert]')!;
-        expect(alert.textContent).toContain('“Đề thử 1” (file de.docx): Ngân hàng đầy');
-        expect(screen.getByText('Lỗi khi lưu')).toBeTruthy();
-        expect(screen.getByText(/^Lưu lại 1 đề chưa lưu$/)).toBeTruthy();
+        const alert = (await screen.findByText(/Đã lưu 0\/1 đề\. 1 đề chưa lưu/)).closest('[role=alert]')!;
+        expect(alert.textContent).toContain('Đề thử 1 (de.docx): Ngân hàng đầy');
+        expect(screen.getByText('Lỗi')).toBeTruthy();
+        expect(screen.getAllByText(/^Lưu lại 1 đề( chưa lưu)?$/).length).toBeGreaterThan(0);
+        expect(screen.getByText('Xem ngân hàng').closest('a')!.getAttribute('href')).toBe('/question-bank/B1');
         expect(notify.success).not.toHaveBeenCalled();
     });
 
@@ -136,7 +137,7 @@ describe('ImportExam: feedback', () => {
         mockPost({'question_bank/check_duplicates': () => { throw {error: 'bận'}; }});
         renderScreen();
         await loadFile();
-        fireEvent.click(screen.getByText(/Kiểm tra trùng/));
+        fireEvent.click(screen.getByText(/Kiểm trùng lặp/));
         await vi.waitFor(() => expect(notify.error).toHaveBeenCalledWith(expect.stringContaining('Không đo được trùng lặp')));
     });
 
@@ -144,7 +145,7 @@ describe('ImportExam: feedback', () => {
         mockPost({'question_bank/check_duplicates': () => ({duplicates: {Q1: {score: 0.97, matches: [{block: 'K9', score: 0.97}]}}})});
         renderScreen();
         await loadFile();
-        fireEvent.click(screen.getByText(/Kiểm tra trùng/));
+        fireEvent.click(screen.getByText(/Kiểm trùng lặp/));
         await screen.findByText('1 khối trùng');
         // the chip on the question itself stays readable and never blocks saving
         expect(screen.getByText(/Tỷ lệ trùng: 97%/)).toBeTruthy();
@@ -355,7 +356,7 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
         renderScreen();
         await loadFile(EXAM, [SEVERE, LIGHT]);
         fireEvent.click(screen.getByLabelText('Thêm lựa chọn'));   // phone: "Tạo thẳng" lives in the ⋯ menu
-        const draft = screen.getByText(/Tạo thẳng 1 đề nháp/).closest('button')!;
+        const draft = screen.getByText(/Tạo thẳng đề nháp…/).closest('button')!;
         expect(saveButton().disabled).toBe(true);
         expect(draft.disabled).toBe(true);
         expect(screen.getByRole('alert').textContent).toContain('Còn 1 cảnh báo nặng chưa xem');
@@ -461,7 +462,7 @@ describe('ImportExam: several files at once (B1, BF-05)', () => {
         expect(screen.getByText(/2 đề — đã chọn 2/)).toBeTruthy();
         // all exams of all files go to the bank in ONE save run
         const sent = mockPost();
-        fireEvent.click(screen.getByText(/^Lưu 2 đề$/).closest('button')!);
+        fireEvent.click(screen.getByText(/^Lưu 2 đề vào ngân hàng$/).closest('button')!);
         await vi.waitFor(() => expect(sent.map(b => b.id)).toEqual(['E1', 'E2']));
     });
 
@@ -755,8 +756,8 @@ describe('ImportExam: bank import flow v2 (BF-01, BF-07, BF-12, BF-15, B7)', () 
         const sent = mockPost({'question_bank/check_duplicates': () => ({duplicates: {Q1: {score: 0.97, matches: [{block: 'K9', score: 0.97}]}}, compared: 40, existing: null})});
         renderScreen();
         await loadFile(examOf(mc('Q1', 'Q1A'), mc('Q2', 'Q2A')));
-        fireEvent.click(screen.getByText(/Kiểm tra trùng/));
-        await screen.findByText(/Có khối trùng — mặc định không lưu/);
+        fireEvent.click(screen.getByText(/Kiểm trùng lặp/));
+        await screen.findByText(/Có trùng: 1 khối/);
         fireEvent.click(saveButton());
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         expect(JSON.stringify(sent[0])).not.toContain('"Q1"');
@@ -767,7 +768,7 @@ describe('ImportExam: bank import flow v2 (BF-01, BF-07, BF-12, BF-15, B7)', () 
         mockPost({'question_bank/check_duplicates': () => ({duplicates: {}, compared: 40, existing: {bank: 'B1', bank_name: 'NH Toán 12', same_bank: true, count: 1}})});
         renderScreen();
         await loadFile();
-        fireEvent.click(screen.getByText(/Kiểm tra trùng/));
+        fireEvent.click(screen.getByText(/Kiểm trùng lặp/));
         await screen.findByText('Đã có');
         expect(screen.getByText(/1 đề — đã chọn 0/)).toBeTruthy();
     });
@@ -779,12 +780,12 @@ describe('ImportExam: bank import flow v2 (BF-01, BF-07, BF-12, BF-15, B7)', () 
         renderScreen();
         two(EXAM, E2);
         await screen.findByText(/2 đề — đã chọn 2/);
-        fireEvent.click(screen.getByText(/^Lưu 2 đề$/).closest('button')!);
-        await screen.findByText(/Chưa lưu được 1 đề/);
+        fireEvent.click(screen.getByText(/^Lưu 2 đề vào ngân hàng$/).closest('button')!);
+        await screen.findByText(/Đã lưu 1\/2 đề\. 1 đề chưa lưu/);
         expect(sent.map(b => b.id)).toEqual(['E2']);
         expect(screen.getByText('Đã lưu')).toBeTruthy();
         fail = false;
-        fireEvent.click(screen.getByText(/^Lưu lại 1 đề chưa lưu$/).closest('button')!);
+        fireEvent.click(screen.getAllByText(/^Lưu lại 1 đề$/)[0].closest('button')!);
         await screen.findByText('TRANG KHỐI');   // all saved → back to the bank
         expect(sent.map(b => b.id)).toEqual(['E2', 'E1']);
     });
@@ -806,9 +807,9 @@ describe('ImportExam: bank import flow v2 (BF-01, BF-07, BF-12, BF-15, B7)', () 
         renderScreen();
         await loadFile();
         fireEvent.click(screen.getByLabelText('Thêm lựa chọn'));
-        fireEvent.click(screen.getByText(/Tạo thẳng 1 đề nháp/));
+        fireEvent.click(screen.getByText(/Tạo thẳng đề nháp…/));
         const dialog = within(await screen.findByRole('dialog'));
-        expect((dialog.getByLabelText('Môn học') as HTMLSelectElement).value).toBe('F1');
+        expect((dialog.getByLabelText('Đề vào môn') as HTMLSelectElement).value).toBe('F1');
         fireEvent.click(dialog.getByText('Tạo 1 đề nháp'));
         await vi.waitFor(() => expect(moved).toEqual([{examId: 'E1', folderId: 'F1'}]));
         expect(created).toHaveLength(1);
@@ -819,9 +820,9 @@ describe('ImportExam: bank import flow v2 (BF-01, BF-07, BF-12, BF-15, B7)', () 
         mockPost();
         renderScreen();
         await loadFile();
-        expect(screen.queryByText(/Kiểm tra trùng/)).toBeNull();
-        expect(screen.queryByText(/Tạo thẳng/)).toBeNull();
-        expect(screen.getByText(/không cắt khối và không kiểm trùng khối/)).toBeTruthy();
+        expect(screen.queryByRole('button', {name: /Kiểm trùng lặp/})).toBeNull();
+        expect(screen.queryByRole('button', {name: /Tạo thẳng/})).toBeNull();
+        expect(screen.getByText(/Ngân hàng nguyên đề lưu nguyên cả đề, không cắt khối/)).toBeTruthy();
     });
 });
 

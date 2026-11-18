@@ -10,14 +10,13 @@ import {Badge, Button, Card, ConfirmDialog, ErrorState, IconButton, MetaChips, M
 import {uploadImages} from './imageUpload';
 import type {ImageCache} from './imageUpload';
 import {useFolders} from '../../queries/exams';
-import {bankKeys, useBankStock, useBanks} from '../../queries/questionBank';
+import {bankKeys, useBanks} from '../../queries/questionBank';
 import PaperImportResult, {type PaperResult, type PaperSaveReply} from '../question-bank/PaperImportResult';
 import {useBankStandard} from '../question-bank/PaperStructure';
 import '../question-bank/paper-bank.css';
 import Api from '../../services/api';
 import {errorText, formatDecimal} from '../../lib/format';
 import {DESKTOP, useMediaQuery} from '../useMediaQuery';
-import {blockLabel} from './blockTypes';
 import {
     plain as plainText, applyPasted, badTrueFalse, countQuestions, examIssues, fileProblem, importErrorText, isBadTrueFalse, isChoice,
     hasSharedInfo, isClusterQuestion, isMissingKey, isSevere, issueKey, missingKeys, missingNumbers, missingTfStatements, numberedUnits, partRows, patchData, patchQuestion, removeQuestions, replaceUnit,
@@ -30,8 +29,9 @@ import {GuideModal} from './ImportGuide';
 import ImportQuestionModal from './ImportQuestionModal';
 import {IssueList, LevelBadge, SummaryBar} from './ImportIssues';
 import ImportFiles, {type FileRow} from './ImportFiles';
+import {BankAlert, DupPanel, SaveErrorPanel} from './ImportAlerts';
 import {ReviewList, cutLabel, type ReviewRow} from './ImportReview';
-import {SAME_BLOCK, bankDuplicates, blocksOf, importDuplicates, withoutBlocks, type BlockDup} from './dupRules';
+import {bankDuplicates, blocksOf, importDuplicates, withoutBlocks, type BlockDup} from './dupRules';
 import ImportUpload from './ImportUpload';
 import PasteAnswers from './PasteAnswers';
 import './import-exam.css';
@@ -366,8 +366,7 @@ export default function ImportExam() {
     const banks = banksQ.data;
     const folders = foldersQ.data;
     const bankInfo = bankId ? banks?.find(b => b.id === bankId) : undefined;
-    const paperBank = bankInfo?.kind === 'paper';   // whole exams go in as they are: no blocks, no stock
-    const stock = useBankStock(bankInfo && !paperBank ? bankId : null).data;
+    const paperBank = bankInfo?.kind === 'paper';   // whole exams go in as they are: no blocks
     const standard = useBankStandard(paperBank ? bankId! : '');
     // BF-04: the whole-exam bank of the same subject, where a «Cho biết» file belongs
     const paperTarget = bankInfo && !paperBank ? banks?.find(b => b.kind === 'paper' && b.subject === bankInfo.subject) || null : null;
@@ -562,6 +561,10 @@ export default function ImportExam() {
     const bankDups = chosen.flatMap(e => bankDuplicates(e, duplicates));
     const impDups = importDuplicates(chosen);
     const dupsOf = (id: string): BlockDup[] => [...bankDups, ...impDups].filter(d => d.exam === id);
+    const sameBankExisting = Object.values(dupDone?.existing || {}).filter(x => x.same_bank).length;
+    const dupCount = bankDups.length + impDups.length + sameBankExisting;
+    const droppedBlocks = [...bankDups, ...impDups].filter(d => !keepDup[d.exam + d.block]).length;
+    const droppedNote = `Bỏ ${[sameBankExisting && `${sameBankExisting} đề`, droppedBlocks && `${droppedBlocks} khối`].filter(Boolean).join(' và ')} trùng khi lưu`;
     const dropOf = (e: ImportedExam) => new Set(dupsOf(e.id).filter(d => !keepDup[e.id + d.block]).map(d => d.block));
 
     // Optional: an empty bank measures 0 anyway. Numbers only, never blocks saving. Cancel keeps nothing half-done.
@@ -593,7 +596,7 @@ export default function ImportExam() {
     };
 
     const failedAt = (source: ImportedExam, err: unknown) =>
-        ({id: source.id, name: source.name, file: fileOf.current[source.id]?.name || '', message: errorText(err, 'Thử lại sau.')});
+        ({id: source.id, name: source.name, file: fileOf.current[source.id]?.name || '', message: err instanceof TypeError ? 'mất kết nối khi đang lưu.' : errorText(err, 'Thử lại sau.')});
 
     // Into the bank. Whole-exam banks send one batch; block banks save exam by exam and keep an outcome per exam (BF-07).
     const sinceRef = useRef('');
@@ -602,7 +605,8 @@ export default function ImportExam() {
         if (!list.length || blocker) return;
         setSaving(true); setProgress(0); setSaveErrors([]);
         // Kept across "Lưu lại" retries so the list screen can show everything this import added.
-        if (!sinceRef.current) sinceRef.current = new Date().toISOString();
+        // 2 minutes back: the server clock may be a little behind this computer's, and a block of this import must never fall before `since`.
+        if (!sinceRef.current) sinceRef.current = new Date(Date.now() - 2 * 60_000).toISOString();
         let done = 0;
         const out: PaperResult = {papers: [], rejected: [], total: bankInfo?.items ?? 0};
         try {
@@ -688,14 +692,10 @@ export default function ImportExam() {
         }
     };
 
-    const per = stock?.per_type || {};
-    const slots = stock?.slots || {};
-    const total = Object.values(per).reduce((a, n) => a + n, 0);
-    const drawable = stock?.capacity || 0;
-
     const pickFile = () => fileRef.current?.click();
+    const bankLabel = `${bankInfo?.name || '…'} — ${paperBank ? 'nguyên đề' : 'theo khối'}`;
     const context = bankId
-        ? <>Lưu vào ngân hàng <b>{bankInfo?.name || '…'}</b></>
+        ? <>Lưu vào <b>{bankLabel}</b></>
         : folderId ? <>Tạo trong môn <b>{folder?.name || '…'}</b></> : null;
 
     const showPreview = previewing && exams.length > 0;
@@ -706,7 +706,8 @@ export default function ImportExam() {
     const left = chosen.filter(e => state[e.id] !== 'saved' && !otherBank[e.id]).length;
     const retry = chosen.some(e => state[e.id] === 'saved' || state[e.id] === 'error');
     const openDirect = () => {
-        setDirectFolder(folders?.find(f => !f.parent && f.name === bankInfo?.subject)?.id || '');
+        const same = (a?: string, b?: string) => !!a && !!b && a.normalize('NFC').trim().toLowerCase() === b.normalize('NFC').trim().toLowerCase();
+        setDirectFolder(folders?.find(f => !f.parent && same(f.name, bankInfo?.subject))?.id || '');
         setDirectOpen(true);
     };
     const rows: ReviewRow[] = exams.map(e => {
@@ -723,10 +724,10 @@ export default function ImportExam() {
 
         <div className='vt-imp-head'>
             <div>
-                {!showPreview && <Link to={bankId ? '/question-bank' : '/'} className='vt-imp-link'>← {bankId ? 'Ngân hàng câu hỏi' : 'Môn & đề'}</Link>}
+                {!showPreview && <Link to={bankId ? '/question-bank/' + bankId : '/'} className='vt-imp-link'>← {bankId ? bankLabel : 'Môn & đề'}</Link>}
                 {!desktop && showPreview && <button type='button' className='vt-imp-link vt-imp-back' disabled={busy} onClick={pickFile}>← {again}</button>}
                 <PageTitle>{bankId ? 'Nhập đề vào ngân hàng' : 'Nhập đề từ file Word'}</PageTitle>
-                <MetaChips items={[context, paperBank ? <span className='nb-kind nb-kind--paper'>Nguyên đề</span> : bankId && <span className='nb-kind'>Theo khối</span>]}/>
+                <MetaChips items={[context, paperBank ? <Badge tone='title'>Nguyên đề</Badge> : bankId && <Badge tone='title'>Theo khối</Badge>]}/>
             </div>
             {desktop && showPreview && <Button variant='secondary' disabled={busy} onClick={pickFile}>{again}</Button>}
         </div>
@@ -738,37 +739,18 @@ export default function ImportExam() {
             })}
         </ol>
 
-        {!showPreview && !result && <ImportUpload compact={files.length > 0} onFiles={readFiles} pick={pickFile} onGuide={() => setGuide('')}/>}
+        {!showPreview && !result && (!files.length || files.some(f => f.status === 'queued' || f.status === 'reading')) && <ImportUpload compact={files.length > 0} onFiles={readFiles} pick={pickFile} onGuide={() => setGuide('')}/>}
 
         {!showPreview && !result && files.length > 0 &&
             <ImportFiles rows={files} blockBank={!!bankId && !paperBank} onGuide={() => setGuide('')} onPreview={() => setPreviewing(true)}
                          onRemove={key => setFiles(fs => fs.filter(f => f.key !== key))}
                          onRetry={key => { const f = files.find(x => x.key === key); if (f) { replacing.current = key; readFiles([f.file]); } }}
                          onReplace={key => { replacing.current = key; pickFile(); }}
-                         paperTarget={paperTarget} onGoPaper={goPaper}/>}
+                         paperTarget={paperTarget} onGoPaper={goPaper} subject={bankInfo?.subject}/>}
 
         {(foldersQ.isError || banksQ.isError) &&
             <ErrorState title='Không tải được danh sách môn / ngân hàng' description={errorText(foldersQ.error || banksQ.error, 'Kiểm tra mạng rồi thử lại.')}
                         onRetry={() => { if (foldersQ.isError) foldersQ.refetch(); if (banksQ.isError) banksQ.refetch(); }}/>}
-
-        {stock && total > 0 && <Card className='vt-imp-bank'>
-            <div className='vt-imp-bank-head'>
-                <div>
-                    <b>{bankInfo ? bankInfo.name : 'Ngân hàng câu hỏi'}: {total} khối</b>
-                    <p>{drawable > 0
-                        ? <>Đủ rút {drawable} đề không trùng khối{stock.bottleneck && <> · nghẽn ở <b>{blockLabel(stock.bottleneck[0])}</b></>}</>
-                        : 'Chưa đủ khối để rút một đề hoàn chỉnh — nhập thêm đề bên dưới.'}</p>
-                </div>
-            </div>
-            <div className='vt-imp-chips'>
-                {Object.keys(slots).map(t => {
-                    const have = per[t] || 0, drawn = Math.floor(have / slots[t]);
-                    return <Badge key={t} tone={drawn < 1 ? 'err' : drawn < 4 ? 'sun' : 'ok'}>
-                        {blockLabel(t)}: {have} khối · rút được {drawn}
-                    </Badge>;
-                })}
-            </div>
-        </Card>}
 
         {result && bankId && <PaperImportResult bankId={bankId} result={result} exams={exams} standard={standard} onPickFile={pickFile}/>}
 
@@ -777,22 +759,18 @@ export default function ImportExam() {
                 <span><b>Đang kiểm trùng đề {dupRun.at}/{dupRun.of}</b> · {dupRun.name}</span>
                 <Button variant='secondary' size='sm' onClick={() => { cancelDup.current = true; setDupRun(null); }}>Huỷ</Button>
             </div>}
-            {!dupRun && dupDone && (bankDups.length + impDups.length + Object.keys(dupDone.existing).length === 0
+            {paperBank && <BankAlert tone='info' title='Ngân hàng nguyên đề lưu nguyên cả đề, không cắt khối'>
+                Vì vậy ở đây không có “Kiểm trùng lặp” và “Tạo thẳng đề”. Đề lệch cấu trúc với ngân hàng sẽ được báo và không lưu.
+            </BankAlert>}
+            {!dupRun && dupDone && (dupCount === 0
                 ? <div className='nb-ok' role='status'><b>Không có khối nào trùng.</b> Đã so với {dupDone.compared} khối trong ngân hàng và giữa các đề vừa đọc.</div>
-                : <div className='vt-rv-warn' role='status'>
-                    <b>Có khối trùng — mặc định không lưu.</b>
-                    <span>
-                        {Object.keys(dupDone.existing).length > 0 && `${Object.keys(dupDone.existing).length} đề đã có sẵn (đã bỏ chọn). `}
-                        {bankDups.length > 0 && `${bankDups.length} khối trùng với đề trong ngân hàng (từ ${formatDecimal(SAME_BLOCK * 100)}%). `}
-                        {impDups.length > 0 && `${impDups.length} khối trùng giữa các đề vừa nhập. `}
-                        Mở từng đề để tick “Vẫn lưu” nếu muốn giữ.
-                    </span>
-                </div>)}
-            {saveErrors.length > 0 && <div className='nb-alert' role='alert'>
-                <b>Chưa lưu được {saveErrors.length} đề.</b>
-                {saveErrors.map(f => <span key={f.id}>“{f.name}”{f.file && ` (file ${f.file})`}: {f.message}</span>)}
-                <span>Các đề đã lưu ở trên không bị mất. Bấm “Lưu lại” để thử tiếp đề chưa lưu.</span>
-            </div>}
+                : <DupPanel exams={exams} bankDups={bankDups} impDups={impDups} existing={dupDone.existing} keepDup={keepDup} busy={saving}
+                            onToggle={k => setKeepDup(m => ({...m, [k]: !m[k]}))} onRecheck={checkDuplicates}/>)}
+            {bankId && !saving && left > 0 && (saveErrors.length > 0 || chosen.some(e => state[e.id] === 'pending')) &&
+                <SaveErrorPanel saved={chosen.filter(e => state[e.id] === 'saved').length} total={chosen.length} left={left} bankId={bankId} busy={saving}
+                                onRetry={saveToBank}
+                                lines={[...saveErrors, ...chosen.filter(e => state[e.id] === 'pending' && !saveErrors.some(f => f.id === e.id))
+                                    .map(e => ({id: e.id, name: e.name, file: fileOf.current[e.id]?.name || '', message: 'chưa lưu vì dừng sau lỗi trên.'}))]}/>}
             {Object.entries(otherBank).filter(([id]) => exams.some(e => e.id === id)).map(([id, b]) => <div key={id} className='nb-alert' role='alert'>
                 <b>“{exams.find(e => e.id === id)?.name}” đã nằm trong ngân hàng khác.</b>
                 <span>Mỗi đề chỉ ở một ngân hàng. Xem đề ở <Link to={'/question-bank/' + b.id}>{b.name}</Link>; ở đây đề được bỏ chọn.</span>
@@ -812,18 +790,6 @@ export default function ImportExam() {
                                    onChange={ev => patchExam(openExam.id)(e => ({...e, duration: parseInt(ev.target.value, 10) || 0}))}/>
                     </div>
                     <p className='vt-rv-count'>{countQuestions(openExam)} câu{bankId && !paperBank && ` · ${blocksOf(openExam).length} khối`}</p>
-                    {dupsOf(openExam.id).length > 0 && <div className='vt-rv-dups'>
-                        <h3 className='vt-imp-h2'>Khối trùng</h3>
-                        {dupsOf(openExam.id).map(d => {
-                            const no = blocksOf(openExam).findIndex(b => b.id === d.block) + 1;
-                            const first = d.inImport ? exams.find(e => e.id === d.inImport)?.name : null;
-                            return <label key={d.block} className='vt-imp-check'>
-                                <input type='checkbox' checked={!!keepDup[openExam.id + d.block]}
-                                       onChange={() => setKeepDup(m => ({...m, [openExam.id + d.block]: !m[openExam.id + d.block]}))}/>
-                                <span>Vẫn lưu khối {no} — {first ? `trùng với đề “${first}”` : `trùng ${formatDecimal(d.score * 100)}% với ${d.with}`}</span>
-                            </label>;
-                        })}
-                    </div>}
                     <ExamBody onFix={setGuide} exam={openExam} edit={patchExam(openExam.id)} duplicates={duplicates} pdf={pdf} desktop={desktop}
                               issues={openIssues} seen={seen} onSee={i => setSeen(m => ({...m, [issueKey(i)]: true}))}
                               canRenumber={!bankId} cut={bankId && !paperBank ? {part: i => cutLabel(openExam, i), total: blocksOf(openExam).length} : undefined}
@@ -833,16 +799,16 @@ export default function ImportExam() {
 
             <Card className={cx('vt-imp-bar', bankId && 'vt-imp-bar--bank')} role='region' aria-label='Lưu đề'>
                 {bankId ? <>
-                    {!paperBank && desktop && <Button variant='secondary' disabled={!chosen.length || !!blocker || busy || checking} onClick={openDirect}>{`Tạo thẳng ${chosen.length} đề nháp`}</Button>}
-                    {!paperBank && <Button variant='secondary' loading={checking} loadingText='Đang kiểm…' disabled={!chosen.length || busy} onClick={checkDuplicates}>Kiểm tra trùng</Button>}
+                    {!paperBank && desktop && <Button variant='secondary' disabled={!chosen.length || !!blocker || busy || checking} onClick={openDirect}>Tạo thẳng đề nháp…</Button>}
+                    {!paperBank && <Button variant='secondary' loading={checking} loadingText='Đang kiểm…' disabled={!chosen.length || busy} onClick={checkDuplicates}>{dupDone ? 'Kiểm lại' : 'Kiểm trùng lặp'}</Button>}
                     <Button variant='primary' loading={saving} loadingText={`Đang lưu ${Math.min(progress + 1, left)}/${left}…`}
                             disabled={!left || !!blocker || checking} onClick={saveToBank}>
-                        {retry ? `Lưu lại ${left} đề chưa lưu` : `Lưu ${chosen.length} đề`}
+                        {retry ? `Lưu lại ${left} đề` : `Lưu ${chosen.length} đề vào ngân hàng`}
                     </Button>
                     {!paperBank && !desktop && <span className='vt-rv-more'>
                         <IconButton variant='outline' label='Thêm lựa chọn' aria-expanded={moreOpen} icon={<span aria-hidden='true'>⋯</span>} onClick={() => setMoreOpen(o => !o)}/>
                         {moreOpen && <div className='vt-rv-menu' role='menu'>
-                            <button type='button' role='menuitem' disabled={!chosen.length || !!blocker || busy} onClick={() => { setMoreOpen(false); openDirect(); }}>{`Tạo thẳng ${chosen.length} đề nháp`}</button>
+                            <button type='button' role='menuitem' disabled={!chosen.length || !!blocker || busy} onClick={() => { setMoreOpen(false); openDirect(); }}>Tạo thẳng đề nháp…</button>
                         </div>}
                     </span>}
                 </>
@@ -862,6 +828,8 @@ export default function ImportExam() {
                         ? problems + ' — vẫn tạo được đề nháp; phải sửa xong mới xuất bản được.'
                     : sevenSeen > 0 && !saving ? `Đã xem ${sevenSeen} cảnh báo nặng.${lightCount ? ` ${lightCount} cảnh báo nhẹ không chặn việc lưu.` : ''}`
                     : saving ? 'Lưu lần lượt từng đề, đừng đóng trang.'
+                    : bankId && retry && left > 0 ? `${left} đề chưa lưu`
+                    : bankId && !paperBank && dupDone && dupCount > 0 && droppedNote !== 'Bỏ  trùng khi lưu' ? droppedNote
                     : !bankId && !folderId
                         ? <>Chọn môn học để tạo đề. Muốn lưu vào ngân hàng thì vào <Link to='/question-bank'>Ngân hàng câu hỏi</Link> chọn một ngân hàng rồi bấm “Nhập đề”.</>
                     : paperBank ? 'Mỗi đề được lưu nguyên vẹn, không cắt khối và không kiểm trùng khối; đề phải cùng cấu trúc với ngân hàng.'
@@ -869,11 +837,12 @@ export default function ImportExam() {
                 </span>
             </Card>
 
-            <Modal open={directOpen} onClose={() => setDirectOpen(false)} title='Tạo thẳng đề nháp' size='md'
+            <Modal open={directOpen} onClose={() => setDirectOpen(false)} title={`Tạo thẳng ${chosen.length} đề nháp, không lưu vào ngân hàng?`} size='md'
                    footer={<><Button variant='secondary' onClick={() => setDirectOpen(false)}>Huỷ</Button>
                        <Button variant='primary' disabled={!directFolder} onClick={() => createDrafts(directFolder)}>{`Tạo ${chosen.length} đề nháp`}</Button></>}>
-                <p>Đề được tạo ở dạng Nháp trong một môn, không vào ngân hàng. Chọn môn để đặt đề.</p>
-                <Select label='Môn học' value={directFolder} onChange={ev => setDirectFolder(ev.target.value)} placeholder='Chọn môn' options={subjectOptions}/>
+                <Select label='Đề vào môn' value={directFolder} onChange={ev => setDirectFolder(ev.target.value)} placeholder='Chọn môn' options={subjectOptions}/>
+                <p>{chosen.length} đề nằm ở Môn & đề › {folders?.find(f => f.id === directFolder)?.name || 'môn đã chọn'}, trạng thái Nháp. Học sinh chưa thấy cho tới khi bạn xuất bản từng đề.</p>
+                <p className='vt-imp-hint'>Mặc định là môn của ngân hàng. Ngân hàng không thay đổi.</p>
             </Modal>
         </>}
 

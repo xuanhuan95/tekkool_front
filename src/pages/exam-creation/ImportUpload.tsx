@@ -36,7 +36,7 @@ export default function ImportUpload({onFiles, pick, onGuide, compact}: {onFiles
                     <Button variant='primary' onClick={pick}>Chọn file .docx</Button>
                 </div>
             </Card>
-            <Card>
+            {!compact && <Card>
                 <h2 className='vt-imp-h2'>3 cách đánh dấu đáp án</h2>
                 <div className='vt-imp-ways'>
                     {WAYS.map(([name, sample], i) => <div key={name} className='vt-imp-way'>
@@ -45,7 +45,7 @@ export default function ImportUpload({onFiles, pick, onGuide, compact}: {onFiles
                     </div>)}
                 </div>
                 <div className='vt-imp-notice' role='note'>Mỗi file chỉ dùng <b>một</b> cách. Trộn nhiều cách trong một file thì hệ thống báo lỗi.</div>
-            </Card>
+            </Card>}
         </div>
         {!compact && <div className='vt-imp-up-side'>
             <Card>

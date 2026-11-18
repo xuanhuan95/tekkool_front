@@ -34,10 +34,12 @@ type Props = {
     paperTarget?: {id: string; name: string} | null;
     onGoPaper?: () => void;
     blockBank?: boolean;
+    /** Subject of the bank, named in the "no whole-exam bank yet" panel. */
+    subject?: string;
 };
 
 /** IV2 (BF-05): one line per file, so a bad file never hides the good ones. */
-export default function ImportFiles({rows, onRemove, onRetry, onReplace, onGuide, onPreview, paperTarget, onGoPaper, blockBank}: Props) {
+export default function ImportFiles({rows, onRemove, onRetry, onReplace, onGuide, onPreview, paperTarget, onGoPaper, blockBank, subject}: Props) {
     const count = (s: FileRow['status']) => rows.filter(r => r.status === s).length;
     const busy = rows.some(r => r.status === 'queued' || r.status === 'reading');
     const exams = rows.reduce((n, r) => n + r.exams, 0);
@@ -58,7 +60,7 @@ export default function ImportFiles({rows, onRemove, onRetry, onReplace, onGuide
                 </span>
                 <div className='vt-imp-file-main'>
                     <b>{r.file.name}</b>
-                    {r.status === 'ok' && <span>{r.exams} đề · {blockBank && r.blocks !== undefined ? `${r.blocks} khối` : `${r.questions} câu đọc được`}
+                    {r.status === 'ok' && <span>{r.exams} đề · {blockBank && r.blocks !== undefined ? `${r.blocks} khối${r.cluster ? '' : ' đọc được'}` : `${r.questions} câu đọc được`}
                         {r.cluster && <>. Phần IV · Câu chùm: <b>máy chấm</b>, 0,5 điểm mỗi ý.</>}
                         {r.skipped > 0 && <> · bỏ {r.skipped} đề đã có ở file khác</>}
                         {!!r.shared && <> · bỏ {r.shared} đề có khối “Cho biết”</>}</span>}
@@ -87,14 +89,16 @@ export default function ImportFiles({rows, onRemove, onRetry, onReplace, onGuide
                 <Badge tone={TONE[r.status]}>{LABEL[r.status]}</Badge>
             </li>)}
         </ul>
-        {rows.some(r => r.shared) && !paperTarget && <div className='vt-imp-nopaper'>
-            <b>Chưa có ngân hàng nguyên đề môn này?</b>
+        {rows.some(r => r.shared) && <div className='vt-imp-nopaper'>
+            <b>Chưa có ngân hàng nguyên đề{subject ? ` môn ${subject.replace(/^môn\s+/i, '')}` : ' môn này'}?</b>
             <span>Tạo ở trang Ngân hàng câu hỏi, chọn loại “Nguyên đề”, rồi nhập lại file này.</span>
             <Link to='/question-bank' className='vt-imp-link'>Tạo ngân hàng nguyên đề</Link>
         </div>}
         <div className='vt-imp-files-foot'>
             <span className='vt-imp-hint'>
-                {busy ? 'Đang đọc từng file, vẫn chọn thêm file được.' : 'File lỗi không chặn các file khác. Bỏ file lỗi hoặc sửa rồi thêm lại sau.'}
+                {busy ? `Đọc xong ${exams} đề · còn ${rows.filter(r => r.status === 'queued' || r.status === 'reading').length} file đang đọc`
+                    : rows.some(r => r.shared) ? `Đọc xong ${exams} đề nhập được`
+                    : 'File lỗi không chặn các file khác. Bỏ file lỗi hoặc sửa rồi thêm lại sau.'}
             </span>
             <Button variant='primary' disabled={busy || exams === 0} onClick={onPreview}>Xem trước {exams} đề</Button>
         </div>

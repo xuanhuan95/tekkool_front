@@ -319,3 +319,20 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
     .vt-imp-bar--bank .vt-imp-bar-hint.err { position: absolute; left: 12px; right: 12px; bottom: 100%; background: var(--vt-surface, #fff); padding: 6px 0; }
 }
 .vt-imp-nopaper { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; border: 1.5px dashed var(--vt-ink); border-radius: var(--vt-r-btn); background: var(--vt-paper); font-size: 14px; }
+
+/* Persistent notices (artboard import-dup-found / import-save-error / import-wholeexam) */
+.vt-bk-alert { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: var(--vt-border); border-radius: var(--vt-r-card-md); background: var(--vt-card); }
+.vt-bk-alert > svg { flex-shrink: 0; margin-top: 2px; }
+.vt-bk-alert--err { background: var(--vt-err-bg); }
+.vt-bk-alert--sun { background: var(--vt-sun-soft); }
+.vt-bk-alert--info { background: var(--vt-action); }
+.vt-bk-alert-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.vt-bk-alert-main > b { font-size: 15px; }
+.vt-bk-alert-text { font-size: 14px; }
+.vt-bk-alert-text ul { margin: 4px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.vt-bk-alert-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.vt-bk-dup { display: flex; flex-direction: column; gap: 10px; }
+.vt-bk-dupitem { background: var(--vt-card); border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.vt-bk-dupitem b { font-size: 15px; }
+.vt-bk-check { display: flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 600; }
+.vt-bk-check input { width: 20px; height: 20px; accent-color: var(--vt-ink); }
