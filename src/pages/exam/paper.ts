@@ -104,6 +104,7 @@ function partTitle(section: TestSection, index: number, kind: QuestionKind): str
 /** Build the numbered paper. Numbering is continuous across parts (Câu 1…23). */
 export function buildPaper(exam: TestExam): Paper {
     const parts: PaperPart[] = [];
+    const seen: Record<string, string> = {};
     const all: PaperQuestion[] = [];
 
     (exam.sections || []).forEach((section, sectionIndex) => {
@@ -188,14 +189,23 @@ export function buildPaper(exam: TestExam): Paper {
         if (kind !== 'essay' && !same) questions.forEach(q => { q.showPoints = q.maxScore !== null; });
         // With a frame the BE sends the part title only on the first section of a Phần: later tiểu mục have no heading of their own.
         const framed = typeof section.first_no === 'number';
+        // A heading shows only on the first section that carries it: a continuing section (2nd block of a tiểu mục / Phần) shows none.
+        const fresh = (key: 'group' | 'part' | 'sub', v: string) => {
+            if (!framed || !v || seen[key] === v) return '';
+            seen[key] = v;
+            return v;
+        };
+        const group = fresh('group', stripHtml(section.group_title));
+        const partTitleText = fresh('part', stripPoints(stripHtml(section.part_title)));
+        const subTitle = fresh('sub', stripHtml(section.sub_title));
         parts.push({
             id: 'phan-' + (parts.length + 1),
-            groupTitle: stripHtml(section.group_title) || undefined,
-            lead: stripHtml(section.description || section.part_lead) || undefined,
-            subTitle: stripHtml(section.sub_title) || undefined,
+            groupTitle: (framed ? group : stripHtml(section.group_title)) || undefined,
+            lead: (framed && !partTitleText ? '' : stripHtml(section.description || section.part_lead)) || undefined,
+            subTitle: (framed ? subTitle : stripHtml(section.sub_title)) || undefined,
             framed: framed || undefined,
-            partScore: framed && typeof section.part_score === 'number' ? section.part_score : undefined,
-            title: framed ? stripPoints(stripHtml(section.part_title)) || (section.group_title || section.sub_title ? '' : partTitle(section, parts.length, kind)) : partTitle(section, parts.length, kind),
+            partScore: framed && partTitleText && typeof section.part_score === 'number' ? section.part_score : undefined,
+            title: framed ? partTitleText || (parts.some(x => x.framed) || group || subTitle ? '' : partTitle(section, parts.length, kind)) : partTitle(section, parts.length, kind),
             kind,
             questions,
             rawQuestions: raws,

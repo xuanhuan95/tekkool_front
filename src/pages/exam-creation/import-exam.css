@@ -318,6 +318,7 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
     /* Phone: bank save bar is ONE row (Kiểm tra trùng · Lưu · ⋯); the hint only shows when it is a blocker */
     .vt-imp-bar--bank { flex-wrap: nowrap; }
     .vt-imp-bar--bank > .vt-btn--primary { flex: 1 1 auto; }
+    .vt-imp-bar--bank > .vt-btn { font-size: 14px; padding: 8px 12px; min-height: 44px; white-space: nowrap; }   /* artboard: 14px, 44 high */
     .vt-imp-bar--bank .vt-imp-bar-hint:not(.err) { display: none; }
     .vt-imp-bar--bank .vt-imp-bar-hint.err { position: absolute; left: 12px; right: 12px; bottom: 100%; background: var(--vt-surface, #fff); padding: 6px 0; }
 }

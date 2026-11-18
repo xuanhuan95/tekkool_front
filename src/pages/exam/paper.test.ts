@@ -187,6 +187,19 @@ describe('exam drawn with a frame (first_no, titles)', () => {
         expect(paper.parts[2]).toMatchObject({title: '', subTitle: 'Viết bài'});
     });
 
+    it('continuing sections (2nd block of a tiểu mục, 3rd of a Phần) show no heading again', () => {
+        const sec = (id: string, extra: object) => ({id, name: 'n', first_no: 1, questions: [mc(id)], ...extra});
+        const p = buildPaper({id: 'F', name: 'x', remaining_sec: 1, sections: [
+            sec('a', {group_title: 'A.', part_title: 'Phần I (3 điểm)', part_lead: 'lead', part_score: 3, sub_title: 'I.1'}),
+            sec('b', {sub_title: 'I.1'}),                          // 2nd block of the same tiểu mục (even if BE repeated it)
+            sec('c', {part_title: 'Phần I (3 điểm)'}),             // 3rd block of the Phần
+            sec('d', {sub_title: 'I.2'}),
+        ]} as TestExam).parts;
+        expect(p.map(x => [x.title, x.subTitle, x.groupTitle, x.lead, x.partScore])).toEqual([
+            ['Phần I', 'I.1', 'A.', 'lead', 3], ['', undefined, undefined, undefined, undefined],
+            ['', undefined, undefined, undefined, undefined], ['', 'I.2', undefined, undefined, undefined]]);
+    });
+
     it('part_score → partScore (null/missing → undefined); framed flag only with a frame', () => {
         const mk = (extra: object) => buildPaper({id: 'F', name: 'x', remaining_sec: 1, sections: [{id: 'a', name: 'n', questions: [mc('Q1')], ...extra}]}).parts[0];
         expect(mk({first_no: 1, part_title: 'Phần I', part_score: 3})).toMatchObject({framed: true, partScore: 3});
