@@ -25,13 +25,14 @@ const content = (html: string) => /[<&]/.test(html) ? renderHTML(html) : html;
 /** Maps one paper question onto the kit's QuestionBlock (4 SPT kinds). */
 function QuestionView({question: q, answers, flagged, disabled, onToggleFlag, onWrite, textDelayMs}: QuestionViewProps) {
     const common = {
-        number: q.number,
+        number: q.label,
+        id: 'cau-' + q.number,
         flagged,
         disabled,
         onToggleFlag: () => onToggleFlag(q.number),
         prompt: <>{renderHTML(q.prompt)}</>,
         title: q.showPoints && q.maxScore !== null
-            ? <>Câu {q.number} <small className='vt-q-pts'>{formatDecimal(q.maxScore)}đ</small></> : undefined,
+            ? <>Câu {q.label} <small className='vt-q-pts'>{formatDecimal(q.maxScore)}đ</small></> : undefined,
     };
     const id = q.questionIds[0];
 
@@ -62,7 +63,7 @@ function QuestionView({question: q, answers, flagged, disabled, onToggleFlag, on
     }
     const raw = answers[id] || '';
     return <QuestionBlock kind='essay' {...common}
-                          title={q.maxScore !== null ? `Câu ${q.number} · ${formatDecimal(q.maxScore)} điểm` : undefined}
+                          title={q.maxScore !== null ? `Câu ${q.label} · ${formatDecimal(q.maxScore)} điểm` : undefined}
                           value={raw} onChange={() => {}}
                           editor={disabled
                               ? <div className='tt-editor'><div className='ProseMirror'>{renderHTML(raw)}</div></div>

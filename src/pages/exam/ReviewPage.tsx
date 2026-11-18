@@ -89,7 +89,14 @@ function TextBody({item}: {item: ReviewItem}) {
 function ReviewCard({item}: {item: ReviewItem}) {
     const essay = item.kind === 'essay';
     const title = essay ? `Câu ${item.number} (tự luận)` : `Câu ${item.number}`;
+    const h = item.heading;
     return <>
+        {h && <div className='vt-rv-heading'>
+            {h.group && <h2>{h.group}</h2>}
+            {h.part && <h3>{h.part}</h3>}
+            {h.lead && <p>{h.lead}</p>}
+            {h.sub && <p><b>{h.sub}</b></p>}
+        </div>}
         {item.passage && <div className='vt-rv-passage'>{renderHTML(item.passage)}</div>}
         <Card as='article' className='vt-rv' aria-label={title}>
             <div className='vt-rv-head'>
@@ -126,7 +133,7 @@ export default function ReviewPage() {
     const {id} = useParams();
     const {data, error, isPending, refetch, isFetching} = useSubmission(id);
     const [filter, setFilter] = useState<ReviewFilter>('all');
-    const items = useMemo(() => buildReview(data?.answers || []), [data]);
+    const items = useMemo(() => buildReview(data?.answers || [], data?.sections), [data]);
 
     if (isPending) return <Loading/>;
     if (error || !data) {

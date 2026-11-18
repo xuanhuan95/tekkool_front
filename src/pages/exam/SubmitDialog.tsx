@@ -14,6 +14,8 @@ type SubmitDialogProps = {
     /** Why the last submit failed (network, unsaved answers, 409...). */
     error?: string | null;
     onJump: (number: number) => void;
+    /** Number the student reads for a position (a Phần that restarts at "Câu 1"). */
+    labelOf?: (number: number) => number;
     onCancel: () => void;
     onConfirm: () => void;
 };
@@ -24,7 +26,7 @@ type SubmitDialogProps = {
  * stray Enter never submits.
  */
 export default function SubmitDialog({open, answered, total, unanswered, flagged, submitting, error,
-                                      onJump, onCancel, onConfirm}: SubmitDialogProps) {
+                                      onJump, labelOf, onCancel, onConfirm}: SubmitDialogProps) {
     const cancelRef = useRef<HTMLButtonElement>(null);
     const cancel = submitting ? undefined : onCancel;
     return <Modal open={open} onClose={cancel} title='Nộp bài?' initialFocus={cancelRef}
@@ -41,7 +43,7 @@ export default function SubmitDialog({open, answered, total, unanswered, flagged
                 <div className='vt-submit-line'><span>Chưa làm</span><b>{unanswered.length} câu</b></div>
                 <nav aria-label='Quay lại câu chưa làm' className='vt-submit-chips'>
                     {unanswered.map(n => <button key={n} type='button' className='vt-submit-chip'
-                                                 disabled={submitting} onClick={() => onJump(n)}>Câu {n} ›</button>)}
+                                                 disabled={submitting} onClick={() => onJump(n)}>Câu {labelOf ? labelOf(n) : n} ›</button>)}
                 </nav>
                 <span className='vt-submit-hint'>Bấm để quay lại đúng câu trong đề</span>
             </div>}

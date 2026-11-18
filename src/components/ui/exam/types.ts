@@ -1,6 +1,8 @@
 /** State of one question as the number strip / grid needs it. */
 export interface QuestionStatus {
     number: number;
+    /** Number shown to the student when it differs from `number` (a Phần that restarts at "Câu 1"). */
+    label?: number;
     answered: boolean;
     /** "Xem lại sau" mark. */
     flagged?: boolean;
@@ -16,7 +18,7 @@ export function countTrueFalse(value: TrueFalseValue | null | undefined): number
 
 /** "Câu 5, đã làm, đánh dấu xem lại, đang xem" — the strip/grid cell's accessible name. */
 export function questionCellLabel(q: QuestionStatus, current: boolean): string {
-    return ['Câu ' + q.number, q.answered ? 'đã làm' : 'chưa làm',
+    return ['Câu ' + (q.label ?? q.number), q.answered ? 'đã làm' : 'chưa làm',
         q.flagged ? 'đánh dấu xem lại' : '', current ? 'đang xem' : ''].filter(Boolean).join(', ');
 }
 

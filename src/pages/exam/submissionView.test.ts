@@ -145,3 +145,25 @@ describe('SPT-97: câu chùm', () => {
         expect(reviewBadge(items[1])).toBe('2 / 4 ý · 1 / 2');
     });
 });
+
+describe('result of an exam drawn with a frame', () => {
+    const sections = [
+        {question_ids: ['Q1', 'Q2'], first_no: 1, group_title: 'A.', part_title: 'PHẦN I', part_lead: 'từ câu 1 đến câu 2'},
+        {question_ids: ['S1'], first_no: 1, part_title: 'PHẦN III'},
+    ];
+    const items = buildReview(ANSWERS.filter(a => a.question_id.startsWith('Q') || a.question_id === 'S1'), sections);
+
+    it('numbers follow first_no (a restarting Phần begins at Câu 1)', () => {
+        expect(items.map(i => i.number)).toEqual([1, 2, 1]);
+    });
+
+    it('titles appear on the first question of each section only', () => {
+        expect(items[0].heading).toEqual({group: 'A.', part: 'PHẦN I', lead: 'từ câu 1 đến câu 2', sub: undefined});
+        expect(items[1].heading).toBeUndefined();
+        expect(items[2].heading?.part).toBe('PHẦN III');
+    });
+
+    it('without sections nothing changes', () => {
+        expect(buildReview(ANSWERS).map(i => i.number)).toEqual([1, 2, 3, 4, 5]);
+    });
+});

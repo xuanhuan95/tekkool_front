@@ -18,7 +18,10 @@ export type PaperOption = {key: string; id: string; value: string};
 export type PaperStatement = {key: string; questionId: string; html: string; /** Câu chùm: the ý's own label (data.label: "a)", "1)"). */ label?: string};
 
 export type PaperQuestion = {
+    /** Unique position in the paper (ids, flags, jump). */
     number: number;
+    /** What the student reads: `number`, or the frame's numbering when a Phần restarts. */
+    label: number;
     kind: QuestionKind;
     /** Raw ids this question saves to (4 for Đúng/Sai, 1 otherwise). */
     questionIds: string[];
@@ -38,6 +41,10 @@ export type PaperQuestion = {
 
 export type PaperPart = {
     id: string;
+    /** Frame texts (exams drawn with a frame): heading of the Nhóm, lead of the Phần, title of the tiểu mục. */
+    groupTitle?: string;
+    lead?: string;
+    subTitle?: string;
     /** "Phần I · Trắc nghiệm" */
     title: string;
     kind: QuestionKind;
@@ -104,6 +111,7 @@ export function buildPaper(exam: TestExam): Paper {
             const kind = kindOf(q.type);
             const base = {
                 number: all.length + questions.length + 1,
+                label: (section.first_no ?? all.length + 1) + questions.length,
                 kind,
                 raw: q,
                 rawPrev: i > 0 ? raws[i - 1] : undefined,
@@ -174,9 +182,14 @@ export function buildPaper(exam: TestExam): Paper {
         const first = questions[0].maxScore;
         const same = first !== null && questions.every(q => q.maxScore === first);
         if (kind !== 'essay' && !same) questions.forEach(q => { q.showPoints = q.maxScore !== null; });
+        // With a frame the BE sends the part title only on the first section of a Phần: later tiểu mục have no heading of their own.
+        const framed = typeof section.first_no === 'number';
         parts.push({
             id: 'phan-' + (parts.length + 1),
-            title: partTitle(section, parts.length, kind),
+            groupTitle: stripHtml(section.group_title) || undefined,
+            lead: stripHtml(section.description || section.part_lead) || undefined,
+            subTitle: stripHtml(section.sub_title) || undefined,
+            title: framed ? stripHtml(section.part_title) || (section.group_title || section.sub_title ? '' : partTitle(section, parts.length, kind)) : partTitle(section, parts.length, kind),
             kind,
             questions,
             rawQuestions: raws,

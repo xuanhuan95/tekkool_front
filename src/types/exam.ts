@@ -100,6 +100,13 @@ export type TestSection = {
     questions: TestQuestion[];
     /** Only on exams drawn from the bank: block type code (multiple_choice, true_false...). */
     block_type?: string | null;
+    /** Exams drawn with a frame (BE `annotate`): first question number of this section, and the titles of the frame. */
+    first_no?: number;
+    group_title?: string | null;
+    part_title?: string | null;
+    part_lead?: string | null;
+    sub_title?: string | null;
+    description?: string | null;
 };
 
 /** `GET exam/during_test/<id>` — the paper of an open attempt. */

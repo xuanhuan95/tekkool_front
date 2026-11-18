@@ -163,3 +163,27 @@ describe('SPT-97: câu chùm trả lời ngắn', () => {
         expect(p.questions.map(q => q.kind)).toEqual(['short', 'short']);
     });
 });
+
+describe('exam drawn with a frame (first_no, titles)', () => {
+    const framed: TestExam = {
+        id: 'F', name: 'Văn', remaining_sec: 60,
+        sections: [
+            {id: 'a', name: 'Đọc hiểu', first_no: 1, group_title: 'A. TRẮC NGHIỆM', part_title: 'PHẦN I (3 điểm)', part_lead: 'Trả lời từ câu 1 đến câu 2',
+             sub_title: 'I.1 Đọc văn bản', questions: [mc('Q1'), mc('Q2')]},
+            {id: 'b', name: 'Đoạn văn', first_no: 1, part_title: 'PHẦN II', questions: [mc('Q3')]},
+            {id: 'c', name: 'Bài văn', first_no: 2, sub_title: 'Viết bài', questions: [mc('Q4')]},
+        ],
+    };
+    const paper = buildPaper(framed);
+
+    it('shows the frame numbers but keeps unique positions for ids and jumps', () => {
+        expect(paper.questions.map(q => q.label)).toEqual([1, 2, 1, 2]);   // Phần II restarts at Câu 1
+        expect(paper.questions.map(q => q.number)).toEqual([1, 2, 3, 4]);
+    });
+
+    it('titles: group + lead + sub only on the first section; a tiểu mục without part_title has no heading', () => {
+        expect(paper.parts[0]).toMatchObject({groupTitle: 'A. TRẮC NGHIỆM', title: 'PHẦN I (3 điểm)', lead: 'Trả lời từ câu 1 đến câu 2', subTitle: 'I.1 Đọc văn bản'});
+        expect(paper.parts[1].groupTitle).toBeUndefined();
+        expect(paper.parts[2]).toMatchObject({title: '', subTitle: 'Viết bài'});
+    });
+});
