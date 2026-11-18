@@ -1,6 +1,6 @@
 import {Link, useParams} from 'react-router-dom';
 
-import {Badge, Card, ErrorState, MetaChips, PageTitle, SkeletonCard, buttonClass} from '../../components/ui';
+import {Badge, Card, ErrorState, MetaChips, PageTitle, buttonClass, Loading} from '../../components/ui';
 import {errorText} from '../../lib/format';
 import {useDrawInfo} from '../../queries/questionBank';
 import {blockLabel} from './blockTypes';
@@ -23,7 +23,7 @@ export default function DrawExam() {
     if (info.isError) return <div className='vt-draw'>{back}
         <ErrorState title='Không tải được ngân hàng' description={errorText(info.error, 'Kiểm tra mạng rồi thử lại.')}
                     onRetry={() => info.refetch()} retrying={info.isFetching}/></div>;
-    if (!info.data) return <div className='vt-draw'>{back}<SkeletonCard/></div>;
+    if (!info.data) return <div className='vt-draw'>{back}<Loading/></div>;
 
     const {stats, capacity} = info.data;
     const per = stats.per_type || {};

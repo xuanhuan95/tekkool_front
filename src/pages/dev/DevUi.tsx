@@ -6,7 +6,7 @@ import {Toaster} from 'react-hot-toast';
 import {
     AdminLayout, Avatar, Badge, BottomNav, Button, Card, CardTitle, ConfirmDialog, EmptyState, ErrorState,
     FilterChip, HeaderSticky, Medal, Modal, PageColumns, PageTitle, ProgressBar, STATUS_BADGE, SegmentedControl,
-    Select, Skeleton, SkeletonCard, StatPill, StatusBadge, StudentLayout, StudentStats, Switch, Table, Tabs,
+    Select, Loading, StatPill, StatusBadge, StudentLayout, StudentStats, Switch, Table, Tabs,
     TextArea, TextField, ToastCard, WaveLine, buttonClass, notify,
 } from '../../components/ui';
 import type {Column, Status} from '../../components/ui';
@@ -191,10 +191,9 @@ function Catalogue() {
                 <Card><ProgressBar value={10} max={23} label='Số câu đã làm' caption='Tiến độ' showCount/></Card>
                 <EmptyState title='Chưa có bài làm' description='Chọn đề để bắt đầu.'
                             action={<Button variant='primary' size='sm'>Xem đề thi</Button>}/>
-                <SkeletonCard/>
+                <Card><Loading/></Card>
                 <ErrorState title='Không tải được đề' description='Mạng đang chập chờn. Bài làm của bạn vẫn được giữ.'
                             onRetry={() => {}}/>
-                <Card><div className='dev-skel'><Skeleton width='40%' height={22}/><Skeleton/><Skeleton shape='pill' height={8}/></div></Card>
             </div>
         </Section>
 

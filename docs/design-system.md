@@ -65,7 +65,7 @@ Viền: `2px solid #1c1917`. Không dùng bo đều (trừ hình tròn và viên
 - **Toast**: thẻ nhỏ viền mực, icon trái, nền trắng; lỗi dùng viền đỏ.
 - **Huy chương hạng**: vòng tròn 32px bo 999px, viền 2px màu huy chương, số Patrick Hand 18px.
 - **Avatar**: tròn 36–40px viền mực, nền `#e5dcfb`, chữ cái đầu 13–14px 700.
-- **Trạng thái rỗng**: icon nét 40px + câu Patrick Hand 22px + mô tả 14px muted + 1 nút. **Đang tải**: khối xám `#efefec` bo thẻ, không spinner xoay giữa trang. **Lỗi**: thẻ viền đỏ, câu giải thích + nút "Thử lại".
+- **Trạng thái rỗng**: icon nét 40px + câu Patrick Hand 22px + mô tả 14px muted + 1 nút. **Đang tải** (SPT-139): MỘT kiểu cho cả app — linh vật bút chì viết một nét mực + "Đang tải…" (Patrick Hand 22px, `--vt-muted`), giữa vùng nội dung (cao tối thiểu 420px / 520px từ 1024px). Không còn khối xám theo từng màn. Chỉ hiện sau 300ms; sau 8 giây đổi thành "Mạng hơi chậm, chờ thêm chút nhé…"; `prefers-reduced-motion` → hình tĩnh. Mở app lần đầu: thêm logo, giữa màn. Tải lại khi đã có dữ liệu (đổi lọc, tab, trang): không xoá nội dung — vệt dạ quang vàng chạy dưới đường kẻ header, vùng dữ liệu cũ mờ 55% (`Refreshable`). **Lỗi**: thẻ viền đỏ, câu giải thích + nút "Thử lại".
 
 ## 5. Thành phần làm bài (SPT)
 
@@ -112,7 +112,7 @@ Viền: `2px solid #1c1917`. Không dùng bo đều (trừ hình tròn và viên
 - **Patrick Hand:** chỉ qua class có sẵn (`.vt-hand`, tiêu đề, số lớn, đồng hồ) — luôn 700, **không dưới 18px** (bảng xếp hạng: điểm 22px, hạng 20px).
 - **Link:** link chữ dùng `className='vt-link'` (mực, gạch chân, offset 3px, 600). Link không class trong `.vt-paper/.vt-plain` tự có kiểu này; link dạng thẻ (`a.vt-card`) giữ màu mực khi hover/focus — không bao giờ xanh `#4183c4` của Semantic.
 - **Nút:** `Button` / `buttonClass()` với `variant` primary · secondary · ghost (nút chữ) · danger. Khoá / Mở khoá trong dòng bảng (quy tắc 9, SPT-112) là nút nhỏ có viền, không phải nút chữ gạch chân: Khoá = `variant='danger' size='sm'` (viền + chữ đỏ), Mở khoá = `variant='secondary' size='sm'`. Nút icon ổ khoá trong bảng Admin và nút danger đứng riêng "Khoá tài khoản" giữ nguyên.
-- **Trạng thái:** đang tải = `Skeleton`/`SkeletonCard` (không spinner giữa trang); rỗng = `EmptyState`; lỗi = `ErrorState` + "Thử lại".
+- **Trạng thái:** đang tải = `<Loading/>` (bút chì viết, một kiểu duy nhất; tải lại thì `Refreshable`); rỗng = `EmptyState`; lỗi = `ErrorState` + "Thử lại".
 - **Danh hiệu:** `TitleChip` — newbie xám, diligent xanh `#D0E9FD`, warrior vàng `#FFFBDB/#7A4B00`, conqueror tím `#E5DCFB/#4A347F`.
 - **Ngày giờ, điểm, tiền:** luôn qua `src/lib/format.ts` (giờ Việt Nam, dấu phẩy thập phân, `99.000đ`).
 - Danh sách component và cách dùng: [components.md](components.md). Trang xem trực tiếp: `/dev/ui` (chỉ khi chạy dev).

@@ -1,6 +1,6 @@
 import {useParams} from 'react-router-dom';
 
-import {SkeletonCard} from '../../components/ui';
+import {Loading} from '../../components/ui';
 import {useBanks} from '../../queries/questionBank';
 import BankBlocks from './BankBlocks';
 import BankPapers from './BankPapers';
@@ -9,7 +9,7 @@ import BankPapers from './BankPapers';
 export default function BankView() {
     const {bankId = ''} = useParams();
     const {data: banks, isError} = useBanks();
-    if (!banks && !isError) return <SkeletonCard/>;
+    if (!banks && !isError) return <Loading/>;
     const bank = banks?.find(b => b.id === bankId);
     return bank?.kind === 'paper' ? <BankPapers bank={bank}/> : <BankBlocks/>;
 }

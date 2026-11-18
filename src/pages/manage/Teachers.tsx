@@ -1,8 +1,7 @@
 import {useState} from 'react';
 import type {FormEvent} from 'react';
 
-import {Avatar, Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, FilterChip, IconButton, MetaChips, Modal, PageTitle, Select, Skeleton,
-    SkeletonCard, Table, TextField, icons, notify} from '../../components/ui';
+import {Avatar, Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, FilterChip, IconButton, MetaChips, Modal, PageTitle, Select, Table, TextField, icons, notify, Loading, Refreshable} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useCreateTeacher, useLockTeacher, useResetPassword, useTeachers, useUpdateTeacherSubjects} from '../../queries/manage';
 import type {Teacher} from '../../queries/manage';
@@ -179,7 +178,7 @@ export default function Teachers() {
                 <PageTitle>Tài khoản giáo viên</PageTitle>
                 {all !== undefined && locked !== undefined
                     ? <MetaChips className='vt-num' items={[`Tổng ${groupDigits(all)}`, `Hoạt động ${groupDigits(all - locked)}`, `Đã khoá ${groupDigits(locked)}`]}/>
-                    : <Skeleton width={220} height={14}/>}
+                    : null}
             </div>
             <Button variant='primary' onClick={() => setCreating(true)}>+ Tạo giáo viên</Button>
         </div>
@@ -200,12 +199,12 @@ export default function Teachers() {
             ? <div className='vt-table-state'><ErrorState title='Không tải được danh sách giáo viên' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                           onRetry={() => refetch()} retrying={isFetching}/></div>
             : !data
-                ? <div className='vt-table-state'><SkeletonCard label='Đang tải giáo viên'/></div>
+                ? <Loading/>
                 : !data.items.length && !filtered
                     ? <EmptyState bare title='Chưa có giáo viên nào' description='Tạo tài khoản đầu tiên để giáo viên bắt đầu soạn đề.'
                                   action={<Button variant='primary' onClick={() => setCreating(true)}>+ Tạo giáo viên</Button>}/>
-                    : <Table bare caption='Danh sách giáo viên' columns={columns} rows={data.items} rowKey={t => t.id}
-                             minWidth={760} empty='Không có giáo viên khớp bộ lọc'/>}
+                    : <Refreshable><Table bare caption='Danh sách giáo viên' columns={columns} rows={data.items} rowKey={t => t.id}
+                             minWidth={760} empty='Không có giáo viên khớp bộ lọc'/></Refreshable>}
         </Card>
         {data && (data.items.length > 0 || filtered) &&
             <Pager page={data.page} limit={data.limit} total={data.total} unit='giáo viên' onPage={setPage}/>}

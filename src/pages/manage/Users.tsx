@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 
-import {Avatar, Card, ErrorState, IconButton, MetaChips, PageTitle, Select, Skeleton, SkeletonCard, Table, TextField, icons} from '../../components/ui';
+import {Avatar, Card, ErrorState, IconButton, MetaChips, PageTitle, Select, Table, TextField, icons, Loading, Refreshable} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useUsers} from '../../queries/manage';
 import type {AdminUser} from '../../queries/manage';
@@ -44,7 +44,7 @@ export default function Users() {
         <div className='vt-mg-head'>
             <div>
                 <PageTitle>Học sinh</PageTitle>
-                {total !== undefined ? <MetaChips className='vt-num' items={[`Tổng ${groupDigits(total)} học sinh`]}/> : <Skeleton width={160} height={14}/>}
+                {total !== undefined ? <MetaChips className='vt-num' items={[`Tổng ${groupDigits(total)} học sinh`]}/> : null}
             </div>
         </div>
         <Card flush className='vt-table-card'>
@@ -59,9 +59,9 @@ export default function Users() {
                 ? <div className='vt-table-state'><ErrorState title='Không tải được danh sách học sinh' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                               onRetry={() => refetch()} retrying={isFetching}/></div>
                 : !data
-                    ? <div className='vt-table-state'><SkeletonCard label='Đang tải học sinh'/></div>
-                    : <Table bare caption='Danh sách học sinh' columns={columns} rows={data.items} rowKey={u => u.id} minWidth={720}
-                             empty='Không có học sinh khớp bộ lọc'/>}
+                    ? <Loading/>
+                    : <Refreshable><Table bare caption='Danh sách học sinh' columns={columns} rows={data.items} rowKey={u => u.id} minWidth={720}
+                             empty='Không có học sinh khớp bộ lọc'/></Refreshable>}
         </Card>
         {data && <Pager page={data.page} limit={data.limit} total={data.total} unit='học sinh' onPage={p => set({page: String(p)})}/>}
     </div>;

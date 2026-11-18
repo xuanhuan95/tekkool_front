@@ -1,8 +1,7 @@
 import {useState} from 'react';
 import type {FormEvent} from 'react';
 
-import {Badge, Button, Card, CardTitle, ConfirmDialog, EmptyState, ErrorState, PageColumns, PageTitle, SkeletonCard,
-    Table, TextField, icons, notify} from '../../components/ui';
+import {Badge, Button, Card, CardTitle, ConfirmDialog, EmptyState, ErrorState, PageColumns, PageTitle, Table, TextField, icons, notify, Loading} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useSubjectMutations} from '../../queries/manage';
 import {useSubjects} from '../../queries/student';
@@ -82,7 +81,7 @@ export default function AdminSubjects() {
         ? <ErrorState title='Không tải được danh sách môn' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                       onRetry={() => refetch()} retrying={isFetching}/>
         : !data
-            ? <SkeletonCard label='Đang tải môn học'/>
+            ? <Loading/>
             : !list.length
                 ? <EmptyState title='Chưa có môn học nào' description='Tạo môn đầu tiên để giáo viên soạn đề.'
                               action={<Button variant='primary' onClick={() => setEditing('new')}>+ Môn mới</Button>}/>

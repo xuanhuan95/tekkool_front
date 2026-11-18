@@ -4,7 +4,7 @@ import {Link, useNavigate} from 'react-router-dom';
 
 import Api from '../../services/api';
 import {useAuthStore} from '../../stores/authStore';
-import {Button, EmptyState, PasswordField, Skeleton, TextField} from '../../components/ui';
+import {Button, EmptyState, PasswordField, TextField, Loading} from '../../components/ui';
 import {IconAlert} from '../../components/ui/icons';
 import {useExamSubjectOptions} from '../../queries/student';
 import {LoadError} from '../hs/common';
@@ -78,7 +78,7 @@ export default function Register() {
         const ok = pickStatus(picked.length).ok;
         return <AuthFrame title='Chọn môn em thi' step={2} wide footer={footer}>
             {err && <div role='alert' className='vt-auth-alert'><IconAlert size={18}/><span>{err}</span></div>}
-            {subjects.isPending ? <div aria-busy='true'><Skeleton height={220} shape='card'/></div>
+            {subjects.isPending ? <Loading/>
                 : subjects.isError ? <LoadError error={subjects.error} onRetry={() => subjects.refetch()} what='danh sách môn'/>
                 : list.length === 0 ? <EmptyState bare title='Chưa có môn thi nào' description='Giáo viên đang soạn đề, bạn quay lại sau nhé.'/>
                 : <SubjectPicker subjects={list} selected={picked} onChange={ids => { setPicked(ids); setErr(null); }}>

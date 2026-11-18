@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 
-import {Button, ErrorState, IconButton, Skeleton, StatusBadge, WaveLine, icons} from '../../components/ui';
+import {Button, ErrorState, IconButton, StatusBadge, WaveLine, icons, Loading} from '../../components/ui';
 import Api from '../../services/api';
 import {usePackages} from '../../queries/payment';
 import {useWallet} from '../../queries/wallet';
@@ -64,9 +64,7 @@ export default function Payment() {
         body = <ErrorState title='Không tải được thông tin gói' description={errorText(loadError, 'Kiểm tra mạng rồi thử lại.')}
                            onRetry={() => refetch()} retrying={isFetching}/>;
     } else if (!packages) {
-        body = <div className='vt-card vt-pay-stack' aria-busy='true' role='status' aria-label='Đang tải gói'>
-            <Skeleton width='60%' height={26}/><Skeleton height={14}/><Skeleton height={14}/><Skeleton width='40%' height={30}/>
-        </div>;
+        body = <Loading/>;
     } else if (!pkg) {
         body = <ErrorState title='Không tìm thấy gói này' description='Gói có thể đã ngừng bán. Chọn một gói khác nhé.'/>;
     } else {

@@ -50,6 +50,7 @@ export function usePendingCount(enabled = true) {
         queryKey: ['exam', 'pending'],
         // Every 60s: students submit at any time; faster is wasteful, slower makes the pill pointless.
         refetchInterval: 60_000,
+        meta: {silent: true},   // background poll: must not light up the refresh highlighter
         enabled,
         // Network lost / session expired: keep the old number, do not break the header.
         placeholderData: prev => prev,

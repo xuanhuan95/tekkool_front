@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 import {Link, useParams} from 'react-router-dom';
 
 import renderHTML from '../../components/SafeHtml';
-import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, MetaChips, PageTitle, Select, SkeletonCard, TextField, buttonClass, notify}
+import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, MetaChips, PageTitle, Select, Loading, TextField, buttonClass, notify, Refreshable}
     from '../../components/ui';
 import {errorText} from '../../lib/format';
 import {BLOCKS_PER_PAGE, useBankBlocks, useBanks, useDeleteBlock} from '../../queries/questionBank';
@@ -124,13 +124,13 @@ export default function BankBlocks() {
             ? <ErrorState title='Không tải được nội dung ngân hàng.' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                           onRetry={() => refetch()} retrying={isFetching}/>
             : !data
-                ? <><SkeletonCard/><SkeletonCard/></>
+                ? <Loading/>
                 : data.blocks.length === 0
                     ? <EmptyState title={type || q ? 'Không có khối nào khớp' : 'Ngân hàng chưa có khối nào'}
                                   description={type || q ? 'Thử đổi dạng khối hoặc từ khoá.' : 'Bấm Nhập đề ở trang Ngân hàng câu hỏi để thêm.'}/>
-                    : <div className='vt-qbv-list' aria-busy={isFetching}>
+                    : <Refreshable className='vt-qbv-list'>
                         {data.blocks.map(b => <BlockCard key={b.id} block={b} onDelete={() => setRemoving(b)}/>)}
-                    </div>}
+                    </Refreshable>}
 
         {data && data.total > BLOCKS_PER_PAGE && <nav className='vt-qbv-pager' aria-label='Phân trang'>
             <Button variant='secondary' disabled={page <= 1} onClick={() => setPage(page - 1)}>← Trước</Button>

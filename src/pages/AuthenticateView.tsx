@@ -29,7 +29,7 @@ import ExamsPage from './hs/ExamsPage';
 import ExamDetailPage from './hs/ExamDetailPage';
 import RankingPage from './hs/RankingPage';
 import AccountPage from './hs/AccountPage';
-import Loading from '../components/Loading';
+import {Loading} from '../components/ui';
 import {TeacherLayout} from '../components/ui';
 import {usePendingCount} from '../queries/submissions';
 
@@ -58,7 +58,7 @@ export default function AuthenticateView() {
 
     // Admin only uses /manage/*; ManageApp redirects any other path there and shows 403 to non-admins.
     if (group === 'admin' || pathname.startsWith('/manage')) {
-        return <Suspense fallback={<Loading/>}><ManageApp/></Suspense>;
+        return <Suspense fallback={<Loading variant='boot'/>}><ManageApp/></Suspense>;
     }
     // Taking an exam / paying are full-screen with their OWN design-D header (ExamHeader, pay bar):
     // no student shell and NOT the old TopToolbar either (QC B2).

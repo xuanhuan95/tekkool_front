@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
 
-import {Button, Card, EmptyState, FilterChip, Medal, PageColumns, SkeletonCard, Tabs, TitleChip, buttonClass} from '../../components/ui';
+import {Button, Card, EmptyState, FilterChip, Medal, PageColumns, Tabs, TitleChip, buttonClass, Loading, Refreshable} from '../../components/ui';
 import {useAuthStore} from '../../stores/authStore';
 import {useBoard, useSubjects} from '../../queries/student';
 import type {BoardKind} from '../../queries/student';
@@ -47,12 +47,12 @@ function MeCard({board, kind}: {board: Board; kind: BoardKind}) {
 function BoardPanel({kind, folder}: {kind: BoardKind; folder: string | null}) {
     const [limit, setLimit] = useState(PAGE);
     const q = useBoard(kind, folder, limit);
-    if (q.isPending) return <><SkeletonCard label='Đang tải bảng xếp hạng'/></>;
+    if (q.isPending) return <Loading/>;
     if (q.isError) return <LoadError error={q.error} onRetry={() => q.refetch()} what='bảng xếp hạng'/>;
     const b = q.data;
     return <>
         <MeCard board={b} kind={kind}/>
-        {b.entries.length === 0
+        <Refreshable>{b.entries.length === 0
             ? <EmptyState title={kind === 'week' ? 'Tuần này chưa có ai trên bảng' : 'Chưa có thành tích nào'}
                           description='Hoàn thành một đề để ghi tên mình lên bảng.'
                           action={<Link to={hsPath.exams()} className={buttonClass({variant: 'primary'})}>Làm đề ngay</Link>}/>
@@ -63,7 +63,7 @@ function BoardPanel({kind, folder}: {kind: BoardKind; folder: string | null}) {
                 <ol className='hs-board' aria-label={kind === 'week' ? 'Bảng tuần' : 'Bảng thành tích'}>
                     {b.entries.map((e, i) => <Row key={i + ':' + e.name} e={e} kind={kind}/>)}
                 </ol>
-            </Card>}
+            </Card>}</Refreshable>
         {b.total > b.entries.length && limit < MAX &&
             <Button variant='secondary' onClick={() => setLimit(MAX)} loading={q.isFetching}>Xem thêm</Button>}
     </>;

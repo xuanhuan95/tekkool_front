@@ -2,7 +2,7 @@ import {useState} from 'react';
 import {Link} from 'react-router-dom';
 
 import renderHTML from '../../components/SafeHtml';
-import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, PageTitle, SkeletonCard, buttonClass, notify} from '../../components/ui';
+import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, PageTitle, buttonClass, notify, Loading, Refreshable} from '../../components/ui';
 import {errorText, stripInfoPrefix} from '../../lib/format';
 import {PAPERS_PER_PAGE, useBankPaper, useBankPapers, useDeletePaper} from '../../queries/questionBank';
 import type {BankPaperRow, BankSummary} from '../../types/exam';
@@ -17,7 +17,7 @@ import './paper-bank.css';
 function PaperBody({id}: {id: string}) {
     const {data, isError, error, refetch} = useBankPaper(id);
     if (isError) return <ErrorState title='Không tải được đề.' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')} onRetry={() => refetch()}/>;
-    if (!data) return <SkeletonCard/>;
+    if (!data) return <Loading/>;
     let no = 0;
     return <>
         {data.shared_info.length > 0 && <div className='vt-imp-passage'>
@@ -103,7 +103,7 @@ export default function BankPapers({bank}: {bank: BankSummary}) {
             ? <ErrorState title='Không tải được danh sách đề.' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                           onRetry={() => refetch()} retrying={isFetching}/>
             : !data
-                ? <><SkeletonCard/><SkeletonCard/></>
+                ? <Loading/>
                 : data.items.length === 0 && page === 1
                     ? <EmptyState title='Chưa có đề nào'
                                   description='Nhập file Word có một hoặc nhiều đề. Đề đầu tiên sẽ đặt cấu trúc chuẩn cho cả ngân hàng.' action={importLink}/>
@@ -113,10 +113,10 @@ export default function BankPapers({bank}: {bank: BankSummary}) {
                             <p className='nb-note'>Mọi đề trong ngân hàng cùng số phần, số câu từng phần, dạng câu và điểm từng câu.</p>
                             <Signature rows={standard}/>
                         </Card>}
-                        <div className='vt-qbv-list' aria-busy={isFetching}>
+                        <Refreshable className='vt-qbv-list'>
                             {data.items.map(p => <PaperCard key={p.id} paper={p} open={openId === p.id}
                                 onToggle={() => setOpenId(openId === p.id ? null : p.id)} onDelete={() => setRemoving(p)}/>)}
-                        </div>
+                        </Refreshable>
                     </>}
 
         {total > PAPERS_PER_PAGE && <nav className='vt-qbv-pager' aria-label='Phân trang'>

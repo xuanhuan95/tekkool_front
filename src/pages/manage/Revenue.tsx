@@ -1,8 +1,7 @@
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
 
-import {Avatar, Card, CardTitle, ErrorState, IconButton, MetaChips, PageColumns, PageTitle, Skeleton, SkeletonCard, Table, Tabs,
-    buttonClass, icons} from '../../components/ui';
+import {Avatar, Card, CardTitle, ErrorState, IconButton, MetaChips, PageColumns, PageTitle, Table, Tabs, buttonClass, icons, Loading} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useRevenueSummary, useTransactions} from '../../queries/manage';
 import type {Period, RevenueSummary, Transaction} from '../../queries/manage';
@@ -102,7 +101,7 @@ export default function Revenue() {
         main = <ErrorState title='Không tải được doanh thu' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                            onRetry={() => refetch()} retrying={isFetching}/>;
     } else if (!s) {
-        main = <><div className='vt-mg-stats'><SkeletonCard/><SkeletonCard/><SkeletonCard/></div><SkeletonCard/></>;
+        main = <Loading/>;
     } else {
         main = <>
             <div className='vt-mg-stats'>
@@ -138,7 +137,7 @@ export default function Revenue() {
                 {recent.error && !recent.data
                     ? <ErrorState title='Không tải được đơn hàng' onRetry={() => recent.refetch()} retrying={recent.isFetching}/>
                     : !recent.data
-                        ? <SkeletonCard label='Đang tải đơn hàng'/>
+                        ? <Loading/>
                         : <Table caption='Đơn hàng gần đây' columns={txColumns} rows={recent.data.items} rowKey={t => t.invoice_number}
                                  minWidth={680} empty='Chưa có đơn nào trong kỳ'
                                  toolbar={<div className='vt-mg-row'>
@@ -156,7 +155,7 @@ export default function Revenue() {
     const side = <>
         <Card as='section' className='vt-mg-stack'>
             <CardTitle as='h2'>Đơn theo gói</CardTitle>
-            {!s ? <Skeleton height={60}/> : !s.by_package.length ? <p className='vt-muted'>Chưa có đơn thành công.</p>
+            {!s ? null : !s.by_package.length ? <p className='vt-muted'>Chưa có đơn thành công.</p>
                 : s.by_package.map(p => <div key={p.package_id || p.name || ''} className='vt-mg-stack' style={{gap: 6}}>
                     <div className='vt-mg-row'><b>{p.name || '—'}</b><span className='vt-num'>{p.orders} đơn · {formatMoney(p.revenue)}</span></div>
                     <div className='vt-mg-hbar' aria-hidden='true'><span style={{width: (p.orders / maxPkg * 100) + '%'}}/></div>
@@ -165,7 +164,7 @@ export default function Revenue() {
         </Card>
         <Card as='section' className='vt-mg-stack'>
             <CardTitle as='h2'>Người mua gần đây</CardTitle>
-            {!buyers.data ? <Skeleton height={60}/> : !recentBuyers.length ? <p className='vt-muted'>Chưa có người mua trong kỳ.</p>
+            {!buyers.data ? null : !recentBuyers.length ? <p className='vt-muted'>Chưa có người mua trong kỳ.</p>
                 : recentBuyers.map(t => <div key={t.user!.id} className='vt-mg-row'>
                     <span className='vt-mg-person'><Avatar name={t.user!.name} size={36}/>
                         <Link to={'/manage/users?id=' + encodeURIComponent(t.user!.id)} className='vt-mg-link'>{t.user!.name}</Link></span>
@@ -179,7 +178,7 @@ export default function Revenue() {
         <div className='vt-mg-head'>
             <div>
                 <PageTitle>Người mua &amp; doanh thu</PageTitle>
-                {s ? <MetaChips items={[periodTitle(s, today)]}/> : <Skeleton width={160} height={14}/>}
+                {s ? <MetaChips items={[periodTitle(s, today)]}/> : null}
             </div>
             <div className='vt-mg-actions'>
                 {period !== 'all' && <>

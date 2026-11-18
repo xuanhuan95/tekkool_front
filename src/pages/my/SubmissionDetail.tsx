@@ -1,9 +1,8 @@
 import {useEffect, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {Button, Form, Header, Icon, Input, Label, Message, Segment} from 'semantic-ui-react';
-import {Card, ErrorState, MetaChips, notify} from '../../components/ui';
+import {Card, ErrorState, MetaChips, notify, Loading} from '../../components/ui';
 
-import Loading from '../../components/Loading';
 import {Editor} from '../../components/Editor';
 import {textLength} from '../../components/textLength';
 import renderHTML from '../../components/SafeHtml';

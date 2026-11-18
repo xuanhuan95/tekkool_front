@@ -1,6 +1,6 @@
 import {Link, useSearchParams} from 'react-router-dom';
 
-import {EmptyState, ErrorState, MetaChips, PageTitle, SkeletonCard, buttonClass, icons} from '../../components/ui';
+import {EmptyState, ErrorState, MetaChips, PageTitle, buttonClass, icons, Loading} from '../../components/ui';
 import {usePackages} from '../../queries/payment';
 import {useWallet} from '../../queries/wallet';
 import PackageCard from './PackageCard';
@@ -40,9 +40,7 @@ export default function Packages() {
             ? <ErrorState title='Không tải được danh sách gói' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                           onRetry={() => refetch()} retrying={isFetching}/>
             : !packages
-                ? <div className='vt-pay-grid' aria-busy='true'>
-                    <SkeletonCard label='Đang tải gói'/><SkeletonCard label='Đang tải gói'/><SkeletonCard label='Đang tải gói'/>
-                </div>
+                ? <Loading/>
                 : !list.length
                     ? <EmptyState title='Chưa có gói nào đang bán' description='Quay lại sau nhé — Admin sẽ mở bán gói mới.'/>
                     : <div className='vt-pay-grid'>

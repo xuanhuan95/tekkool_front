@@ -2,7 +2,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import type {ReactNode} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
 
-import Loading from './Loading';
+import {Loading} from './ui';
 import {Button, Card} from './ui';
 import {POLL_MS, fetchMaintenance, fetchServerVersion, isNewVersion} from '../lib/appStatus';
 import type {Maintenance} from '../lib/appStatus';
@@ -102,7 +102,7 @@ export default function AppStatus({children}: {children: ReactNode}) {
     if (maintenance) return <MaintenanceScreen message={maintenance.message} inExam={exam} onRetry={check}/>;
     // Hold the app until the first check is back: a hard load on /do-exam/* would otherwise open (and bill)
     // an attempt during maintenance. Fetch errors/timeouts resolve to null, so this never hangs.
-    if (!checked) return <Loading/>;
+    if (!checked) return <Loading variant='boot'/>;
     return <>
         {stale && !exam && <NewVersionBar/>}
         {children}

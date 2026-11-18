@@ -1,8 +1,7 @@
 import {useState} from 'react';
 import type {FormEvent} from 'react';
 
-import {Badge, IconButton, Button, Card, CardTitle, ConfirmDialog, EmptyState, ErrorState, PageColumns, PageTitle, SkeletonCard,
-    Switch, Table, TextArea, TextField, buttonClass, icons, notify} from '../../components/ui';
+import {Badge, IconButton, Button, Card, CardTitle, ConfirmDialog, EmptyState, ErrorState, PageColumns, PageTitle, Switch, Table, TextArea, TextField, buttonClass, icons, notify, Loading} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {useAdminPackages, usePackageMutations} from '../../queries/manage';
 import type {PackageInput} from '../../queries/manage';
@@ -182,7 +181,7 @@ export default function AdminPackages() {
             ? <ErrorState title='Không tải được danh sách gói' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                           onRetry={() => refetch()} retrying={isFetching}/>
             : !data
-                ? <SkeletonCard label='Đang tải gói'/>
+                ? <Loading/>
                 : !list.length
                     ? <EmptyState title='Chưa có gói nào' description='Tạo gói đầu tiên để học sinh mua lượt.'
                                   action={<Button variant='primary' onClick={() => setEditing('new')}>+ Gói mới</Button>}/>

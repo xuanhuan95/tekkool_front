@@ -1,6 +1,6 @@
 import {Link, useParams} from 'react-router-dom';
 
-import {Avatar, Badge, Button, Card, ErrorState, PageTitle, SkeletonCard, buttonClass} from '../../components/ui';
+import {Avatar, Badge, Button, Card, ErrorState, PageTitle, buttonClass, Loading} from '../../components/ui';
 import {useUserDetail} from '../../queries/manage';
 import {errorText, formatDate, formatDateTime, formatMoney} from '../../lib/format';
 import {orderName, orderStatus} from '../pay/order';
@@ -20,7 +20,7 @@ export default function StudentDetail() {
         <PageTitle>Chi tiết học sinh</PageTitle>
         {error && !u
             ? <ErrorState title='Không tải được học sinh' description={errorText(error, 'Thử lại sau.')} onRetry={() => refetch()} retrying={isFetching}/>
-            : !u ? <SkeletonCard label='Đang tải chi tiết'/>
+            : !u ? <Loading/>
             : <Card as='aside' aria-label='Chi tiết học sinh' className='vt-mg-stack vt-mg-detail'>
                 <div className='vt-mg-person'>
                     <Avatar name={u.name} size={40}/>

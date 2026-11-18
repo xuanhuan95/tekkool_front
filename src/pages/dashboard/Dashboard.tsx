@@ -4,8 +4,7 @@ import {Link, useNavigate, useParams} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 import striptags from 'striptags';
 
-import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, FilterChip, MetaChips, PageTitle, SkeletonCard, StatusBadge, Table,
-    TextField, buttonClass, notify} from '../../components/ui';
+import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, FilterChip, MetaChips, PageTitle, StatusBadge, Table, TextField, buttonClass, notify, Loading, Refreshable} from '../../components/ui';
 import type {Column} from '../../components/ui';
 import {errorText} from '../../lib/format';
 import Api from '../../services/api';
@@ -43,7 +42,7 @@ function TeacherHome() {
 
     if (folders.isError) return <ErrorState title='Không tải được kho đề' description={errorText(folders.error, 'Thử lại sau. Đề của cô vẫn an toàn.')}
                                             onRetry={() => folders.refetch()} retrying={folders.isFetching}/>;
-    if (!folders.data) return <div className='vt-th-page'><SkeletonCard/><SkeletonCard/></div>;
+    if (!folders.data) return <Loading/>;
 
     // Subjects only (root folders); child folders are not shown (Q5: no rename/delete UI yet).
     const subjects = folders.data.filter(f => !f.parent);
@@ -242,13 +241,13 @@ function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: F
 
         {isError ? <ErrorState title='Không tải được kho đề' description={errorText(error, 'Thử lại sau. Đề của cô vẫn an toàn.')}
                                onRetry={() => refetch()} retrying={isFetching}/>
-            : !data ? <SkeletonCard/>
+            : !data ? <Loading/>
             : !rows.length ? <EmptyState title={q ? `Không có đề nào khớp “${q}”`
                                               : filter === 'draft' ? 'Chưa có đề nháp nào'
                                               : filter === 'published' ? 'Chưa có đề nào xuất bản'
                                               : 'Thư mục trống'}
                                          description={!q && filter === 'all' ? 'Bấm “Tạo đề” trên thẻ môn.' : undefined}/>
-            : <div className={isFetching ? 'vt-th-loading' : undefined}>
+            : <Refreshable>
                 {wide
                     ? <Table caption={'Đề của môn ' + subject.name} columns={columns} rows={rows} rowKey={e => e.id} minWidth={820}/>
                     : <ul className='vt-th-cards'>{rows.map(e => <li key={e.id}><Card>
@@ -261,7 +260,7 @@ function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: F
                         </div>
                         <small>Sửa, xuất bản, xoá: dùng máy tính</small>
                     </Card></li>)}</ul>}
-            </div>}
+            </Refreshable>}
 
         <ConfirmDialog open={pending?.kind === 'delete'} tone='danger' loading={busy}
                        title='Xoá đề này?' cancelLabel='Giữ lại' confirmLabel='Xoá đề'
