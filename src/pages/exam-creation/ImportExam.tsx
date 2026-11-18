@@ -726,12 +726,11 @@ export default function ImportExam() {
 
         <div className='vt-imp-head'>
             <div>
-                {!showPreview && <Link to={bankId ? '/question-bank/' + bankId : '/'} className='vt-imp-link'>← {bankId ? bankLabel : 'Môn & đề'}</Link>}
-                {!desktop && showPreview && <button type='button' className='vt-imp-link vt-imp-back' disabled={busy} onClick={pickFile}>← {again}</button>}
+                <Link to={bankId ? '/question-bank/' + bankId : '/'} className='vt-imp-link'>← {bankId ? bankLabel : 'Môn & đề'}</Link>
                 <PageTitle>{bankId ? 'Nhập đề vào ngân hàng' : 'Nhập đề từ file Word'}</PageTitle>
                 <MetaChips items={[context, paperBank ? <Badge tone='title'>Nguyên đề</Badge> : bankId && <Badge tone='title'>Theo khối</Badge>]}/>
             </div>
-            {desktop && showPreview && <Button variant='secondary' disabled={busy} onClick={pickFile}>{again}</Button>}
+            {showPreview && <Button variant='secondary' disabled={busy} onClick={pickFile}>{again}</Button>}
         </div>
 
         <ol className='vt-imp-steps' aria-label='Các bước'>
@@ -780,7 +779,7 @@ export default function ImportExam() {
                 <span>Mỗi đề chỉ ở một ngân hàng. Xem đề ở <Link to={'/question-bank/' + b.id}>{b.name}</Link>; ở đây đề được bỏ chọn.</span>
             </div>)}
 
-            <div className='vt-rv'>
+            <div className='vt-imp-rv'>
                 <Card className='vt-rv-left'>
                     <ReviewList rows={rows} openId={openId} blockBank={!!bankId && !paperBank}
                                 onOpen={setOpenId} onToggle={id => setPicked(p => ({...p, [id]: !p[id]}))} onToggleAll={toggleAll}/>

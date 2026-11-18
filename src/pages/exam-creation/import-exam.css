@@ -284,8 +284,8 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 }
 
 /* Bank import preview v2: exam list on the left, the open exam on the right (stacked on a phone) */
-.vt-rv { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
-@media (min-width: 1024px) { .vt-rv { grid-template-columns: 340px minmax(0, 1fr); } .vt-rv-left { position: sticky; top: 12px; max-height: calc(100vh - 140px); overflow: auto; } }
+.vt-imp-rv { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (min-width: 1024px) { .vt-imp-rv { grid-template-columns: 340px minmax(0, 1fr); } .vt-rv-left { position: sticky; top: 12px; max-height: calc(100vh - 140px); overflow: auto; } }
 .vt-rv-list { display: flex; flex-direction: column; gap: 6px; }
 .vt-rv-file-name { font-size: 13px; font-weight: 700; color: var(--vt-muted); padding: 8px 0 4px; overflow-wrap: anywhere; }
 .vt-rv-item { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); padding: 2px 8px 6px 0; }
@@ -326,7 +326,6 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 .vt-bk-alert--err { background: var(--vt-err-bg); }
 .vt-bk-alert--sun { background: var(--vt-sun-soft); }
 .vt-bk-alert--info { background: var(--vt-action); }
-.vt-bk-alert--info > svg { color: var(--vt-ink); }
 .vt-bk-alert-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .vt-bk-alert-main > b { font-size: 15px; }
 .vt-bk-alert-text { font-size: 14px; }
@@ -344,3 +343,7 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 @media (prefers-reduced-motion: reduce) { .vt-bk-spin { animation: none; } }
 .vt-bk-prog { height: 8px; margin-top: 8px; border: 1.5px solid var(--vt-ink); border-radius: 999px; background: var(--vt-paper); overflow: hidden; }
 .vt-bk-prog > i { display: block; height: 100%; background: var(--vt-ink); }
+.vt-bk-dupitem { line-height: 1.5; }
+.vt-bk-dupitem a { line-height: inherit; }
+.vt-bk-alert--sun > svg, .vt-bk-alert--info > svg { stroke: var(--vt-ink); }
+.vt-bk-dupitem .vt-imp-link { min-height: 0; display: inline; }

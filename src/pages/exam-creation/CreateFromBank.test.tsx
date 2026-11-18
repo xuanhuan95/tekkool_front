@@ -80,7 +80,7 @@ it('copies the sample frame, computes the numbers itself and saves the frame as 
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: ' Đề thử '}});
     fireEvent.click(screen.getByText('Xem trước'));
     await screen.findByText('A. TRẮC NGHIỆM');
-    fireEvent.click(screen.getByText('Lưu đề'));
+    fireEvent.click(screen.getByText('Lưu đề nháp'));
 
     await screen.findByText('TRANG NGÂN HÀNG');
     const body = post.mock.calls.find(c => c[0] === 'exam/create_from_bank')![1] as {layout: {parts: {numbering: string; score?: number}[]}[]};
@@ -129,7 +129,7 @@ it('with ?folder it saves into that folder and goes back to the subject', async 
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề X'}});
     fireEvent.click(screen.getByText('Xem trước'));
     await screen.findByText('A. TRẮC NGHIỆM');
-    fireEvent.click(screen.getByText('Lưu đề'));
+    fireEvent.click(screen.getByText('Lưu đề nháp'));
     await screen.findByText('TRANG MÔN');
     expect(post.mock.calls.find(c => c[0] === 'exam/create_from_bank')![1]).toMatchObject({folder: 'F1'});
 });
@@ -181,7 +181,7 @@ it('step 3: the bank is short → says which type, no draw shown, "Lưu đề" l
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề'}});
     fireEvent.click(screen.getByText('Xem trước'));
     expect(await screen.findByText(/Đọc hiểu: cần 2, ngân hàng có 1/)).toBeTruthy();
-    expect((screen.getByText('Lưu đề') as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByText('Lưu đề nháp') as HTMLButtonElement).disabled).toBe(true);
 });
 
 it('after saving it lands on Môn & đề of the exam subject, not the bank list (BV2-08)', async () => {
@@ -192,7 +192,7 @@ it('after saving it lands on Môn & đề of the exam subject, not the bank list
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề mới'}});
     fireEvent.click(screen.getByText('Xem trước'));
     await screen.findByText('A. TRẮC NGHIỆM');
-    fireEvent.click(screen.getByText('Lưu đề'));
+    fireEvent.click(screen.getByText('Lưu đề nháp'));
     await screen.findByText('TRANG MÔN');
 });
 

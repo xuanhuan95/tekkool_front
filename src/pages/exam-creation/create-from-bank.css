@@ -98,9 +98,9 @@
 .vt-cfb-stock th, .vt-cfb-stock td { text-align: left; padding: 4px 8px; }
 .vt-cfb-stock tr.short td, .vt-cfb-stock tr.short th { color: var(--vt-err); font-weight: 700; }
 .vt-cfb-preview { display: flex; flex-direction: column; gap: 12px; width: 100%; }
-.vt-cfb-pname { margin: 0; font-size: 18px; font-weight: 700; }
+.vt-cfb-pname { margin: 0; font-size: 18px; font-weight: 700; text-transform: uppercase; }
 .vt-cfb-preview h2 { font-size: 16px; line-height: 1.3; text-transform: uppercase; margin: 8px 0 0; }
-.vt-cfb-preview h2.vt-cfb-pname { font-size: 18px; font-family: var(--vt-font); margin: 0; text-align: center; }
+.vt-cfb-preview h2.vt-cfb-pname { font-size: 18px; font-family: var(--vt-font); margin: 0; text-align: center; text-transform: uppercase; }
 .vt-cfb-preview > div:first-child { text-align: center; }
 .vt-cfb-preview > div:first-child .vt-cfb-hint { font-weight: 700; }
 .vt-cfb-preview { padding: 24px 16px; gap: 14px; }

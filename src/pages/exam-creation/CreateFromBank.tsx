@@ -288,8 +288,9 @@ export default function CreateFromBank() {
         <LayoutPreview name={name.trim()} minutes={minutes} draw={drawQ}/>
         <div className='vt-cfb-bar'>
             {formError && <p className='vt-cfb-err' role='alert'>{formError}</p>}
-            <Button variant='ghost' onClick={() => setStep(1)}>← Sửa khung</Button>
-            <Button variant='primary' loading={save.isPending} disabled={save.isPending || !drawQ.data || !!drawQ.data.shortage.length} onClick={submit}>Lưu đề</Button>
+            <span className='vt-cfb-hint'>Lưu xong đề ở <b>Môn & đề{folderName || bank?.subject ? ` › ${folderName || bank?.subject}` : ''}</b>, trạng thái Nháp.</span>
+            <Button variant='secondary' onClick={() => setStep(1)}>Quay lại sửa khung</Button>
+            <Button variant='primary' loading={save.isPending} disabled={save.isPending || !drawQ.data || !!drawQ.data.shortage.length} onClick={submit}>Lưu đề nháp</Button>
         </div>
     </>;
 
