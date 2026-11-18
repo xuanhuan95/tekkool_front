@@ -764,7 +764,7 @@ export default function ImportExam() {
             </BankAlert>}
             {!dupRun && dupDone && (dupCount === 0
                 ? <div className='nb-ok' role='status'><b>Không có khối nào trùng.</b> Đã so với {dupDone.compared} khối trong ngân hàng và giữa các đề vừa đọc.</div>
-                : <DupPanel exams={exams} bankDups={bankDups} impDups={impDups} existing={dupDone.existing} keepDup={keepDup} busy={saving}
+                : <DupPanel bankId={bankId!} exams={exams} bankDups={bankDups} impDups={impDups} existing={dupDone.existing} keepDup={keepDup} busy={saving}
                             onToggle={k => setKeepDup(m => ({...m, [k]: !m[k]}))} onRecheck={checkDuplicates}/>)}
             {bankId && !saving && left > 0 && (saveErrors.length > 0 || chosen.some(e => state[e.id] === 'pending')) &&
                 <SaveErrorPanel saved={chosen.filter(e => state[e.id] === 'saved').length} total={chosen.length} left={left} bankId={bankId} busy={saving}

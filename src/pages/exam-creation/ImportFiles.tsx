@@ -89,7 +89,7 @@ export default function ImportFiles({rows, onRemove, onRetry, onReplace, onGuide
                 <Badge tone={TONE[r.status]}>{LABEL[r.status]}</Badge>
             </li>)}
         </ul>
-        {rows.some(r => r.shared) && <div className='vt-imp-nopaper'>
+        {rows.some(r => r.shared) && !paperTarget && <div className='vt-imp-nopaper'>
             <b>Chưa có ngân hàng nguyên đề{subject ? ` môn ${subject.replace(/^môn\s+/i, '')}` : ' môn này'}?</b>
             <span>Tạo ở trang Ngân hàng câu hỏi, chọn loại “Nguyên đề”, rồi nhập lại file này.</span>
             <Link to='/question-bank' className='vt-imp-link'>Tạo ngân hàng nguyên đề</Link>

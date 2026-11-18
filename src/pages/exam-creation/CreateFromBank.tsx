@@ -39,7 +39,9 @@ const bankName = (b: {name: string; kind?: string}) => `${b.name} — ${b.kind =
 const frameSummary = (t: BankTemplate) => {
     const parts = t.layout.flatMap(g => g.parts);
     const pts = parts.every(p => p.score != null) ? parts.reduce((n, p) => n + (p.score || 0), 0) : null;
-    return [`${t.layout.length} nhóm`, `${parts.length} phần`, `${t.block_count} khối`, pts != null && `${formatDecimal(pts)} điểm`].filter(Boolean).join(' · ');
+    const at = t.created_at ? new Date(t.created_at) : null;
+    const day = at && !isNaN(at.getTime()) ? `nhập ${String(at.getDate()).padStart(2, '0')}/${String(at.getMonth() + 1).padStart(2, '0')}` : null;
+    return [`${t.layout.length} nhóm`, `${parts.length} phần`, `${t.block_count} khối`, pts != null && `${formatDecimal(pts)} điểm`, day].filter(Boolean).join(' · ');
 };
 const hhmm = (t: number) => new Date(t).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'});
 
@@ -189,7 +191,7 @@ export default function CreateFromBank() {
                         <span><b>{bankName(b)}</b><br/>
                             <small>{b.kind === 'paper'
                                 ? `Nguyên đề · ${bankCount(b)} đề. Mỗi lượt rút nguyên một đề, không cần dựng khung.`
-                                : `Theo khối · ${bankCount(b)} khối. Mỗi khối trong khung rút ngẫu nhiên một khối cùng dạng.`}</small></span>
+                                : `Theo khối · ${bankCount(b)} khối${b.source_count ? ` · ${b.source_count} đề đã nhập` : ''}. Mỗi khối trong khung rút ngẫu nhiên một khối cùng dạng.`}</small></span>
                     </label>)}
                 </div>}
         </Card>

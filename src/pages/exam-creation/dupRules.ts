@@ -1,4 +1,4 @@
-import {plain, toUnits, type DuplicateInfo, type ImportQuestion, type ImportedExam, type ImportSection} from './importRules';
+import {plain, toUnits, type DuplicateInfo, type ImportQuestion, type MatchSource, type ImportedExam, type ImportSection} from './importRules';
 
 /**
  * Bank-import duplicate rules (B7, BF-02). Pure, so the screen only renders.
@@ -27,7 +27,7 @@ export function blocksOf(exam: ImportedExam): Block[] {
 /** Normalised text of a block, used to see the same passage/question in two exams that were just read. */
 export const blockKey = (b: Block) => b.questions.map(q => plain(q.data.passage) + '|' + plain(q.data.question)).join('||').toLowerCase().replace(/\s+/g, ' ');
 
-export type BlockDup = {exam: string; block: string; score: number; with?: string; inImport?: string};
+export type BlockDup = {exam: string; block: string; score: number; with?: string; inImport?: string; source?: MatchSource};
 
 /** Blocks of `exam` that equal a block already in the bank (BE score ≥ SAME_BLOCK against something that is not this very file). */
 export function bankDuplicates(exam: ImportedExam, duplicates: Record<string, DuplicateInfo>): BlockDup[] {
@@ -36,7 +36,7 @@ export function bankDuplicates(exam: ImportedExam, duplicates: Record<string, Du
         const hits = b.questions.map(q => duplicates[q.id]).filter(Boolean);
         const best = hits.sort((a, c) => c.score - a.score)[0];
         const match = best?.matches.find(m => !m.in_file && m.score >= SAME_BLOCK);
-        if (best && best.score >= SAME_BLOCK && match) out.push({exam: exam.id, block: b.id, score: best.score, with: match.block || match.id});
+        if (best && best.score >= SAME_BLOCK && match) out.push({exam: exam.id, block: b.id, score: best.score, with: match.block || match.id, source: match});
     }
     return out;
 }

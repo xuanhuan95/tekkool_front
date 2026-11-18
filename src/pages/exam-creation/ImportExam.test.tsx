@@ -764,6 +764,17 @@ describe('ImportExam: bank import flow v2 (BF-01, BF-07, BF-12, BF-15, B7)', () 
         expect(JSON.stringify(sent[0])).toContain('"Q2"');
     });
 
+    it('the duplicate card names the source exam with a link and "nhập dd/mm từ file" when the BE sends it', async () => {
+        const at = new Date(2026, 10, 15, 9).toISOString();
+        mockPost({'question_bank/check_duplicates': () => ({duplicates: {Q1: {score: 0.97, matches: [{block: 'K9', score: 0.97, source_name: 'Đề số 12', source_file: 'de-12.docx', imported_at: at, source_item_id: 'I1'}]}}, compared: 40, existing: null})});
+        renderScreen();
+        await loadFile(examOf(mc('Q1', 'Q1A'), mc('Q2', 'Q2A')));
+        fireEvent.click(screen.getByText(/Kiểm trùng lặp/));
+        const link = await screen.findByRole('link', {name: 'Đề số 12'});
+        expect(link.getAttribute('href')).toBe('/question-bank/B1');
+        expect(link.parentElement!.textContent).toContain('(nhập 15/11 từ de-12.docx)');
+    });
+
     it('B7: a clean check says so on screen and the exam already in the bank is ticked off', async () => {
         mockPost({'question_bank/check_duplicates': () => ({duplicates: {}, compared: 40, existing: {bank: 'B1', bank_name: 'NH Toán 12', same_bank: true, count: 1}})});
         renderScreen();
@@ -839,6 +850,7 @@ describe('ImportExam: BF-04 «Cho biết» into a block bank', () => {
         pick();
         expect(await screen.findByText(/Đề có khối “Cho biết”/)).toBeTruthy();
         expect(screen.getByText('Nhập vào “Toán — nguyên đề”')).toBeTruthy();
+        expect(screen.queryByText('Tạo ngân hàng nguyên đề')).toBeNull();      // one or the other, never both
         expect((screen.getByText(/Xem trước 0 đề/).closest('button') as HTMLButtonElement).disabled).toBe(true);
         expect(sent).toHaveLength(0);
     });

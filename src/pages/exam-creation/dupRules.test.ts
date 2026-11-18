@@ -21,7 +21,7 @@ describe('dupRules', () => {
             b: {score: 0.9, matches: [{block: 'Đề số 3', score: 0.9}]},
             c: {score: 1, matches: [{in_file: true, score: 1}]},
         });
-        expect(dups).toEqual([{exam: 'E', block: 'a', score: 0.97, with: 'Đề số 12'}]);
+        expect(dups).toMatchObject([{exam: 'E', block: 'a', score: 0.97, with: 'Đề số 12'}]);
     });
 
     it('the same block in two exams read together: the later exam holds the duplicate', () => {

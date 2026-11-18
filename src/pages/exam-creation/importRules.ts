@@ -37,10 +37,13 @@ export type ImportedExam = {
 /** BE refuses it for a block bank (BF-04): text left after stripping tags and blanks. */
 export const hasSharedInfo = (e: ImportedExam) => (e.shared_info || []).some(h => h.replace(/<[^>]*>|&nbsp;/g, ' ').trim() !== '');
 
+/** Where the bank block came from (BE adds these; older replies lack them, then the card just omits the line). */
+export type MatchSource = {source_name?: string | null; source_file?: string | null; imported_at?: string | null; source_item_id?: string | null};
+
 /** Duplicate-check result for ONE question — `question_bank/check_duplicates`. */
 export type DuplicateInfo = {
     score: number;
-    matches: Array<{id?: string; block?: string; score: number; in_file?: boolean}>;
+    matches: Array<{id?: string; block?: string; score: number; in_file?: boolean} & MatchSource>;
 };
 
 /** One coded warning of `import_docx/preview` (`issues`). `error` = Nặng (must be acknowledged before saving). */

@@ -66,17 +66,16 @@ it('copies the sample frame, computes the numbers itself and saves the frame as 
     renderPage();
     await copyTemplate();
 
-    expect(screen.getByText('→ câu 1–10')).toBeTruthy();
-    expect(screen.getByText('→ câu 1–1')).toBeTruthy();          // Phần II restarts
+    expect(screen.getByText('câu 1–10')).toBeTruthy();
+    expect(screen.getByText('câu 1')).toBeTruthy();          // Phần II restarts
 
     // One more Đọc hiểu in Phần I: the lead's "đến câu" moves from 10 to 15.
     const lead = within(screen.getAllByRole('group', {name: 'Lời dẫn'})[0]);
     expect(lead.getAllByText(/^\d+$/).map(e => e.textContent)).toEqual(['1', '10']);
-    fireEvent.click(screen.getAllByText('Thêm tiểu mục')[0]);
+    fireEvent.click(screen.getAllByText('+ Thêm tiểu mục')[0]);
     fireEvent.change(screen.getAllByLabelText('Dạng khối')[1], {target: {value: 'reading'}});
     await waitFor(() => expect(lead.getAllByText(/^\d+$/).map(e => e.textContent)).toEqual(['1', '15']));
-    fireEvent.click(screen.getAllByLabelText('Thao tác với tiểu mục 2')[0]);   // ⋯ menu → Xoá, back to the sample
-    fireEvent.click(screen.getByRole('menuitem', {name: 'Xoá'}));
+    fireEvent.click(screen.getByLabelText('Xoá tiểu mục I.2'));   // back to the sample
 
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: ' Đề thử '}});
     fireEvent.click(screen.getByText('Xem trước'));
@@ -201,4 +200,21 @@ it('F5 on the frame step comes back to the same step with the same bank and samp
     mock();
     renderPage('/create-from-bank?bank=b1&template=T1&step=1');
     await screen.findAllByLabelText('Tên phần');
+});
+
+it('the frame is nested like the artboard: level tags, segmented numbering, stepper (BV2-07)', async () => {
+    mock();
+    renderPage();
+    await copyTemplate();
+    expect(screen.getAllByText('Nhóm').length).toBe(1);
+    expect(screen.getAllByText('Phần').length).toBe(2);
+    expect(screen.getByText('Tiểu mục I.1')).toBeTruthy();
+    expect(screen.getByText('Tiểu mục II.1')).toBeTruthy();
+    const restart = screen.getAllByRole('button', {name: 'Đánh lại từ câu 1'});
+    expect(restart[0].getAttribute('aria-pressed')).toBe('false');
+    expect(restart[1].getAttribute('aria-pressed')).toBe('true');       // Phần II restarts
+    fireEvent.click(restart[0]);
+    expect(restart[0].getAttribute('aria-pressed')).toBe('true');
+    fireEvent.click(screen.getAllByLabelText('Thêm 1 khối')[0]);
+    expect((screen.getAllByLabelText('Số khối').find(e => e.tagName === 'INPUT') as HTMLInputElement).value).toBe('3');
 });

@@ -58,7 +58,7 @@ export type CreateFromBankInput = {
 };
 
 /** Sample exams of a bank: frames the teacher can copy (`question_bank/templates`). */
-export type BankTemplate = {id: string; name: string; layout: Layout; block_count: number};
+export type BankTemplate = {id: string; name: string; layout: Layout; block_count: number; created_at?: string | null};
 export function useBankTemplates(bankId: string) {
     return useQuery({
         queryKey: [...bankKeys.all, 'templates', bankId],

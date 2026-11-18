@@ -132,7 +132,9 @@ export type TestExam = {
 export type BankKind = 'block' | 'paper';
 
 /** `question_bank/list` row: `items` = blocks (kind block) or whole exams (kind paper). */
-export type BankSummary = {id: string; name: string; subject: string; kind?: BankKind; items?: number; blocks: number};
+export type BankSummary = {id: string; name: string; subject: string; kind?: BankKind; items?: number; blocks: number;
+    /** Exams imported into a block bank (BE `source_count`); absent on older replies. */
+    source_count?: number};
 
 /** `question_bank/papers` row (kind paper). */
 export type BankPaperRow = {id: string; name: string; part_count: number; question_count: number; total_score: number; created_at: string};
