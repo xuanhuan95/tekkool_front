@@ -9,7 +9,8 @@ import './paper-bank.css';
 export type PaperSaveReply = {
     saved: number; total: number;
     papers: {id: string; name: string; question_count: number; total_score: number}[];
-    rejected: {id: string; name: string; reason: 'structure' | 'invalid_questions'; message: string}[];
+    /** `other_bank` (BF-15): the exam already lives in another bank, named in `bank`. */
+    rejected: {id: string; name: string; reason: 'structure' | 'invalid_questions' | 'other_bank'; message: string; bank?: {id: string; name: string}}[];
 };
 export type PaperResult = Pick<PaperSaveReply, 'papers' | 'rejected' | 'total'>;
 
@@ -51,7 +52,8 @@ export default function PaperImportResult({bankId, result, exams, standard, onPi
                     return <div key={r.id} className='nb-row bad'>
                         <div className='nm'>{r.name}</div>
                         {e && <span className='mt'>{countQuestions(e)} câu · {vn(examTotal(e.sections as never))} điểm</span>}
-                        <Badge tone='err'>{r.reason === 'structure' ? 'Chưa lưu · khác cấu trúc' : 'Chưa lưu · câu hỏi lỗi'}</Badge>
+                        {r.reason === 'other_bank' && r.bank && <span className='mt'>Đã có ở <Link to={'/question-bank/' + r.bank.id}>{r.bank.name}</Link></span>}
+                        <Badge tone='err'>{r.reason === 'structure' ? 'Chưa lưu · khác cấu trúc' : r.reason === 'other_bank' ? 'Chưa lưu · ở ngân hàng khác' : 'Chưa lưu · câu hỏi lỗi'}</Badge>
                     </div>;
                 })}
             </div>

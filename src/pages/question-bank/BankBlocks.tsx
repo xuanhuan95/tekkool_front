@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {Link, useParams} from 'react-router-dom';
+import {Link, useLocation, useParams} from 'react-router-dom';
 
 import renderHTML from '../../components/SafeHtml';
 import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, MetaChips, PageTitle, Select, Loading, TextField, buttonClass, icons, notify, Refreshable}
@@ -9,6 +9,7 @@ import {BLOCKS_PER_PAGE, useBankBlocks, useBankStats, useBanks, useDeleteBlock} 
 import type {BankBlock} from '../../types/exam';
 import {blockLabel} from '../exam-creation/blockTypes';
 import '../exam-creation/import-exam.css';   // passage / explanation styles shared with the import screen
+import './paper-bank.css';
 import './question-bank.css';
 
 const isChoiceType = (t: string) => t === 'MultipleChoice' || t === 'ErrorIdentify';
@@ -73,6 +74,9 @@ export default function BankBlocks() {
     const {bankId = ''} = useParams();
     const {data: banks} = useBanks();
     const bank = banks?.find(b => b.id === bankId);
+    // B5/BF-03: coming back from the import screen says what just went in (state is gone after F5, which is fine).
+    const imported = (useLocation().state as {imported?: {exams: number; blocks: number}} | null)?.imported;
+    const [hideNote, setHideNote] = useState(false);
     const [type, setType] = useState('');
     const [typed, setTyped] = useState('');
     const [q, setQ] = useState('');
@@ -115,6 +119,11 @@ export default function BankBlocks() {
                 <MetaChips items={[data && `${data.total} khối${type || q ? ' khớp bộ lọc' : ''}`]}/>
             </div>
         </div>
+
+        {imported && !hideNote && <div className='nb-ok vt-qbv-imported' role='status'>
+            <span><b>Vừa nhập {imported.exams} đề</b> · thêm {imported.blocks} khối vào ngân hàng.</span>
+            <Button variant='ghost' size='sm' onClick={() => setHideNote(true)}>Đóng</Button>
+        </div>}
 
         <div className='vt-qbv-filters'>
             <Select label='Dạng khối' value={type} onChange={e => { setType(e.target.value); setPage(1); }}
