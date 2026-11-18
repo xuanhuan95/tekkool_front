@@ -104,6 +104,8 @@ export default function BankBlocks() {
         });
     };
 
+    if (!data && !isError) return <div className='vt-qb-page'><Loading/></div>; // lần đầu: cả vùng nội dung là khối tải
+
     return <div className='vt-qb-page'>
         <Link to='/question-bank' className={buttonClass({variant: 'ghost'})}>← Ngân hàng câu hỏi</Link>
         <div className='vt-qb-head'>

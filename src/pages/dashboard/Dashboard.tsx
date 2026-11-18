@@ -229,6 +229,8 @@ function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: F
         {key: 'actions', header: 'Thao tác', render: actions},
     ];
 
+    if (!data && !isError) return <Loading/>; // lần đầu: cả khối đề là khối tải, chưa hiện tên môn / chip lọc
+
     return <section className='vt-th-exams' aria-busy={isFetching}>
         <div className='vt-th-exams-head'>
             <h2>{subject.name}</h2>

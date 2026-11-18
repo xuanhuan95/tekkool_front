@@ -22,6 +22,8 @@ export default function Packages() {
     const list = packages || [];
     const primaryId = (list.find(p => p.featured) || list[Math.min(1, list.length - 1)])?.id;
 
+    if (!packages && !error) return <div className='vt-paper vt-pay'><Loading/></div>; // lần đầu: cả vùng nội dung là khối tải
+
     return <div className='vt-paper vt-pay'>
         <div className='vt-pay-head'>
             <div className='vt-pay-head-text'>
@@ -39,9 +41,7 @@ export default function Packages() {
         {error
             ? <ErrorState title='Không tải được danh sách gói' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                           onRetry={() => refetch()} retrying={isFetching}/>
-            : !packages
-                ? <Loading/>
-                : !list.length
+            : !list.length
                     ? <EmptyState title='Chưa có gói nào đang bán' description='Quay lại sau nhé — Admin sẽ mở bán gói mới.'/>
                     : <div className='vt-pay-grid'>
                         {list.map(p => <PackageCard key={p.id} pkg={p} action={

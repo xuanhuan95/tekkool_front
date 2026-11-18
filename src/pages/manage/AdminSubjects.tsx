@@ -77,6 +77,8 @@ export default function AdminSubjects() {
         </span>},
     ];
 
+    if (!data && !error) return <div className='vt-mg-page'><Loading/></div>; // lần đầu: cả vùng nội dung là khối tải
+
     const main = error && !data
         ? <ErrorState title='Không tải được danh sách môn' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                       onRetry={() => refetch()} retrying={isFetching}/>

@@ -23,7 +23,7 @@ export default function DrawExam() {
     if (info.isError) return <div className='vt-draw'>{back}
         <ErrorState title='Không tải được ngân hàng' description={errorText(info.error, 'Kiểm tra mạng rồi thử lại.')}
                     onRetry={() => info.refetch()} retrying={info.isFetching}/></div>;
-    if (!info.data) return <div className='vt-draw'>{back}<Loading/></div>;
+    if (!info.data) return <div className='vt-draw'><Loading/></div>;
 
     const {stats, capacity} = info.data;
     const per = stats.per_type || {};

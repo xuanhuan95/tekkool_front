@@ -22,11 +22,10 @@ function SubjectChips({subjects, value, onChange}: {subjects: SubjectSummary[]; 
     </div>;
 }
 
-function ExamList({subject, filter}: {subject: SubjectSummary; filter: ExamFilter}) {
-    const q = useSubjectExams(subject.id);
+function ExamList({subject, filter, q}: {subject: SubjectSummary; filter: ExamFilter; q: ReturnType<typeof useSubjectExams>}) {
     const {data: cont} = useInProgress();
-    if (q.isPending) return <Loading/>;
     if (q.isError) return <LoadError error={q.error} onRetry={() => q.refetch()} what={'đề môn ' + subject.name}/>;
+    if (!q.data) return <Loading/>;
     const list = filterExams(q.data, filter, cont);
     if (q.data.length === 0)
         return <EmptyState title={'Môn ' + subject.name + ' chưa có đề'} description='Giáo viên đang soạn, bạn chọn môn khác nhé.'/>;
@@ -56,8 +55,11 @@ export default function ExamsPage() {
     const [filter, setFilter] = useState<ExamFilter>('all');
     const subjects = useSubjects();
     const head = <PageHead title='Đề thi'/>;
+    const selId = (subjects.data?.find(s => s.id === params.get('mon')) || subjects.data?.[0])?.id;
+    const exams = useSubjectExams(selId);
 
-    if (subjects.isPending) return <div className='hs-page'>{head}<Loading/></div>;
+    // Lần đầu: cả vùng nội dung là khối tải, chưa hiện tiêu đề / chip / bộ lọc.
+    if (subjects.isPending || (!subjects.isError && selId && exams.isPending)) return <Loading/>;
     if (subjects.isError) return <div className='hs-page'>{head}
         <LoadError error={subjects.error} onRetry={() => subjects.refetch()} what='danh sách môn'/></div>;
     if (subjects.data.length === 0) return <div className='hs-page'>{head}
@@ -73,7 +75,7 @@ export default function ExamsPage() {
             <span className='hs-meta vt-num'>{sel.exams} đề</span>
         </div>
         <Refreshable id='hs-exams-panel' role='tabpanel' aria-labelledby={'mon-' + sel.id}>
-            <ExamList key={sel.id} subject={sel} filter={filter}/>
+            <ExamList subject={sel} filter={filter} q={exams}/>
         </Refreshable>
     </div>;
 }

@@ -39,6 +39,8 @@ export default function Users() {
             <IconButton to={'/manage/users/' + u.id} tipEnd label={'Xem chi tiết ' + u.name} icon={<icons.IconArrowRight/>}/>},
     ];
 
+    if (!data && !error) return <div className='vt-mg-page'><Loading/></div>; // lần đầu: cả vùng nội dung là khối tải
+
     const total = data?.counts?.student ?? data?.total;
     return <div className='vt-mg-page'>
         <div className='vt-mg-head'>
@@ -58,9 +60,7 @@ export default function Users() {
             {error && !data
                 ? <div className='vt-table-state'><ErrorState title='Không tải được danh sách học sinh' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                               onRetry={() => refetch()} retrying={isFetching}/></div>
-                : !data
-                    ? <Loading/>
-                    : <Refreshable><Table bare caption='Danh sách học sinh' columns={columns} rows={data.items} rowKey={u => u.id} minWidth={720}
+                : <Refreshable><Table bare caption='Danh sách học sinh' columns={columns} rows={data!.items} rowKey={u => u.id} minWidth={720}
                              empty='Không có học sinh khớp bộ lọc'/></Refreshable>}
         </Card>
         {data && <Pager page={data.page} limit={data.limit} total={data.total} unit='học sinh' onPage={p => set({page: String(p)})}/>}

@@ -1,4 +1,4 @@
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {keepPreviousData, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import Api from '../services/api';
 import type {ExamSummary, Folder} from '../types/exam';
@@ -48,6 +48,7 @@ export function useSubjectExams(subjectId: string | undefined) {
         queryFn: () => fetchSubjectExams(subjectId!),
         enabled: !!subjectId,
         retry: retryFlaky,
+        placeholderData: keepPreviousData, // đổi chip môn: giữ danh sách cũ, không nháy trắng
     });
 }
 
@@ -79,6 +80,7 @@ export function useBoard(kind: BoardKind, folder?: string | null, limit?: number
         queryFn: () => Api.get<Board>(boardUrl(kind, folder, limit)),
         enabled,
         retry: retryFlaky,
+        placeholderData: keepPreviousData,
     });
 }
 

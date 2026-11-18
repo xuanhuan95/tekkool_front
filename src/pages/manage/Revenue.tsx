@@ -96,6 +96,8 @@ export default function Revenue() {
 
     const maxPkg = Math.max(1, ...(s?.by_package || []).map(p => p.orders));
 
+    if (!s && !error) return <div className='vt-mg-page'><Loading/></div>; // lần đầu: cả vùng nội dung là khối tải
+
     let main;
     if (error && !s) {
         main = <ErrorState title='Không tải được doanh thu' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}

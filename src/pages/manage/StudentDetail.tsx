@@ -15,6 +15,8 @@ export default function StudentDetail() {
     const {data: u, error, refetch, isFetching} = useUserDetail(id);
     const {askLock, askReset, dialogs} = useAccountActions();
 
+    if (!u && !error) return <div className='vt-mg-page'><Loading/></div>; // lần đầu: cả vùng nội dung là khối tải
+
     return <div className='vt-mg-page'>
         <Link to='/manage/users' className={buttonClass({variant: 'ghost'}) + ' vt-mg-back'}>← Học sinh</Link>
         <PageTitle>Chi tiết học sinh</PageTitle>

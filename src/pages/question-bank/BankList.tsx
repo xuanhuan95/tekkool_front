@@ -23,6 +23,8 @@ export default function BankList() {
 
     const openCreate = <Button variant='primary' onClick={() => setCreating(true)}>+ Ngân hàng mới</Button>;
 
+    if (!banks && !isError) return <div className='vt-qb-page'><Loading/></div>; // lần đầu: cả vùng nội dung là khối tải
+
     return <div className='vt-qb-page'>
         <div className='vt-qb-head'>
             <div>

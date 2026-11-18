@@ -273,6 +273,8 @@ export default function CreateFromBank() {
                 </div>
             </div>;
 
+    if (!banks && !banksQ.isError) return <div className='vt-cfb'><Loading/></div>; // lần đầu: cả vùng nội dung là khối tải
+
     return <div className='vt-cfb'>
         <Link to='/question-bank' className={buttonClass({variant: 'ghost'})}>← Ngân hàng câu hỏi</Link>
         <PageTitle>Tạo đề từ ngân hàng</PageTitle>

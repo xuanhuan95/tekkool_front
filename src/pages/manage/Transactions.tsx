@@ -168,6 +168,8 @@ export default function Transactions() {
     const query = useDebounced(q.trim());
     const {data, error, refetch, isFetching} = useTransactions({status, from, to, q: query, page, limit: LIMIT}, tab === 'list');
 
+    const rec = useReconcile(undefined, tab === 'reconcile'); // cùng key với ReconcileTab; để biết lúc vào tab lần đầu
+
     const set = (patch: Record<string, string | null>) => {
         const next = new URLSearchParams(params);
         for (const [k, v] of Object.entries(patch)) { if (v) next.set(k, v); else next.delete(k); }
@@ -224,6 +226,9 @@ export default function Transactions() {
                     <Pager page={data.page} limit={data.limit} total={data.total} unit='đơn' onPage={p => set({page: String(p)})}/>
                 </>}
     </div>;
+
+    // Lần đầu vào: cả vùng nội dung là khối tải, chưa hiện tiêu đề / tab.
+    if (tab === 'list' ? !data && !error : !rec.data && !rec.error) return <div className='vt-mg-page'><Loading/></div>;
 
     return <div className='vt-mg-page'>
         <div className='vt-mg-head'>

@@ -56,10 +56,11 @@ export default function HistoryPage() {
     const pending = bySubject.filter(s => s.pending_count > 0);
     const shown = filter === 'pending' ? pending : bySubject;
 
+    if (isPending) return <div className='vt-res'><Loading/></div>;
+
     return <div className='vt-res'>
         <PageTitle>Lịch sử làm bài</PageTitle>
-        {isPending ? <Loading/>
-            : error ? <ErrorState title='Chưa tải được lịch sử' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
+        {error ? <ErrorState title='Chưa tải được lịch sử' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                                   onRetry={() => refetch()} retrying={isFetching}/>
             : list.length === 0
                 ? <EmptyState title='Chưa có bài nào' description='Làm một đề thi thử để xem kết quả ở đây.'

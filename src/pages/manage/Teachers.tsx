@@ -172,6 +172,8 @@ export default function Teachers() {
 
     const filtered = !!(query || subject || status);
 
+    if (!data && !error) return <div className='vt-mg-page'><Loading/></div>; // lần đầu: cả vùng nội dung là khối tải
+
     return <div className='vt-mg-page'>
         <div className='vt-mg-head'>
             <div>
@@ -198,12 +200,10 @@ export default function Teachers() {
         {error && !data
             ? <div className='vt-table-state'><ErrorState title='Không tải được danh sách giáo viên' description={errorText(error, 'Kiểm tra mạng rồi thử lại.')}
                           onRetry={() => refetch()} retrying={isFetching}/></div>
-            : !data
-                ? <Loading/>
-                : !data.items.length && !filtered
+            : !data!.items.length && !filtered
                     ? <EmptyState bare title='Chưa có giáo viên nào' description='Tạo tài khoản đầu tiên để giáo viên bắt đầu soạn đề.'
                                   action={<Button variant='primary' onClick={() => setCreating(true)}>+ Tạo giáo viên</Button>}/>
-                    : <Refreshable><Table bare caption='Danh sách giáo viên' columns={columns} rows={data.items} rowKey={t => t.id}
+                    : <Refreshable><Table bare caption='Danh sách giáo viên' columns={columns} rows={data!.items} rowKey={t => t.id}
                              minWidth={760} empty='Không có giáo viên khớp bộ lọc'/></Refreshable>}
         </Card>
         {data && (data.items.length > 0 || filtered) &&
