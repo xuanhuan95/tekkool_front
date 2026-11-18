@@ -378,6 +378,8 @@ export default function ImportExam() {
     const [files, setFiles] = useState<FileRow[]>([]);
     const [previewing, setPreviewing] = useState(false);   // step 2 (a single clean file goes there by itself)
     const fileOf = useRef<Record<string, File>>({});       // exam id → the file it came from (for the PDF)
+    /** `source_file` for question_bank/save: the .docx the exam was read from (BE keeps up to 255 characters). */
+    const srcFile = (id: string) => { const n = fileOf.current[id]?.name; return n ? {source_file: n.slice(0, 255)} : {}; };
     const replacing = useRef<string | null>(null);         // "Chọn lại file": the errored row the next pick replaces
     const reading = files.some(f => f.status === 'queued' || f.status === 'reading');
     const [exams, setExams] = useState<ImportedExam[]>([]);
@@ -393,7 +395,7 @@ export default function ImportExam() {
     const [progress, setProgress] = useState(0);
     const [duplicates, setDuplicates] = useState<Record<string, DuplicateInfo>>({});
     // Kiểm trùng (BF-12, B7): progress + cancel, and a result that stays on screen.
-    type DupDone = {compared: number; existing: Record<string, {bank: string; bank_name: string; same_bank: boolean; count: number}>};
+    type DupDone = {compared: number; existing: Record<string, {bank: string; bank_name: string; name?: string | null; same_bank: boolean; count: number}>};
     const [dupRun, setDupRun] = useState<{at: number; of: number; name: string} | null>(null);
     const [dupDone, setDupDone] = useState<DupDone | null>(null);
     const cancelDup = useRef(false);
@@ -613,7 +615,7 @@ export default function ImportExam() {
             if (paperBank) {
                 // Whole exams: images first (one by one), then the batch in one request (BE takes 1-50 papers); a 409 carrying `rejected` = none fit.
                 const papers = [];
-                for (const source of list) { papers.push(await uploadImages(source, images.current)); setProgress(++done); }
+                for (const source of list) { papers.push({...await uploadImages(source, images.current), ...srcFile(source.id)}); setProgress(++done); }
                 for (let i = 0; i < papers.length; i += 50) {
                     try {
                         const r = await Api.post<PaperSaveReply>('question_bank/save', {bank: bankId, papers: papers.slice(i, i + 50)});
@@ -636,7 +638,7 @@ export default function ImportExam() {
                 if (!keep) { setState(s => ({...s, [source.id]: 'saved'})); setProgress(++done); continue; }   // every block was a duplicate
                 try {
                     const e = await uploadImages(keep, images.current);
-                    const r = await Api.post<{saved: number}>('question_bank/save', {...e, bank: bankId});
+                    const r = await Api.post<{saved: number}>('question_bank/save', {...e, ...srcFile(source.id), bank: bankId});
                     added += r.saved;
                     setState(s => ({...s, [source.id]: 'saved'}));
                 } catch (err) {

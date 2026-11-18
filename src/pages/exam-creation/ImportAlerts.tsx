@@ -39,7 +39,7 @@ function range(exam: ImportedExam, ids: string[]) {
     return a === b ? `câu ${a}` : `câu ${a}–${b}`;
 }
 
-export type ExistingExam = {bank: string | null; bank_name: string | null; same_bank: boolean; count: number};
+export type ExistingExam = {bank: string | null; bank_name: string | null; name?: string | null; same_bank: boolean; count: number};
 
 type DupProps = {
     bankId: string; exams: ImportedExam[]; bankDups: BlockDup[]; impDups: BlockDup[]; existing: Record<string, ExistingExam>;
@@ -69,8 +69,7 @@ export function DupPanel({bankId, exams, bankDups, impDups, existing, keepDup, o
         <div className='vt-bk-dup'>
             {same.map(([id, e]) => <div key={id} className='vt-bk-dupitem'>
                 <b>{exams.find(x => x.id === id)?.name} đã có trong ngân hàng này</b>
-                <span>Đã có {e.count} câu của đề này trong ngân hàng
-                    {bankDups.find(d => d.exam === id && d.source?.source_name) && <>, trùng với <Source bankId={bankId} s={bankDups.find(d => d.exam === id && d.source?.source_name)!.source}/></>}. Đã bỏ chọn đề này.</span>
+                <span>Đã có {e.count} câu của đề này trong ngân hàng{e.name && <>, trùng với <Link className='vt-imp-link' to={'/question-bank/' + bankId}>{e.name}</Link></>}. Đã bỏ chọn đề này.</span>
             </div>)}
             {bankDups.map(d => card(d, true))}
             {impDups.map(d => card(d, false))}

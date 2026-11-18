@@ -775,6 +775,18 @@ describe('ImportExam: bank import flow v2 (BF-01, BF-07, BF-12, BF-15, B7)', () 
         expect(link.parentElement!.textContent).toContain('(nhập 15/11 từ de-12.docx)');
     });
 
+    it('save sends the .docx name as source_file; the "Đề đã có" card names the exam from existing.name', async () => {
+        const sent = mockPost({'question_bank/check_duplicates': () => ({duplicates: {}, compared: 40, existing: {bank: 'B1', bank_name: 'NH Toán 12', name: 'Đề số 3', same_bank: true, count: 1}})});
+        renderScreen();
+        await loadFile(examOf(mc('Q1', 'Q1A')));
+        fireEvent.click(screen.getByText(/Kiểm trùng lặp/));
+        expect((await screen.findByRole('link', {name: 'Đề số 3'})).getAttribute('href')).toBe('/question-bank/B1');
+        fireEvent.click(screen.getByLabelText(/Đề thử|Đề/, {selector: 'input[type=checkbox]'}));
+        fireEvent.click(saveButton());
+        await vi.waitFor(() => expect(sent.length).toBeGreaterThan(0));
+        expect(sent[0].source_file).toBe('de.docx');
+    });
+
     it('B7: a clean check says so on screen and the exam already in the bank is ticked off', async () => {
         mockPost({'question_bank/check_duplicates': () => ({duplicates: {}, compared: 40, existing: {bank: 'B1', bank_name: 'NH Toán 12', same_bank: true, count: 1}})});
         renderScreen();
