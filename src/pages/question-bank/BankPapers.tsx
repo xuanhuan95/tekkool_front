@@ -35,7 +35,7 @@ function PaperBody({id}: {id: string}) {
                 return <div key={u.id} className='vt-qbv-list'>
                     {first.data.passage && !sameText && <div className='vt-imp-passage'>{renderHTML(first.data.passage)}</div>}
                     {group && <b>Câu {no}</b>}
-                    {u.questions.map((q, i) => <QuestionView key={q.id} q={q as never} plain
+                    {u.questions.map((q, i) => <QuestionView key={q.id} q={q as never}
                         no={group ? String.fromCharCode(97 + i) + ')' : `Câu ${no}`}/>)}
                 </div>;
             })}

@@ -1,5 +1,5 @@
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import {fireEvent, render, screen, within} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
@@ -33,6 +33,7 @@ const renderScreen = (path = '/import-exam?bank=B1') => render(
             <Routes>
                 <Route path='/import-exam' element={<ImportExam/>}/>
                 <Route path='/question-bank' element={<div>TRANG NGÂN HÀNG</div>}/>
+                <Route path='/question-bank/:id' element={<div>TRANG KHỐI</div>}/>
                 <Route path='/subject/:id' element={<div>TRANG MÔN</div>}/>
             </Routes>
         </MemoryRouter>
@@ -43,7 +44,7 @@ async function loadFile(exam: unknown = EXAM, issues: unknown[] = []) {
     vi.spyOn(Api, 'upload').mockResolvedValue({exams: [exam], issues});
     const input = document.querySelector('input[type=file]') as HTMLInputElement;
     fireEvent.change(input, {target: {files: [new File(['PK'], 'de.docx')]}});
-    await screen.findByText(/Đọc được 1 đề/);
+    await screen.findByText(/1 đề — đã chọn 1/);
 }
 
 /** Backend double: `save` collects what is sent to question_bank/save. */
@@ -58,12 +59,13 @@ function mockPost(over: Record<string, (body?: any) => unknown> = {}) {
     return sent;
 }
 
-const saveButton = () => screen.getByText(/Lưu 1 đề vào ngân hàng/).closest('button')!;
+const saveButton = () => within(document.querySelector('.vt-imp-bar') as HTMLElement).getByText(/^Lưu (lại )?1 đề/).closest('button')!;
 
 beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(Api, 'get').mockImplementation(async (url: string) =>
-        url === 'question_bank/list' ? [{id: 'B1', name: 'NH Toán 12', subject: 'Toán', blocks: 0}] : []);
+        url === 'question_bank/list' ? [{id: 'B1', name: 'NH Toán 12', subject: 'Toán', blocks: 0}]
+            : url === 'folder/list' ? [{id: 'F1', name: 'Toán', parent: null}, {id: 'F2', name: 'Văn', parent: null}] : []);
     vi.spyOn(notify, 'success').mockImplementation(() => undefined as never);
     vi.spyOn(notify, 'error').mockImplementation(() => undefined as never);
 });
@@ -87,8 +89,8 @@ describe('ImportExam: feedback', () => {
         renderScreen();
         vi.spyOn(Api, 'upload').mockResolvedValue({exams: [EXAM, {...EXAM, id: 'E2', name: 'Đề thử 2'}], issues: []});
         fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['PK'], 'de.docx')]}});
-        await screen.findByText(/Đọc được 2 đề/);
-        fireEvent.click(screen.getByText(/Lưu 2 đề vào ngân hàng/).closest('button')!);
+        await screen.findByText(/2 đề — đã chọn 2/);
+        fireEvent.click(screen.getByText(/^Lưu 2 đề vào ngân hàng$/).closest('button')!);
         await vi.waitFor(() => expect(sent).toHaveLength(1));
         expect(sent[0].bank).toBe('B1');
         expect(sent[0].papers.map((p: any) => p.id)).toEqual(['E1', 'E2']);
@@ -102,11 +104,12 @@ describe('ImportExam: feedback', () => {
         renderScreen();
         const up = vi.spyOn(Api, 'upload').mockResolvedValueOnce({exams: [withImg], issues: []});
         fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['PK'], 'de.docx')]}});
-        await screen.findByText(/Đọc được 1 đề/);
+        await screen.findByText(/1 đề — đã chọn 1/);
 
         up.mockRejectedValueOnce(new TypeError('fetch'));
         fireEvent.click(saveButton());
-        await vi.waitFor(() => expect(notify.error).toHaveBeenCalledWith('Lưu thất bại: Đề thử 1', expect.stringContaining('kết nối')));
+        const alert = await screen.findByText(/Đã lưu 0\/1 đề\. 1 đề chưa lưu/);
+        expect(alert.closest('[role=alert]')!.textContent).toContain('kết nối');
         expect(sent).toHaveLength(0);
 
         up.mockResolvedValueOnce({path: 'image/view/abc'});
@@ -121,7 +124,12 @@ describe('ImportExam: feedback', () => {
         renderScreen();
         await loadFile();
         fireEvent.click(saveButton());
-        await vi.waitFor(() => expect(notify.error).toHaveBeenCalledWith('Lưu thất bại: Đề thử 1', 'Ngân hàng đầy'));
+        // BF-07: the error stays on the page and names the exam and the file; the exam row says it was not saved
+        const alert = (await screen.findByText(/Đã lưu 0\/1 đề\. 1 đề chưa lưu/)).closest('[role=alert]')!;
+        expect(alert.textContent).toContain('Đề thử 1 (de.docx): Ngân hàng đầy');
+        expect(screen.getByText('Lỗi')).toBeTruthy();
+        expect(screen.getAllByText(/^Lưu lại 1 đề( chưa lưu)?$/).length).toBeGreaterThan(0);
+        expect(screen.getByText('Xem ngân hàng').closest('a')!.getAttribute('href')).toBe('/question-bank/B1');
         expect(notify.success).not.toHaveBeenCalled();
     });
 
@@ -129,7 +137,7 @@ describe('ImportExam: feedback', () => {
         mockPost({'question_bank/check_duplicates': () => { throw {error: 'bận'}; }});
         renderScreen();
         await loadFile();
-        fireEvent.click(screen.getByText(/Kiểm tra trùng lặp/));
+        fireEvent.click(screen.getByText(/Kiểm trùng lặp/));
         await vi.waitFor(() => expect(notify.error).toHaveBeenCalledWith(expect.stringContaining('Không đo được trùng lặp')));
     });
 
@@ -137,8 +145,8 @@ describe('ImportExam: feedback', () => {
         mockPost({'question_bank/check_duplicates': () => ({duplicates: {Q1: {score: 0.97, matches: [{block: 'K9', score: 0.97}]}}})});
         renderScreen();
         await loadFile();
-        fireEvent.click(screen.getByText(/Kiểm tra trùng lặp/));
-        await screen.findByText('1 câu trùng');
+        fireEvent.click(screen.getByText(/Kiểm trùng lặp/));
+        await screen.findByText('1 khối trùng');
         // the chip on the question itself stays readable and never blocks saving
         expect(screen.getByText(/Tỷ lệ trùng: 97%/)).toBeTruthy();
         expect(saveButton().disabled).toBe(false);
@@ -210,7 +218,7 @@ describe('ImportExam: Q12 / Q13 save blockers', () => {
         renderScreen();
         await loadFile(examOf(tf('T1'), tf('T2'), tf('T3'), tf('T4')));
         expect(saveButton().disabled).toBe(false);
-        expect(screen.getByText('1 câu')).toBeTruthy();
+        expect(screen.getByText(/^1 câu · 1 khối$/)).toBeTruthy();
     });
 
     it('unticking the only broken exam lifts the block', async () => {
@@ -347,7 +355,8 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
         mockPost();
         renderScreen();
         await loadFile(EXAM, [SEVERE, LIGHT]);
-        const draft = screen.getByText(/Tạo thẳng 1 đề/).closest('button')!;
+        fireEvent.click(screen.getByLabelText('Thêm lựa chọn'));   // phone: "Tạo thẳng" lives in the ⋯ menu
+        const draft = screen.getByText(/Tạo thẳng đề nháp…/).closest('button')!;
         expect(saveButton().disabled).toBe(true);
         expect(draft.disabled).toBe(true);
         expect(screen.getByRole('alert').textContent).toContain('Còn 1 cảnh báo nặng chưa xem');
@@ -356,6 +365,23 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
         expect(saveButton().disabled).toBe(false);
         expect(draft.disabled).toBe(false);
         expect(screen.getByText(/Đã xem 1 cảnh báo nặng. 1 cảnh báo nhẹ không chặn/)).toBeTruthy();
+    });
+
+    it('phone ⋯ menu: opening focuses the item, Esc and Tab close it and park focus on ⋯', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile(EXAM, []);
+        const more = screen.getByLabelText('Thêm lựa chọn');
+        fireEvent.click(more);
+        const item = screen.getByRole('menuitem');
+        expect(document.activeElement).toBe(item);
+        fireEvent.keyDown(item, {key: 'Escape'});
+        await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+        expect(document.activeElement).toBe(more);
+        fireEvent.click(more);
+        fireEvent.keyDown(screen.getByRole('menuitem'), {key: 'Tab'});
+        await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+        expect(document.activeElement).toBe(more);
     });
 
     it('draft-only screen (no bank): the gate applies there too', async () => {
@@ -396,7 +422,7 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
 
     it('"Đánh số lại" drops the number-jump warnings of that exam', async () => {
         mockPost();
-        renderScreen();
+        renderScreen('/import-exam?folder=F1');
         const gap = issue({code: 'NUMBER_GAP', level: 'warning', question_id: 'Q1', message: 'sau câu 5 là câu 7'});
         await loadFile(EXAM, [gap]);
         expect(screen.getAllByText('sau câu 5 là câu 7').length).toBeGreaterThan(0);
@@ -407,7 +433,7 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
 
     it('the dialog shows the current and the new numbering; "Giữ số như trong file" changes nothing', async () => {
         mockPost();
-        renderScreen();
+        renderScreen('/import-exam?folder=F1');
         const gap = issue({code: 'NUMBER_GAP', level: 'warning', question_id: 'Q1', message: 'sau câu 5 là câu 7'});
         await loadFile(examOf({...mc('Q1', 'Q1A'), source_no: 5}, {...mc('Q2', 'Q2A'), source_no: 7}), [gap]);
         fireEvent.click(screen.getByText('Đánh số lại câu'));
@@ -417,6 +443,62 @@ describe('ImportExam: Nặng warnings gate saving (both paths)', () => {
         fireEvent.click(screen.getByLabelText(/Giữ số như trong file/));
         fireEvent.click(screen.getByText('Đánh số lại', {selector: 'button'}));
         expect(screen.getAllByText('sau câu 5 là câu 7').length).toBeGreaterThan(0);
+    });
+});
+
+describe('ImportExam: bank screen (B2, B3, B4)', () => {
+    it('into a bank: no "Thông tin đề", no "Đánh số lại câu", no "Đáp án đúng" badge, a tick instead', async () => {
+        mockPost();
+        renderScreen();
+        await loadFile();
+        expect(screen.queryByText('Thông tin đề')).toBeNull();
+        expect(screen.queryByText('Đánh số lại câu')).toBeNull();
+        expect(screen.queryByText('Đáp án đúng')).toBeNull();
+        expect(screen.getByText('(đáp án đúng)')).toBeTruthy();
+    });
+});
+
+describe('ImportExam: several files at once (B1, BF-05)', () => {
+    const pick = (...files: File[]) => fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files}});
+
+    it('the picker takes many files; a bad file is one error row and never blocks the good ones', async () => {
+        mockPost();
+        const e2 = {...examOf(mc('Z1', 'Z1A')), id: 'E2', name: 'Đề thử 2'};
+        vi.spyOn(Api, 'upload').mockImplementation(async (_u: string, f: Blob | File) => {
+            if ((f as File).name === 'hong.docx') throw {error: 'khong doc duoc file'};
+            return {exams: (f as File).name === 'a.docx' ? [EXAM] : [e2], issues: []};
+        });
+        renderScreen();
+        expect(document.querySelector('input[type=file]')!.hasAttribute('multiple')).toBe(true);
+        pick(new File(['PK'], 'a.docx'), new File(['PK'], 'hong.docx'), new File(['PK'], 'b.docx'));
+        await screen.findByText('Xem trước 2 đề');
+        expect(screen.getByText('3 file đã chọn')).toBeTruthy();
+        expect(screen.getByText('1 lỗi')).toBeTruthy();
+        expect(screen.getByText('Không đọc được file')).toBeTruthy();   // the error row says what to do
+        fireEvent.click(screen.getByText('Xem trước 2 đề'));
+        expect(screen.getByText(/2 đề — đã chọn 2/)).toBeTruthy();
+        // all exams of all files go to the bank in ONE save run
+        const sent = mockPost();
+        fireEvent.click(screen.getByText(/^Lưu 2 đề vào ngân hàng$/).closest('button')!);
+        await vi.waitFor(() => expect(sent.map(b => b.id)).toEqual(['E1', 'E2']));
+    });
+
+    it('an exam that is already read from another file is skipped, not listed twice', async () => {
+        mockPost();
+        vi.spyOn(Api, 'upload').mockResolvedValue({exams: [EXAM], issues: []});
+        renderScreen();
+        pick(new File(['PK'], 'a.docx'), new File(['PK'], 'copy.docx'));
+        await screen.findByText(/bỏ 1 đề đã có ở file khác/);
+        expect(screen.getByText('Xem trước 1 đề')).toBeTruthy();
+    });
+
+    it('"Bỏ file" drops the failed row', async () => {
+        mockPost();
+        renderScreen();
+        pick(new File(['hello'], 'x.docx'), new File(['hello'], 'y.docx'));
+        await screen.findByText('2 lỗi');
+        fireEvent.click(screen.getAllByText('Bỏ file')[0]);
+        expect(screen.getByText('1 file đã chọn')).toBeTruthy();
     });
 });
 
@@ -518,9 +600,9 @@ describe('ImportExam: QC round (B1, B4, B5, B12)', () => {
         await loadFile(examOf(tf('T1'), tf('T2'), tf('T3'), tf('T4')));
         changeType(1, 'FillBlank');
         expect(screen.getByText('Đổi dạng câu Đúng/Sai?')).toBeTruthy();
-        expect(screen.getByText('1 câu')).toBeTruthy();   // nothing changed yet
+        expect(screen.getByText(/^1 câu · 1 khối$/)).toBeTruthy();   // nothing changed yet
         fireEvent.click(screen.getByText('Giữ nguyên'));
-        expect(screen.getByText('1 câu')).toBeTruthy();
+        expect(screen.getByText(/^1 câu · 1 khối$/)).toBeTruthy();
     });
 
     it('B12: reading can be cancelled, and a non-zip file never reaches the BE', async () => {
@@ -565,7 +647,7 @@ describe('ImportExam: follow-up (V2-2, V2-3, V2-4, V2-5)', () => {
         await screen.findByText('Rời trang này?');
         fireEvent.click(screen.getByText('Ở lại'));
         expect(push).toHaveBeenCalledTimes(2);          // armed again
-        expect(screen.getByText(/Đọc được 1 đề/)).toBeTruthy();
+        expect(screen.getByText(/1 đề — đã chọn 1/)).toBeTruthy();
     });
 
     it('V2-4: OPTION_DUPLICATE has its own chip and a "Cách sửa" link, whatever letter the message names', async () => {
@@ -635,10 +717,10 @@ describe('ImportExam: SPT-99 preview as on the paper', () => {
         expect(saveButton().disabled).toBe(true);
         fireEvent.click(screen.getByLabelText('Xoá câu 2'));
         fireEvent.click(screen.getByText('Giữ lại'));
-        expect(screen.getByText('2 câu')).toBeTruthy();
+        expect(screen.getByText(/^2 câu · 2 khối$/)).toBeTruthy();
         fireEvent.click(screen.getByLabelText('Xoá câu 2'));
         fireEvent.click(screen.getByText('Xoá câu', {selector: 'button'}));
-        expect(screen.getByText('1 câu')).toBeTruthy();
+        expect(screen.getByText(/^1 câu · 1 khối$/)).toBeTruthy();
         expect(screen.queryByText(/Cần kiểm tra 1 chỗ/)).toBeNull();
         expect(sent).toHaveLength(0);   // nothing was saved by deleting
         expect(saveButton().disabled).toBe(false);
@@ -646,11 +728,11 @@ describe('ImportExam: SPT-99 preview as on the paper', () => {
 
     it('Cả đề: the read count follows a deleted question; declared = sum of the Phần when the file gives no total', async () => {
         mockPost();
-        renderScreen();
+        renderScreen('/import-exam?folder=F1');   // no bank: the summary has no "Khối sẽ cắt" column
         const exam: any = examOf(mc('Q1', 'Q1A'), mc('Q2', 'Q2A'));
         exam.stats = {read_questions: 2, sections: [{label: 'Phần I', declared_questions: 2, declared_score: null, read_questions: 2, read_score: 0.5}]};
         await loadFile(exam);
-        const total = () => screen.getByText('Cả đề').closest('tr')!.querySelectorAll('td')[0].textContent;
+        const total = () => screen.getByText('Cả đề', {selector: 'th'}).closest('tr')!.querySelectorAll('td')[0].textContent;
         expect(total()).toContain('2 / 2');
         expect(total()).not.toContain('file không ghi');
         fireEvent.click(screen.getByLabelText('Xoá câu 2'));
@@ -660,7 +742,7 @@ describe('ImportExam: SPT-99 preview as on the paper', () => {
 
     it('Phần read count: the BE read_questions (chùm left out) when sent, minus deletions; units on screen for an older BE', async () => {
         mockPost();
-        renderScreen();
+        renderScreen('/import-exam?folder=F1');   // no bank: the summary has no "Khối sẽ cắt" column
         const exam: any = examOf(mc('Q1', 'Q1A'), mc('Q2', 'Q2A'), mc('Q3', 'Q3A'));
         exam.stats = {sections: [{label: 'Phần I', declared_questions: 2, declared_score: null, read_questions: 2, read_score: 0.5}]};
         await loadFile(exam);
@@ -673,8 +755,153 @@ describe('ImportExam: SPT-99 preview as on the paper', () => {
 
     it('Phần read count without BE stats is the units on screen', async () => {
         mockPost();
-        renderScreen();
+        renderScreen('/import-exam?folder=F1');   // no bank: the summary has no "Khối sẽ cắt" column
         await loadFile(examOf(mc('Q1', 'Q1A'), mc('Q2', 'Q2A')));
         expect(screen.getByText('Phần I', {selector: 'th span'}).closest('tr')!.querySelectorAll('td')[1].textContent).toContain('2 /');
+    });
+});
+
+describe('ImportExam: bank import flow v2 (BF-01, BF-07, BF-12, BF-15, B7)', () => {
+    const two = (...exams: unknown[]) => {
+        vi.spyOn(Api, 'upload').mockResolvedValue({exams, issues: []});
+        pickAndOpen();
+    };
+    const pickAndOpen = () => fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['PK'], 'de.docx')]}});
+    const E2 = {...examOf(mc('Z1', 'Z1A')), id: 'E2', name: 'Đề thử 2'};
+
+    it('a block the bank already holds is NOT saved unless "Vẫn lưu" is ticked', async () => {
+        const sent = mockPost({'question_bank/check_duplicates': () => ({duplicates: {Q1: {score: 0.97, matches: [{block: 'K9', score: 0.97}]}}, compared: 40, existing: null})});
+        renderScreen();
+        await loadFile(examOf(mc('Q1', 'Q1A'), mc('Q2', 'Q2A')));
+        fireEvent.click(screen.getByText(/Kiểm trùng lặp/));
+        await screen.findByText(/Có trùng: 1 khối/);
+        fireEvent.click(saveButton());
+        await vi.waitFor(() => expect(sent).toHaveLength(1));
+        expect(JSON.stringify(sent[0])).not.toContain('"Q1"');
+        expect(JSON.stringify(sent[0])).toContain('"Q2"');
+    });
+
+    it('the duplicate card names the source exam with a link and "nhập dd/mm từ file" when the BE sends it', async () => {
+        const at = new Date(2026, 10, 15, 9).toISOString();
+        mockPost({'question_bank/check_duplicates': () => ({duplicates: {Q1: {score: 0.97, matches: [{block: 'K9', score: 0.97, source_name: 'Đề số 12', source_file: 'de-12.docx', imported_at: at, source_item_id: 'I1'}]}}, compared: 40, existing: null})});
+        renderScreen();
+        await loadFile(examOf(mc('Q1', 'Q1A'), mc('Q2', 'Q2A')));
+        fireEvent.click(screen.getByText(/Kiểm trùng lặp/));
+        const link = await screen.findByRole('link', {name: 'Đề số 12'});
+        expect(link.getAttribute('href')).toBe('/question-bank/B1');
+        expect(link.parentElement!.textContent).toContain('(nhập 15/11 từ de-12.docx)');
+    });
+
+    it('save sends the .docx name as source_file; the "Đề đã có" card names the exam from existing.name', async () => {
+        const sent = mockPost({'question_bank/check_duplicates': () => ({duplicates: {}, compared: 40, existing: {bank: 'B1', bank_name: 'NH Toán 12', name: 'Đề số 3', same_bank: true, count: 1}})});
+        renderScreen();
+        await loadFile(examOf(mc('Q1', 'Q1A')));
+        fireEvent.click(screen.getByText(/Kiểm trùng lặp/));
+        expect((await screen.findByRole('link', {name: 'Đề số 3'})).getAttribute('href')).toBe('/question-bank/B1');
+        fireEvent.click(screen.getByLabelText(/Đề thử|Đề/, {selector: 'input[type=checkbox]'}));
+        fireEvent.click(saveButton());
+        await vi.waitFor(() => expect(sent.length).toBeGreaterThan(0));
+        expect(sent[0].source_file).toBe('de.docx');
+    });
+
+    it('B7: a clean check says so on screen and the exam already in the bank is ticked off', async () => {
+        mockPost({'question_bank/check_duplicates': () => ({duplicates: {}, compared: 40, existing: {bank: 'B1', bank_name: 'NH Toán 12', same_bank: true, count: 1}})});
+        renderScreen();
+        await loadFile();
+        fireEvent.click(screen.getByText(/Kiểm trùng lặp/));
+        await screen.findByText('Đã có');
+        expect(screen.getByText(/1 đề — đã chọn 0/)).toBeTruthy();
+    });
+
+    it('BF-07: one exam failing does not stop the others; retry sends only the unsaved one', async () => {
+        let fail = true;
+        const sent: any[] = [];
+        mockPost({'question_bank/save': (b: any) => { if (b.id === 'E1' && fail) throw {code: 500, error: 'Máy chủ bận'}; sent.push(b); return {saved: 1}; }});
+        renderScreen();
+        two(EXAM, E2);
+        await screen.findByText(/2 đề — đã chọn 2/);
+        fireEvent.click(screen.getByText(/^Lưu 2 đề vào ngân hàng$/).closest('button')!);
+        await screen.findByText(/Đã lưu 1\/2 đề\. 1 đề chưa lưu/);
+        expect(sent.map(b => b.id)).toEqual(['E2']);
+        expect(screen.getByText('Đã lưu')).toBeTruthy();
+        fail = false;
+        fireEvent.click(screen.getAllByText(/^Lưu lại 1 đề$/)[0].closest('button')!);
+        await screen.findByText('TRANG KHỐI');   // all saved → back to the bank
+        expect(sent.map(b => b.id)).toEqual(['E2', 'E1']);
+    });
+
+    it('while checking, an exam already compared and clean says "Không trùng" and the one being compared spins (canvas import-dup-checking)', async () => {
+        let release: (v: unknown) => void = () => undefined;
+        mockPost({'question_bank/check_duplicates': (b: any) => b.id === 'E1' ? {duplicates: {}, compared: 40, existing: null} : new Promise(r => { release = r; })});
+        renderScreen();
+        two(EXAM, E2);
+        await screen.findByText(/2 đề — đã chọn 2/);
+        fireEvent.click(screen.getByText(/Kiểm trùng lặp/));
+        await screen.findByText('Không trùng');
+        expect(screen.getByRole('status', {name: 'Đang kiểm Đề thử 2'})).toBeTruthy();
+        release({duplicates: {}, compared: 40, existing: null});
+        await screen.findByText(/Không có khối nào trùng/);
+        expect(screen.queryByText('Không trùng')).toBeNull();   // the badge belongs to the running check only
+    });
+
+    it('BF-15: a 409 naming another bank is explained with a link and the exam is ticked off', async () => {
+        mockPost({'question_bank/save': () => { throw {code: 409, error: 'Đề đã có ở ngân hàng khác', bank: {id: 'B7', name: 'NH Lý'}}; }});
+        renderScreen();
+        await loadFile();
+        fireEvent.click(saveButton());
+        await screen.findByText(/đã nằm trong ngân hàng khác/);
+        expect(screen.getByText('NH Lý').closest('a')!.getAttribute('href')).toBe('/question-bank/B7');
+        expect(screen.getByText('Ở ngân hàng khác')).toBeTruthy();
+    });
+
+    it('BF-01: "Tạo thẳng" asks for the subject (defaults to the bank subject) and creates a draft in it', async () => {
+        const created: any[] = [];
+        const moved: any[] = [];
+        mockPost({'exam/create': b => { created.push(b); return {}; }, 'exam/move_to_folder': b => { moved.push(b); return {}; }});
+        renderScreen();
+        await loadFile();
+        fireEvent.click(screen.getByLabelText('Thêm lựa chọn'));
+        fireEvent.click(screen.getByText(/Tạo thẳng đề nháp…/));
+        const dialog = within(await screen.findByRole('dialog'));
+        expect((dialog.getByLabelText('Đề vào môn') as HTMLSelectElement).value).toBe('F1');
+        fireEvent.click(dialog.getByText('Tạo 1 đề nháp'));
+        await vi.waitFor(() => expect(moved).toEqual([{examId: 'E1', folderId: 'F1'}]));
+        expect(created).toHaveLength(1);
+    });
+
+    it('BF-11: a whole-exam bank explains itself instead of offering block actions', async () => {
+        (Api.get as any).mockImplementation(async (url: string) => url === 'question_bank/list' ? [{id: 'B1', name: 'NH đề', subject: 'Toán', kind: 'paper', items: 0}] : url.startsWith('question_bank/papers') ? {items: [], total: 0} : []);
+        mockPost();
+        renderScreen();
+        await loadFile();
+        expect(screen.queryByRole('button', {name: /Kiểm trùng lặp/})).toBeNull();
+        expect(screen.queryByRole('button', {name: /Tạo thẳng/})).toBeNull();
+        expect(screen.getByText(/Ngân hàng nguyên đề lưu nguyên cả đề, không cắt khối/)).toBeTruthy();
+    });
+});
+
+describe('ImportExam: BF-04 «Cho biết» into a block bank', () => {
+    const withInfo = {...EXAM, shared_info: ['<p>H = 1; O = 16</p>']};
+    const pick = () => fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['PK'], 'Hoa-De_01.docx')]}});
+
+    it('the file is refused with the reason and a button to the whole-exam bank of the same subject; nothing is saved', async () => {
+        (Api.get as any).mockImplementation(async (url: string) => url === 'question_bank/list'
+            ? [{id: 'B1', name: 'Toán — theo khối', subject: 'Toán', blocks: 0}, {id: 'B2', name: 'Toán — nguyên đề', subject: 'Toán', kind: 'paper', items: 3, blocks: 0}] : []);
+        vi.spyOn(Api, 'upload').mockResolvedValue({exams: [withInfo], issues: []});
+        const sent = mockPost();
+        renderScreen();
+        pick();
+        expect(await screen.findByText(/Đề có khối “Cho biết”/)).toBeTruthy();
+        expect(screen.getByText('Nhập vào “Toán — nguyên đề”')).toBeTruthy();
+        expect(screen.queryByText('Tạo ngân hàng nguyên đề')).toBeNull();      // one or the other, never both
+        expect((screen.getByText(/Xem trước 0 đề/).closest('button') as HTMLButtonElement).disabled).toBe(true);
+        expect(sent).toHaveLength(0);
+    });
+
+    it('with no whole-exam bank for the subject it says how to make one', async () => {
+        vi.spyOn(Api, 'upload').mockResolvedValue({exams: [withInfo], issues: []});
+        renderScreen();
+        pick();
+        expect(await screen.findByText('Tạo ngân hàng nguyên đề')).toBeTruthy();
     });
 });

@@ -1,6 +1,6 @@
 import type {ServerMark} from '../my/imageMarks';
-import type {Submission, SubmissionAnswer, SubmissionDetail} from '../../types/submission';
-import {formatDecimal, score10} from '../../lib/format';
+import type {Submission, SubmissionAnswer, SubmissionDetail, SubmissionSection} from '../../types/submission';
+import {formatDecimal, score10, stripPoints} from '../../lib/format';
 import {kindOf} from './paper';
 import type {QuestionKind} from './paper';
 import {stripQuestionLabel, stripStatementLabel} from './stripLabel';
@@ -60,6 +60,8 @@ export type ReviewStatement = {key: string; html: string; answer: boolean | null
 
 export type ReviewItem = {
     number: number;
+    /** Frame texts, only on the first question of a section (exams drawn with a frame). */
+    heading?: {group?: string; part?: string; score?: number; lead?: string; sub?: string};
     kind: QuestionKind;
     sectionName: string;
     prompt: string;
@@ -105,7 +107,33 @@ function statementOk(a: SubmissionAnswer): boolean {
  * Number the submitted answers exactly like the exam page did: consecutive TrueFalse statements
  * with the same passage_id are ONE question (a–d).
  */
-export function buildReview(answers: SubmissionAnswer[]): ReviewItem[] {
+export function buildReview(answers: SubmissionAnswer[], sections?: SubmissionSection[] | null): ReviewItem[] {
+    const raw = buildFlat(answers);
+    if (!sections?.length) return raw;
+    // Join each item to its section by the question id: numbering follows `first_no`, the titles go on the section's first item.
+    const of = new Map<string, number>();
+    sections.forEach((s, si) => s.question_ids.forEach(id => of.set(id, si)));
+    const seen = new Map<number, number>();
+    return raw.map((it, k) => {
+        const si = of.get(answers[firstIndex(raw, k)]?.question_id);
+        if (si === undefined) return it;
+        const s = sections[si], n = seen.get(si) || 0;
+        seen.set(si, n + 1);
+        const text = (t?: string | null) => (t || '').trim() || undefined;
+        const heading = n === 0 ? {group: text(s.group_title), part: text(stripPoints(s.part_title || '')), score: typeof s.part_score === 'number' ? s.part_score : undefined, lead: text(s.part_lead), sub: text(s.sub_title)} : undefined;
+        return {...it, number: s.first_no + n, heading: heading && Object.values(heading).some(v => v !== undefined) ? heading : undefined};
+    });
+}
+
+/** Index in `answers` of the first answer of review item `k` (items group several answers). */
+function firstIndex(items: ReviewItem[], k: number): number {
+    let at = 0;
+    for (let j = 0; j < k; j++) at += groupSize(items[j]);
+    return at;
+}
+const groupSize = (it: ReviewItem) => it.kind === 'truefalse' ? it.statements.length : it.kind === 'cluster' ? it.parts?.length || 1 : 1;
+
+function buildFlat(answers: SubmissionAnswer[]): ReviewItem[] {
     const out: ReviewItem[] = [];
     let i = 0;
     let lastPassage: string | null | undefined;

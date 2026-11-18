@@ -104,7 +104,7 @@ Cách các component này được nối với API: [lam-bai.md](lam-bai.md).
 | Thành phần | Ghi chú |
 |---|---|
 | `TeacherLayout`, `TEACHER_NAV` (`ui/layout`) | Khung giáo viên, menu 3 mục (Môn & đề · Ngân hàng câu hỏi · Chấm bài): menu trên (web) / dưới (điện thoại), badge số bài chờ chấm (`usePendingCount`), nút **Đăng xuất** ở cả header điện thoại và web (`useAuthStore.signOut`) |
-| `queries/questionBank.ts` | `useBanks`, `useBankSubjects`, `useCreateBank`, `useRemoveBank`, `useBankCapacity`, `useBankStock`, `useCreateFromBank`, `useDrawInfo`, `useDrawExam`; khoá cache `bankKeys` |
+| `queries/questionBank.ts` | `useBanks`, `useBankSubjects`, `useCreateBank`, `useRemoveBank`, `useBankCapacity`, `useBankStock`, `useBankTemplates`, `useCreateFromBank`, `useDrawInfo`, `useDrawExam`; khoá cache `bankKeys` |
 | `ImportExam` (lời giải) | Câu có `data.explanation` (SPT-62) hiện khối "Lời giải" gập được, qua `SafeHtml`; `max_score`/`explanation` giữ nguyên khi đổi loại câu, `block_type` bị bỏ |
 | `ImportExam` (bản gốc) | SPT-70 · khung phải = **PDF của chính file Word** (BE đổi bằng LibreOffice), không còn `SourceView` (văn bản đã qua parser). `Api.uploadBlob('import_docx/pdf', file)` gọi song song với `preview` (đề hiện ngay, không chờ PDF) → `URL.createObjectURL` → `<iframe>`; URL thu hồi khi đổi file / rời màn, PDF về muộn sau khi đổi file bị bỏ. Đang dựng: thanh chờ (~15 giây với file 20 đề). Lỗi (503…): "Không có bản gốc cho file này.", màn vẫn dùng bình thường. Dưới 1024px (`useMediaQuery(DESKTOP)`) không gọi PDF và ẩn khung |
 | `exam-creation/imageUpload.ts` | SPT-69 · `uploadImages(value, cache)`: trước `check_duplicates`/`save`/`exam/create`, tìm mọi `<img src="data:…">` trong đề (mọi trường), dedupe, upload **từng ảnh** qua `image/upload` (`Api.upload`), thay `src` bằng đường dẫn **tương đối** `/api/image/view/<id>` (không lưu domain tuyệt đối vào DB). State trên màn vẫn giữ base64 để xem trước. Đứt mạng giữa chừng: báo lỗi rõ, `ImageCache` (ref của màn) giữ ảnh đã lên, bấm lưu lại chỉ upload phần thiếu; server trả id cũ (200) với ảnh trùng. 413 JSON hiện câu tiếng Việt từ `error` (`Api.upload` giờ cũng gắn `code` = status khi server trả HTML) |
@@ -146,7 +146,7 @@ Rà soát và kết quả: `ra-soat-quy-tac-ui.md`. Điểm cần nhớ khi vi�
 
 SPT-99: ô "Số từ gợi ý" / "Độ dài mong muốn" và bộ đếm "n / max từ" của `Editor` đã bỏ ở mọi nơi (editor GV, import, màn làm bài HS). `data.max_words` / `max_chars` **vẫn được giữ trong dữ liệu** (`convertData`, đổi dạng câu ở import): BE xếp khối tự luận của ngân hàng Ngữ văn theo hai trường này.
 
-| `BankPapers` / `PaperStructure` / `PaperImportResult` (Nguyên đề) | Màn ngân hàng `kind:'paper'`: `signature(sections)` và `diff()` so cấu trúc từng đề với đề đầu tiên của ngân hàng (BE chỉ trả `message`); `BankBlocks.QuestionView` có prop `plain` (chỉ tô xanh đáp án, không chữ). `CreateFromBank`: chip hiện "Loại · N đề/khối"; chọn ngân hàng nguyên đề thì chọn **một mình**, ẩn Cấu trúc đề và Loại khối, gửi không `structure` |
+| `BankPapers` / `PaperStructure` / `PaperImportResult` (Nguyên đề) | Màn ngân hàng `kind:'paper'`: `signature(sections)` và `diff()` so cấu trúc từng đề với đề đầu tiên của ngân hàng (BE chỉ trả `message`); `BankBlocks.QuestionView` có prop `plain` (chỉ tô xanh đáp án, không chữ). `CreateFromBank` (v2): chọn một ngân hàng bằng radio; ngân hàng nguyên đề không có khung và không có thanh bước, gửi không `layout`; theo khối thì dựng `layout` ở `LayoutEditor` (`Inline` = ô chữ xen chip số tự tính) và gửi `layout` |
 
 ## Lời giải và nhận xét chấm (SPT-115)
 

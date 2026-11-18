@@ -13,7 +13,7 @@ function Cell({q, current, onJump}: {q: QuestionStatus; current: boolean; onJump
                    aria-current={current ? 'true' : undefined}
                    aria-label={questionCellLabel(q, current)}
                    onClick={() => onJump(q.number)}>
-        {q.number}
+        {q.label ?? q.number}
         {q.flagged && <span aria-hidden='true' className='vt-qcell-flag'/>}
     </button>;
 }

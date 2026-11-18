@@ -14,7 +14,8 @@ export const LevelBadge = ({issue}: {issue: ImportIssue}) =>
  * Summary table by Phần (IV2-XemTruoc): kind, questions read / declared, answers, score, warnings, then "Cả đề".
  * What the file declares per Phần is `stats.sections` (BE); an older BE sends none and the cells show "—". On a phone the long labels and the warnings column drop (IV2-M-DaDoc).
  */
-export function SummaryBar({exam, issues}: {exam: ImportedExam; issues: ImportIssue[]}) {
+/** `cut`: bank import only — what each Phần is cut into ("Khối sẽ cắt") and how many blocks the whole exam makes. */
+export function SummaryBar({exam, issues, cut}: {exam: ImportedExam; issues: ImportIssue[]; cut?: {part: (i: number) => string; total: number}}) {
     const parts = partRows(exam, issues);
     // Read on screen (a deleted question leaves at once); declared: the file's total, else the sum of the Phần when every one says so
     const read = exam.sections.reduce((n, s) => n + toUnits(s.questions).length, 0);
@@ -29,11 +30,11 @@ export function SummaryBar({exam, issues}: {exam: ImportedExam; issues: ImportIs
         <h2 className='vt-imp-h2'>Tóm tắt theo phần</h2>
         <div className='vt-imp-sum-scroll'>
             <table className='vt-imp-sum-table'>
-                <thead><tr><th>Phần</th><th>Dạng<span className='lg'> câu</span></th><th><span className='lg'>Số câu (đọc / file ghi)</span><span className='sm'>Câu</span></th>
+                <thead><tr><th>Phần</th><th>Dạng<span className='lg'> câu</span></th>{cut && <th>Khối sẽ cắt</th>}<th><span className='lg'>Số câu (đọc / file ghi)</span><span className='sm'>Câu</span></th>
                     <th>Đáp án<span className='lg'> (từng ý)</span></th><th>Điểm</th><th className='lg'>Cảnh báo</th></tr></thead>
                 <tbody>
-                    {parts.map(p => <tr key={p.name + p.kind}>
-                        <th scope='row'><span className='lg'>{p.name}</span><span className='sm'>{p.name.replace(/^Phần\s+/, '')}</span></th><td>{p.kind}</td>
+                    {parts.map((p, pi) => <tr key={p.name + p.kind}>
+                        <th scope='row'><span className='lg'>{p.name}</span><span className='sm'>{p.name.replace(/^Phần\s+/, '')}</span></th><td>{p.kind}</td>{cut && <td>{cut.part(pi)}</td>}
                         <td>{p.read} / {p.declared ?? '—'} {typeof p.declared === 'number' && state(p.read, p.declared, 'câu')}</td>
                         <td>{p.done} / {p.total} {state(p.done, p.total)}</td>
                         <td>{p.score === undefined ? '—' : <>{formatDecimal(p.score)} / {p.declaredScore == null ? '—' : formatDecimal(p.declaredScore)}</>}</td>
@@ -41,7 +42,7 @@ export function SummaryBar({exam, issues}: {exam: ImportedExam; issues: ImportIs
                     </tr>)}
                 </tbody>
                 <tfoot><tr>
-                    <th scope='row' colSpan={2}>Cả đề</th>
+                    <th scope='row' colSpan={2}>Cả đề</th>{cut && <td>{cut.total} khối</td>}
                     <td>{read} / {declared ?? '—'} {typeof declared === 'number' && state(read, declared, 'câu')}</td>
                     <td>{done} / {total} {state(done, total)}</td>
                     <td>{typeof score === 'number' ? <>{formatDecimal(score)} / 10 {state(score, 10, 'điểm')}</> : '—'}</td>

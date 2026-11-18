@@ -98,8 +98,15 @@ export type AnswerChoice = {
 };
 
 /** Submission with per-question detail — the shape `exam/submission/<id>` returns. */
+/** `exam/submission.sections` — exams drawn with a frame; null for other exams. Answers join a section through `question_ids`. */
+export type SubmissionSection = {
+    name?: string | null; question_ids: string[]; first_no: number;
+    group_title?: string | null; part_title?: string | null; part_score?: number | null; part_lead?: string | null; sub_title?: string | null;
+};
+
 export type SubmissionDetail = Submission & {
     answers?: SubmissionAnswer[];
+    sections?: SubmissionSection[] | null;
     /** BE decides: true when the caller owns the exam. This is the real grading permission. */
     can_grade?: boolean;
 };

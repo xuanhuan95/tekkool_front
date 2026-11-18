@@ -27,6 +27,9 @@
 .vt-sheet button.row b { font-size: 16px; }
 .vt-sheet .vt-btn { margin-top: 8px; }
 .vt-th-exams { display: flex; flex-direction: column; gap: 12px; }
+.vt-th-newstrip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; border: var(--vt-border); border-radius: var(--vt-r-card-md); background: var(--vt-ok-bg); }
+.vt-th-newstrip > div { flex: 1 1 auto; min-width: 0; }
+.vt-th-newstrip > div > div { font-size: 14px; }
 .vt-th-exams-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; }
 .vt-th-exams-head h2 { margin: 0; font-family: var(--vt-font-hand); font-weight: 700; font-size: 26px; }
 .vt-th-exams-head > span { font-size: 14px; color: var(--vt-muted); }

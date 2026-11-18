@@ -22,7 +22,7 @@ import QuestionView from './QuestionView';
 import SubmitDialog from './SubmitDialog';
 import {useCountdown} from './useCountdown';
 import {DESKTOP, useMediaQuery} from '../useMediaQuery';
-import {withSubject} from '../../lib/format';
+import {formatDecimal, withSubject} from '../../lib/format';
 
 /** Debounce per kind: clicks go out at once, typing waits for a pause. */
 const TEXT_DELAY_MS = 800;
@@ -206,14 +206,14 @@ export default function ExamRoom({examId, exam, deadlineMs}: ExamRoomProps) {
     }, []);
 
     const status: QuestionStatus[] = paper.questions.map(q => ({
-        number: q.number, answered: isAnswered(q, answers), flagged: flags.has(q.number),
+        number: q.number, label: q.label, answered: isAnswered(q, answers), flagged: flags.has(q.number),
     }));
     const answered = status.filter(q => q.answered).length;
     const total = status.length;
     const unanswered = status.filter(q => !q.answered).map(q => q.number);
     const flagged = status.filter(q => q.flagged).length;
     const gridParts: QuestionGridPart[] = paper.parts.map(p => ({
-        title: p.title, questions: status.filter(s => p.questions.some(q => q.number === s.number)),
+        title: p.title || p.subTitle || 'Tiếp theo', questions: status.filter(s => p.questions.some(q => q.number === s.number)),
     }));
 
     const offline = saveStatus.state === 'offline';
@@ -248,7 +248,7 @@ export default function ExamRoom({examId, exam, deadlineMs}: ExamRoomProps) {
 
         {total === 0 && <p className='vt-q-note'>Đề này chưa có câu hỏi.</p>}
 
-        {paper.parts.map(part => <ExamSection key={part.id} id={part.id} title={part.title}>
+        {paper.parts.map(part => <ExamSection key={part.id} id={part.id} title={part.title} group={part.groupTitle} lead={part.lead} sub={part.subTitle} framed={part.framed} score={part.partScore === undefined ? undefined : formatDecimal(part.partScore)}>
             {part.questions.map(q => <Fragment key={q.questionIds[0]}>
                 {/* Shared reading text: printed once, before the first question of its group.
                     Đúng/Sai already shows its stem as the question text. */}
@@ -281,7 +281,7 @@ export default function ExamRoom({examId, exam, deadlineMs}: ExamRoomProps) {
         </Modal>
 
         <SubmitDialog open={confirm && !locked} answered={answered} total={total} unanswered={unanswered}
-                      flagged={flagged} submitting={submitting} error={submitError} onJump={jump}
+                      flagged={flagged} submitting={submitting} error={submitError} onJump={jump} labelOf={n => paper.questions.find(q => q.number === n)?.label ?? n}
                       onCancel={() => setConfirm(false)} onConfirm={() => submit(false)}/>
 
         <ConfirmDialog open={exit} title='Rời phòng thi?' cancelLabel='Làm tiếp' confirmLabel='Rời đi'

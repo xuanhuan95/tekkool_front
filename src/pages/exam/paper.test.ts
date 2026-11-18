@@ -163,3 +163,47 @@ describe('SPT-97: câu chùm trả lời ngắn', () => {
         expect(p.questions.map(q => q.kind)).toEqual(['short', 'short']);
     });
 });
+
+describe('exam drawn with a frame (first_no, titles)', () => {
+    const framed: TestExam = {
+        id: 'F', name: 'Văn', remaining_sec: 60,
+        sections: [
+            {id: 'a', name: 'Đọc hiểu', first_no: 1, group_title: 'A. TRẮC NGHIỆM', part_title: 'PHẦN I (3 điểm)', part_lead: 'Trả lời từ câu 1 đến câu 2',
+             sub_title: 'I.1 Đọc văn bản', questions: [mc('Q1'), mc('Q2')]},
+            {id: 'b', name: 'Đoạn văn', first_no: 1, part_title: 'PHẦN II', questions: [mc('Q3')]},
+            {id: 'c', name: 'Bài văn', first_no: 2, sub_title: 'Viết bài', questions: [mc('Q4')]},
+        ],
+    };
+    const paper = buildPaper(framed);
+
+    it('shows the frame numbers but keeps unique positions for ids and jumps', () => {
+        expect(paper.questions.map(q => q.label)).toEqual([1, 2, 1, 2]);   // Phần II restarts at Câu 1
+        expect(paper.questions.map(q => q.number)).toEqual([1, 2, 3, 4]);
+    });
+
+    it('titles: group + lead + sub only on the first section; a tiểu mục without part_title has no heading', () => {
+        expect(paper.parts[0]).toMatchObject({groupTitle: 'A. TRẮC NGHIỆM', title: 'PHẦN I', lead: 'Trả lời từ câu 1 đến câu 2', subTitle: 'I.1 Đọc văn bản'});
+        expect(paper.parts[1].groupTitle).toBeUndefined();
+        expect(paper.parts[2]).toMatchObject({title: '', subTitle: 'Viết bài'});
+    });
+
+    it('continuing sections (2nd block of a tiểu mục, 3rd of a Phần) show no heading again', () => {
+        const sec = (id: string, extra: object) => ({id, name: 'n', first_no: 1, questions: [mc(id)], ...extra});
+        const p = buildPaper({id: 'F', name: 'x', remaining_sec: 1, sections: [
+            sec('a', {group_title: 'A.', part_title: 'Phần I (3 điểm)', part_lead: 'lead', part_score: 3, sub_title: 'I.1'}),
+            sec('b', {sub_title: 'I.1'}),                          // 2nd block of the same tiểu mục (even if BE repeated it)
+            sec('c', {part_title: 'Phần I (3 điểm)'}),             // 3rd block of the Phần
+            sec('d', {sub_title: 'I.2'}),
+        ]} as TestExam).parts;
+        expect(p.map(x => [x.title, x.subTitle, x.groupTitle, x.lead, x.partScore])).toEqual([
+            ['Phần I', 'I.1', 'A.', 'lead', 3], ['', undefined, undefined, undefined, undefined],
+            ['', undefined, undefined, undefined, undefined], ['', 'I.2', undefined, undefined, undefined]]);
+    });
+
+    it('part_score → partScore (null/missing → undefined); framed flag only with a frame', () => {
+        const mk = (extra: object) => buildPaper({id: 'F', name: 'x', remaining_sec: 1, sections: [{id: 'a', name: 'n', questions: [mc('Q1')], ...extra}]}).parts[0];
+        expect(mk({first_no: 1, part_title: 'Phần I', part_score: 3})).toMatchObject({framed: true, partScore: 3});
+        expect(mk({first_no: 1, part_title: 'Phần I', part_score: null}).partScore).toBeUndefined();
+        expect(mk({}).framed).toBeUndefined();
+    });
+});

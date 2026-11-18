@@ -16,26 +16,27 @@ const WAYS: Array<[string, ReactNode]> = [
 ];
 
 /** Step 1 (IV2-TaiLen): drop zone + the 3 rules + samples. Never reads the file itself — hands it to `onFile`. */
-export default function ImportUpload({onFile, pick, onGuide}: {onFile: (f: File) => void; pick: () => void; onGuide: () => void}) {
+export default function ImportUpload({onFiles, pick, onGuide, compact}: {onFiles: (f: File[]) => void; pick: () => void; onGuide: () => void; compact?: boolean}) {
     const [over, setOver] = useState(false);
     const drop = (e: DragEvent) => {
         e.preventDefault(); setOver(false);
-        const f = e.dataTransfer.files[0];
-        if (f) onFile(f);
+        onFiles(Array.from(e.dataTransfer.files));
     };
 
-    return <div className='vt-imp-up'>
+    return <div className={cx('vt-imp-up', compact && 'vt-imp-up--compact')}>
         <div className='vt-imp-up-main'>
             <Card>
                 <div className={cx('vt-imp-zone', over && 'over')} onDragOver={e => { e.preventDefault(); setOver(true); }}
                      onDragLeave={() => setOver(false)} onDrop={drop}>
                     <icons.IconArrowUp size={48}/>
-                    <h2>Kéo file Word vào đây</h2>
+                    <div className='vt-imp-zone-text'>
+                        <h2>Kéo một hoặc nhiều file Word vào đây</h2>
+                        <span className='vt-imp-hint'>Chọn được nhiều file một lần. Chỉ nhận .docx, mỗi file tối đa 10 MB, mỗi file chứa được nhiều đề.</span>
+                    </div>
                     <Button variant='primary' onClick={pick}>Chọn file .docx</Button>
-                    <span className='vt-imp-hint'>Chỉ nhận .docx, tối đa 10 MB. Một file có thể chứa nhiều đề.</span>
                 </div>
             </Card>
-            <Card>
+            {!compact && <Card>
                 <h2 className='vt-imp-h2'>3 cách đánh dấu đáp án</h2>
                 <div className='vt-imp-ways'>
                     {WAYS.map(([name, sample], i) => <div key={name} className='vt-imp-way'>
@@ -44,9 +45,9 @@ export default function ImportUpload({onFile, pick, onGuide}: {onFile: (f: File)
                     </div>)}
                 </div>
                 <div className='vt-imp-notice' role='note'>Mỗi file chỉ dùng <b>một</b> cách. Trộn nhiều cách trong một file thì hệ thống báo lỗi.</div>
-            </Card>
+            </Card>}
         </div>
-        <div className='vt-imp-up-side'>
+        {!compact && <div className='vt-imp-up-side'>
             <Card>
                 <h2 className='vt-imp-h2'>Tải mẫu Word</h2>
                 {/* Samples live in public/mau-de; the answer-table variant is the one that always works. */}
@@ -61,6 +62,6 @@ export default function ImportUpload({onFile, pick, onGuide}: {onFile: (f: File)
                 </ol>
                 <button type='button' className='vt-imp-link' onClick={() => onGuide()}>Lỗi thường gặp và cách sửa →</button>
             </Card>
-        </div>
+        </div>}
     </div>;
 }

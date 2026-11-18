@@ -300,3 +300,12 @@ describe('TitleChip (SPT-64)', () => {
         expect(screen.getByText('T-x').querySelector('svg')).toBeNull();
     });
 });
+
+describe('isNavActive: importing into a bank belongs to "Ngân hàng câu hỏi"', () => {
+    it('?bank= lights the bank tab, a plain import stays under "Môn & đề"', async () => {
+        const {isNavActive, TEACHER_NAV} = await import('./layout/nav');
+        const current = (path: string, search = '') => TEACHER_NAV.filter(i => isNavActive(i, path, search)).map(i => i.label);
+        expect(current('/import-exam', '?bank=B1')).toEqual(['Ngân hàng câu hỏi']);
+        expect(current('/import-exam', '?folder=F1')).toEqual(['Môn & đề']);
+    });
+});

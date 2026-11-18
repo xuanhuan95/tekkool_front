@@ -9,6 +9,9 @@
 // ---------------------------------------------------------------- numbers / scores
 
 /** 0.25 → "0,25"; 1.5 → "1,5"; 2 → "2" (at most `digits` decimals, trailing zeros dropped). */
+/** "Phần I (3 điểm)" → "Phần I": the score is shown from `part_score`, not from the title. */
+export const stripPoints = (t: string) => t.replace(/\s*\(\s*[\d.,]+\s*điểm\s*\)\s*$/i, '');
+
 export function formatDecimal(n: number, digits = 2): string {
     const r = Math.round(n * 10 ** digits) / 10 ** digits;
     return String(r).replace('.', ',');

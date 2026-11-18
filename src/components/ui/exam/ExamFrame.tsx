@@ -77,15 +77,29 @@ export interface ExamSectionProps {
     title: ReactNode;
     /** "Câu 1–12 · 0,25 điểm/câu · chọn 1 trong 4 đáp án" */
     note?: ReactNode;
+    /** Exam drawn with a frame: Nhóm heading above the part, the part's lead and the tiểu mục title under it. */
+    group?: ReactNode;
+    lead?: ReactNode;
+    sub?: ReactNode;
+    /** Frame exam: "Phần I (3 điểm)." bold, then the lead on the same line. `score` already formatted, e.g. "3". */
+    framed?: boolean;
+    score?: string;
     children: ReactNode;
 }
 
 /** One part of the paper; parts are separated by a 2px ink rule. */
-export function ExamSection({id, title, note, children}: ExamSectionProps) {
+export function ExamSection({id, title, note, group, lead, sub, framed, score, children}: ExamSectionProps) {
     const hid = (id || 'phan') + '-title';
     return <section id={id} aria-labelledby={hid} className='vt-exam-section'>
+        {group && <h2 className='vt-exam-group-title'>{group}</h2>}
         <div className='vt-exam-section-head'>
-            <h2 id={hid} className='vt-exam-section-title'>{title}</h2>
+            {framed && title
+                ? <p className='vt-exam-part-line'><b id={hid}>{title}{score && ` (${score} điểm)`}.</b>{lead && ' ' + lead}</p>
+                : <>
+                    {title ? <h2 id={hid} className='vt-exam-section-title'>{title}</h2> : <span id={hid} className='vt-sr-only'>{sub || 'Tiếp phần trước'}</span>}
+                    {lead && <p className='vt-exam-section-note'>{lead}</p>}
+                </>}
+            {sub && <h3 className='vt-exam-sub-title'>{sub}</h3>}
             {note && <p className='vt-exam-section-note'>{note}</p>}
         </div>
         {children}

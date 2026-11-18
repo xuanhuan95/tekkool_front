@@ -100,6 +100,15 @@ export type TestSection = {
     questions: TestQuestion[];
     /** Only on exams drawn from the bank: block type code (multiple_choice, true_false...). */
     block_type?: string | null;
+    /** Exams drawn with a frame (BE `annotate`): first question number of this section, and the titles of the frame. */
+    first_no?: number;
+    group_title?: string | null;
+    part_title?: string | null;
+    /** Points of the Phần (first section of a Phần only); null = not stated. */
+    part_score?: number | null;
+    part_lead?: string | null;
+    sub_title?: string | null;
+    description?: string | null;
 };
 
 /** `GET exam/during_test/<id>` — the paper of an open attempt. */
@@ -125,7 +134,11 @@ export type TestExam = {
 export type BankKind = 'block' | 'paper';
 
 /** `question_bank/list` row: `items` = blocks (kind block) or whole exams (kind paper). */
-export type BankSummary = {id: string; name: string; subject: string; kind?: BankKind; items?: number; blocks: number};
+export type BankSummary = {id: string; name: string; subject: string; kind?: BankKind; items?: number; blocks: number;
+    /** Exams imported into a block bank (BE `source_count`); absent on older replies. */
+    source_count?: number;
+    /** ISO creation time, used to tell same-named banks apart; absent → hidden. */
+    created_at?: string};
 
 /** `question_bank/papers` row (kind paper). */
 export type BankPaperRow = {id: string; name: string; part_count: number; question_count: number; total_score: number; created_at: string};
@@ -138,6 +151,8 @@ export type BankPaper = {id: string; name: string; bank: string; duration: numbe
 export type BankBlock = {
     id: string; block_type: string; block_type_name: string; question_type: string; count: number;
     passage?: string | null;
+    /** Name of the exam it was imported from; blocks saved before this field are null. */
+    source?: string | null;
     questions: {id: string; type: string; data: Record<string, any>}[];
 };
 export type BankBlocksPage = {total: number; page: number; per_page: number; blocks: BankBlock[]};

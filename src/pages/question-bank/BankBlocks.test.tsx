@@ -32,18 +32,32 @@ describe('BankBlocks (SPT-73)', () => {
     it('shows the key marked, the passage and no source-exam info; query carries bank/page/per_page', async () => {
         const api = mockApi({'question_bank/list': [{id: 'B1', name: 'NH Toán', subject: 'Toán', blocks: 2}], 'question_bank/blocks': page([single, group])});
         renderScreen();
-        await screen.findAllByText('Đáp án đúng');
+        await screen.findAllByText('(đáp án đúng)');
         expect(screen.getByText('Văn bản dài')).toBeTruthy();
-        expect(screen.getAllByText('Đáp án đúng').length).toBe(3);
+        // B4: tick + hidden text, never the visible "Đáp án đúng" badge
+        expect(screen.getAllByText('(đáp án đúng)').length).toBe(3);
+        expect(screen.queryByText('Đáp án đúng')).toBeNull();
         expect(api.get).toHaveBeenCalledWith('question_bank/blocks?bank=B1&page=1&per_page=20');
     });
 
     it('type filter goes back to page 1 and sends block_type', async () => {
-        const api = mockApi({'question_bank/list': [], 'question_bank/blocks': page([single])});
+        const api = mockApi({'question_bank/list': [], 'question_bank/blocks': page([single]), 'question_bank/stats': {per_type: {reading: 3, multiple_choice: 1}}});
         renderScreen();
-        await screen.findAllByText('Đáp án đúng');
+        await screen.findAllByText('(đáp án đúng)');
         fireEvent.change(screen.getByLabelText('Dạng khối'), {target: {value: 'reading'}});
         await waitFor(() => expect(api.get).toHaveBeenCalledWith('question_bank/blocks?bank=B1&page=1&per_page=20&block_type=reading'));
+    });
+
+    it('A1: the "Dạng khối" filter lists only the types the bank has, with their count', async () => {
+        mockApi({'question_bank/list': [], 'question_bank/blocks': page([single]), 'question_bank/stats': {per_type: {reading: 3, essay: 0, multiple_choice: 1}}});
+        renderScreen();
+        await screen.findAllByText('(đáp án đúng)');
+        const options = await waitFor(() => {
+            const o = Array.from((screen.getByLabelText('Dạng khối') as HTMLSelectElement).options).map(x => x.textContent);
+            expect(o.length).toBe(3);
+            return o;
+        });
+        expect(options).toEqual(['Tất cả dạng', 'Đọc hiểu (ngữ liệu + 5 câu) · 3 khối', 'Trắc nghiệm chọn đáp án · 1 khối']);
     });
 
     it('delete: asks with the count, posts the id, and a 404 counts as already deleted', async () => {
@@ -64,5 +78,28 @@ describe('BankBlocks (SPT-73)', () => {
         mockApi({'question_bank/list': [], 'question_bank/blocks': () => new Error('Bạn không có quyền')});
         renderScreen();
         expect(await screen.findByText('Bạn không có quyền')).toBeTruthy();
+    });
+});
+
+describe('BankBlocks after an import (BF-03)', () => {
+    const since = '2026-11-18T10:00:00.000Z';
+    const open = () => render(
+        <QueryClientProvider client={new QueryClient({defaultOptions: {queries: {retry: false}}})}>
+            <MemoryRouter initialEntries={[{pathname: '/question-bank/B1', state: {imported: {exams: 2, blocks: 7, since, files: ['Van-01.docx']}}}]}>
+                <Routes><Route path='/question-bank/:bankId' element={<BankBlocks/>}/></Routes>
+            </MemoryRouter>
+        </QueryClientProvider>);
+
+    it('opens on "Chỉ khối vừa nhập": sends since, marks the blocks, shows the source; "Tất cả đề" drops since', async () => {
+        const api = mockApi({'question_bank/list': [], 'question_bank/stats': {per_type: {}},
+            'question_bank/blocks': page([{...single, source: 'Đề số 21'}])});
+        open();
+        await screen.findByText('Mới nhập');
+        expect(screen.getByText('Từ Đề số 21')).toBeTruthy();
+        expect(screen.getByText(/Từ 1 file: Van-01.docx/)).toBeTruthy();
+        expect(api.get).toHaveBeenCalledWith('question_bank/blocks?bank=B1&page=1&per_page=20&since=' + encodeURIComponent(since));
+        fireEvent.change(screen.getByLabelText('Nguồn'), {target: {value: ''}});
+        await waitFor(() => expect(api.get).toHaveBeenLastCalledWith('question_bank/blocks?bank=B1&page=1&per_page=20'));
+        expect(screen.queryByText('Mới nhập')).toBeNull();
     });
 });

@@ -22,7 +22,7 @@ export interface HeaderStickyProps {
 
 /** Sticky header on paper with the hand-drawn wave underneath (DS-Header.dc.html). */
 export default function HeaderSticky({variant, nav, navLabel = 'Menu chính', right, logoTo = '/', className}: HeaderStickyProps) {
-    const {pathname} = useLocation();
+    const {pathname, search} = useLocation();
     const refreshing = useRefreshing();
     const logo = <Link to={logoTo} className='vt-logo' aria-label='viettestpro — Trang chủ'>viettestpro</Link>;
 
@@ -42,7 +42,7 @@ export default function HeaderSticky({variant, nav, navLabel = 'Menu chính', ri
             {nav && nav.length > 0 &&
                 <nav aria-label={navLabel} className='vt-topnav'>
                     {nav.map(it => <Link key={it.to} to={it.to}
-                aria-current={isNavActive(it, pathname) ? 'page' : undefined}>{it.label}</Link>)}
+                aria-current={isNavActive(it, pathname, search) ? 'page' : undefined}>{it.label}</Link>)}
                 </nav>}
             {right && <div className='vt-header-right'>{right}</div>}
         </div>

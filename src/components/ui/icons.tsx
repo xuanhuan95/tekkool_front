@@ -30,6 +30,7 @@ export const IconGrid = ({size = 14}: P) =>
 export const IconBack = ({size = 20}: P) => <Line size={size} w={2.4}><path d='M15 6l-6 6 6 6'/></Line>;
 export const IconClose = ({size = 20}: P) => <Line size={size} w={2.4}><path d='M6 6l12 12M18 6L6 18'/></Line>;
 export const IconCheck = ({size = 13, color}: P) => <Line size={size} w={3} color={color}><path d='M5 12l4 4 10-10'/></Line>;
+export const IconCheckCircle = ({size = 20, color}: P) => <Line size={size} w={2.4} color={color}><circle cx='12' cy='12' r='9'/><path d='M8 12.5l3 3 5-6'/></Line>;
 export const IconChevronDown = ({size = 16}: P) => <Line size={size} w={2.4}><path d='M6 9l6 6 6-6'/></Line>;
 export const IconArrowDown = ({size = 14}: P) => <Line size={size} w={2.2}><path d='M12 5v14M6 13l6 6 6-6'/></Line>;
 export const IconImage = ({size = 20}: P) =>

@@ -1,7 +1,8 @@
 import {keepPreviousData, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import Api from '../services/api';
-import type {BankBlocksPage, BankCapacity, BankKind, BankPaper, BankPapersPage, BankStats, BankSummary, StructureSlot} from '../types/exam';
+import type {Layout} from '../pages/exam-creation/layoutRules';
+import type {BankBlocksPage, BankCapacity, TestSection, BankKind, BankPaper, BankPapersPage, BankStats, BankSummary, StructureSlot} from '../types/exam';
 
 export const bankKeys = {
     all: ['question_bank'] as const,
@@ -52,7 +53,31 @@ export type CreateFromBankInput = {
     banks: string[]; name: string; duration: number; folder?: string;
     /** Required for kind block; ignored for a paper bank (exactly one bank). */
     structure?: StructureSlot[];
+    /** Exam frame Nhóm → Phần → Tiểu mục (C1). Wins over `structure` when both are sent. */
+    layout?: Layout;
 };
+
+/** Sample exams of a bank: frames the teacher can copy (`question_bank/templates`). */
+export type BankTemplate = {id: string; name: string; layout: Layout; block_count: number; created_at?: string | null};
+export function useBankTemplates(bankId: string) {
+    return useQuery({
+        queryKey: [...bankKeys.all, 'templates', bankId],
+        queryFn: () => Api.get<BankTemplate[]>('question_bank/templates?bank=' + bankId),
+        enabled: !!bankId,
+    });
+}
+
+/** `exam/preview_layout`: one trial draw as the student gets it (no answers, titles and numbers already set by the BE). */
+export type LayoutDraw = {sections: TestSection[]; points_total: number; shortage: {block_type: string; name: string; need: number; have: number}[]};
+/** Runs when `enabled` (step 3). `refetch()` = "Rút lần khác" (another draw); the same frame keeps its draw while you stay on the page. */
+export function usePreviewLayout(bank: string, layout: Layout, enabled: boolean) {
+    return useQuery({
+        queryKey: [...bankKeys.all, 'preview-layout', bank, JSON.stringify(layout)],
+        queryFn: () => Api.post<LayoutDraw>('exam/preview_layout', {bank, layout}),
+        enabled: enabled && !!bank,
+        staleTime: Infinity, retry: false,
+    });
+}
 
 export function useCreateFromBank() {
     const qc = useQueryClient();
@@ -88,15 +113,25 @@ export function useBankStock(bankId: string | null) {
     });
 }
 
+/** Blocks per type of ONE bank (A1: the "Dạng khối" filter only lists the types the bank really has). */
+export function useBankStats(bankId: string) {
+    return useQuery({
+        queryKey: [...bankKeys.all, 'stats', bankId],
+        queryFn: () => Api.get<BankStats>('question_bank/stats?bank=' + bankId),
+        enabled: !!bankId,
+    });
+}
+
 export const BLOCKS_PER_PAGE = 20;
 
 /** SPT-73: one page of a bank's blocks. The previous page stays on screen while the next loads (no flicker on filter/page). */
-export function useBankBlocks(bank: string, page: number, blockType: string, q: string) {
+export function useBankBlocks(bank: string, page: number, blockType: string, q: string, since = '') {
     const qs = new URLSearchParams({bank, page: String(page), per_page: String(BLOCKS_PER_PAGE)});
     if (blockType) qs.set('block_type', blockType);
     if (q) qs.set('q', q);
+    if (since) qs.set('since', since);   // "Chỉ khối vừa nhập": ISO time the save started
     return useQuery({
-        queryKey: [...bankKeys.all, 'blocks', bank, page, blockType, q],
+        queryKey: [...bankKeys.all, 'blocks', bank, page, blockType, q, since],
         queryFn: () => Api.get<BankBlocksPage>('question_bank/blocks?' + qs.toString()),
         placeholderData: keepPreviousData,
     });

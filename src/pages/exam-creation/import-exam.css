@@ -45,8 +45,8 @@
 .vt-imp-dup.mid { background: var(--vt-sun-soft); border-color: var(--vt-sun); }
 .vt-imp-dup.high { background: var(--vt-sun-soft); border-color: #faad05; border-width: 2px; }
 .vt-imp-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; align-items: center; gap: 10px 12px; flex-wrap: wrap;
-    padding: 12px 24px; background: var(--vt-card); border-top: 2px solid var(--vt-ink); }
-.vt-imp-bar-hint { flex: 1 1 260px; font-size: 13px; color: var(--vt-muted); }
+    padding: 12px 24px; background: var(--vt-card); border: solid var(--vt-ink); border-width: 2px 0 0; border-radius: 0; }
+.vt-imp-bar-hint { order: -1; flex: 1 1 260px; font-size: 14px; color: var(--vt-muted); }
 .vt-imp-bar-hint.err { color: var(--vt-err); font-weight: 700; }
 .vt-imp-info td, .vt-imp-info th { vertical-align: top; }
 .vt-imp-jump { min-height: 32px; margin: 2px 4px 2px 0; padding: 0 10px; border: 1.5px solid var(--vt-line-option); border-radius: 999px; background: var(--vt-paper); font: inherit; font-size: 13px; cursor: pointer; }
@@ -216,7 +216,7 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 }
 .vt-imp-section { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .vt-imp-section-count { font-size: 13px; font-weight: 600; color: var(--vt-muted); }
-.vt-imp-answer-label { margin-left: auto; align-self: center; font-size: 12px; font-weight: 700; color: var(--vt-ok-ink); white-space: nowrap; }
+.vt-qbv-tick { margin-left: auto; align-self: center; display: inline-flex; }   /* B4: the tick of the right answer */
 .vt-imp-split-hint { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 10px 12px; background: var(--vt-sun-soft); border: 1.5px solid var(--vt-sun); border-radius: var(--vt-r-btn); font-size: 14px; color: var(--vt-sun-ink); }
 .vt-imp-split-btn { align-self: flex-start; }
 .vt-imp-edit-label { display: block; font-size: 13px; font-weight: 600; color: var(--vt-muted, #57534e); margin-bottom: 4px; }
@@ -254,3 +254,100 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 .vt-imp-problem-text { display: flex; flex-direction: column; gap: 4px; flex: 1 1 280px; }
 .vt-imp-problem-text b { font-family: var(--vt-font-hand); font-size: 22px; color: var(--vt-err); }
 .vt-imp-problem-text span { font-size: 14px; color: var(--vt-muted); line-height: 1.5; }
+
+/* B1: several files, one row each (artboard import-files) */
+.vt-imp-up--compact .vt-imp-up-main { flex-basis: 100%; }
+.vt-imp-zone-text { display: flex; flex-direction: column; gap: 4px; }
+@media (min-width: 1024px) {
+    .vt-imp-up--compact .vt-imp-zone { flex-direction: row; justify-content: space-between; text-align: left; padding: 20px 24px; }
+    .vt-imp-up--compact .vt-imp-zone-text { flex: 1; }
+}
+.vt-imp-files { display: flex; flex-direction: column; gap: 12px; }
+.vt-imp-files-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.vt-imp-files-head .vt-imp-h2 { margin: 0; }
+.vt-imp-files-count { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+.vt-imp-filelist { list-style: none; margin: 0; padding: 0; }
+.vt-imp-file { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1.5px solid var(--vt-line-option); }
+.vt-imp-file:first-child { border-top: 0; }
+.vt-imp-file-icon { flex: none; width: 24px; display: inline-flex; justify-content: center; padding-top: 2px; }
+.vt-imp-file-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.vt-imp-file-main > b { overflow-wrap: anywhere; font-size: 15px; }
+.vt-imp-file-err { color: var(--vt-err); line-height: 1.5; }
+.vt-imp-file-acts { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
+.vt-imp-file-spin { width: 18px; height: 18px; border: 3px solid var(--vt-line-option); border-top-color: var(--vt-ink); border-radius: 50%; animation: vt-imp-spin 0.9s linear infinite; }
+@keyframes vt-imp-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .vt-imp-file-spin { animation: none; } }
+.vt-imp-files-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 639.98px) {
+    .vt-imp-file { flex-wrap: wrap; }
+    .vt-imp-files-foot > .vt-btn { flex: 1 1 100%; }
+}
+
+/* Bank import preview v2: exam list on the left, the open exam on the right (stacked on a phone) */
+.vt-imp-rv { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
+@media (min-width: 1024px) { .vt-imp-rv { grid-template-columns: 340px minmax(0, 1fr); } .vt-rv-left { position: sticky; top: 12px; max-height: calc(100vh - 140px); overflow: auto; } }
+.vt-rv-list { display: flex; flex-direction: column; gap: 6px; }
+.vt-rv-file-name { font-size: 13px; font-weight: 700; color: var(--vt-muted); padding: 8px 0 4px; overflow-wrap: anywhere; }
+.vt-rv-item { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); padding: 2px 8px 6px 0; }
+.vt-rv-item.on { border-color: var(--vt-ink); background: var(--vt-bg-soft, transparent); }
+.vt-rv-item.off .vt-rv-name { color: var(--vt-muted); }
+.vt-rv-open { background: none; border: 0; font: inherit; text-align: left; cursor: pointer; padding: 8px 0; min-height: 44px; color: var(--vt-ink); }
+.vt-rv-name { font-weight: 700; overflow-wrap: anywhere; }
+.vt-rv-meta { color: var(--vt-muted); font-size: 14px; margin-left: 4px; }
+.vt-imp-marks { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px; }
+.vt-imp-marks:empty { display: none; }
+/* While checking (canvas import-dup-checking): the spinner / "Không trùng" sits on the name's row, right-aligned. */
+.vt-rv-item:has(.vt-imp-marks--check) { grid-template-columns: 44px minmax(0, 1fr) auto; }
+.vt-imp-marks--check { grid-column: 3; grid-row: 1; justify-content: flex-end; }
+.vt-rv-count { margin: 8px 0; color: var(--vt-muted); font-weight: 600; }
+.vt-rv-sum { margin: 12px 0; }
+.vt-rv-sum-scroll { overflow-x: auto; }
+.vt-rv-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.vt-rv-table th, .vt-rv-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--vt-line-option); vertical-align: top; }
+.vt-rv-table thead th { font-size: 13px; color: var(--vt-muted); }
+.vt-rv-table tfoot th, .vt-rv-table tfoot td { font-weight: 700; border-bottom: 0; }
+.vt-rv-ok { color: var(--vt-ok-ink); }
+.vt-rv-dups { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
+.vt-rv-banner, .vt-rv-warn { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 12px;
+    border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); }
+.vt-rv-warn { flex-direction: column; align-items: flex-start; border-color: var(--vt-sun-ink, var(--vt-ink)); background: var(--vt-sun-bg, transparent); }
+.vt-rv-more { position: relative; }
+.vt-rv-menu { position: absolute; right: 0; bottom: calc(100% + 6px); min-width: 220px; background: var(--vt-surface, #fff); border: 2px solid var(--vt-ink); border-radius: var(--vt-r-btn); padding: 4px; }
+.vt-rv-menu button { display: block; width: 100%; min-height: 44px; text-align: left; background: none; border: 0; font: inherit; padding: 8px 12px; cursor: pointer; }
+@media (max-width: 1023.98px) {
+    /* Phone: bank save bar is ONE row (Kiểm tra trùng · Lưu · ⋯); the hint only shows when it is a blocker */
+    .vt-imp-bar--bank { flex-wrap: nowrap; }
+    .vt-imp-bar--bank > .vt-btn--primary { flex: 1 1 auto; }
+    .vt-imp-bar--bank > .vt-btn { font-size: 14px; padding: 8px 12px; min-height: 44px; white-space: nowrap; }   /* artboard: 14px, 44 high */
+    .vt-imp-bar--bank .vt-imp-bar-hint:not(.err) { display: none; }
+    .vt-imp-bar--bank .vt-imp-bar-hint.err { position: absolute; left: 12px; right: 12px; bottom: 100%; background: var(--vt-surface, #fff); padding: 6px 0; }
+}
+.vt-imp-nopaper { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; border: 1.5px dashed var(--vt-ink); border-radius: var(--vt-r-btn); background: var(--vt-paper); font-size: 14px; }
+
+/* Persistent notices (artboard import-dup-found / import-save-error / import-wholeexam) */
+.vt-bk-alert { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: var(--vt-border); border-radius: var(--vt-r-card-md); background: var(--vt-card); }
+.vt-bk-alert > svg { flex-shrink: 0; margin-top: 2px; }
+.vt-bk-alert--err { background: var(--vt-err-bg); }
+.vt-bk-alert--sun { background: var(--vt-sun-soft); }
+.vt-bk-alert--info { background: var(--vt-action); }
+.vt-bk-alert-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.vt-bk-alert-main > b { font-size: 15px; }
+.vt-bk-alert-text { font-size: 14px; }
+.vt-bk-alert-text ul { margin: 4px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.vt-bk-alert-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.vt-bk-dup { display: flex; flex-direction: column; gap: 10px; }
+.vt-bk-dupitem { background: var(--vt-card); border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
+.vt-bk-dupitem b { font-size: 15px; }
+.vt-bk-check { display: flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 600; }
+.vt-bk-check input { width: 20px; height: 20px; accent-color: var(--vt-ink); }
+
+/* Dup check running (R2-05): spinner + progress bar inside the info alert. */
+.vt-bk-spin { flex-shrink: 0; width: 18px; height: 18px; margin-top: 1px; border: 2.5px solid var(--vt-track); border-top-color: var(--vt-ink); border-radius: 50%; animation: vt-bk-spin 0.8s linear infinite; }
+@keyframes vt-bk-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .vt-bk-spin { animation: none; } }
+.vt-bk-prog { height: 10px; margin-top: 8px; border: 1.5px solid var(--vt-ink); border-radius: 99px; background: var(--vt-track); overflow: hidden; }
+.vt-bk-prog > i { display: block; height: 100%; background: var(--vt-action); border-right: 1.5px solid var(--vt-ink); }
+.vt-bk-dupitem { line-height: 1.5; }
+.vt-bk-dupitem a { line-height: inherit; }
+.vt-bk-alert--sun > svg, .vt-bk-alert--info > svg { stroke: var(--vt-ink); }
+.vt-bk-dupitem .vt-imp-link { min-height: 0; display: inline; }

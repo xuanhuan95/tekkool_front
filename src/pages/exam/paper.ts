@@ -1,5 +1,6 @@
 import type {TestExam, TestQuestion, TestSection} from '../../types/exam';
 import type {TrueFalseValue} from '../../components/ui';
+import {stripPoints} from '../../lib/format';
 import {stripQuestionLabel, stripStatementLabel} from './stripLabel';
 
 /*
@@ -18,7 +19,10 @@ export type PaperOption = {key: string; id: string; value: string};
 export type PaperStatement = {key: string; questionId: string; html: string; /** Câu chùm: the ý's own label (data.label: "a)", "1)"). */ label?: string};
 
 export type PaperQuestion = {
+    /** Unique position in the paper (ids, flags, jump). */
     number: number;
+    /** What the student reads: `number`, or the frame's numbering when a Phần restarts. */
+    label: number;
     kind: QuestionKind;
     /** Raw ids this question saves to (4 for Đúng/Sai, 1 otherwise). */
     questionIds: string[];
@@ -38,6 +42,13 @@ export type PaperQuestion = {
 
 export type PaperPart = {
     id: string;
+    /** Frame texts (exams drawn with a frame): heading of the Nhóm, lead of the Phần, title of the tiểu mục. */
+    groupTitle?: string;
+    lead?: string;
+    subTitle?: string;
+    /** Exam drawn with a frame: the part heading and its lead share one line ("Phần I (3 điểm). Thí sinh…"). */
+    framed?: boolean;
+    partScore?: number;
     /** "Phần I · Trắc nghiệm" */
     title: string;
     kind: QuestionKind;
@@ -93,6 +104,7 @@ function partTitle(section: TestSection, index: number, kind: QuestionKind): str
 /** Build the numbered paper. Numbering is continuous across parts (Câu 1…23). */
 export function buildPaper(exam: TestExam): Paper {
     const parts: PaperPart[] = [];
+    const seen: Record<string, string> = {};
     const all: PaperQuestion[] = [];
 
     (exam.sections || []).forEach((section, sectionIndex) => {
@@ -104,6 +116,7 @@ export function buildPaper(exam: TestExam): Paper {
             const kind = kindOf(q.type);
             const base = {
                 number: all.length + questions.length + 1,
+                label: (section.first_no ?? all.length + 1) + questions.length,
                 kind,
                 raw: q,
                 rawPrev: i > 0 ? raws[i - 1] : undefined,
@@ -174,9 +187,25 @@ export function buildPaper(exam: TestExam): Paper {
         const first = questions[0].maxScore;
         const same = first !== null && questions.every(q => q.maxScore === first);
         if (kind !== 'essay' && !same) questions.forEach(q => { q.showPoints = q.maxScore !== null; });
+        // With a frame the BE sends the part title only on the first section of a Phần: later tiểu mục have no heading of their own.
+        const framed = typeof section.first_no === 'number';
+        // A heading shows only on the first section that carries it: a continuing section (2nd block of a tiểu mục / Phần) shows none.
+        const fresh = (key: 'group' | 'part' | 'sub', v: string) => {
+            if (!framed || !v || seen[key] === v) return '';
+            seen[key] = v;
+            return v;
+        };
+        const group = fresh('group', stripHtml(section.group_title));
+        const partTitleText = fresh('part', stripPoints(stripHtml(section.part_title)));
+        const subTitle = fresh('sub', stripHtml(section.sub_title));
         parts.push({
             id: 'phan-' + (parts.length + 1),
-            title: partTitle(section, parts.length, kind),
+            groupTitle: (framed ? group : stripHtml(section.group_title)) || undefined,
+            lead: (framed && !partTitleText ? '' : stripHtml(section.description || section.part_lead)) || undefined,
+            subTitle: (framed ? subTitle : stripHtml(section.sub_title)) || undefined,
+            framed: framed || undefined,
+            partScore: framed && partTitleText && typeof section.part_score === 'number' ? section.part_score : undefined,
+            title: framed ? partTitleText || (parts.some(x => x.framed) || group || subTitle ? '' : partTitle(section, parts.length, kind)) : partTitle(section, parts.length, kind),
             kind,
             questions,
             rawQuestions: raws,

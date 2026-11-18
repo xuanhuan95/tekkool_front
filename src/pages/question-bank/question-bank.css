@@ -33,3 +33,8 @@
 .vt-qbv-pager { display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap; }
 @media (max-width: 639.98px) { .vt-qbv-filters { grid-template-columns: minmax(0, 1fr); } }
 .vt-qb-page > a.vt-btn:first-child { align-self: flex-start; }
+
+.vt-qbv-imported { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
+.vt-qbv-block--new { border-color: var(--vt-ok-icon, #2f8f4e); box-shadow: 0 0 0 2px var(--vt-ok-icon, #2f8f4e); }
+.vt-qbv-source { font-size: 14px; }

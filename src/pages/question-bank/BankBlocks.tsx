@@ -1,21 +1,22 @@
 import {useEffect, useState} from 'react';
-import {Link, useParams} from 'react-router-dom';
+import {Link, useLocation, useParams} from 'react-router-dom';
 
 import renderHTML from '../../components/SafeHtml';
-import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, MetaChips, PageTitle, Select, Loading, TextField, buttonClass, notify, Refreshable}
+import {Badge, Button, Card, ConfirmDialog, cx, EmptyState, ErrorState, MetaChips, PageTitle, Select, Loading, TextField, buttonClass, icons, notify, Refreshable}
     from '../../components/ui';
 import {errorText} from '../../lib/format';
-import {BLOCKS_PER_PAGE, useBankBlocks, useBanks, useDeleteBlock} from '../../queries/questionBank';
+import {BLOCKS_PER_PAGE, useBankBlocks, useBankStats, useBanks, useDeleteBlock} from '../../queries/questionBank';
 import type {BankBlock} from '../../types/exam';
-import {BLOCK_LABELS} from '../exam-creation/blockTypes';
+import {blockLabel} from '../exam-creation/blockTypes';
 import '../exam-creation/import-exam.css';   // passage / explanation styles shared with the import screen
+import './paper-bank.css';
 import './question-bank.css';
 
 const isChoiceType = (t: string) => t === 'MultipleChoice' || t === 'ErrorIdentify';
 
 /** SPT-73 · read-only question: prompt, options with the key marked, T/F statements, short answer, explanation. */
-/** `plain` (whole-exam banks): the correct option is only tinted, without the "Đáp án đúng" text. */
-export function QuestionView({no, q, plain}: {no: string; q: BankBlock['questions'][number]; plain?: boolean}) {
+/** B4: the correct option is tinted + a tick; no "Đáp án đúng" badge (screen readers get a hidden text). */
+export function QuestionView({no, q}: {no: string; q: BankBlock['questions'][number]}) {
     const d = q.data;
     return <div className='vt-qbv-q'>
         <div className='vt-qbv-prompt'><b>{no}</b><div>{renderHTML(d.question)}</div>
@@ -28,7 +29,7 @@ export function QuestionView({no, q, plain}: {no: string; q: BankBlock['question
                 return <li key={a.id} className={on ? 'on' : undefined}>
                     <span className='vt-qbv-key'>{String.fromCharCode(65 + i)}.</span>
                     <div>{renderHTML(a.value)}</div>
-                    {on && !plain && <Badge tone='ok'>Đáp án đúng</Badge>}
+                    {on && <><span className='vt-qbv-tick' aria-hidden='true'><icons.IconCheckCircle size={20} color='var(--vt-ok-ink)'/></span><span className='vt-sr-only'>(đáp án đúng)</span></>}
                 </li>;
             })}
         </ul>}
@@ -40,15 +41,16 @@ export function QuestionView({no, q, plain}: {no: string; q: BankBlock['question
     </div>;
 }
 
-function BlockCard({block, onDelete}: {block: BankBlock; onDelete: () => void}) {
+function BlockCard({block, fresh, onDelete}: {block: BankBlock; fresh?: boolean; onDelete: () => void}) {
     const tf = block.block_type === 'true_false' || block.block_type === 'short_answer_group';   // ý a), b)… sharing one stem
-    return <Card as='article' className='vt-qbv-block'>
+    return <Card as='article' className={cx('vt-qbv-block', fresh && 'vt-qbv-block--new')}>
         <div className='vt-qbv-head'>
-            <Badge tone='title'>{block.block_type_name}</Badge>
+            <Badge tone='title'>{block.block_type_name}</Badge>{fresh && <Badge tone='ok'>Mới nhập</Badge>}
             <span className='vt-muted'>{block.count} {tf ? 'ý' : 'câu'}</span>
             <Button variant='ghost' size='sm' className='vt-qb-remove' aria-label={'Xoá khối ' + block.block_type_name}
                     onClick={onDelete}>Xoá</Button>
         </div>
+        {block.source && <span className='vt-muted vt-qbv-source'>Từ {block.source}</span>}
         {block.passage && <div className='vt-imp-passage'>
             <div className='vt-imp-passage-label'>{tf ? 'Đề dẫn chung' : 'Ngữ liệu'}</div>
             {renderHTML(block.passage)}
@@ -73,13 +75,18 @@ export default function BankBlocks() {
     const {bankId = ''} = useParams();
     const {data: banks} = useBanks();
     const bank = banks?.find(b => b.id === bankId);
+    // B5/BF-03: coming back from the import screen says what just went in (state is gone after F5, which is fine).
+    const imported = (useLocation().state as {imported?: {exams: number; blocks: number; since?: string; files?: string[]}} | null)?.imported;
+    const [hideNote, setHideNote] = useState(false);
+    const [onlyNew, setOnlyNew] = useState(!!imported?.since);   // after an import the list opens on what just went in
     const [type, setType] = useState('');
     const [typed, setTyped] = useState('');
     const [q, setQ] = useState('');
     const [page, setPage] = useState(1);
     const [removing, setRemoving] = useState<BankBlock | null>(null);
     const remove = useDeleteBlock();
-    const {data, isError, error, refetch, isFetching} = useBankBlocks(bankId, page, type, q);
+    const {data, isError, error, refetch, isFetching} = useBankBlocks(bankId, page, type, q, onlyNew ? imported?.since : '');
+    const perType = useBankStats(bankId).data?.per_type || {};
 
     // Search runs 350ms after the last keystroke; any filter change goes back to page 1.
     useEffect(() => {
@@ -115,9 +122,18 @@ export default function BankBlocks() {
             </div>
         </div>
 
+        {imported && !hideNote && <div className='nb-ok vt-qbv-imported' role='status'>
+            <span><b>Vừa nhập {imported.exams} đề · {imported.blocks} khối</b>
+                {!!imported.files?.length && <><br/>Từ {imported.files.length} file: {imported.files.join(', ')}. Khối mới có viền xanh bên dưới.</>}</span>
+            <span><Link to={'/import-exam?bank=' + bankId} className={buttonClass({variant: 'secondary', size: 'sm'})}>Nhập tiếp</Link>
+                <Button variant='ghost' size='sm' onClick={() => setHideNote(true)}>Đóng</Button></span>
+        </div>}
+
         <div className='vt-qbv-filters'>
+            {imported?.since && <Select label='Nguồn' value={onlyNew ? 'new' : ''} onChange={e => { setOnlyNew(e.target.value === 'new'); setPage(1); }}
+                    options={[{value: '', label: 'Tất cả đề'}, {value: 'new', label: `Chỉ khối vừa nhập · ${imported.blocks}`}]}/>}
             <Select label='Dạng khối' value={type} onChange={e => { setType(e.target.value); setPage(1); }}
-                    options={[{value: '', label: 'Tất cả dạng'}, ...Object.entries(BLOCK_LABELS).map(([value, label]) => ({value, label}))]}/>
+                    options={[{value: '', label: 'Tất cả dạng'}, ...Object.entries(perType).filter(([, n]) => n > 0).map(([value, n]) => ({value, label: `${blockLabel(value)} · ${n} khối`}))]}/>
             <TextField label='Tìm trong câu hỏi' placeholder='Tìm chữ trong câu, đáp án, ngữ liệu' value={typed}
                        onChange={e => setTyped(e.target.value)}/>
         </div>
@@ -128,10 +144,10 @@ export default function BankBlocks() {
             : !data
                 ? <Loading/>
                 : data.blocks.length === 0
-                    ? <EmptyState title={type || q ? 'Không có khối nào khớp' : 'Ngân hàng chưa có khối nào'}
-                                  description={type || q ? 'Thử đổi dạng khối hoặc từ khoá.' : 'Bấm Nhập đề ở trang Ngân hàng câu hỏi để thêm.'}/>
+                    ? <EmptyState title={type || q || onlyNew ? 'Không có khối nào khớp' : 'Ngân hàng chưa có khối nào'}
+                                  description={type || q || onlyNew ? 'Thử đổi dạng khối hoặc từ khoá.' : 'Bấm Nhập đề ở trang Ngân hàng câu hỏi để thêm.'}/>
                     : <Refreshable className='vt-qbv-list'>
-                        {data.blocks.map(b => <BlockCard key={b.id} block={b} onDelete={() => setRemoving(b)}/>)}
+                        {data.blocks.map(b => <BlockCard key={b.id} block={b} fresh={onlyNew} onDelete={() => setRemoving(b)}/>)}
                     </Refreshable>}
 
         {data && data.total > BLOCKS_PER_PAGE && <nav className='vt-qbv-pager' aria-label='Phân trang'>
