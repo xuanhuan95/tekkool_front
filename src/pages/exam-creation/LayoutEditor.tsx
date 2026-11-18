@@ -79,7 +79,7 @@ export default function LayoutEditor({layout, onChange, stock, bankId}: Props) {
                     {p.description
                         ? <p className='vt-cfb-hint'>Phần này dùng mô tả của đề mẫu: {p.description}</p>
                         : <div className='vt-cfb-lead'>
-                            <span className='vt-field-label'>Lời dẫn của phần</span>
+                            <span className='vt-field-label'>Lời dẫn</span>
                             <Inline value={p.lead} range={prange} label='Lời dẫn' placeholder='Ví dụ: Thí sinh trả lời từ câu … đến câu …'
                                     onChange={v => onChange(edit.part(layout, gi, pi, x => ({...x, lead: v})))}/>
                             {!/\{(from|to)\}/.test(p.lead) && /(từ\s+(câu\s+)?(…|\.{2,}|\d+)\s+đến)/i.test(p.lead) &&
@@ -88,7 +88,7 @@ export default function LayoutEditor({layout, onChange, stock, bankId}: Props) {
 
                     <Select label='Đánh số câu' value={p.numbering} className='vt-cfb-numbering'
                             onChange={e => onChange(edit.part(layout, gi, pi, x => ({...x, numbering: e.target.value === 'restart' ? 'restart' : 'continue'})))}
-                            options={[{value: 'continue', label: 'Tiếp tục số câu của phần trước'}, {value: 'restart', label: 'Đánh lại từ câu 1'}]}/>
+                            options={[{value: 'continue', label: 'Tiếp tục số câu'}, {value: 'restart', label: 'Đánh lại từ câu 1'}]}/>
 
                     <ol className='vt-cfb-items'>
                         {p.items.map((it, ii) => {
@@ -109,7 +109,7 @@ export default function LayoutEditor({layout, onChange, stock, bankId}: Props) {
                                              remove={p.items.length > 1 ? () => onChange(edit.part(layout, gi, pi, x => ({...x, items: x.items.filter((_y, j) => j !== ii)}))) : undefined}/>
                                 </div>
                                 <div className='vt-cfb-lead'>
-                                    <span className='vt-field-label'>Tiêu đề tiểu mục</span>
+                                    <span className='vt-field-label'>Tiêu đề tiểu mục (không bắt buộc)</span>
                                     <Inline value={it.title} range={r} label={`Tiêu đề tiểu mục ${ii + 1}`} placeholder='Ví dụ: Chọn một đáp án (bỏ trống nếu không cần)'
                                             onChange={v => onChange(edit.item(layout, gi, pi, ii, x => ({...x, title: v})))}/>
                                 </div>
@@ -119,12 +119,12 @@ export default function LayoutEditor({layout, onChange, stock, bankId}: Props) {
                             </li>;
                         })}
                     </ol>
-                    <Button variant='ghost' size='sm' onClick={() => onChange(edit.part(layout, gi, pi, x => ({...x, items: [...x.items, newItem()]})))}>+ Thêm tiểu mục</Button>
+                    <Button variant='ghost' size='sm' onClick={() => onChange(edit.part(layout, gi, pi, x => ({...x, items: [...x.items, newItem()]})))}>Thêm tiểu mục</Button>
                 </section>;
             })}
-            <Button variant='ghost' size='sm' onClick={() => onChange(edit.group(layout, gi, x => ({...x, parts: [...x.parts, newPart()]})))}>+ Thêm phần</Button>
+            <Button variant='ghost' size='sm' onClick={() => onChange(edit.group(layout, gi, x => ({...x, parts: [...x.parts, newPart()]})))}>Thêm phần</Button>
         </Card>)}
-        <Button variant='secondary' onClick={() => onChange([...layout, newGroup()])}>+ Thêm nhóm</Button>
+        <Button variant='secondary' onClick={() => onChange([...layout, newGroup()])}>Thêm nhóm</Button>
         {empty && <p className='vt-cfb-hint'>Khung còn trống. Chọn dạng khối và số khối cho từng tiểu mục; số câu sẽ tự tính. Trong lời dẫn có thể gõ "từ câu … đến câu …" rồi bấm "Chèn số câu".</p>}
     </div>;
 }

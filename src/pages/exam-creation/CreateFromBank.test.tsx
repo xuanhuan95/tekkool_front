@@ -72,7 +72,7 @@ it('copies the sample frame, computes the numbers itself and saves the frame as 
     // One more Đọc hiểu in Phần I: the lead's "đến câu" moves from 10 to 15.
     const lead = within(screen.getAllByRole('group', {name: 'Lời dẫn'})[0]);
     expect(lead.getAllByText(/^\d+$/).map(e => e.textContent)).toEqual(['1', '10']);
-    fireEvent.click(screen.getAllByText('+ Thêm tiểu mục')[0]);
+    fireEvent.click(screen.getAllByText('Thêm tiểu mục')[0]);
     fireEvent.change(screen.getAllByLabelText('Dạng khối')[1], {target: {value: 'reading'}});
     await waitFor(() => expect(lead.getAllByText(/^\d+$/).map(e => e.textContent)).toEqual(['1', '15']));
     fireEvent.click(screen.getAllByLabelText('Thao tác với tiểu mục 2')[0]);   // ⋯ menu → Xoá, back to the sample
@@ -102,7 +102,7 @@ it('a frame asking for more blocks than the bank has says so at the tiểu mục
 it('an empty frame says why it cannot go on', async () => {
     mock();
     renderPage();
-    fireEvent.click(await screen.findByText(/Tiếp: chép khung từ khung trống/));
+    fireEvent.click(await screen.findByText(/Tiếp: dựng khung từ trống/));
     await screen.findAllByLabelText('Tên phần');
     expect(screen.getByText('Chưa đặt tên đề và chưa chọn dạng khối.')).toBeTruthy();
     expect((screen.getByText('Xem trước') as HTMLButtonElement).disabled).toBe(true);
@@ -117,7 +117,7 @@ it('F5 keeps the draft: coming back offers to continue it, "Bắt đầu lại" 
     first.unmount();
 
     renderPage();
-    fireEvent.click(await screen.findByText(/Tiếp: chép khung từ khung trống/));
+    fireEvent.click(await screen.findByText(/Tiếp: dựng khung từ trống/));
     expect(await screen.findByText('Tiếp tục khung đang soạn dở?')).toBeTruthy();
     fireEvent.click(screen.getByText('Tiếp tục'));
     expect((await screen.findByPlaceholderText(/Đề luyện thi/) as HTMLInputElement).value).toBe('Dở dang');
@@ -151,7 +151,7 @@ it('Esc on the "continue draft?" dialog closes it and KEEPS the draft', async ()
     mock();
     localStorage.setItem('spt-cfb-draft:b1:', JSON.stringify({layout: [{title: '', parts: [{title: 'P', lead: '', numbering: 'continue', items: [{title: '', block_type: 'reading', count: 1}]}]}], name: 'Giữ lại', template: '', savedAt: Date.now()}));
     renderPage();
-    fireEvent.click(await screen.findByText(/Tiếp: chép khung từ khung trống/));
+    fireEvent.click(await screen.findByText(/Tiếp: dựng khung từ trống/));
     await screen.findByText('Tiếp tục khung đang soạn dở?');
     fireEvent.keyDown(document, {key: 'Escape'});
     await waitFor(() => expect(screen.queryByText('Tiếp tục khung đang soạn dở?')).toBeNull());
@@ -183,4 +183,22 @@ it('step 3: the bank is short → says which type, no draw shown, "Lưu đề" l
     fireEvent.click(screen.getByText('Xem trước'));
     expect(await screen.findByText(/Đọc hiểu: cần 2, ngân hàng có 1/)).toBeTruthy();
     expect((screen.getByText('Lưu đề') as HTMLButtonElement).disabled).toBe(true);
+});
+
+it('after saving it lands on Môn & đề of the exam subject, not the bank list (BV2-08)', async () => {
+    const post = mock();
+    post.mockImplementation(async (url: string) => url === 'exam/preview_layout' ? draw() : {id: 'E9', folder: 'F7'});
+    renderPage('/create-from-bank?bank=b1&folder=F7');
+    await copyTemplate();
+    fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề mới'}});
+    fireEvent.click(screen.getByText('Xem trước'));
+    await screen.findByText('A. TRẮC NGHIỆM');
+    fireEvent.click(screen.getByText('Lưu đề'));
+    await screen.findByText('TRANG MÔN');
+});
+
+it('F5 on the frame step comes back to the same step with the same bank and sample (BV2-10)', async () => {
+    mock();
+    renderPage('/create-from-bank?bank=b1&template=T1&step=1');
+    await screen.findAllByLabelText('Tên phần');
 });
