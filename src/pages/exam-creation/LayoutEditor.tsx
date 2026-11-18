@@ -1,4 +1,6 @@
-import {Button, Card, IconButton, Select, TextField, cx, icons} from '../../components/ui';
+import {useEffect, useRef, useState} from 'react';
+
+import {Button, Card, IconButton, Select, TextField, cx} from '../../components/ui';
 import {BLOCK_LABELS, blockLabel} from './blockTypes';
 import {edit, fill, insertNumbers, isToken, newGroup, newItem, newPart, numbering, pieces, shift, shortages} from './layoutRules';
 import type {Layout, Range} from './layoutRules';
@@ -20,6 +22,27 @@ export function Inline({value, onChange, range, label, placeholder}:
     </div>;
 }
 
+/** ⋯ menu of a row: move up / down / delete (artboard). Closes on Esc and on a click outside. */
+function RowMenu({what, up, down, remove}: {what: string; up?: () => void; down?: () => void; remove?: () => void}) {
+    const [open, setOpen] = useState(false);
+    const box = useRef<HTMLSpanElement>(null);
+    useEffect(() => {
+        if (!open) return;
+        const off = (e: Event) => { if (e instanceof KeyboardEvent ? e.key === 'Escape' : !box.current?.contains(e.target as Node)) setOpen(false); };
+        document.addEventListener('mousedown', off); document.addEventListener('keydown', off);
+        return () => { document.removeEventListener('mousedown', off); document.removeEventListener('keydown', off); };
+    }, [open]);
+    const item = (label: string, fn?: () => void, danger?: boolean) => <button type='button' role='menuitem' disabled={!fn}
+        className={cx(danger && 'vt-cfb-menu-danger')} onClick={() => { setOpen(false); fn?.(); }}>{label}</button>;
+    return <span className='vt-cfb-moves' ref={box}>
+        <IconButton variant='outline' tipEnd label={`Thao tác với ${what}`} aria-expanded={open} aria-haspopup='menu'
+                    icon={<span aria-hidden='true'>⋯</span>} onClick={() => setOpen(o => !o)}/>
+        {open && <div className='vt-cfb-menu' role='menu'>
+            {item('Đưa lên', up)}{item('Đưa xuống', down)}{item('Xoá', remove, true)}
+        </div>}
+    </span>;
+}
+
 type Props = {layout: Layout; onChange: (l: Layout) => void; stock: Record<string, number>; bankId: string};
 
 /** Step 2: Nhóm → Phần → Tiểu mục. Question numbers are computed here, never typed. */
@@ -34,12 +57,9 @@ export default function LayoutEditor({layout, onChange, stock, bankId}: Props) {
             <div className='vt-cfb-row'>
                 <TextField label={`Nhóm ${gi + 1}`} placeholder='Ví dụ: A. PHẦN TRẮC NGHIỆM (bỏ trống nếu đề không chia nhóm)' value={g.title}
                            onChange={e => onChange(edit.group(layout, gi, x => ({...x, title: e.target.value})))}/>
-                <span className='vt-cfb-moves'>
-                    <IconButton variant='outline' label={`Đưa nhóm ${gi + 1} lên`} icon={<icons.IconArrowUp/>} disabled={gi === 0} onClick={() => onChange(shift(layout, gi, -1))}/>
-                    <IconButton variant='outline' label={`Đưa nhóm ${gi + 1} xuống`} icon={<icons.IconArrowDown size={18}/>} disabled={gi === layout.length - 1} onClick={() => onChange(shift(layout, gi, 1))}/>
-                    <IconButton variant='outline' label={`Xoá nhóm ${gi + 1}`} tipEnd className='vt-iconbtn--danger' icon={<icons.IconClose size={18}/>}
-                                disabled={layout.length === 1} onClick={() => onChange(layout.filter((_x, i) => i !== gi))}/>
-                </span>
+                <RowMenu what={`nhóm ${gi + 1}`} up={gi > 0 ? () => onChange(shift(layout, gi, -1)) : undefined}
+                         down={gi < layout.length - 1 ? () => onChange(shift(layout, gi, 1)) : undefined}
+                         remove={layout.length > 1 ? () => onChange(layout.filter((_x, i) => i !== gi)) : undefined}/>
             </div>
 
             {g.parts.map((p, pi) => {
@@ -51,12 +71,9 @@ export default function LayoutEditor({layout, onChange, stock, bankId}: Props) {
                                    onChange={e => onChange(edit.part(layout, gi, pi, x => ({...x, title: e.target.value})))}/>
                         <TextField label='Điểm' type='number' inputMode='decimal' min={0} max={100} step='0.25' className='vt-cfb-score' value={p.score ?? ''}
                                    onChange={e => onChange(edit.part(layout, gi, pi, x => ({...x, score: e.target.value === '' ? null : Number(e.target.value)})))}/>
-                        <span className='vt-cfb-moves'>
-                            <IconButton variant='outline' label={`Đưa phần ${pi + 1} lên`} icon={<icons.IconArrowUp/>} disabled={pi === 0} onClick={() => move(-1)}/>
-                            <IconButton variant='outline' label={`Đưa phần ${pi + 1} xuống`} icon={<icons.IconArrowDown size={18}/>} disabled={pi === g.parts.length - 1} onClick={() => move(1)}/>
-                            <IconButton variant='outline' label={`Xoá phần ${pi + 1}`} tipEnd className='vt-iconbtn--danger' icon={<icons.IconClose size={18}/>}
-                                        disabled={g.parts.length === 1} onClick={() => onChange(edit.group(layout, gi, x => ({...x, parts: x.parts.filter((_y, i) => i !== pi)})))}/>
-                        </span>
+                        <RowMenu what={`phần ${pi + 1}`} up={pi > 0 ? () => move(-1) : undefined}
+                                 down={pi < g.parts.length - 1 ? () => move(1) : undefined}
+                                 remove={g.parts.length > 1 ? () => onChange(edit.group(layout, gi, x => ({...x, parts: x.parts.filter((_y, i) => i !== pi)}))) : undefined}/>
                     </div>
 
                     {p.description
@@ -86,14 +103,10 @@ export default function LayoutEditor({layout, onChange, stock, bankId}: Props) {
                                     <TextField label='Số khối' type='number' inputMode='numeric' min={1} className='vt-cfb-count' value={it.count}
                                                onChange={e => onChange(edit.item(layout, gi, pi, ii, x => ({...x, count: Math.max(0, Math.floor(Number(e.target.value) || 0))})))}/>
                                     <span className='vt-cfb-range'>{r ? `→ câu ${r.from}–${r.to}` : '→ chưa có câu'}</span>
-                                    <span className='vt-cfb-moves'>
-                                        <IconButton variant='outline' label={`Đưa tiểu mục ${ii + 1} lên`} icon={<icons.IconArrowUp/>} disabled={ii === 0}
-                                                    onClick={() => onChange(edit.part(layout, gi, pi, x => ({...x, items: shift(x.items, ii, -1)})))}/>
-                                        <IconButton variant='outline' label={`Đưa tiểu mục ${ii + 1} xuống`} icon={<icons.IconArrowDown size={18}/>} disabled={ii === p.items.length - 1}
-                                                    onClick={() => onChange(edit.part(layout, gi, pi, x => ({...x, items: shift(x.items, ii, 1)})))}/>
-                                        <IconButton variant='outline' label={`Xoá tiểu mục ${ii + 1}`} tipEnd className='vt-iconbtn--danger' icon={<icons.IconClose size={18}/>}
-                                                    disabled={p.items.length === 1} onClick={() => onChange(edit.part(layout, gi, pi, x => ({...x, items: x.items.filter((_y, j) => j !== ii)})))}/>
-                                    </span>
+                                    <RowMenu what={`tiểu mục ${ii + 1}`}
+                                             up={ii > 0 ? () => onChange(edit.part(layout, gi, pi, x => ({...x, items: shift(x.items, ii, -1)}))) : undefined}
+                                             down={ii < p.items.length - 1 ? () => onChange(edit.part(layout, gi, pi, x => ({...x, items: shift(x.items, ii, 1)}))) : undefined}
+                                             remove={p.items.length > 1 ? () => onChange(edit.part(layout, gi, pi, x => ({...x, items: x.items.filter((_y, j) => j !== ii)}))) : undefined}/>
                                 </div>
                                 <div className='vt-cfb-lead'>
                                     <span className='vt-field-label'>Tiêu đề tiểu mục</span>

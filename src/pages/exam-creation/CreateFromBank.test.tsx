@@ -68,7 +68,8 @@ it('copies the sample frame, computes the numbers itself and saves the frame as 
     fireEvent.click(screen.getAllByText('+ Thêm tiểu mục')[0]);
     fireEvent.change(screen.getAllByLabelText('Dạng khối')[1], {target: {value: 'reading'}});
     await waitFor(() => expect(lead.getAllByText(/^\d+$/).map(e => e.textContent)).toEqual(['1', '15']));
-    fireEvent.click(screen.getAllByLabelText('Xoá tiểu mục 2')[0]);   // back to the sample
+    fireEvent.click(screen.getAllByLabelText('Thao tác với tiểu mục 2')[0]);   // ⋯ menu → Xoá, back to the sample
+    fireEvent.click(screen.getByRole('menuitem', {name: 'Xoá'}));
 
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: ' Đề thử '}});
     fireEvent.click(screen.getByText('Xem trước'));
