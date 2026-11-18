@@ -30,6 +30,8 @@ import {GuideModal} from './ImportGuide';
 import ImportQuestionModal from './ImportQuestionModal';
 import {IssueList, LevelBadge, SummaryBar} from './ImportIssues';
 import ImportFiles, {type FileRow} from './ImportFiles';
+import {ReviewList, cutLabel, type ReviewRow} from './ImportReview';
+import {SAME_BLOCK, bankDuplicates, blocksOf, importDuplicates, withoutBlocks, type BlockDup} from './dupRules';
 import ImportUpload from './ImportUpload';
 import PasteAnswers from './PasteAnswers';
 import './import-exam.css';
@@ -229,9 +231,11 @@ type BodyProps = {
     renumbered: boolean; onRenumber: () => void;
     /** B3: into a bank the numbers are redone when an exam is drawn, so the button is only for direct creation. */
     canRenumber: boolean;
+    /** Block bank: the "Khối sẽ cắt" column of the summary. */
+    cut?: {part: (i: number) => string; total: number};
 };
 
-function ExamBody({onFix, exam, edit, duplicates, pdf, desktop, issues, seen, onSee, renumbered, onRenumber, canRenumber}: BodyProps) {
+function ExamBody({onFix, exam, edit, duplicates, pdf, desktop, issues, seen, onSee, renumbered, onRenumber, canRenumber, cut}: BodyProps) {
     const [tab, setTab] = useState<'doc' | 'src'>('doc');
     const [pasting, setPasting] = useState(false);
     const [renumbering, setRenumbering] = useState(false);
@@ -271,7 +275,7 @@ function ExamBody({onFix, exam, edit, duplicates, pdf, desktop, issues, seen, on
 
     let no = 0;
     return <div className='vt-imp-body'>
-        <SummaryBar exam={exam} issues={issues}/>
+        <SummaryBar exam={exam} issues={issues} cut={cut}/>
         <IssueList compact={!desktop} issues={issues} seen={seen} onSee={onSee} jump={jump} onGo={go} onFix={onFix}/>
         {!desktop && <Tabs aria-label='Đã đọc hoặc bản gốc' block value={tab} onChange={setTab}
                            items={[{value: 'doc', label: 'Đã đọc'}, {value: 'src', label: 'Bản gốc'}]}/>}
@@ -355,7 +359,7 @@ export default function ImportExam() {
     const qc = useQueryClient();
 
     const banksQ = useBanks();
-    const foldersQ = useFolders(!bankId);
+    const foldersQ = useFolders();   // also for "Tạo thẳng" from a bank (the subject is asked in a dialog)
     const banks = banksQ.data;
     const folders = foldersQ.data;
     const bankInfo = bankId ? banks?.find(b => b.id === bankId) : undefined;
@@ -384,7 +388,21 @@ export default function ImportExam() {
     const [saving, setSaving] = useState(false);
     const [progress, setProgress] = useState(0);
     const [duplicates, setDuplicates] = useState<Record<string, DuplicateInfo>>({});
-    const [checking, setChecking] = useState(false);
+    // Kiểm trùng (BF-12, B7): progress + cancel, and a result that stays on screen.
+    type DupDone = {compared: number; existing: Record<string, {bank: string; bank_name: string; same_bank: boolean; count: number}>};
+    const [dupRun, setDupRun] = useState<{at: number; of: number; name: string} | null>(null);
+    const [dupDone, setDupDone] = useState<DupDone | null>(null);
+    const cancelDup = useRef(false);
+    const checking = dupRun !== null;
+    // Duplicate blocks are NOT saved unless the teacher ticks "Vẫn lưu" (key = exam id + block id).
+    const [keepDup, setKeepDup] = useState<Record<string, boolean>>({});
+    // Per exam outcome of the last save (BF-07) and the other bank an exam already lives in (BF-15).
+    const [state, setState] = useState<Record<string, 'saved' | 'error' | 'pending'>>({});
+    const [otherBank, setOtherBank] = useState<Record<string, {id: string; name: string}>>({});
+    const [saveErrors, setSaveErrors] = useState<{id: string; name: string; file: string; message: string}[]>([]);
+    const [directOpen, setDirectOpen] = useState(false);
+    const [moreOpen, setMoreOpen] = useState(false);
+    const [directFolder, setDirectFolder] = useState('');
     // images already uploaded (data URI → path): a retry after a dropped connection skips them
     const images = useRef<ImageCache>(new Map());
     const desktop = useMediaQuery(DESKTOP);
@@ -485,7 +503,7 @@ export default function ImportExam() {
     // Browser Back: with a read file, one extra history entry sits on top ("armed"). Back pops it → ask; "Ở lại" pushes it again.
     // ponytail: no router blocker (BrowserRouter has none). Links leave with `replace` while armed, so no stray entry is left behind.
     const armed = useRef(false);
-    const goTo = (to: string) => navigate(to, {replace: armed.current});
+    const goTo = (to: string, state?: unknown) => navigate(to, {replace: armed.current, state});
     useEffect(() => {
         if (!dirty) return;
         if (!armed.current) { history.pushState(history.state, '', location.href); armed.current = true; }
@@ -515,35 +533,55 @@ export default function ImportExam() {
         setPicked(Object.fromEntries(exams.map(e => [e.id, !all])));
     };
 
-    // Optional: an empty bank measures 0 anyway. Numbers only, never blocks saving.
+    // Blocks the bank already holds (BE score) or that two exams of this batch share: not saved unless "Vẫn lưu" is ticked.
+    const bankDups = chosen.flatMap(e => bankDuplicates(e, duplicates));
+    const impDups = importDuplicates(chosen);
+    const dupsOf = (id: string): BlockDup[] => [...bankDups, ...impDups].filter(d => d.exam === id);
+    const dropOf = (e: ImportedExam) => new Set(dupsOf(e.id).filter(d => !keepDup[e.id + d.block]).map(d => d.block));
+
+    // Optional: an empty bank measures 0 anyway. Numbers only, never blocks saving. Cancel keeps nothing half-done.
     const checkDuplicates = async () => {
-        setChecking(true);
+        cancelDup.current = false;
+        setDupDone(null);
+        const merged: Record<string, DuplicateInfo> = {};
+        const existing: DupDone['existing'] = {};
+        let compared = 0;
         try {
-            const merged: Record<string, DuplicateInfo> = {};
-            for (const e of chosen) {
-                const r = await Api.post<{duplicates?: Record<string, DuplicateInfo>}>('question_bank/check_duplicates', {...await uploadImages(e, images.current), bank: bankId});
+            for (const [i, e] of chosen.entries()) {
+                if (cancelDup.current) return;
+                setDupRun({at: i + 1, of: chosen.length, name: e.name});
+                const r = await Api.post<{duplicates?: Record<string, DuplicateInfo>; compared?: number; existing?: DupDone['existing'][string] | null}>(
+                    'question_bank/check_duplicates', {...await uploadImages(e, images.current), bank: bankId});
+                if (cancelDup.current) return;
                 Object.assign(merged, r.duplicates || {});
+                compared = Math.max(compared, r.compared || 0);
+                if (r.existing) existing[e.id] = r.existing;
             }
-            setDuplicates(merged);
+            setDuplicates(merged); setDupDone({compared, existing}); setKeepDup({});
+            // An exam the bank already has is ticked off (tick it again to save it anyway).
+            setPicked(p => ({...p, ...Object.fromEntries(Object.keys(existing).map(id => [id, false]))}));
         } catch (e) {
             notify.error('Không đo được trùng lặp (' + errorText(e, 'lỗi không rõ') + '). Vẫn lưu được bình thường.');
         } finally {
-            setChecking(false);
+            setDupRun(null);
         }
     };
 
-    // toBank: cut into blocks and put them in the bank; the exam is drawn from it when a student starts.
-    const save = async (toBank: boolean) => {
-        if (!chosen.length || blocker) return;
-        setSaving(true); setProgress(0);
-        let added = 0;
+    const failedAt = (source: ImportedExam, err: unknown) =>
+        ({id: source.id, name: source.name, file: fileOf.current[source.id]?.name || '', message: errorText(err, 'Thử lại sau.')});
+
+    // Into the bank. Whole-exam banks send one batch; block banks save exam by exam and keep an outcome per exam (BF-07).
+    const saveToBank = async () => {
+        const list = chosen.filter(e => state[e.id] !== 'saved' && !otherBank[e.id]);
+        if (!list.length || blocker) return;
+        setSaving(true); setProgress(0); setSaveErrors([]);
         let done = 0;
         const out: PaperResult = {papers: [], rejected: [], total: bankInfo?.items ?? 0};
         try {
-            if (toBank && paperBank) {
+            if (paperBank) {
                 // Whole exams: images first (one by one), then the batch in one request (BE takes 1-50 papers); a 409 carrying `rejected` = none fit.
                 const papers = [];
-                for (const source of chosen) { papers.push(await uploadImages(source, images.current)); setProgress(++done); }
+                for (const source of list) { papers.push(await uploadImages(source, images.current)); setProgress(++done); }
                 for (let i = 0; i < papers.length; i += 50) {
                     try {
                         const r = await Api.post<PaperSaveReply>('question_bank/save', {bank: bankId, papers: papers.slice(i, i + 50)});
@@ -555,39 +593,68 @@ export default function ImportExam() {
                     }
                 }
                 setResult(out);
-            } else for (const source of chosen) {
+                return;
+            }
+            setState(s => ({...s, ...Object.fromEntries(list.map(e => [e.id, 'pending' as const]))}));
+            const fails: typeof saveErrors = [];
+            let added = 0, otherNow = 0;
+            for (const source of list) {
                 // ponytail: sequential on purpose — 20 exams x 12 questions in parallel chokes a 2-core server.
-                // base64 images → image/upload first, so the exam sent is text only (nginx caps the body at 2MB)
-                const e = await uploadImages(source, images.current);
-                if (toBank) {
+                const keep = withoutBlocks(source, dropOf(source));
+                if (!keep) { setState(s => ({...s, [source.id]: 'saved'})); setProgress(++done); continue; }   // every block was a duplicate
+                try {
+                    const e = await uploadImages(keep, images.current);
                     const r = await Api.post<{saved: number}>('question_bank/save', {...e, bank: bankId});
                     added += r.saved;
-                } else {
-                    await Api.post('exam/create', {...e, sections: withDefaultScores(e.sections as never, folder?.name) });
-                    // exam/create takes no folder → the existing move_to_folder.
-                    if (folderId) await Api.post('exam/move_to_folder', {examId: e.id, folderId});
+                    setState(s => ({...s, [source.id]: 'saved'}));
+                } catch (err) {
+                    const other = (err as {bank?: {id: string; name: string}}).bank;
+                    if ((err as {code?: number}).code === 409 && other) {
+                        otherNow++;
+                        setOtherBank(m => ({...m, [source.id]: other}));
+                        setPicked(p => ({...p, [source.id]: false}));
+                        setState(s => ({...s, [source.id]: 'error'}));
+                    } else {
+                        fails.push(failedAt(source, err));
+                        setState(s => ({...s, [source.id]: 'error'}));
+                        if (!(err as {code?: number}).code) break;   // connection gone: the rest stays "Chưa lưu"
+                    }
                 }
                 setProgress(++done);
             }
-            if (toBank && paperBank) {
-                // result already set above
-            } else if (toBank) {
-                notify.success(`Đã thêm ${added} khối vào ngân hàng. Số liệu sức chứa ở trên đã cập nhật.`);
-            } else if (folderId) {
-                qc.invalidateQueries({queryKey: ['exam']});
-                notify.success(`Đã tạo ${done} đề nháp. Sửa cho hết lỗi rồi bấm Xuất bản để học sinh thấy.`);
-                goTo('/subject/' + folderId);
-            } else {
-                qc.invalidateQueries({queryKey: ['exam']});
-                notify.success(`Đã tạo ${done} đề nháp. Vào Môn & đề để chọn môn và xuất bản.`);
-                goTo('/');
+            setSaveErrors(fails);
+            if (!fails.length && !otherNow) {
+                notify.success(`Đã thêm ${added} khối vào ngân hàng ${bankInfo?.name || ''}.`.trim());
+                goTo('/question-bank/' + bankId, {imported: {exams: list.length, blocks: added}});
             }
         } catch (err) {
-            // keep what is already saved; the teacher sees which exam stopped it
-            notify.error('Lưu thất bại: ' + chosen[Math.min(done, chosen.length - 1)].name, errorText(err, 'Thử lại sau.'));
+            notify.error('Lưu thất bại: ' + list[Math.min(done, list.length - 1)].name, errorText(err, 'Thử lại sau.'));
             if (paperBank && (out.papers.length || out.rejected.length)) setResult(out);   // keep what is already saved on screen
         } finally {
-            if (toBank) qc.invalidateQueries({queryKey: bankKeys.all});
+            qc.invalidateQueries({queryKey: bankKeys.all});
+            setSaving(false);
+        }
+    };
+
+    // Draft exams in a subject: images, exam/create, then the existing move_to_folder (create takes no folder).
+    const createDrafts = async (target: string) => {
+        if (!chosen.length || blocker) return;
+        const name = folders?.find(f => f.id === target)?.name;
+        setDirectOpen(false); setSaving(true); setProgress(0);
+        let done = 0;
+        try {
+            for (const source of chosen) {
+                const e = await uploadImages(source, images.current);
+                await Api.post('exam/create', {...e, sections: withDefaultScores(e.sections as never, name)});
+                await Api.post('exam/move_to_folder', {examId: e.id, folderId: target});
+                setProgress(++done);
+            }
+            qc.invalidateQueries({queryKey: ['exam']});
+            notify.success(`Đã tạo ${done} đề nháp trong môn ${name || ''}. Sửa cho hết lỗi rồi bấm Xuất bản để học sinh thấy.`);
+            goTo('/subject/' + target, {created: chosen.map(e => e.id)});
+        } catch (err) {
+            notify.error('Tạo đề thất bại: ' + chosen[Math.min(done, chosen.length - 1)].name, errorText(err, 'Thử lại sau.'));
+        } finally {
             setSaving(false);
         }
     };
@@ -601,9 +668,26 @@ export default function ImportExam() {
     const context = bankId
         ? <>Lưu vào ngân hàng <b>{bankInfo?.name || '…'}</b></>
         : folderId ? <>Tạo trong môn <b>{folder?.name || '…'}</b></> : null;
-    const direct = (label: string) => `${label} ${chosen.length} đề`;
 
     const showPreview = previewing && exams.length > 0;
+    const openExam = exams.find(e => e.id === openId) || exams[0];
+    const openIssues = openExam ? examIssues(issues, openExam.id, renumbered[openExam.id]) : [];
+    const subjectOptions = (folders || []).filter(f => !f.parent && !f.hidden).map(f => ({value: f.id, label: f.name}));
+    // "Lưu lại n đề chưa lưu": after a first attempt, the exams still to go (other-bank ones are ticked off).
+    const left = chosen.filter(e => state[e.id] !== 'saved' && !otherBank[e.id]).length;
+    const retry = chosen.some(e => state[e.id] === 'saved' || state[e.id] === 'error');
+    const openDirect = () => {
+        setDirectFolder(folders?.find(f => !f.parent && f.name === bankInfo?.subject)?.id || '');
+        setDirectOpen(true);
+    };
+    const rows: ReviewRow[] = exams.map(e => {
+        const mine = examIssues(issues, e.id, renumbered[e.id]);
+        const ex = dupDone?.existing[e.id];
+        return {exam: e, file: fileOf.current[e.id]?.name || '', picked: !!picked[e.id], questions: countQuestions(e), blocks: blocksOf(e).length,
+            severe: mine.filter(isSevere).length, light: mine.filter(i => !isSevere(i)).length + badTrueFalse(e), missing: missingKeys(e),
+            dupBlocks: bankDups.filter(d => d.exam === e.id).length, sameInImport: impDups.filter(d => d.exam === e.id).length,
+            state: state[e.id], note: otherBank[e.id] || (ex && !ex.same_bank) ? 'other-bank' : ex ? 'exists' : undefined};
+    });
     const again = result && !allRejected ? 'Nhập tiếp' : 'Thêm file';
     return <div className={cx('vt-imp', showPreview && 'vt-imp--wide')}>
         <input type='file' accept='.docx' multiple ref={fileRef} onChange={upload} hidden/>
@@ -658,93 +742,110 @@ export default function ImportExam() {
 
         {result && bankId && <PaperImportResult bankId={bankId} result={result} exams={exams} standard={standard} onPickFile={pickFile}/>}
 
-        {showPreview && !result && <Card>
-            <div className='vt-imp-listhead'>
-                <label className='vt-imp-check'>
-                    <input type='checkbox' checked={chosen.length === exams.length}
-                           ref={el => { if (el) el.indeterminate = chosen.length > 0 && chosen.length < exams.length; }}
-                           onChange={toggleAll}/>
-                    Đọc được {exams.length} đề — đã chọn {chosen.length}
-                </label>
+        {showPreview && !result && <>
+            {dupRun && <div className='vt-rv-banner' role='status'>
+                <span><b>Đang kiểm trùng đề {dupRun.at}/{dupRun.of}</b> · {dupRun.name}</span>
+                <Button variant='secondary' size='sm' onClick={() => { cancelDup.current = true; setDupRun(null); }}>Huỷ</Button>
+            </div>}
+            {!dupRun && dupDone && (bankDups.length + impDups.length + Object.keys(dupDone.existing).length === 0
+                ? <div className='nb-ok' role='status'><b>Không có khối nào trùng.</b> Đã so với {dupDone.compared} khối trong ngân hàng và giữa các đề vừa đọc.</div>
+                : <div className='vt-rv-warn' role='status'>
+                    <b>Có khối trùng — mặc định không lưu.</b>
+                    <span>
+                        {Object.keys(dupDone.existing).length > 0 && `${Object.keys(dupDone.existing).length} đề đã có sẵn (đã bỏ chọn). `}
+                        {bankDups.length > 0 && `${bankDups.length} khối trùng với đề trong ngân hàng (từ ${formatDecimal(SAME_BLOCK * 100)}%). `}
+                        {impDups.length > 0 && `${impDups.length} khối trùng giữa các đề vừa nhập. `}
+                        Mở từng đề để tick “Vẫn lưu” nếu muốn giữ.
+                    </span>
+                </div>)}
+            {saveErrors.length > 0 && <div className='nb-alert' role='alert'>
+                <b>Chưa lưu được {saveErrors.length} đề.</b>
+                {saveErrors.map(f => <span key={f.id}>“{f.name}”{f.file && ` (file ${f.file})`}: {f.message}</span>)}
+                <span>Các đề đã lưu ở trên không bị mất. Bấm “Lưu lại” để thử tiếp đề chưa lưu.</span>
+            </div>}
+            {Object.entries(otherBank).filter(([id]) => exams.some(e => e.id === id)).map(([id, b]) => <div key={id} className='nb-alert' role='alert'>
+                <b>“{exams.find(e => e.id === id)?.name}” đã nằm trong ngân hàng khác.</b>
+                <span>Mỗi đề chỉ ở một ngân hàng. Xem đề ở <Link to={'/question-bank/' + b.id}>{b.name}</Link>; ở đây đề được bỏ chọn.</span>
+            </div>)}
+
+            <div className='vt-rv'>
+                <Card className='vt-rv-left'>
+                    <ReviewList rows={rows} openId={openId} blockBank={!!bankId && !paperBank}
+                                onOpen={setOpenId} onToggle={id => setPicked(p => ({...p, [id]: !p[id]}))} onToggleAll={toggleAll}/>
+                </Card>
+                {openExam && <Card className='vt-rv-pane' key={openExam.id}>
+                    <div className='vt-imp-exam-row'>
+                        <TextField label='Tên đề' className='vt-imp-exam-name' value={openExam.name}
+                                   onChange={ev => patchExam(openExam.id)(e => ({...e, name: ev.target.value}))}/>
+                        <TextField label='Phút' type='number' min={0} className='vt-imp-exam-min'
+                                   value={openExam.duration === undefined ? 45 : openExam.duration}
+                                   onChange={ev => patchExam(openExam.id)(e => ({...e, duration: parseInt(ev.target.value, 10) || 0}))}/>
+                    </div>
+                    <p className='vt-rv-count'>{countQuestions(openExam)} câu{bankId && !paperBank && ` · ${blocksOf(openExam).length} khối`}</p>
+                    {dupsOf(openExam.id).length > 0 && <div className='vt-rv-dups'>
+                        <h3 className='vt-imp-h2'>Khối trùng</h3>
+                        {dupsOf(openExam.id).map(d => {
+                            const no = blocksOf(openExam).findIndex(b => b.id === d.block) + 1;
+                            const first = d.inImport ? exams.find(e => e.id === d.inImport)?.name : null;
+                            return <label key={d.block} className='vt-imp-check'>
+                                <input type='checkbox' checked={!!keepDup[openExam.id + d.block]}
+                                       onChange={() => setKeepDup(m => ({...m, [openExam.id + d.block]: !m[openExam.id + d.block]}))}/>
+                                <span>Vẫn lưu khối {no} — {first ? `trùng với đề “${first}”` : `trùng ${formatDecimal(d.score * 100)}% với ${d.with}`}</span>
+                            </label>;
+                        })}
+                    </div>}
+                    <ExamBody onFix={setGuide} exam={openExam} edit={patchExam(openExam.id)} duplicates={duplicates} pdf={pdf} desktop={desktop}
+                              issues={openIssues} seen={seen} onSee={i => setSeen(m => ({...m, [issueKey(i)]: true}))}
+                              canRenumber={!bankId} cut={bankId && !paperBank ? {part: i => cutLabel(openExam, i), total: blocksOf(openExam).length} : undefined}
+                              renumbered={!!renumbered[openExam.id]} onRenumber={() => setRenumbered(m => ({...m, [openExam.id]: true}))}/>
+                </Card>}
             </div>
 
-            {exams.map(exam => {
-                const open = openId === exam.id;
-                const missing = missingKeys(exam);
-                const wrongTf = badTrueFalse(exam);
-                const mine = examIssues(issues, exam.id, renumbered[exam.id]);
-                const nSevere = mine.filter(isSevere).length;
-                const dupCount = exam.sections.reduce((n, s) => n + toUnits(s.questions)
-                    .filter(u => u.questions.some(q => duplicates[q.id])).length, 0);
-                return <div key={exam.id} className='vt-imp-exam'>
-                    <div className='vt-imp-exam-row'>
-                        <label className='vt-imp-hit'><input type='checkbox' checked={!!picked[exam.id]}
-                               aria-label={'Chọn ' + exam.name}
-                               onChange={() => setPicked(p => ({...p, [exam.id]: !p[exam.id]}))}/></label>
-                        <TextField label='Tên đề' className='vt-imp-exam-name' value={exam.name}
-                                   onChange={ev => patchExam(exam.id)(e => ({...e, name: ev.target.value}))}/>
-                        <TextField label='Phút' type='number' min={0} className='vt-imp-exam-min'
-                                   value={exam.duration === undefined ? 45 : exam.duration}
-                                   onChange={ev => patchExam(exam.id)(e => ({...e, duration: parseInt(ev.target.value, 10) || 0}))}/>
-                        <span className='vt-imp-exam-meta'>
-                            {countQuestions(exam)} câu
-                            {nSevere > 0 && <Badge tone='err'>{nSevere} cảnh báo nặng</Badge>}
-                            {mine.length - nSevere > 0 && <Badge tone='sun'>{mine.length - nSevere} cảnh báo nhẹ</Badge>}
-                            {missing > 0 && <Badge tone='err'>{missing} câu thiếu đáp án</Badge>}
-                            {wrongTf > 0 && <Badge tone='sun'>{wrongTf} câu Đúng/Sai chưa đủ 4 ý</Badge>}
-                            {/* a collapsed exam hides its chips — count them here to know which to open */}
-                            {dupCount > 0 && <Badge tone='sun'>{dupCount} câu trùng</Badge>}
-                        </span>
-                        <Button variant='secondary' size='sm' aria-expanded={open}
-                                onClick={() => setOpenId(open ? null : exam.id)}>{open ? 'Thu gọn' : 'Xem & sửa'}</Button>
-                    </div>
-                    {open && <ExamBody onFix={setGuide} exam={exam} edit={patchExam(exam.id)} duplicates={duplicates} pdf={pdf} desktop={desktop}
-                                       issues={mine} seen={seen} onSee={i => setSeen(m => ({...m, [issueKey(i)]: true}))}
-                                       canRenumber={!bankId} renumbered={!!renumbered[exam.id]} onRenumber={() => setRenumbered(m => ({...m, [exam.id]: true}))}/>}
-                </div>;
-            })}
-        </Card>}
-
-        {showPreview && !result && <Card className={cx('vt-imp-bar', bankId && 'vt-imp-bar--bank')} role='region' aria-label='Lưu đề'>
-            {bankId
-                ? <>
-                    <Button variant='primary' loading={saving} loadingText={`Đang lưu ${progress + 1}/${chosen.length}…`}
-                            disabled={!chosen.length || !!blocker || checking} onClick={() => save(true)}>
-                        {direct('Lưu')} vào ngân hàng
+            <Card className={cx('vt-imp-bar', bankId && 'vt-imp-bar--bank')} role='region' aria-label='Lưu đề'>
+                {bankId ? <>
+                    {!paperBank && desktop && <Button variant='secondary' disabled={!chosen.length || !!blocker || busy || checking} onClick={openDirect}>{`Tạo thẳng ${chosen.length} đề nháp`}</Button>}
+                    {!paperBank && <Button variant='secondary' loading={checking} loadingText='Đang kiểm…' disabled={!chosen.length || busy} onClick={checkDuplicates}>Kiểm tra trùng</Button>}
+                    <Button variant='primary' loading={saving} loadingText={`Đang lưu ${Math.min(progress + 1, left)}/${left}…`}
+                            disabled={!left || !!blocker || checking} onClick={saveToBank}>
+                        {retry ? `Lưu lại ${left} đề chưa lưu` : `Lưu ${chosen.length} đề`}
                     </Button>
-                    {!paperBank && <>
-                        <Button variant='secondary' disabled={!chosen.length || !!blocker || busy} onClick={() => save(false)}>
-                            {direct('Tạo thẳng')}
-                        </Button>
-                        <Button variant='secondary' loading={checking} disabled={!chosen.length || busy} onClick={checkDuplicates}>
-                            Kiểm tra trùng lặp
-                        </Button>
-                    </>}
+                    {!paperBank && !desktop && <span className='vt-rv-more'>
+                        <IconButton variant='outline' label='Thêm lựa chọn' aria-expanded={moreOpen} icon={<span aria-hidden='true'>⋯</span>} onClick={() => setMoreOpen(o => !o)}/>
+                        {moreOpen && <div className='vt-rv-menu' role='menu'>
+                            <button type='button' role='menuitem' disabled={!chosen.length || !!blocker || busy} onClick={() => { setMoreOpen(false); openDirect(); }}>{`Tạo thẳng ${chosen.length} đề nháp`}</button>
+                        </div>}
+                    </span>}
                 </>
                 : <Button variant='primary' loading={saving} loadingText={`Đang lưu ${progress + 1}/${chosen.length}…`}
-                          disabled={!chosen.length || !!blocker || !folderId} onClick={() => save(false)}>
+                          disabled={!chosen.length || !!blocker || !folderId} onClick={() => createDrafts(folderId!)}>
                     {`Tạo ${chosen.length} đề nháp`}
                 </Button>}
-            {!bankId && !params.get('folder') &&
-                <Select label='Môn học' value={pickedFolder} onChange={ev => setPickedFolder(ev.target.value)}
-                        placeholder='Chọn môn' options={(folders || []).filter(f => !f.parent && !f.hidden).map(f => ({value: f.id, label: f.name}))}/>}
-            <span className={cx('vt-imp-bar-hint', blocker && 'err')} role={blocker ? 'alert' : undefined}>
-                {unseen
-                    ? <>{`Còn ${unseen} cảnh báo nặng chưa xem.`}<span className='vt-imp-bar-more'> Bấm “Đã xem, cho phép lưu” ở từng cảnh báo, hoặc sửa file Word rồi nhập lại.</span></>
-                : blocker
-                    ? blocker + ' — sửa ngay trong đề, hoặc sửa file Word rồi nhập lại.'
+                {!bankId && !params.get('folder') &&
+                    <Select label='Môn học' value={pickedFolder} onChange={ev => setPickedFolder(ev.target.value)}
+                            placeholder='Chọn môn' options={subjectOptions}/>}
+                <span className={cx('vt-imp-bar-hint', blocker && 'err')} role={blocker ? 'alert' : undefined}>
+                    {unseen
+                        ? <>{`Còn ${unseen} cảnh báo nặng chưa xem.`}<span className='vt-imp-bar-more'> Bấm “Đã xem, cho phép lưu” ở từng cảnh báo, hoặc sửa file Word rồi nhập lại.</span></>
+                    : blocker
+                        ? blocker + ' — sửa ngay trong đề, hoặc sửa file Word rồi nhập lại.'
                     : problems && !bankId
                         ? problems + ' — vẫn tạo được đề nháp; phải sửa xong mới xuất bản được.'
                     : sevenSeen > 0 && !saving ? `Đã xem ${sevenSeen} cảnh báo nặng.${lightCount ? ` ${lightCount} cảnh báo nhẹ không chặn việc lưu.` : ''}`
                     : saving ? 'Lưu lần lượt từng đề, đừng đóng trang.'
                     : !bankId && !folderId
                         ? <>Chọn môn học để tạo đề. Muốn lưu vào ngân hàng thì vào <Link to='/question-bank'>Ngân hàng câu hỏi</Link> chọn một ngân hàng rồi bấm “Nhập đề”.</>
-                    : Object.keys(duplicates).length
-                        ? `Có ${Object.keys(duplicates).length} câu trùng với ngân hàng — xem chip trên từng câu rồi tự quyết.`
-                    : paperBank ? 'Mỗi đề được lưu nguyên vẹn; đề phải cùng cấu trúc với ngân hàng.'
-                    : bankId ? 'Vào ngân hàng: cắt thành khối để sau này rút đề ngẫu nhiên.' : ''}
-            </span>
-        </Card>}
+                    : paperBank ? 'Mỗi đề được lưu nguyên vẹn, không cắt khối và không kiểm trùng khối; đề phải cùng cấu trúc với ngân hàng.'
+                    : bankId ? 'Lưu vào ngân hàng: cắt thành khối để sau này rút đề ngẫu nhiên.' : ''}
+                </span>
+            </Card>
+
+            <Modal open={directOpen} onClose={() => setDirectOpen(false)} title='Tạo thẳng đề nháp' size='md'
+                   footer={<><Button variant='secondary' onClick={() => setDirectOpen(false)}>Huỷ</Button>
+                       <Button variant='primary' disabled={!directFolder} onClick={() => createDrafts(directFolder)}>{`Tạo ${chosen.length} đề nháp`}</Button></>}>
+                <p>Đề được tạo ở dạng Nháp trong một môn, không vào ngân hàng. Chọn môn để đặt đề.</p>
+                <Select label='Môn học' value={directFolder} onChange={ev => setDirectFolder(ev.target.value)} placeholder='Chọn môn' options={subjectOptions}/>
+            </Modal>
+        </>}
 
         <ConfirmDialog open={leaveTo !== null} tone='danger' title='Rời trang này?' cancelLabel='Ở lại' confirmLabel='Rời đi'
                        message='Đề đã đọc, các chỗ đã sửa và các cảnh báo đã xác nhận sẽ mất. Muốn làm tiếp thì phải chọn file và nhập lại.'

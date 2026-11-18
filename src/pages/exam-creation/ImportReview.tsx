@@ -1,7 +1,6 @@
 import {Badge, cx} from '../../components/ui';
-import {formatDecimal} from '../../lib/format';
 import {blocksOf} from './dupRules';
-import {kindOf, partRows, type ImportIssue, type ImportedExam} from './importRules';
+import {kindOf, type ImportedExam} from './importRules';
 
 /** What the list shows next to an exam. `note` = why it is ticked off (already in the bank, …). */
 export type ReviewRow = {
@@ -58,7 +57,7 @@ export function ReviewList({rows, openId, onOpen, onToggle, onToggleAll, blockBa
 }
 
 /** "2 × Đọc hiểu, 1 × Trắc nghiệm": what the exam is cut into (block bank only). Kinds come from the question types read on screen. */
-function cutLabel(exam: ImportedExam, section: number) {
+export function cutLabel(exam: ImportedExam, section: number) {
     const count = new Map<string, number>();
     for (const b of blocksOf(exam).filter(x => x.section === section)) {
         const first = b.questions[0];
@@ -66,34 +65,4 @@ function cutLabel(exam: ImportedExam, section: number) {
         count.set(label, (count.get(label) || 0) + 1);
     }
     return [...count].map(([k, n]) => `${n} × ${k}`).join(', ') || '—';
-}
-
-/** "Tóm tắt theo phần": per Phần what is read, what is cut and the score; the last row sums the exam (10 = đủ). */
-export function SummaryTable({exam, issues, blockBank}: {exam: ImportedExam; issues: ImportIssue[]; blockBank: boolean}) {
-    const parts = partRows(exam, issues);
-    const total = parts.reduce((n, p) => n + (p.score || 0), 0);
-    const known = parts.some(p => typeof p.score === 'number');
-    const blocks = blocksOf(exam).length;
-    return <div className='vt-rv-sum'>
-        <h3 className='vt-imp-h2'>Tóm tắt theo phần</h3>
-        <div className='vt-rv-sum-scroll'>
-            <table className='vt-rv-table'>
-                <caption className='vt-sr-only'>Tóm tắt theo phần</caption>
-                <thead><tr>
-                    <th scope='col'>Phần</th>{blockBank && <th scope='col'>Khối sẽ cắt</th>}<th scope='col'>Số câu</th>{known && <th scope='col'>Điểm</th>}
-                </tr></thead>
-                <tbody>
-                    {parts.map((p, i) => <tr key={i}>
-                        <th scope='row'>{p.name}</th>{blockBank && <td>{cutLabel(exam, i)}</td>}
-                        <td>{p.read}</td>{known && <td>{typeof p.score === 'number' ? formatDecimal(p.score) : '—'}</td>}
-                    </tr>)}
-                </tbody>
-                <tfoot><tr>
-                    <th scope='row'>Cả đề</th>{blockBank && <td>{blocks} khối</td>}
-                    <td>{parts.reduce((n, p) => n + p.read, 0)}</td>
-                    {known && <td>{formatDecimal(total)}{Math.abs(total - 10) < 1e-6 && <span className='vt-rv-ok'> đủ</span>}</td>}
-                </tr></tfoot>
-            </table>
-        </div>
-    </div>;
 }
