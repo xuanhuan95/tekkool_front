@@ -29,6 +29,7 @@ import {issueLabel} from './guideContent';
 import {GuideModal} from './ImportGuide';
 import ImportQuestionModal from './ImportQuestionModal';
 import {IssueList, LevelBadge, SummaryBar} from './ImportIssues';
+import ImportFiles, {type FileRow} from './ImportFiles';
 import ImportUpload from './ImportUpload';
 import PasteAnswers from './PasteAnswers';
 import './import-exam.css';
@@ -365,9 +366,12 @@ export default function ImportExam() {
     const folder = folderId ? folders?.find(f => f.id === folderId) : undefined;
 
     const fileRef = useRef<HTMLInputElement>(null);
-    const [fileName, setFileName] = useState('');
-    const [reading, setReading] = useState(false);
-    const [problem, setProblem] = useState<string | null>(null);
+    // B1: several files at once, one row each. A file with an error never blocks the others.
+    const [files, setFiles] = useState<FileRow[]>([]);
+    const [previewing, setPreviewing] = useState(false);   // step 2 (a single clean file goes there by itself)
+    const fileOf = useRef<Record<string, File>>({});       // exam id → the file it came from (for the PDF)
+    const replacing = useRef<string | null>(null);         // "Chọn lại file": the errored row the next pick replaces
+    const reading = files.some(f => f.status === 'queued' || f.status === 'reading');
     const [exams, setExams] = useState<ImportedExam[]>([]);
     const [allIssues, setIssues] = useState<ImportIssue[]>([]);
     const [guide, setGuide] = useState<string | null>(null);   // the guide dialog: '' = top, else the entry id
@@ -406,41 +410,74 @@ export default function ImportExam() {
     const sevenSeen = chosenIssues.filter(isSevere).length;   // none left unseen once `unseen` is 0
     const lightCount = chosenIssues.length - sevenSeen;
 
-    // From the picker and from a drop on the upload zone.
-    const lastFile = useRef<File | null>(null);
-    const readFile = async (file: File) => {
-        lastFile.current = file;
-        setFileName(file.name);
-        setExams([]); setIssues([]); setSeen({}); setRenumbered({}); setDuplicates({}); setResult(null);
-        const bad = fileProblem(file);
-        if (bad) { setProblem(bad); return; }
-        // A .docx is a zip ("PK"): anything else would only cost a 15 s PDF conversion that cannot work.
-        if (await file.slice(0, 2).text() !== 'PK') { setProblem(importErrorText('khong doc duoc file')); return; }
-        setProblem(null); setReading(true);
+    const patchRow = (key: string, p: Partial<FileRow>) => setFiles(fs => fs.map(f => f.key === key ? {...f, ...p} : f));
+    const loadPdf = (file: File) => {
         dropPdf();
         setPdf({status: 'loading'});
-        // In parallel with the parse (the exams do not wait for it). Phones need it too: the "Bản gốc" tab.
         const mine = ++seq.current;
         Api.uploadBlob('import_docx/pdf', file).then(blob => {
             if (mine !== seq.current) return;
             pdfUrl.current = URL.createObjectURL(blob);
             setPdf({status: 'ready', url: pdfUrl.current});
         }, () => { if (mine === seq.current) setPdf({status: 'none'}); });
+    };
+    // The PDF follows the exam that is open (it is the file that exam came from).
+    const pdfFile = useRef<File | null>(null);
+    const openFile = openId ? fileOf.current[openId] : undefined;
+    useEffect(() => {
+        if (openFile && openFile !== pdfFile.current) { pdfFile.current = openFile; loadPdf(openFile); }
+    }, [openFile]);
+
+    const mounted = useRef(true);
+    useEffect(() => () => { mounted.current = false; }, []);
+
+    // Read one file: its exams are appended to the others (ids already there are skipped, not duplicated).
+    const readOne = async (row: FileRow, known: Set<string>, pdfNow: boolean) => {
+        const {file, key} = row;
+        const bad = fileProblem(file);
+        // A .docx is a zip ("PK"): anything else would only cost a 15 s PDF conversion that cannot work.
+        const notZip = !bad && await file.slice(0, 2).text() !== 'PK';
+        if (bad || notZip) { patchRow(key, {status: 'error', problem: bad || importErrorText('khong doc duoc file')}); return; }
+        patchRow(key, {status: 'reading', problem: undefined});
+        // A single file starts its PDF now, in parallel with the parse; with several files the PDF follows the open exam.
+        if (pdfNow) { pdfFile.current = file; loadPdf(file); }
         try {
             const res = await Api.upload<{exams: ImportedExam[]; issues?: ImportIssue[]}>('import_docx/preview', file);
-            if (mine !== seq.current) return;   // cancelled while reading
+            if (!mounted.current) return;
+            const fresh = res.exams.filter(e => !known.has(e.id));
+            fresh.forEach(e => { known.add(e.id); fileOf.current[e.id] = file; });
             // Tick ALL by default: untick a few beats re-picking 20.
-            setPicked(Object.fromEntries(res.exams.map(e => [e.id, true])));
-            setOpenId(res.exams.length ? res.exams[0].id : null);
-            setExams(res.exams.map(withShownCounts));
-            setIssues(res.issues || []);
+            setPicked(p => ({...p, ...Object.fromEntries(fresh.map(e => [e.id, true]))}));
+            setOpenId(o => o || (fresh.length ? fresh[0].id : null));
+            setExams(es => [...es, ...fresh.map(withShownCounts)]);
+            setIssues(is => [...is, ...(res.issues || [])]);
+            patchRow(key, {status: 'ok', exams: fresh.length, skipped: res.exams.length - fresh.length,
+                questions: fresh.reduce((n, e) => n + countQuestions(e), 0)});
         } catch (e) {
-            if (mine === seq.current) setProblem(importErrorText(errorText(e, 'không rõ nguyên nhân')));
-        } finally {
-            if (mine === seq.current) setReading(false);
+            if (mounted.current) patchRow(key, {status: 'error', problem: importErrorText(errorText(e, 'không rõ nguyên nhân'))});
         }
     };
-    // The answer of a cancelled read is dropped by the `seq` check above.
+
+    // From the picker and from a drop on the upload zone. ponytail: sequential on purpose (a 2-core server, 20 files).
+    const readFiles = async (list: File[], clear = false) => {
+        if (!list.length) return;
+        const rows: FileRow[] = list.map((file, i) => ({key: Date.now() + '-' + i + '-' + file.name, file, status: 'queued', exams: 0, questions: 0, skipped: 0}));
+        const known = new Set<string>(clear ? [] : exams.map(e => e.id));
+        if (clear) {
+            setExams([]); setIssues([]); setSeen({}); setRenumbered({}); setDuplicates({}); setResult(null); setPicked({}); setOpenId(null);
+            fileOf.current = {}; pdfFile.current = null;
+        }
+        const old = replacing.current;
+        replacing.current = null;
+        setFiles(fs => [...(clear ? [] : fs.filter(f => f.key !== old)), ...rows]);
+        setPreviewing(false);
+        const pdfNow = list.length === 1 && !exams.length;
+        for (const row of rows) await readOne(row, known, pdfNow);
+    };
+    // One file, read without error: straight to the preview, as before.
+    useEffect(() => {
+        if (!previewing && files.length === 1 && files[0].status === 'ok' && exams.length) setPreviewing(true);
+    }, [files, exams.length, previewing]);
 
     // Leaving with a file read loses every edit and confirmation: ask (reload/close tab, and in-app links).
     const [leaveTo, setLeaveTo] = useState<string | null>(null);
@@ -466,9 +503,9 @@ export default function ImportExam() {
         return () => { window.removeEventListener('beforeunload', bye); window.removeEventListener('popstate', back); document.removeEventListener('click', click, true); };
     }, [dirty]);
     const upload = ({target}: ChangeEvent<HTMLInputElement>) => {
-        const file = target.files && target.files[0];
-        target.value = '';   // allow picking the very same file again
-        if (file) readFile(file);
+        const list = Array.from(target.files || []);
+        target.value = '';   // allow picking the very same files again
+        readFiles(list, !!result);   // after a save, "Nhập tiếp" starts over
     };
 
     const patchExam = (id: string): Edit => fn => setExams(es => es.map(e => e.id === id ? fn(e) : e));
@@ -566,53 +603,39 @@ export default function ImportExam() {
         : folderId ? <>Tạo trong môn <b>{folder?.name || '…'}</b></> : null;
     const direct = (label: string) => `${label} ${chosen.length} đề`;
 
-    return <div className={cx('vt-imp', exams.length > 0 && 'vt-imp--wide')}>
-        <input type='file' accept='.docx' ref={fileRef} onChange={upload} hidden/>
+    const showPreview = previewing && exams.length > 0;
+    const again = result && !allRejected ? 'Nhập tiếp' : 'Thêm file';
+    return <div className={cx('vt-imp', showPreview && 'vt-imp--wide')}>
+        <input type='file' accept='.docx' multiple ref={fileRef} onChange={upload} hidden/>
 
         <div className='vt-imp-head'>
             <div>
-                {!exams.length && !reading && <Link to={bankId ? '/question-bank' : '/'} className='vt-imp-link'>← {bankId ? 'Ngân hàng câu hỏi' : 'Môn & đề'}</Link>}
-                {!desktop && exams.length > 0 && !problem && <button type='button' className='vt-imp-link vt-imp-back' disabled={busy} onClick={pickFile}>
-                    ← {result && !allRejected ? 'Nhập tiếp' : 'Chọn file khác'}</button>}
-                <PageTitle>Nhập đề từ file Word</PageTitle>
-                <MetaChips items={[exams.length > 0 && fileName, context, paperBank && <span className='nb-kind nb-kind--paper'>Nguyên đề</span>]}/>
+                {!showPreview && <Link to={bankId ? '/question-bank' : '/'} className='vt-imp-link'>← {bankId ? 'Ngân hàng câu hỏi' : 'Môn & đề'}</Link>}
+                {!desktop && showPreview && <button type='button' className='vt-imp-link vt-imp-back' disabled={busy} onClick={pickFile}>← {again}</button>}
+                <PageTitle>{bankId ? 'Nhập đề vào ngân hàng' : 'Nhập đề từ file Word'}</PageTitle>
+                <MetaChips items={[context, paperBank ? <span className='nb-kind nb-kind--paper'>Nguyên đề</span> : bankId && <span className='nb-kind'>Theo khối</span>]}/>
             </div>
-            {desktop && exams.length > 0 && !problem &&
-                <Button variant='secondary' disabled={busy} onClick={pickFile}>{result && !allRejected ? 'Nhập tiếp' : 'Chọn file khác'}</Button>}
+            {desktop && showPreview && <Button variant='secondary' disabled={busy} onClick={pickFile}>{again}</Button>}
         </div>
 
         <ol className='vt-imp-steps' aria-label='Các bước'>
             {['Tải lên', 'Xem trước', 'Lưu'].map((t, i) => {
-                const now = saving || (result && !allRejected) ? 2 : exams.length ? 1 : 0;
+                const now = saving || (result && !allRejected) ? 2 : showPreview ? 1 : 0;
                 return <li key={t} aria-current={i === now ? 'step' : undefined} className={cx(i === now && 'on')}>{i + 1} · {t}</li>;
             })}
         </ol>
 
-        {!exams.length && !reading && !problem && <ImportUpload onFile={readFile} pick={pickFile} onGuide={() => setGuide('')}/>}
+        {!showPreview && !result && <ImportUpload compact={files.length > 0} onFiles={readFiles} pick={pickFile} onGuide={() => setGuide('')}/>}
 
-        {reading && <div className='vt-imp-reading' aria-busy='true' aria-live='polite'>
-            <div className='vt-imp-reading-head'>
-                <b>Đang đọc {fileName}…</b>
-                <span className='vt-imp-hint'>Bản gốc dựng song song, file nhiều đề có thể mất khoảng 15 giây.</span>
-            </div>
-            <div className='vt-imp-reading-bar' aria-hidden='true'><div/></div>
-            <div className='vt-imp-reading-grid' aria-hidden='true'><i/><i/><i/><i/></div>
-            <div className='vt-imp-reading-cols' aria-hidden='true'><i/><i/></div>
-        </div>}
+        {!showPreview && !result && files.length > 0 &&
+            <ImportFiles rows={files} onGuide={() => setGuide('')} onPreview={() => setPreviewing(true)}
+                         onRemove={key => setFiles(fs => fs.filter(f => f.key !== key))}
+                         onRetry={key => { const f = files.find(x => x.key === key); if (f) { replacing.current = key; readFiles([f.file]); } }}
+                         onReplace={key => { replacing.current = key; pickFile(); }}/>}
 
         {(foldersQ.isError || banksQ.isError) &&
             <ErrorState title='Không tải được danh sách môn / ngân hàng' description={errorText(foldersQ.error || banksQ.error, 'Kiểm tra mạng rồi thử lại.')}
                         onRetry={() => { if (foldersQ.isError) foldersQ.refetch(); if (banksQ.isError) banksQ.refetch(); }}/>}
-
-        {problem && (() => { const unreadable = /không đọc được/i.test(problem); return <div role='alert' className='vt-imp-problem'>
-            <div className='vt-imp-problem-text'>
-                <b>{problem.startsWith('Chỉ nhận') ? 'Chưa đúng loại file' : problem.startsWith('File lớn hơn') ? 'File quá lớn' : 'Không đọc được file'}</b>
-                <span>{problem.replace(/^Không đọc được file: /, '')}</span>
-            </div>
-            {unreadable && <button type='button' className='vt-imp-link' onClick={() => setGuide('')}>Lỗi thường gặp</button>}
-            {unreadable && lastFile.current && <Button variant='secondary' onClick={() => readFile(lastFile.current!)}>Thử lại</Button>}
-            <Button variant='secondary' onClick={pickFile}>Chọn file khác</Button>
-        </div>; })()}
 
         {stock && total > 0 && <Card className='vt-imp-bank'>
             <div className='vt-imp-bank-head'>
@@ -635,7 +658,7 @@ export default function ImportExam() {
 
         {result && bankId && <PaperImportResult bankId={bankId} result={result} exams={exams} standard={standard} onPickFile={pickFile}/>}
 
-        {exams.length > 0 && !result && <Card>
+        {showPreview && !result && <Card>
             <div className='vt-imp-listhead'>
                 <label className='vt-imp-check'>
                     <input type='checkbox' checked={chosen.length === exams.length}
@@ -682,7 +705,7 @@ export default function ImportExam() {
             })}
         </Card>}
 
-        {exams.length > 0 && !result && <Card className={cx('vt-imp-bar', bankId && 'vt-imp-bar--bank')} role='region' aria-label='Lưu đề'>
+        {showPreview && !result && <Card className={cx('vt-imp-bar', bankId && 'vt-imp-bar--bank')} role='region' aria-label='Lưu đề'>
             {bankId
                 ? <>
                     <Button variant='primary' loading={saving} loadingText={`Đang lưu ${progress + 1}/${chosen.length}…`}

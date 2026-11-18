@@ -432,6 +432,50 @@ describe('ImportExam: bank screen (B2, B3, B4)', () => {
     });
 });
 
+describe('ImportExam: several files at once (B1, BF-05)', () => {
+    const pick = (...files: File[]) => fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files}});
+
+    it('the picker takes many files; a bad file is one error row and never blocks the good ones', async () => {
+        mockPost();
+        const e2 = {...EXAM, id: 'E2', name: 'Đề thử 2'};
+        vi.spyOn(Api, 'upload').mockImplementation(async (_u: string, f: File) => {
+            if (f.name === 'hong.docx') throw {error: 'khong doc duoc file'};
+            return {exams: f.name === 'a.docx' ? [EXAM] : [e2], issues: []};
+        });
+        renderScreen();
+        expect(document.querySelector('input[type=file]')!.hasAttribute('multiple')).toBe(true);
+        pick(new File(['PK'], 'a.docx'), new File(['PK'], 'hong.docx'), new File(['PK'], 'b.docx'));
+        await screen.findByText('Xem trước 2 đề');
+        expect(screen.getByText('3 file đã chọn')).toBeTruthy();
+        expect(screen.getByText('1 lỗi')).toBeTruthy();
+        expect(screen.getByText('Không đọc được file')).toBeTruthy();   // the error row says what to do
+        fireEvent.click(screen.getByText('Xem trước 2 đề'));
+        expect(screen.getByText(/Đọc được 2 đề/)).toBeTruthy();
+        // all exams of all files go to the bank in ONE save run
+        const sent = mockPost();
+        fireEvent.click(screen.getByText(/Lưu 2 đề vào ngân hàng/).closest('button')!);
+        await vi.waitFor(() => expect(sent.map(b => b.id)).toEqual(['E1', 'E2']));
+    });
+
+    it('an exam that is already read from another file is skipped, not listed twice', async () => {
+        mockPost();
+        vi.spyOn(Api, 'upload').mockResolvedValue({exams: [EXAM], issues: []});
+        renderScreen();
+        pick(new File(['PK'], 'a.docx'), new File(['PK'], 'copy.docx'));
+        await screen.findByText(/bỏ 1 đề đã có ở file khác/);
+        expect(screen.getByText('Xem trước 1 đề')).toBeTruthy();
+    });
+
+    it('"Bỏ file" drops the failed row', async () => {
+        mockPost();
+        renderScreen();
+        pick(new File(['hello'], 'x.docx'), new File(['hello'], 'y.docx'));
+        await screen.findByText('2 lỗi');
+        fireEvent.click(screen.getAllByText('Bỏ file')[0]);
+        expect(screen.getByText('1 file đã chọn')).toBeTruthy();
+    });
+});
+
 describe('ImportExam: Dán đáp án nhanh', () => {
     it('previews per question, applies only on confirm, and the applied key reaches the BE', async () => {
         const sent = mockPost({

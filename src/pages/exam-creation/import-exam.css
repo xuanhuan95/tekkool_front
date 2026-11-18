@@ -254,3 +254,31 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 .vt-imp-problem-text { display: flex; flex-direction: column; gap: 4px; flex: 1 1 280px; }
 .vt-imp-problem-text b { font-family: var(--vt-font-hand); font-size: 22px; color: var(--vt-err); }
 .vt-imp-problem-text span { font-size: 14px; color: var(--vt-muted); line-height: 1.5; }
+
+/* B1: several files, one row each (artboard import-files) */
+.vt-imp-up--compact .vt-imp-up-main { flex-basis: 100%; }
+.vt-imp-zone-text { display: flex; flex-direction: column; gap: 4px; }
+@media (min-width: 1024px) {
+    .vt-imp-up--compact .vt-imp-zone { flex-direction: row; justify-content: space-between; text-align: left; padding: 20px 24px; }
+    .vt-imp-up--compact .vt-imp-zone-text { flex: 1; }
+}
+.vt-imp-files { display: flex; flex-direction: column; gap: 12px; }
+.vt-imp-files-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.vt-imp-files-head .vt-imp-h2 { margin: 0; }
+.vt-imp-files-count { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+.vt-imp-filelist { list-style: none; margin: 0; padding: 0; }
+.vt-imp-file { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1.5px solid var(--vt-line-option); }
+.vt-imp-file:first-child { border-top: 0; }
+.vt-imp-file-icon { flex: none; width: 24px; display: inline-flex; justify-content: center; padding-top: 2px; }
+.vt-imp-file-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.vt-imp-file-main > b { overflow-wrap: anywhere; font-size: 15px; }
+.vt-imp-file-err { color: var(--vt-err); line-height: 1.5; }
+.vt-imp-file-acts { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
+.vt-imp-file-spin { width: 18px; height: 18px; border: 3px solid var(--vt-line-option); border-top-color: var(--vt-ink); border-radius: 50%; animation: vt-imp-spin 0.9s linear infinite; }
+@keyframes vt-imp-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .vt-imp-file-spin { animation: none; } }
+.vt-imp-files-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 639.98px) {
+    .vt-imp-file { flex-wrap: wrap; }
+    .vt-imp-files-foot > .vt-btn { flex: 1 1 100%; }
+}
