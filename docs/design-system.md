@@ -65,7 +65,7 @@ Viền: `2px solid #1c1917`. Không dùng bo đều (trừ hình tròn và viên
 - **Toast**: thẻ nhỏ viền mực, icon trái, nền trắng; lỗi dùng viền đỏ.
 - **Huy chương hạng**: vòng tròn 32px bo 999px, viền 2px màu huy chương, số Patrick Hand 18px.
 - **Avatar**: tròn 36–40px viền mực, nền `#e5dcfb`, chữ cái đầu 13–14px 700.
-- **Trạng thái rỗng**: icon nét 40px + câu Patrick Hand 22px + mô tả 14px muted + 1 nút. **Đang tải** (SPT-139): MỘT kiểu cho cả app — linh vật bút chì viết một nét mực + "Đang tải…" (Patrick Hand 22px, `--vt-muted`), giữa vùng nội dung (cao tối thiểu 420px / 520px từ 1024px). Không còn khối xám theo từng màn. Chỉ hiện sau 300ms; sau 8 giây đổi thành "Mạng hơi chậm, chờ thêm chút nhé…"; `prefers-reduced-motion` → hình tĩnh. Mở app lần đầu: thêm logo, giữa màn. Tải lại khi đã có dữ liệu (đổi lọc, tab, trang): không xoá nội dung — vệt dạ quang vàng chạy dưới đường kẻ header, vùng dữ liệu cũ mờ 55% (`Refreshable`). **Lỗi**: thẻ viền đỏ, câu giải thích + nút "Thử lại".
+- **Trạng thái rỗng**: icon nét 40px + câu Patrick Hand 22px + mô tả 14px muted + 1 nút. **Đang tải** (SPT-139): MỘT kiểu cho cả app — linh vật bút chì viết một nét mực + "Đang tải…" (Patrick Hand 22px, `--vt-muted`), giữa vùng nội dung (cao tối thiểu 420px / 520px từ 1024px). Không còn khối xám theo từng màn. Chỉ hiện sau 300ms; chữ không đổi dù chờ lâu; `prefers-reduced-motion` → hình tĩnh. Mở app lần đầu: thêm logo, giữa màn. Tải lại khi đã có dữ liệu (đổi lọc, tab, trang): không xoá nội dung — vệt dạ quang vàng chạy dưới đường kẻ header, vùng dữ liệu cũ mờ 55% (`Refreshable`). **Lỗi**: thẻ viền đỏ, câu giải thích + nút "Thử lại".
 
 ## 5. Thành phần làm bài (SPT)
 

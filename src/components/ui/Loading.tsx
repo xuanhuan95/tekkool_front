@@ -4,8 +4,6 @@ import {cx} from './cx';
 
 /** Data back within this time → no loading at all (no flash). */
 export const LOADING_DELAY_MS = 300;
-/** Still waiting after this → the sentence changes (the pencil keeps writing). */
-export const LOADING_SLOW_MS = 8000;
 
 /** true once `ms` have passed since mount (or since `on` turned true). */
 export function useAfter(ms: number, on = true) {
@@ -47,16 +45,15 @@ export interface LoadingProps {
 
 /**
  * THE loading of the whole app (SPT-139): a pencil writing one stroke + "Đang tải…". Replaces the old
- * per-screen skeletons. Shown only after 300ms; after 8s the sentence changes.
+ * per-screen skeletons. Shown only after 300ms; the text never changes.
  * prefers-reduced-motion is handled in CSS (still picture).
  */
 export default function Loading({variant = 'page', className}: LoadingProps) {
     const shown = useAfter(LOADING_DELAY_MS);
-    const slow = useAfter(LOADING_SLOW_MS);
     const block = <div className={cx('ld', variant === 'page' && 'ld--page', variant === 'inline' && 'ld--inline', className)} role='status' aria-live='polite'>
         {shown && <>
             <div className='ld-art' aria-hidden='true'>{INK}{PEN}</div>
-            <p className='ld-text'>{slow ? 'Mạng hơi chậm, chờ thêm chút nhé…' : 'Đang tải…'}</p>
+            <p className='ld-text'>Đang tải…</p>
         </>}
     </div>;
     if (variant !== 'boot') return block;

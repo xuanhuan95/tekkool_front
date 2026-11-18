@@ -20,13 +20,10 @@ describe('Loading (SPT-139)', () => {
         expect(box.querySelector('.ld-art')).toHaveAttribute('aria-hidden', 'true');
     });
 
-    it('changes the sentence after 8 seconds', () => {
+    it('keeps the same sentence however long it waits', () => {
         render(<Loading/>);
-        act(() => { vi.advanceTimersByTime(7999); });
+        act(() => { vi.advanceTimersByTime(30000); });
         expect(screen.getByText('Đang tải…')).toBeInTheDocument();
-        act(() => { vi.advanceTimersByTime(1); });
-        expect(screen.getByText('Mạng hơi chậm, chờ thêm chút nhé…')).toBeInTheDocument();
-        expect(screen.queryByText('Đang tải…')).toBeNull();
     });
 
     it('inline variant has no page min-height class', () => {
