@@ -49,7 +49,7 @@ function BoardPanel({kind, q, limit, onMore}: {kind: BoardKind; q: ReturnType<ty
     const b = q.data;
     if (!b) return null;
     return <>
-        <MeCard board={b} kind={kind}/>
+        <Refreshable><MeCard board={b} kind={kind}/></Refreshable>
         <Refreshable>{b.entries.length === 0
             ? <EmptyState title={kind === 'week' ? 'Tuần này chưa có ai trên bảng' : 'Chưa có thành tích nào'}
                           description='Hoàn thành một đề để ghi tên mình lên bảng.'
