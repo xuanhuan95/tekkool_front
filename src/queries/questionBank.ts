@@ -1,6 +1,7 @@
 import {keepPreviousData, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import Api from '../services/api';
+import type {Layout} from '../pages/exam-creation/layoutRules';
 import type {BankBlocksPage, BankCapacity, BankKind, BankPaper, BankPapersPage, BankStats, BankSummary, StructureSlot} from '../types/exam';
 
 export const bankKeys = {
@@ -52,7 +53,19 @@ export type CreateFromBankInput = {
     banks: string[]; name: string; duration: number; folder?: string;
     /** Required for kind block; ignored for a paper bank (exactly one bank). */
     structure?: StructureSlot[];
+    /** Exam frame Nhóm → Phần → Tiểu mục (C1). Wins over `structure` when both are sent. */
+    layout?: Layout;
 };
+
+/** Sample exams of a bank: frames the teacher can copy (`question_bank/templates`). */
+export type BankTemplate = {id: string; name: string; layout: Layout; block_count: number};
+export function useBankTemplates(bankId: string) {
+    return useQuery({
+        queryKey: [...bankKeys.all, 'templates', bankId],
+        queryFn: () => Api.get<BankTemplate[]>('question_bank/templates?bank=' + bankId),
+        enabled: !!bankId,
+    });
+}
 
 export function useCreateFromBank() {
     const qc = useQueryClient();

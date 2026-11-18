@@ -1,5 +1,5 @@
 import {beforeEach, expect, it, vi} from 'vitest';
-import {fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
@@ -8,15 +8,23 @@ import CreateFromBank, {suggestedMinutes} from './CreateFromBank';
 
 const BANKS = [
     {id: 'b1', name: 'Văn A', subject: 'Ngữ văn', blocks: 6},
-    {id: 'b2', name: 'Toán A', subject: 'Toán', blocks: 4},
+    {id: 'p1', name: 'SPT Hoá', subject: 'Hoá học', kind: 'paper', items: 6, blocks: 0},
 ];
+// Sample exam "Văn 2027": Phần I = 2 Đọc hiểu (lead has numbers), Phần II restarts at câu 1.
+const TEMPLATES = [{id: 't1', name: 'Văn 2027', block_count: 3, layout: [{title: 'A.', parts: [
+    {title: 'Phần I', lead: 'Trả lời từ câu {from} đến câu {to}', numbering: 'continue', score: 6, items: [{title: '', block_type: 'reading', count: 2}]},
+    {title: 'Phần II', lead: '', numbering: 'restart', items: [{title: '', block_type: 'essay', count: 1}]},
+]}]}];
 
-function mock(capacity = 3, per_type: Record<string, number> = {reading: 3, paragraph: 2, essay: 1}) {
-    vi.spyOn(Api, 'get').mockResolvedValue(BANKS);
-    return vi.spyOn(Api, 'post').mockImplementation(async (url: string) => {
-        if (url === 'question_bank/capacity') return {capacity, per_type, slots: {}, bottleneck: null};
-        return {id: 'E1'};
+function mock(stock: Record<string, number> = {reading: 3, essay: 1}) {
+    vi.spyOn(Api, 'get').mockImplementation(async (url: string) => {
+        if (url.startsWith('question_bank/templates')) return TEMPLATES;
+        if (url.startsWith('question_bank/stats')) return {per_type: stock};
+        if (url === 'folder/list') return [];
+        return BANKS;
     });
+    return vi.spyOn(Api, 'post').mockImplementation(async (url: string) =>
+        url === 'question_bank/capacity' ? {capacity: 1, per_type: stock, slots: {}, bottleneck: null} : {id: 'E1'});
 }
 
 const renderPage = (path = '/create-from-bank?bank=b1') => render(
@@ -31,104 +39,100 @@ const renderPage = (path = '/create-from-bank?bank=b1') => render(
     </QueryClientProvider>
 );
 
-const addSlot = (name: string) => fireEvent.click(screen.getByLabelText('Thêm ' + name));
+/** Pick the sample exam and go to step 2. */
+async function copyTemplate() {
+    fireEvent.click(await screen.findByLabelText(/Văn 2027/));
+    fireEvent.click(screen.getByText(/Tiếp: chép khung từ Văn 2027/));
+    await screen.findAllByLabelText('Tên phần');
+}
 
-beforeEach(() => vi.restoreAllMocks());
+beforeEach(() => { vi.restoreAllMocks(); localStorage.clear(); });
 
-it('saves parts and titles in order; an empty slot gets the suggested title by position', async () => {
+it('suggests 90 minutes for Toán and Ngữ văn, 60 for the rest', () => {
+    expect(suggestedMinutes('Ngữ văn')).toBe(90);
+    expect(suggestedMinutes('Toán')).toBe(90);
+    expect(suggestedMinutes('Hoá học')).toBe(60);
+});
+
+it('copies the sample frame, computes the numbers itself and saves the frame as layout', async () => {
     const post = mock();
     renderPage();
-    await screen.findByText('có 2 khối');
+    await copyTemplate();
 
-    addSlot('Đọc hiểu (ngữ liệu + 5 câu)');
-    addSlot('Viết đoạn văn');
-    addSlot('Viết bài văn');
-    fireEvent.change(screen.getByLabelText('Tiêu đề phần 2'), {target: {value: 'Viết đoạn nghị luận'}});
-    // Move Viết bài above Viết đoạn: a named part keeps its name, an empty one is renumbered.
-    fireEvent.click(screen.getAllByLabelText('Đưa lên')[2]);
+    expect(screen.getByText('→ câu 1–10')).toBeTruthy();
+    expect(screen.getByText('→ câu 1–1')).toBeTruthy();          // Phần II restarts
+
+    // One more Đọc hiểu in Phần I: the lead's "đến câu" moves from 10 to 15.
+    const lead = within(screen.getAllByRole('group', {name: 'Lời dẫn'})[0]);
+    expect(lead.getAllByText(/^\d+$/).map(e => e.textContent)).toEqual(['1', '10']);
+    fireEvent.click(screen.getAllByText('+ Thêm tiểu mục')[0]);
+    fireEvent.change(screen.getAllByLabelText('Dạng khối')[1], {target: {value: 'reading'}});
+    await waitFor(() => expect(lead.getAllByText(/^\d+$/).map(e => e.textContent)).toEqual(['1', '15']));
+    fireEvent.click(screen.getAllByLabelText('Xoá tiểu mục 2')[0]);   // back to the sample
+
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: ' Đề thử '}});
-    fireEvent.click(screen.getByText('Lưu đề'));
+    fireEvent.click(screen.getByText('Xem trước'));
+    fireEvent.click(await screen.findByText('Lưu đề'));
 
     await screen.findByText('TRANG NGÂN HÀNG');
-    const call = post.mock.calls.find(c => c[0] === 'exam/create_from_bank');
-    expect(call && call[1]).toEqual({
-        banks: ['b1'], name: 'Đề thử', duration: 90, folder: undefined,
-        structure: [
-            {block_type: 'reading', title: 'Phần I. Đọc hiểu (ngữ liệu + 5 câu)'},
-            {block_type: 'essay', title: 'Phần II. Viết bài văn'},
-            {block_type: 'paragraph', title: 'Viết đoạn nghị luận'},
-        ],
-    });
+    const body = post.mock.calls.find(c => c[0] === 'exam/create_from_bank')![1] as {layout: {parts: {numbering: string; score?: number}[]}[]};
+    expect(body).toMatchObject({banks: ['b1'], name: 'Đề thử', duration: 90});
+    expect(body.layout[0].parts.map(p => p.numbering)).toEqual(['continue', 'restart']);
+    expect(body.layout[0].parts[0].score).toBe(6);
 });
 
-it('dropping a block type onto a card inserts it before that card', async () => {
+it('a frame asking for more blocks than the bank has says so at the tiểu mục and locks "Xem trước"', async () => {
+    mock({reading: 1, essay: 1});
+    renderPage();
+    await copyTemplate();
+    fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề'}});
+    expect(await screen.findByText(/Ngân hàng chỉ có 1 khối/)).toBeTruthy();
+    expect((screen.getByText('Xem trước') as HTMLButtonElement).disabled).toBe(true);
+});
+
+it('an empty frame says why it cannot go on', async () => {
     mock();
     renderPage();
-    await screen.findByText('có 2 khối');
-    addSlot('Đọc hiểu (ngữ liệu + 5 câu)');
-
-    const source = screen.getByLabelText('Thêm Viết bài văn').closest('[draggable]')!;
-    fireEvent.dragStart(source);
-    const target = screen.getByLabelText('Tiêu đề phần 1').closest('li')!;
-    fireEvent.dragOver(target);
-    fireEvent.drop(target);
-
-    expect(screen.getByLabelText('Tiêu đề phần 1')).toHaveProperty('placeholder', 'Phần I. Viết bài văn');
-    expect(screen.getByLabelText('Tiêu đề phần 2')).toHaveProperty('placeholder', 'Phần II. Đọc hiểu (ngữ liệu + 5 câu)');
+    fireEvent.click(await screen.findByText(/Tiếp: chép khung từ khung trống/));
+    await screen.findAllByLabelText('Tên phần');
+    expect(screen.getByText('Chưa đặt tên đề và chưa chọn dạng khối.')).toBeTruthy();
+    expect((screen.getByText('Xem trước') as HTMLButtonElement).disabled).toBe(true);
 });
 
-it('when stock is short it says what is missing and disables the Save button', async () => {
-    mock(0, {essay: 1});
-    renderPage();
-    await screen.findByText('có 1 khối');
-    addSlot('Viết bài văn');
-    addSlot('Viết bài văn');
-
-    await screen.findByText(/Thiếu khối: Viết bài văn \(cần 2, có 1\)/);
-    await waitFor(() => expect(screen.getByText('Lưu đề').closest('button')).toHaveProperty('disabled', true));
-});
-
-
-it('minutes follow the subject suggestion until the teacher edits the box', async () => {
+it('F5 keeps the draft: coming back offers to continue it, "Bắt đầu lại" drops it', async () => {
     mock();
-    expect(suggestedMinutes('Toán')).toBe(90);
-    expect(suggestedMinutes('Ngữ văn')).toBe(90);
-    expect(suggestedMinutes('Vật lí')).toBe(60);
-    renderPage('/create-from-bank?bank=b2');
-    await waitFor(() => expect((screen.getByLabelText('Thời gian (phút)') as HTMLInputElement).value).toBe('90'));
-    fireEvent.click(screen.getByText('Toán A · Toán · Theo khối · 4 khối'));
-    fireEvent.click(screen.getByText('Văn A · Ngữ văn · Theo khối · 6 khối'));
-    await waitFor(() => expect((screen.getByLabelText('Thời gian (phút)') as HTMLInputElement).value).toBe('90'));
-    fireEvent.change(screen.getByLabelText('Thời gian (phút)'), {target: {value: '45'}});
-    fireEvent.click(screen.getByText('Văn A · Ngữ văn · Theo khối · 6 khối'));
-    expect((screen.getByLabelText('Thời gian (phút)') as HTMLInputElement).value).toBe('45');
+    const first = renderPage();
+    await copyTemplate();
+    fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Dở dang'}});
+    await waitFor(() => expect(localStorage.getItem('spt-cfb-draft:b1:')).toContain('Dở dang'), {timeout: 2000});
+    first.unmount();
+
+    renderPage();
+    fireEvent.click(await screen.findByText(/Tiếp: chép khung từ khung trống/));
+    expect(await screen.findByText('Tiếp tục khung đang soạn dở?')).toBeTruthy();
+    fireEvent.click(screen.getByText('Tiếp tục'));
+    expect((await screen.findByPlaceholderText(/Đề luyện thi/) as HTMLInputElement).value).toBe('Dở dang');
 });
 
 it('with ?folder it saves into that folder and goes back to the subject', async () => {
     const post = mock();
-    vi.mocked(Api.get).mockImplementation(async (url: string) => url === 'folder/list' ? [{id: 'F1', name: 'Văn'}] : BANKS);
     renderPage('/create-from-bank?bank=b1&folder=F1');
-    await screen.findByText('có 2 khối');
-    addSlot('Viết bài văn');
+    await copyTemplate();
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề X'}});
-    fireEvent.click(screen.getByText('Lưu đề'));
+    fireEvent.click(screen.getByText('Xem trước'));
+    fireEvent.click(await screen.findByText('Lưu đề'));
     await screen.findByText('TRANG MÔN');
     expect(post.mock.calls.find(c => c[0] === 'exam/create_from_bank')![1]).toMatchObject({folder: 'F1'});
 });
 
-it('whole-exam bank: chip shows kind + đề count, hides the structure, saves without structure', async () => {
-    const post = vi.spyOn(Api, 'post').mockResolvedValue({id: 'E1'});
-    vi.spyOn(Api, 'get').mockResolvedValue([{id: 'p1', name: 'SPT Hoá', subject: 'Hoá học', kind: 'paper', items: 6, blocks: 0},
-        {id: 'b2', name: 'Toán A', subject: 'Toán', kind: 'block', blocks: 4}]);
+it('whole-exam bank: no frame and no steps, name + minutes, saves without layout', async () => {
+    const post = mock();
     renderPage('/create-from-bank?bank=p1');
     expect(await screen.findByText(/Kho có/)).toBeTruthy();
-    expect(screen.getByText(/SPT Hoá · Hoá học · Nguyên đề · 6 đề/)).toBeTruthy();
-    expect(screen.getByText(/Toán A · Toán · Theo khối · 4 khối/)).toBeTruthy();
-    expect(screen.queryByText('Cấu trúc đề')).toBeNull();
-    fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Tuần 1'}});
+    expect(screen.queryByLabelText('Các bước')).toBeNull();
+    fireEvent.change(screen.getByLabelText('Tên đề'), {target: {value: 'Tuần 1'}});
     fireEvent.click(screen.getByText('Lưu đề'));
     await screen.findByText('TRANG NGÂN HÀNG');
     expect(post.mock.calls.find(c => c[0] === 'exam/create_from_bank')![1])
-        .toMatchObject({banks: ['p1'], name: 'Tuần 1', structure: undefined});
-    expect(post.mock.calls.some(c => c[0] === 'question_bank/capacity')).toBe(false);
+        .toMatchObject({banks: ['p1'], name: 'Tuần 1', layout: undefined});
 });
