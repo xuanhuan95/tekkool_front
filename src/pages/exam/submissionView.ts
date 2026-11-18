@@ -61,7 +61,7 @@ export type ReviewStatement = {key: string; html: string; answer: boolean | null
 export type ReviewItem = {
     number: number;
     /** Frame texts, only on the first question of a section (exams drawn with a frame). */
-    heading?: {group?: string; part?: string; lead?: string; sub?: string};
+    heading?: {group?: string; part?: string; score?: number; lead?: string; sub?: string};
     kind: QuestionKind;
     sectionName: string;
     prompt: string;
@@ -120,8 +120,8 @@ export function buildReview(answers: SubmissionAnswer[], sections?: SubmissionSe
         const s = sections[si], n = seen.get(si) || 0;
         seen.set(si, n + 1);
         const text = (t?: string | null) => (t || '').trim() || undefined;
-        const heading = n === 0 ? {group: text(s.group_title), part: text(s.part_title), lead: text(s.part_lead), sub: text(s.sub_title)} : undefined;
-        return {...it, number: s.first_no + n, heading: heading && Object.values(heading).some(Boolean) ? heading : undefined};
+        const heading = n === 0 ? {group: text(s.group_title), part: text(s.part_title), score: typeof s.part_score === 'number' ? s.part_score : undefined, lead: text(s.part_lead), sub: text(s.sub_title)} : undefined;
+        return {...it, number: s.first_no + n, heading: heading && Object.values(heading).some(v => v !== undefined) ? heading : undefined};
     });
 }
 

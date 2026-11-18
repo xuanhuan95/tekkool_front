@@ -101,7 +101,7 @@ export type AnswerChoice = {
 /** `exam/submission.sections` — exams drawn with a frame; null for other exams. Answers join a section through `question_ids`. */
 export type SubmissionSection = {
     name?: string | null; question_ids: string[]; first_no: number;
-    group_title?: string | null; part_title?: string | null; part_lead?: string | null; sub_title?: string | null;
+    group_title?: string | null; part_title?: string | null; part_score?: number | null; part_lead?: string | null; sub_title?: string | null;
 };
 
 export type SubmissionDetail = Submission & {

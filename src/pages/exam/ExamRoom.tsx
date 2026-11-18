@@ -22,7 +22,7 @@ import QuestionView from './QuestionView';
 import SubmitDialog from './SubmitDialog';
 import {useCountdown} from './useCountdown';
 import {DESKTOP, useMediaQuery} from '../useMediaQuery';
-import {withSubject} from '../../lib/format';
+import {formatDecimal, withSubject} from '../../lib/format';
 
 /** Debounce per kind: clicks go out at once, typing waits for a pause. */
 const TEXT_DELAY_MS = 800;
@@ -248,7 +248,7 @@ export default function ExamRoom({examId, exam, deadlineMs}: ExamRoomProps) {
 
         {total === 0 && <p className='vt-q-note'>Đề này chưa có câu hỏi.</p>}
 
-        {paper.parts.map(part => <ExamSection key={part.id} id={part.id} title={part.title} group={part.groupTitle} lead={part.lead} sub={part.subTitle}>
+        {paper.parts.map(part => <ExamSection key={part.id} id={part.id} title={part.title} group={part.groupTitle} lead={part.lead} sub={part.subTitle} framed={part.framed} score={part.partScore === undefined ? undefined : formatDecimal(part.partScore)}>
             {part.questions.map(q => <Fragment key={q.questionIds[0]}>
                 {/* Shared reading text: printed once, before the first question of its group.
                     Đúng/Sai already shows its stem as the question text. */}

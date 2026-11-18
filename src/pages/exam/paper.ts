@@ -45,6 +45,9 @@ export type PaperPart = {
     groupTitle?: string;
     lead?: string;
     subTitle?: string;
+    /** Exam drawn with a frame: the part heading and its lead share one line ("Phần I (3 điểm). Thí sinh…"). */
+    framed?: boolean;
+    partScore?: number;
     /** "Phần I · Trắc nghiệm" */
     title: string;
     kind: QuestionKind;
@@ -189,6 +192,8 @@ export function buildPaper(exam: TestExam): Paper {
             groupTitle: stripHtml(section.group_title) || undefined,
             lead: stripHtml(section.description || section.part_lead) || undefined,
             subTitle: stripHtml(section.sub_title) || undefined,
+            framed: framed || undefined,
+            partScore: framed && typeof section.part_score === 'number' ? section.part_score : undefined,
             title: framed ? stripHtml(section.part_title) || (section.group_title || section.sub_title ? '' : partTitle(section, parts.length, kind)) : partTitle(section, parts.length, kind),
             kind,
             questions,

@@ -31,7 +31,7 @@ function mock(stock: Record<string, number> = {reading: 3, essay: 1}) {
 
 // One trial draw as the BE sends it: a framed section (first_no + titles), no answers.
 const draw = (over: Record<string, unknown> = {}) => ({points_total: 10, shortage: [], sections: [{
-    id: 'S1', name: 'x', first_no: 1, group_title: 'A. TRẮC NGHIỆM', part_title: 'Phần I (6 điểm)', part_lead: 'Trả lời từ câu 1 đến câu 2.', sub_title: 'Đọc văn bản 1',
+    id: 'S1', name: 'x', first_no: 1, group_title: 'A. TRẮC NGHIỆM', part_title: 'Phần I', part_score: 6, part_lead: 'Trả lời từ câu 1 đến câu 2.', sub_title: 'Đọc văn bản 1',
     questions: [{id: 'Q1', type: 'MultipleChoice', data: {question: '<p>Người kể là ai?</p>', answers: [{id: 'a1', value: 'Tôi'}, {id: 'a2', value: 'Mẹ'}]}}]}], ...over});
 
 const renderPage = (path = '/create-from-bank?bank=b1') => render(
@@ -198,7 +198,8 @@ it('step 3 shows one real draw (titles from the BE), "Rút lần khác" draws ag
     fireEvent.change(screen.getByPlaceholderText(/Đề luyện thi/), {target: {value: 'Đề'}});
     fireEvent.click(screen.getByText('Xem trước như học sinh'));
     expect(await screen.findByText('A. TRẮC NGHIỆM')).toBeTruthy();
-    expect(screen.getByText('Phần I (6 điểm)')).toBeTruthy();
+    expect(screen.getByText('Phần I (6 điểm).')).toBeTruthy();   // same line as the lead
+    expect(screen.getByText('Phần I (6 điểm).').parentElement?.textContent).toContain('Trả lời từ câu 1 đến câu 2.');
     expect(screen.getByText('Người kể là ai?')).toBeTruthy();
     const calls = () => post.mock.calls.filter(c => c[0] === 'exam/preview_layout').length;
     expect(calls()).toBe(1);

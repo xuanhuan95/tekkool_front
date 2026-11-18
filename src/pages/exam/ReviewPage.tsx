@@ -93,9 +93,8 @@ function ReviewCard({item}: {item: ReviewItem}) {
     return <>
         {h && <div className='vt-rv-heading'>
             {h.group && <h2>{h.group}</h2>}
-            {h.part && <h3>{h.part}</h3>}
-            {h.lead && <p>{h.lead}</p>}
-            {h.sub && <p><b>{h.sub}</b></p>}
+            {(h.part || h.lead) && <p className='vt-rv-part'>{h.part && <b>{h.part}{h.score !== undefined && ` (${formatDecimal(h.score)} điểm)`}.</b>}{h.part && h.lead && ' '}{h.lead}</p>}
+            {h.sub && <p className='vt-rv-sub'>{h.sub}</p>}
         </div>}
         {item.passage && <div className='vt-rv-passage'>{renderHTML(item.passage)}</div>}
         <Card as='article' className='vt-rv' aria-label={title}>

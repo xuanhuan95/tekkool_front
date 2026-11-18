@@ -426,4 +426,5 @@
 }
 /* Exam drawn with a frame: Nhóm heading + tiểu mục title (plain text on the paper, no new colours). */
 .vt-exam-group-title { font-family: var(--vt-font-hand); font-weight: 700; font-size: 24px; margin: 0 0 8px; }
-.vt-exam-sub-title { margin: 8px 0 0; font-size: 15px; font-weight: 700; }
+.vt-exam-sub-title { margin: 8px 0 0; font-size: 15px; font-weight: 700; font-style: italic; }
+.vt-exam-part-line { margin: 0; font-family: var(--tk-font-title); font-size: 16px; line-height: 1.5; }

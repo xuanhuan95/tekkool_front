@@ -123,3 +123,5 @@
 .vt-rv-heading h2 { margin: 0; font-family: var(--vt-font-hand); font-size: 24px; }
 .vt-rv-heading h3 { margin: 0; font-family: var(--vt-font-hand); font-size: 20px; }
 .vt-rv-heading p { margin: 0; font-size: 14px; color: var(--vt-muted); }
+.vt-rv-heading .vt-rv-part { font-family: var(--tk-font-title); font-size: 16px; line-height: 1.5; color: var(--vt-ink); }
+.vt-rv-heading .vt-rv-sub { font-weight: 700; font-style: italic; color: var(--vt-ink); }

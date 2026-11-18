@@ -186,4 +186,11 @@ describe('exam drawn with a frame (first_no, titles)', () => {
         expect(paper.parts[1].groupTitle).toBeUndefined();
         expect(paper.parts[2]).toMatchObject({title: '', subTitle: 'Viết bài'});
     });
+
+    it('part_score → partScore (null/missing → undefined); framed flag only with a frame', () => {
+        const mk = (extra: object) => buildPaper({id: 'F', name: 'x', remaining_sec: 1, sections: [{id: 'a', name: 'n', questions: [mc('Q1')], ...extra}]}).parts[0];
+        expect(mk({first_no: 1, part_title: 'Phần I', part_score: 3})).toMatchObject({framed: true, partScore: 3});
+        expect(mk({first_no: 1, part_title: 'Phần I', part_score: null}).partScore).toBeUndefined();
+        expect(mk({}).framed).toBeUndefined();
+    });
 });

@@ -104,6 +104,8 @@ export type TestSection = {
     first_no?: number;
     group_title?: string | null;
     part_title?: string | null;
+    /** Points of the Phần (first section of a Phần only); null = not stated. */
+    part_score?: number | null;
     part_lead?: string | null;
     sub_title?: string | null;
     description?: string | null;

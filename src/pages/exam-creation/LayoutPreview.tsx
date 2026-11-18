@@ -3,7 +3,7 @@ import {Fragment, useMemo} from 'react';
 import {Button, Card, ErrorState, Loading, ExamSection} from '../../components/ui';
 import {BankAlert} from './ImportAlerts';
 import Passage from '../../components/Passage';
-import {errorText} from '../../lib/format';
+import {errorText, formatDecimal} from '../../lib/format';
 import {buildPaper} from '../exam/paper';
 import QuestionView from '../exam/QuestionView';
 import type {LayoutDraw} from '../../queries/questionBank';
@@ -41,7 +41,7 @@ export default function LayoutPreview({name, minutes, draw}: {name: string; minu
             <h2 className='vt-cfb-pname'>{name}</h2>
             <p className='vt-cfb-hint'>Thời gian làm bài: {minutes} phút · {data.points_total} điểm · {paper?.questions.length ?? 0} câu</p>
         </div>
-        {paper?.parts.map(part => <ExamSection key={part.id} id={'pv-' + part.id} title={part.title} group={part.groupTitle} lead={part.lead} sub={part.subTitle}>
+        {paper?.parts.map(part => <ExamSection key={part.id} id={'pv-' + part.id} title={part.title} group={part.groupTitle} lead={part.lead} sub={part.subTitle} framed={part.framed} score={part.partScore === undefined ? undefined : formatDecimal(part.partScore)}>
             {part.questions.map(q => <Fragment key={q.questionIds[0]}>
                 {q.kind !== 'truefalse' && <Passage question={q.raw as unknown as LegacyQuestion}
                                                     prev={q.rawPrev as unknown as LegacyQuestion | undefined}
