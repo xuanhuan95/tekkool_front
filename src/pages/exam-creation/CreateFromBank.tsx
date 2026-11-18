@@ -1,7 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 
-import {Button, Card, CardTitle, ConfirmDialog, EmptyState, ErrorState, PageTitle, TextField, buttonClass, cx, notify, Loading} from '../../components/ui';
+import {Button, Card, CardTitle, EmptyState, ErrorState, Modal, PageTitle, TextField, buttonClass, cx, notify, Loading} from '../../components/ui';
 import {errorText} from '../../lib/format';
 import {useBankCapacity, useBankStats, useBankTemplates, useBanks, useCreateFromBank} from '../../queries/questionBank';
 import type {BankTemplate} from '../../queries/questionBank';
@@ -254,8 +254,13 @@ export default function CreateFromBank() {
             {STEPS.map((s, i) => <li key={s} className={cx(i === step && 'on')} aria-current={i === step ? 'step' : undefined}>{i + 1}. {s}</li>)}
         </ol>}
         <div className='vt-cfb-body'>{step === 0 ? chooseStep : step === 1 ? frameStep : previewStep}</div>
-        <ConfirmDialog open={!!restore} title='Tiếp tục khung đang soạn dở?' cancelLabel='Bắt đầu lại' confirmLabel='Tiếp tục'
-                       message={restore ? `Bạn đã soạn dở khung cho ngân hàng này (lưu lúc ${hhmm(restore.savedAt)}). Tiếp tục hay bắt đầu lại?` : ''}
-                       onCancel={() => start(null)} onConfirm={() => start(restore)}/>
+        {/* Esc / outside click = just close: the draft stays and we ask again next time. Only "Bắt đầu lại" deletes it. */}
+        <Modal open={!!restore} onClose={() => setRestore(null)} title='Tiếp tục khung đang soạn dở?'
+               footer={<>
+                   <Button variant='secondary' onClick={() => start(null)}>Bắt đầu lại</Button>
+                   <Button onClick={() => start(restore)}>Tiếp tục</Button>
+               </>}>
+            <p>{restore ? `Bạn đã soạn dở khung cho ngân hàng này (lưu lúc ${hhmm(restore.savedAt)}). Tiếp tục hay bắt đầu lại?` : ''}</p>
+        </Modal>
     </div>;
 }

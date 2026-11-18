@@ -136,3 +136,14 @@ it('whole-exam bank: no frame and no steps, name + minutes, saves without layout
     expect(post.mock.calls.find(c => c[0] === 'exam/create_from_bank')![1])
         .toMatchObject({banks: ['p1'], name: 'Tuần 1', layout: undefined});
 });
+
+it('Esc on the "continue draft?" dialog closes it and KEEPS the draft', async () => {
+    mock();
+    localStorage.setItem('spt-cfb-draft:b1:', JSON.stringify({layout: [{title: '', parts: [{title: 'P', lead: '', numbering: 'continue', items: [{title: '', block_type: 'reading', count: 1}]}]}], name: 'Giữ lại', template: '', savedAt: Date.now()}));
+    renderPage();
+    fireEvent.click(await screen.findByText(/Tiếp: chép khung từ khung trống/));
+    await screen.findByText('Tiếp tục khung đang soạn dở?');
+    fireEvent.keyDown(document, {key: 'Escape'});
+    await waitFor(() => expect(screen.queryByText('Tiếp tục khung đang soạn dở?')).toBeNull());
+    expect(localStorage.getItem('spt-cfb-draft:b1:')).toContain('Giữ lại');
+});
