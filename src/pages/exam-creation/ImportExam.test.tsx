@@ -438,9 +438,9 @@ describe('ImportExam: several files at once (B1, BF-05)', () => {
     it('the picker takes many files; a bad file is one error row and never blocks the good ones', async () => {
         mockPost();
         const e2 = {...EXAM, id: 'E2', name: 'Đề thử 2'};
-        vi.spyOn(Api, 'upload').mockImplementation(async (_u: string, f: File) => {
-            if (f.name === 'hong.docx') throw {error: 'khong doc duoc file'};
-            return {exams: f.name === 'a.docx' ? [EXAM] : [e2], issues: []};
+        vi.spyOn(Api, 'upload').mockImplementation(async (_u: string, f: Blob | File) => {
+            if ((f as File).name === 'hong.docx') throw {error: 'khong doc duoc file'};
+            return {exams: (f as File).name === 'a.docx' ? [EXAM] : [e2], issues: []};
         });
         renderScreen();
         expect(document.querySelector('input[type=file]')!.hasAttribute('multiple')).toBe(true);
