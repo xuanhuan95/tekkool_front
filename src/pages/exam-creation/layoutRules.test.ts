@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
-import {addPartAfter, capacity, emptyLayout, fill, frameProblem, needs, numberize, numbering, overflow, removePart, setCount, shift, shortages, tidy, toPayload, type Layout} from './layoutRules';
+import {addPartAfter, canMove, movePart, newPart, totalScore, capacity, emptyLayout, fill, frameProblem, needs, numberize, numbering, overflow, removePart, setCount, shift, shortages, tidy, toPayload, type Layout} from './layoutRules';
 
 const item = (block_type: string, count = 1, title = '') => ({title, block_type, count});
 // Văn: Phần I = 2 khối Đọc hiểu (10 câu), Phần II (restart) = 1 đoạn văn, Phần III = 1 bài văn (continue).
@@ -119,5 +119,21 @@ describe('blocks of a Phần (the "+" in the box)', () => {
         expect(capacity(titled, {reading: 40})).toBe(20);
         expect(capacity(setCount(titled, 0, 0, 1, 3), {reading: 40})).toBe(13);
         expect(capacity(emptyLayout(), {reading: 40})).toBeNull();
+    });
+});
+
+describe('movePart, canMove, totalScore', () => {
+    const P = (title: string, score: number | null = null) => ({...newPart(1), title, score, items: [{title: '', block_type: 'essay', count: 1}]});
+    const L: Layout = [{title: 'A', parts: [P('I', 3)]}, {title: 'B', parts: [P('II', 2), P('III', 5)]}];
+    it('moves across Nhóm but never empties one', () => {
+        expect(canMove(L, 0, 0, 1)).toBe(false);
+        expect(canMove(L, 1, 0, -1)).toBe(true);
+        expect(movePart(L, 1, 0, -1).map(g => g.parts.map(p => p.title))).toEqual([['I', 'II'], ['III']]);
+        expect(movePart(L, 1, 1, -1)[1].parts.map(p => p.title)).toEqual(['III', 'II']);
+    });
+    it('sums the points and warns unless it is exactly 10 with every Phần scored', () => {
+        expect(totalScore(L)).toEqual({sum: 10, warn: ''});
+        expect(totalScore([{title: '', parts: [P('I', 4), P('II')]}]).warn).toContain('còn phần chưa nhập điểm');
+        expect(totalScore([{title: '', parts: [P('I', 4), P('II', 5)]}]).warn).toBe('Tổng điểm đang là 9 — học sinh vẫn được quy về thang 10.');
     });
 });

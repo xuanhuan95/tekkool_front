@@ -144,7 +144,7 @@ export default function CreateFromBank() {
 
     // A single bank is chosen for you (artboard: "có sẵn khi môn chỉ có 1 ngân hàng"); with several, the first one.
     useEffect(() => {
-        if (!bankId && visible.length && !foldersQ.isLoading) setBankId(visible[0].id);
+        if (!bankId && visible.length && !foldersQ.isLoading) setBankId(visible.reduce((best, b) => bankCount(b) > bankCount(best) ? b : best).id);
     }, [bankId, visible, foldersQ.isLoading]);
     // Bank ready: put the sample from the URL on the page and ask about a draft left by a closed tab (once per bank).
     useEffect(() => {

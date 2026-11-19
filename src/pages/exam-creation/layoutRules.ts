@@ -155,7 +155,14 @@ export const addPartAfter = (l: Layout, g: number, p: number): Layout =>
     edit.group(l, g, x => ({...x, parts: [...x.parts.slice(0, p + 1), newPart(partCount(l) + 1), ...x.parts.slice(p + 1)]}));
 export const removePart = (l: Layout, g: number, p: number): Layout =>
     l.map((x, i) => i === g ? {...x, parts: x.parts.filter((_y, j) => j !== p)} : x).filter(x => x.parts.length > 0);
-export const movePart = (l: Layout, g: number, p: number, by: number): Layout => edit.group(l, g, x => ({...x, parts: shift(x.parts, p, by)}));
+export const movePart = (l: Layout, g: number, p: number, by: number): Layout => {
+    const n = l[g].parts.length;
+    if (p + by >= 0 && p + by < n) return edit.group(l, g, x => ({...x, parts: shift(x.parts, p, by)}));
+    if (!canMove(l, g, p, by)) return l;
+    const part = l[g].parts[p], to = g + Math.sign(by);   // across the edge: last of the Nhóm above / first of the Nhóm below
+    return l.map((x, i) => i === g ? {...x, parts: x.parts.filter((_y, j) => j !== p)}
+        : i === to ? {...x, parts: by < 0 ? [...x.parts, part] : [part, ...x.parts]} : x);
+};
 export const addGroup = (l: Layout): Layout => [...l, {title: '', parts: [newPart(partCount(l) + 1)]}];
 
 /** Ô that the bank cannot fill (cumulative need of its type passes the stock), in sheet order; `tag` is "I.3". */
@@ -177,4 +184,20 @@ export function overflow(layout: Layout, stock: Record<string, number>) {
 export function capacity(layout: Layout, stock: Record<string, number>): number | null {
     const need = Object.entries(needs(layout));
     return need.length ? Math.min(...need.map(([t, n]) => Math.floor((stock[t] || 0) / n))) : null;
+}
+
+/** Whether a Phần can move one place (`by` -1 up, +1 down); a Phần at the edge of a Nhóm crosses into the next one unless it is that Nhóm's only Phần. */
+export function canMove(l: Layout, g: number, p: number, by: number): boolean {
+    const edge = by < 0 ? p === 0 : p === l[g].parts.length - 1;
+    return !edge || (l[g].parts.length > 1 && (by < 0 ? g > 0 : g < l.length - 1));
+}
+
+/** Sum of the points of all Phần and, when it is not 10 or a Phần has none, the yellow note (the student's score is scaled to 10 anyway). */
+export function totalScore(l: Layout): {sum: number; warn: string} {
+    const parts = l.flatMap(g => g.parts);
+    const sum = Math.round(parts.reduce((n, p) => n + (p.score || 0), 0) * 100) / 100;
+    const blank = parts.some(p => p.score == null);
+    const warn = sum === 10 && !blank ? '' : blank && sum === 0 ? 'Chưa nhập điểm các phần — học sinh vẫn được quy về thang 10.'
+        : `Tổng điểm đang là ${String(sum).replace('.', ',')}${blank ? ' (còn phần chưa nhập điểm)' : ''} — học sinh vẫn được quy về thang 10.`;
+    return {sum, warn};
 }

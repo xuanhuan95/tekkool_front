@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useId, useRef, useState} from 'react';
+import {Fragment, useEffect, useId, useLayoutEffect, useRef, useState} from 'react';
 import type {ReactNode} from 'react';
 import {Link} from 'react-router-dom';
 
@@ -7,7 +7,7 @@ import {formatDecimal} from '../../lib/format';
 import {BLOCK_LABELS, kindName, kindUnit} from './blockTypes';
 import {EditText, Line} from './EditText';
 import {
-    addGroup, addItem, addPartAfter, edit, movePart, numbering, overflow, partCount, questionsOf, removeItem, removePart, roman, sameCount, setCount, needs,
+    addGroup, addItem, addPartAfter, canMove, edit, movePart, numbering, overflow, partCount, questionsOf, removeItem, removePart, roman, sameCount, setCount, needs, totalScore,
 } from './layoutRules';
 import type {Layout, LayoutItem, LayoutPart, Range} from './layoutRules';
 
@@ -31,12 +31,21 @@ const sizeOf = (type: string) => questionsOf({title: '', block_type: type, count
 /** Box that opens over the sheet: Esc, ✕, "Xong" or a click outside close it; focus goes back to what opened it. */
 function Pop({label, title, onClose, left, children}: {label: string; title: ReactNode; onClose: () => void; left?: boolean; children: ReactNode}) {
     const box = useRef<HTMLDivElement>(null);
+    const [up, setUp] = useState(false);
     const close = useRef(onClose);
     close.current = onClose;
+    // Under the thing that was clicked; above it only when the bottom of the window has no room.
+    useLayoutEffect(() => {
+        const el = box.current;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        const anchor = el.parentElement?.getBoundingClientRect();
+        if (anchor && r.bottom > window.innerHeight - 8 && anchor.top > r.height + 24) setUp(true);
+    }, []);
     useEffect(() => {
         const opener = document.activeElement as HTMLElement | null;
         box.current?.focus();
-        box.current?.scrollIntoView?.({block: 'nearest'});
+        if (!up) box.current?.scrollIntoView?.({block: 'nearest'});
         const off = (e: Event) => {
             if (e instanceof KeyboardEvent ? e.key === 'Escape' : !box.current?.parentElement?.contains(e.target as Node)) close.current();
         };
@@ -44,7 +53,7 @@ function Pop({label, title, onClose, left, children}: {label: string; title: Rea
         document.addEventListener('keydown', off);
         return () => { document.removeEventListener('mousedown', off); document.removeEventListener('keydown', off); opener?.focus?.(); };
     }, []);
-    return <div ref={box} tabIndex={-1} className={cx('v3-pop', 'v3-pop--up', left && 'v3-pop--left')} role='dialog' aria-label={label}>
+    return <div ref={box} tabIndex={-1} className={cx('v3-pop', up && 'v3-pop--up', left && 'v3-pop--left')} role='dialog' aria-label={label}>
         <div className='v3-pop-head'><b>{title}</b>
             <IconButton label='Đóng' icon={<icons.IconClose size={18}/>} onClick={onClose}/></div>
         {children}
@@ -100,6 +109,7 @@ export default function ExamSheet({name, minutes, onName, onMinutes, layout, onL
     const [adding, setAdding] = useState<string | null>(null);   // Phần whose "gồm gì?" box is open
     const [note, setNote] = useState('');
     const blank = !base;
+    const total = totalScore(layout);
 
     useEffect(() => {
         if (!fresh) return;
@@ -200,7 +210,7 @@ export default function ExamSheet({name, minutes, onName, onMinutes, layout, onL
         return <Pop label={`Sửa ${part.title}`} title={part.title} onClose={close} left>
             <div className='v3-pop-row'><label htmlFor={`${titleId}-score`}><b>Điểm cả phần</b></label>
                 <span className='v3-score-wrap'>
-                    <ScoreInput id={`${titleId}-score`} value={part.score} onChange={v => onLayout(edit.part(layout, g, p, x => ({...x, score: v})))}/>điểm</span></div>
+                    <ScoreInput id={`${titleId}-score`} value={part.score} onDone={close} onChange={v => onLayout(edit.part(layout, g, p, x => ({...x, score: v})))}/>điểm</span></div>
             <p className='v3-muted'>{part.score == null ? 'Chưa nhập điểm.' : q < 1 ? 'Phần chưa có câu nào.'
                 : `Phần có ${q} câu → ${q === 1 ? 'câu này' : 'mỗi câu'} ${formatDecimal(part.score / q)} điểm.`} Điểm chia đều cho các câu trong phần.</p>
             {!first && <label className='vt-bk-check v3-check'>
@@ -210,8 +220,8 @@ export default function ExamSheet({name, minutes, onName, onMinutes, layout, onL
             </label>}
             <div className='v3-menu'>
                 <button type='button' onClick={() => { onLayout(addPartAfter(layout, g, p)); close(); }}>Thêm phần ở dưới</button>
-                {(p > 0) && <button type='button' onClick={() => { onLayout(movePart(layout, g, p, -1)); close(); }}>Chuyển lên trên</button>}
-                {(p < group.parts.length - 1) && <button type='button' onClick={() => { onLayout(movePart(layout, g, p, 1)); close(); }}>Chuyển xuống dưới</button>}
+                {canMove(layout, g, p, -1) && <button type='button' onClick={() => { onLayout(movePart(layout, g, p, -1)); close(); }}>Chuyển lên trên</button>}
+                {canMove(layout, g, p, 1) && <button type='button' onClick={() => { onLayout(movePart(layout, g, p, 1)); close(); }}>Chuyển xuống dưới</button>}
                 {!only && <button type='button' className='v3-danger' onClick={() => { onLayout(removePart(layout, g, p)); close(); }}>Xoá {part.title}</button>}
             </div>
             <div className='v3-pop-foot'><span className='v3-grow'/><Button variant='primary' size='sm' onClick={close}>Xong</Button></div>
@@ -233,7 +243,9 @@ export default function ExamSheet({name, minutes, onName, onMinutes, layout, onL
         <Line cls='v3-title'>
             <span className='v3-name'><EditText required label='Tên đề' value={name} placeholder='Tên đề' onCommit={onName}/></span>
             <small>Thời gian làm bài: <EditText numeric label='Thời gian làm bài (phút)' value={String(minutes)} onCommit={v => onMinutes(Number(v) || 0)}/> phút</small>
+            <small className='v3-total'>Tổng {formatDecimal(total.sum)} điểm</small>
         </Line>
+        {total.warn && <p className='v3-total v3-total--warn' role='status'>{total.warn}</p>}
 
         {layout.map((g, gi) => <Fragment key={gi}>
             {(g.title || blank) && <Line cls='v3-grp'>
@@ -252,7 +264,7 @@ export default function ExamSheet({name, minutes, onName, onMinutes, layout, onL
                             <b><EditText required label={`Tên phần ${no}`} value={p.title} onCommit={v => onLayout(edit.part(layout, gi, pi, x => ({...x, title: v})))}/></b>{' '}
                             <button type='button' className={cx('v3-score', isOpen && 'is-open')} aria-expanded={isOpen}
                                     aria-label={`Điểm ${p.title}: ${p.score == null ? 'chưa có' : formatDecimal(p.score) + ' điểm'}, bấm để sửa`}
-                                    onClick={() => toggle(at)}>({p.score == null ? '…' : formatDecimal(p.score)} điểm)</button><b>.</b>{' '}
+                                    onClick={() => toggle(at)}>{p.score == null ? '(bấm để nhập điểm)' : `(${formatDecimal(p.score)} điểm)`}</button><b>.</b>{' '}
                             <EditText label={`Lời dẫn ${p.title}`} value={p.lead} range={pr} placeholder='Lời dẫn (không bắt buộc)'
                                       onCommit={v => onLayout(edit.part(layout, gi, pi, x => ({...x, lead: v})))}/>
                             <button type='button' className={cx('v3-more', 'vt-tip', isOpen && 'is-open')} aria-label={`Thao tác với ${p.title}`} data-tip={`Thao tác với ${p.title}`}
@@ -281,9 +293,10 @@ export default function ExamSheet({name, minutes, onName, onMinutes, layout, onL
 }
 
 /** Points of a Phần typed with a comma or a dot; empty = no points yet. */
-function ScoreInput({id, value, onChange}: {id: string; value?: number | null; onChange: (v: number | null) => void}) {
+function ScoreInput({id, value, onChange, onDone}: {id: string; value?: number | null; onChange: (v: number | null) => void; onDone: () => void}) {
     const [text, setText] = useState(value == null ? '' : formatDecimal(value));
     return <input id={id} className='vt-input v3-score-in' inputMode='decimal' value={text} aria-label='Điểm cả phần'
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onDone(); } }}
                   onChange={e => {
                       const t = e.target.value.replace(/[^\d.,]/g, '');
                       setText(t);

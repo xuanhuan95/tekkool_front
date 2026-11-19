@@ -159,7 +159,7 @@
 .v3-ed:has([contenteditable="true"]:focus) .v3-pen { display: none; }
 .v3-ed:has([contenteditable="true"]:focus) .v3-help { display: block; }
 .v3-ed .v3-help { display: none; }
-.v3-n { display: inline-block; }
+.v3-n { display: inline; }
 .v3-name { display: block; text-transform: uppercase; }
 .v3-title small .v3-edit { display: inline-block; min-width: 1ch; }
 .v3-desc { margin: 0; font-size: 15px; }
@@ -177,5 +177,9 @@
 .v3-addslot > * { position: relative; top: 0; pointer-events: auto; }
 .v3-addslot .v3-add { background: var(--vt-card); min-height: 28px; padding: 1px 10px; font-size: 13px; }
 .v3-anchor:hover + .v3-addslot, .v3-addslot:hover, .v3-addslot:focus-within, .v3-addslot.is-shown { opacity: 1; }
-.v3-addslot--end { height: auto; margin: 0; padding-top: 4px; justify-content: flex-start; }
+.v3-addslot--end { margin: -10px 0 0; padding-top: 0; justify-content: flex-start; }
+.v3-addslot--end .vt-btn { min-height: 28px; padding: 1px 10px; }
+.v3-paper:hover .v3-addslot--end { opacity: 1; }
+.v3-total { text-align: center; }
+.v3-total--warn { margin: 0; padding: 6px 12px; border-radius: 8px; background: var(--vt-sun-soft); font-size: 14px; text-align: center; }
 @media (hover: none), (max-width: 1023.98px) { .v3-addslot { opacity: 1; height: auto; margin: 0; justify-content: flex-start; } .v3-addslot .v3-add { min-height: 40px; padding: 6px 12px; font-size: 13px; } }
