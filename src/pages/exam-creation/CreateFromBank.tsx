@@ -221,7 +221,10 @@ export default function CreateFromBank() {
 
     const bankField = <Select label='Ngân hàng' value={bankId} onChange={e => pickBank(e.target.value)}
                               options={visible.map(b => ({value: b.id, label: bankName(b)}))}/>;
-    const capLine = (chosen || templates.length > 0) && !paper && stockKnown && (lack.length ? <p className='v3-cap v3-cap--bad' role='status'><icons.IconAlert size={18}/>
+    const have = Object.entries(stock).filter(([, n]) => n > 0);
+    const capLine = !paper && stockKnown && (!chosen ? <p className='v3-cap' role='status'><icons.IconCheckCircle size={18} color='var(--vt-muted)'/>
+        <span>{have.length ? <>Ngân hàng có {have.map(([t, n], i) => <span key={t}>{i > 0 && ', '}<b>{n} {lower(kindName(t))}</b></span>)}.</> : 'Ngân hàng chưa có khối nào.'}</span></p>
+        : lack.length ? <p className='v3-cap v3-cap--bad' role='status'><icons.IconAlert size={18}/>
         <span>Chưa đủ: thiếu {lack.map((l, i) => <span key={l.type}>{i > 0 && ', '}<b>{l.miss} {lower(kindName(l.type))}</b>{l.tags.length > 0 && ` (${l.tags.join(', ')})`}</span>)}.</span></p>
         : empty || runs === null ? <p className='v3-cap' role='status'><icons.IconCheckCircle size={18} color='var(--vt-muted)'/><span>Đề chưa có câu nào. Thêm đoạn hoặc câu vào {layout[0]?.parts[0]?.title || 'Phần I'}.</span></p>
         : <p className='v3-cap' role='status'><icons.IconCheckCircle size={18} color='var(--vt-ok-icon)'/><span>Ngân hàng đủ để mỗi học sinh làm khoảng <b>{runs} đề</b> không trùng đoạn.</span></p>);
