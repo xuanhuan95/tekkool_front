@@ -905,3 +905,39 @@ describe('ImportExam: BF-04 «Cho biết» into a block bank', () => {
         expect(await screen.findByText('Tạo ngân hàng nguyên đề')).toBeTruthy();
     });
 });
+
+describe('ImportExam: chọn đề trong danh sách', () => {
+    const exam = (id: string, name: string) => ({...examOf(mc(id + 'Q', id + 'QA')), id, name});
+    const list = () => within(document.querySelector('.vt-rv-list') as HTMLElement);
+    const nameBox = () => screen.getByLabelText('Tên đề') as HTMLInputElement;
+    async function loadTwo() {
+        const sent = mockPost();
+        renderScreen();
+        vi.spyOn(Api, 'upload').mockResolvedValue({exams: [exam('E1', 'Đề một'), exam('E2', 'Đề hai')], issues: []});
+        fireEvent.change(document.querySelector('input[type=file]') as HTMLInputElement, {target: {files: [new File(['PK'], 'de.docx')]}});
+        await screen.findByText(/2 đề — đã chọn 2/);
+        return sent;
+    }
+
+    it('bấm ô tick của đề 2 (hay bất kỳ chỗ nào trên dòng) → panel phải hiện đề 2', async () => {
+        await loadTwo();
+        expect(nameBox().value).toBe('Đề một');
+        fireEvent.click(list().getByLabelText('Chọn Đề hai'));
+        expect(nameBox().value).toBe('Đề hai');
+        expect(screen.getByText('E2Q')).toBeTruthy();
+        expect(screen.queryByText('E1Q')).toBeNull();
+        fireEvent.click(list().getByText('Đề một'));
+        expect(nameBox().value).toBe('Đề một');
+    });
+
+    it('sửa câu khi đang xem đề 2: payload lưu của đề 2 đổi, đề 1 giữ nguyên', async () => {
+        const sent = await loadTwo();
+        fireEvent.click(list().getByText('Đề hai'));
+        openEdit(); pickRadio(1); saveEdit();
+        fireEvent.click(within(document.querySelector('.vt-imp-bar') as HTMLElement).getByText(/^Lưu 2 đề/).closest('button')!);
+        await vi.waitFor(() => expect(sent).toHaveLength(2));
+        const key = (id: string) => sent.find(x => x.id === id).sections[0].questions[0].data.correctAnswerId;
+        expect(key('E2')).toBe('E2QB');
+        expect(key('E1')).toBe('E1QA');
+    });
+});
