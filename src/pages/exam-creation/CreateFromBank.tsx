@@ -1,19 +1,21 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
+import type {ReactNode} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 
-import {Badge, Button, Card, CardTitle, EmptyState, ErrorState, MetaChips, Modal, PageTitle, TextField, buttonClass, cx, icons, notify, Loading} from '../../components/ui';
+import {Button, Card, ConfirmDialog, EmptyState, ErrorState, Loading, Modal, PageTitle, Select, TextField, buttonClass, cx, icons, notify} from '../../components/ui';
 import {errorText, formatDecimal, stripPoints} from '../../lib/format';
-import {useBankCapacity, useBankStats, useBankTemplates, useBanks, useCreateFromBank, usePreviewLayout} from '../../queries/questionBank';
+import {useBankStats, useBankTemplates, useBanks, useCreateFromBank} from '../../queries/questionBank';
 import type {BankTemplate} from '../../queries/questionBank';
-import {bankCount} from '../question-bank/BankList';
 import {useFolders} from '../../queries/exams';
-import {BLOCK_LABELS, blockLabel} from './blockTypes';
-import LayoutEditor, {roman} from './LayoutEditor';
-import LayoutPreview from './LayoutPreview';
-import {emptyLayout, frameProblem, needs, shortages, toPayload} from './layoutRules';
-import type {Layout} from './layoutRules';
+import {DESKTOP, useMediaQuery} from '../useMediaQuery';
+import {bankCount} from '../question-bank/BankList';
 import {dayMonth} from './ImportAlerts';
-import './import-exam.css';   // .vt-bk-alert styles shared with the import screen
+import {PEN} from './EditText';
+import ExamSheet from './ExamSheet';
+import {kindName, kindUnit} from './blockTypes';
+import {capacity, emptyLayout, frameProblem, numberize, overflow, questionsOf, shortages, toPayload} from './layoutRules';
+import type {Layout} from './layoutRules';
+import './import-exam.css';   // .vt-bk-alert, .vt-imp-bar styles shared with the import screen
 import './create-from-bank.css';
 
 // Compare folder name with the bank's subject, ignoring accents and case: folder "Văn" still matches "Ngữ văn".
@@ -23,19 +25,19 @@ const normalize = (s?: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g,
 export const suggestedMinutes = (subject?: string) =>
     !subject || ['toan', 'ngu van'].includes(normalize(subject)) ? 90 : 60;
 
-/** A template from the BE may omit optional fields; the editor wants all of them. */
-const fromTemplate = (t: BankTemplate): Layout => (t.layout || []).map(g => ({
+/** A template from the BE may omit optional fields; the sheet wants all of them. `{n}` replaces the ordinal typed in a title ("I.2" → "I.{n}"). */
+export const fromTemplate = (t: BankTemplate): Layout => (t.layout || []).map(g => ({
     title: g.title || '',
     parts: (g.parts || []).map(p => ({
         title: stripPoints(p.title || ''), lead: p.lead || '', description: p.description || null, score: p.score ?? null,
         numbering: p.numbering === 'restart' ? 'restart' as const : 'continue' as const,
-        items: (p.items || []).map(i => ({title: i.title || '', block_type: i.block_type, count: i.count || 1})),
+        items: (p.items || []).map((i, k) => ({title: numberize(i.title || '', k + 1), block_type: i.block_type, count: i.count || 1})),
     })),
 }));
 
-type Draft = {name: string; layout: Layout; savedAt: number; template: string | null};
-const STEPS = ['Ngân hàng & đề mẫu', 'Khung đề', 'Xem trước & lưu'];
-const FIRST_TEMPLATES = 6;
+type Draft = {name: string; layout: Layout; savedAt: number; template: string | null; minutes?: number | null};
+const NONE = 'none';   // template id of "Không dùng đề mẫu"
+const FIRST_TEMPLATES = 5;
 /** "Ngữ văn SPT — theo khối": the kind is added to the name, unless the teacher already typed it in the name. */
 const bankName = (b: {name: string; kind?: string}) => {
     const kind = b.kind === 'paper' ? 'nguyên đề' : 'theo khối';
@@ -45,49 +47,45 @@ const bankName = (b: {name: string; kind?: string}) => {
 /** A sample exam is named "Đề số 3 - NGỮ VĂN" after import; the subject suffix is noise next to the subject chip. */
 const sampleName = (name: string, subject?: string) => subject
     ? name.replace(new RegExp(`\\s*[-–—]\\s*${subject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`, 'i'), '') : name;
-/** "2 nhóm · 3 phần · 4 khối · 10 điểm": what copying this sample gives (points only when every phần has one). */
-const frameSummary = (t: BankTemplate) => {
-    const parts = t.layout.flatMap(g => g.parts);
-    const pts = parts.every(p => p.score != null) ? parts.reduce((n, p) => n + (p.score || 0), 0) : null;
-    const at = t.created_at ? new Date(t.created_at) : null;
-    const day = at && !isNaN(at.getTime()) ? `Nhập ${String(at.getDate()).padStart(2, '0')}/${String(at.getMonth() + 1).padStart(2, '0')}` : null;
-    return [day, `${t.layout.length} nhóm`, `${parts.length} phần`, `${t.block_count} khối`, pts != null && `${formatDecimal(pts)} điểm`].filter(Boolean).join(' · ');
+/** "12 câu · 10 điểm · nhập 15/11": what copying this sample gives (points only when every phần has one). */
+const sampleSummary = (t: BankTemplate) => {
+    const layout = fromTemplate(t);
+    const parts = layout.flatMap(g => g.parts);
+    const pts = parts.length && parts.every(p => p.score != null) ? parts.reduce((n, p) => n + (p.score || 0), 0) : null;
+    const day = dayMonth(t.created_at);
+    return [`${layout.reduce((n, g) => n + g.parts.reduce((m, p) => m + p.items.reduce((k, i) => k + questionsOf(i), 0), 0), 0)} câu`, pts != null && `${formatDecimal(pts)} điểm`, day && `nhập ${day}`].filter(Boolean).join(' · ');
 };
 const sameDay = (t: number) => new Date(t).toDateString() === new Date().toDateString();
 const hhmm = (t: number) => new Date(t).toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'});
+const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
 
 /**
- * The teacher builds the exam frame (Nhóm → Phần → Tiểu mục) in 3 steps and saves it. The saved exam has no questions:
- * on each attempt the BE draws the blocks the frame asks for, avoiding blocks the student has seen, and renumbers
- * the questions (`{from}`/`{to}`). A whole-exam bank needs no frame: name + minutes, save.
+ * One screen (artboards APP-teacher-bank-v3-create-*): bank + sample exam on the left, the exam as the student sees it on the right,
+ * edited where it stands. The saved exam has no questions: on each attempt the BE draws the blocks the frame asks for,
+ * avoiding blocks the student has seen, and renumbers the questions (`{from}`/`{to}`). A whole-exam bank needs no frame: name + minutes, save.
  */
-/** " · tạo 15/11" for the bank card; empty when the date is missing. */
-const madeOn = (b: {created_at?: string}) => dayMonth(b.created_at) ? ` · tạo ${dayMonth(b.created_at)}` : '';
-
 export default function CreateFromBank() {
     const [params, setParams] = useSearchParams();
     const navigate = useNavigate();
+    const wide = useMediaQuery(DESKTOP);
     const folder = params.get('folder') || '';
-    const bankParam = params.get('bank') || '';
 
     const banksQ = useBanks();
     const foldersQ = useFolders();
     const save = useCreateFromBank();
     const banks = banksQ.data;
 
-    const [step, setStep] = useState(0);
-    const [bankId, setBankId] = useState(bankParam);
-    const [templateId, setTemplateId] = useState<string | null>(params.get('template')); // null = no sample exam
-    const wantedStep = useRef(Math.min(2, Number(params.get('step')) || 0));   // F5: where the page was (BV2-10)
-    const landing = useRef(1);
-    const [query, setQuery] = useState('');
+    const [bankId, setBankId] = useState(params.get('bank') || '');
+    const [tpl, setTpl] = useState<string | null>(params.get('template'));   // null = not chosen yet, NONE = blank sheet
     const [showAll, setShowAll] = useState(false);
     const [layout, setLayout] = useState<Layout>(emptyLayout);
     const [name, setName] = useState('');
+    const [auto, setAuto] = useState('');   // the name the sample brought: only a different name counts as an edit
     const [typedMinutes, setTypedMinutes] = useState<number | null>(null);
     const [formError, setFormError] = useState<string | null>(null);
-    const [savedAt, setSavedAt] = useState<number | null>(null);
     const [restore, setRestore] = useState<Draft | null>(null);
+    const [ask, setAsk] = useState<(() => void) | null>(null);   // what to do once "Bỏ các chỗ đã sửa?" is confirmed
+    const inited = useRef('');
 
     const bank = banks?.find(b => b.id === bankId);
     const paper = bank?.kind === 'paper';
@@ -101,32 +99,25 @@ export default function CreateFromBank() {
     const tplQ = useBankTemplates(bank && !paper ? bank.id : '');
     const statsQ = useBankStats(bank && !paper ? bank.id : '');
     const stock = statsQ.data?.per_type || {};
-    const want = needs(layout);
-    const capQ = useBankCapacity(bank && !paper && Object.keys(want).length ? [bank.id] : [], want);
     const minutes = typedMinutes ?? suggestedMinutes(bank?.subject);
-    const drawQ = usePreviewLayout(bankId, layout, step === 2 && !paper);
-    const problem = frameProblem(layout, name);
-    const lacking = shortages(layout, stock);
-    const template = tplQ.data?.find(t => t.id === templateId);
     const tplName = (t: {name: string}) => sampleName(t.name, subject);
-    // The creation day only tells two banks apart when they carry the same name (canvas shows none).
-    const sameName = (b: {name: string; kind?: string}) => visible.filter(x => bankName(x) === bankName(b)).length > 1;
-    const restoreTpl = restore?.template ? tplQ.data?.find(t => t.id === restore.template) : undefined;
+    const templates = useMemo(() => (tplQ.data || []).slice().sort((a, b) => a.name.localeCompare(b.name, 'vi', {numeric: true})), [tplQ.data]);
+    const template = tpl && tpl !== NONE ? tplQ.data?.find(t => t.id === tpl) : undefined;
+    const base = useMemo(() => template ? fromTemplate(template) : null, [template]);   // what "Như đề mẫu" compares with
+    const chosen = tpl !== null && (tpl === NONE || !!template);
+    const dirty = chosen && (JSON.stringify(layout) !== JSON.stringify(base ?? emptyLayout()) || name !== auto || typedMinutes !== null);
+    const defaultName = (t?: BankTemplate) => `Đề luyện${subject ? ' ' + subject : ''}${t ? ` — theo ${tplName(t)}` : ''}`;
 
-    // Draft of the frame in the browser: F5 or a closed tab does not lose it. Keyed by bank + folder.
+    // Draft of the sheet in the browser: F5 or a closed tab does not lose it. Keyed by bank + folder; written only after an edit.
     const draftKey = `spt-cfb-draft:${bankId}:${folder}`;
     useEffect(() => {
-        if (step === 0 || paper || !bankId) return;
+        if (!dirty || paper || !bankId || restore) return;
         const t = window.setTimeout(() => {
-            try {
-                const at = Date.now();
-                localStorage.setItem(draftKey, JSON.stringify({name, layout, savedAt: at, template: templateId} satisfies Draft));
-                setSavedAt(at);
-            } catch { /* storage full or blocked: the draft is only a convenience */ }
+            try { localStorage.setItem(draftKey, JSON.stringify({name, layout, savedAt: Date.now(), template: tpl, minutes: typedMinutes} satisfies Draft)); }
+            catch { /* storage full or blocked: the draft is only a convenience */ }
         }, 600);
         return () => window.clearTimeout(t);
-    }, [step, paper, bankId, draftKey, name, layout, templateId]);
-
+    }, [dirty, paper, bankId, draftKey, name, layout, tpl, typedMinutes, restore]);
     const readDraft = (): Draft | null => {
         try {
             const raw = localStorage.getItem(draftKey);
@@ -134,56 +125,76 @@ export default function CreateFromBank() {
             return d && Array.isArray(d.layout) && d.layout.length ? d : null;
         } catch { return null; }
     };
-    const start = (d: Draft | null) => {
-        setRestore(null);
-        if (d) { setLayout(d.layout); setName(d.name || ''); setTemplateId(d.template); setSavedAt(d.savedAt); }
-        else {
-            localStorage.removeItem(draftKey);
-            setLayout(template ? fromTemplate(template) : emptyLayout());
-            // The sample brings a name with it (artboard create-template); the teacher may change it.
-            if (template && !name.trim()) setName(`Đề luyện SPT${subject ? ' ' + subject : ''} — rút từ ngân hàng`);
-            setSavedAt(null);
-        }
-        setFormError(null);
-        setStep(landing.current);
-        landing.current = 1;
-    };
-    const next = () => {
-        if (!bank) return;
-        if (paper) return;
-        const d = readDraft();
-        if (d) setRestore(d); else start(null);
-    };
 
-    // F5 on step 2/3: bank, sample exam and step live in the URL; the frame itself comes back from the browser draft (or the sample).
+    /** Put a sample (or the blank sheet) on the page: layout, name and minutes start over. */
+    const apply = (id: string | null) => {
+        const t = id && id !== NONE ? tplQ.data?.find(x => x.id === id) : undefined;
+        const n = id === null || (id !== NONE && !t) ? '' : defaultName(t);
+        setTpl(id === NONE || t ? id : null);
+        setLayout(t ? fromTemplate(t) : emptyLayout());
+        setName(n); setAuto(n); setTypedMinutes(null); setFormError(null);
+    };
+    /** Changing the sample or bank after edits asks first, so a click does not wipe the work. */
+    const guard = (go: () => void) => dirty ? setAsk(() => go) : go();
+    const choose = (id: string) => id !== tpl && guard(() => { localStorage.removeItem(draftKey); apply(id); });
+    const pickBank = (id: string) => id !== bankId && guard(() => {
+        localStorage.removeItem(draftKey);
+        setBankId(id); setTpl(null); setShowAll(false); setLayout(emptyLayout()); setName(''); setAuto(''); setTypedMinutes(null); setFormError(null);
+    });
+
+    // A single bank is chosen for you (artboard: "có sẵn khi môn chỉ có 1 ngân hàng"); with several, the first one.
     useEffect(() => {
-        if (wantedStep.current < 1 || !bank || paper || tplQ.isLoading) return;
-        landing.current = wantedStep.current;
-        wantedStep.current = 0;
+        if (!bankId && visible.length && !foldersQ.isLoading) setBankId(visible[0].id);
+    }, [bankId, visible, foldersQ.isLoading]);
+    // Bank ready: put the sample from the URL on the page and ask about a draft left by a closed tab (once per bank).
+    useEffect(() => {
+        if (!bank || paper || tplQ.isLoading || foldersQ.isLoading || inited.current === bank.id) return;
+        inited.current = bank.id;
+        if (tpl) apply(tpl);
         const d = readDraft();
-        if (!d) return start(null);
-        // Behind the question the page already is where it was (canvas create-restore): the saved frame, on its step.
-        setLayout(d.layout); setName(d.name || ''); setTemplateId(d.template); setSavedAt(d.savedAt);
-        setStep(landing.current);
-        setRestore(d);
+        if (d) setRestore(d);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [bank, paper, tplQ.isLoading]);
+    }, [bank, paper, tplQ.isLoading, foldersQ.isLoading]);
     useEffect(() => {
-        if (wantedStep.current > 0) return;   // still resuming: keep the URL as it came
         setParams(p => {
             const q = new URLSearchParams(p);
             if (bankId) q.set('bank', bankId); else q.delete('bank');
-            if (templateId) q.set('template', templateId); else q.delete('template');
-            if (step > 0) q.set('step', String(step)); else q.delete('step');
+            if (tpl) q.set('template', tpl); else q.delete('template');
+            q.delete('step');
             return q.toString() === p.toString() ? p : q;
         }, {replace: true});
-    }, [step, bankId, templateId, setParams]);
+    }, [bankId, tpl, setParams]);
+
+    const startDraft = (d: Draft | null) => {
+        setRestore(null);
+        if (d) {
+            setTpl(d.template); setLayout(d.layout); setName(d.name || ''); setTypedMinutes(d.minutes ?? null);
+            const t = d.template && d.template !== NONE ? tplQ.data?.find(x => x.id === d.template) : undefined;
+            setAuto(d.template === NONE || t ? defaultName(t) : '');
+        } else localStorage.removeItem(draftKey);
+    };
+
+    // What stops "Tạo đề" and the one sentence that says why.
+    const stockKnown = statsQ.isSuccess;
+    // Before a sample is chosen the cap line speaks for the first sample, so the teacher sees what the bank can feed.
+    const capLayout = chosen ? layout : templates[0]?.layout || layout;
+    const over = overflow(capLayout, stock);
+    const lack = shortages(capLayout, stock).map(s => ({...s, miss: s.need - s.have, tags: over.filter(o => o.type === s.type).map(o => o.tag)}));
+    const problem = frameProblem(layout, name);
+    const empty = !capLayout.some(g => g.parts.some(p => p.items.length));
+    const runs = capacity(capLayout, stock);
+    const blocked = !chosen || !stockKnown || !!problem || lack.length > 0;
+    const shortHint = lack.map(l => `Thiếu ${l.miss} ${lower(kindName(l.type))}${l.tags.length ? ` ở ${l.tags.join(', ')}` : ''}. Bớt ${l.miss} ${kindUnit(l.type)} hoặc nhập thêm đề.`).join(' ');
+    const hint: {text: ReactNode; bad: boolean} = !chosen ? {text: 'Chọn một đề mẫu để xem đề.', bad: false}
+        : lack.length ? {text: shortHint, bad: true}
+        : problem ? {text: problem, bad: false}
+        : {text: <>Đề lưu vào <b>Môn & đề{subject ? ` › ${subject}` : ''}</b>, dạng Nháp. Học sinh chỉ thấy khi bạn xuất bản.</>, bad: false};
 
     const submit = async () => {
         setFormError(null);
         if (!bank) return setFormError('Chưa chọn ngân hàng đề.');
         if (!name.trim()) return setFormError('Chưa đặt tên đề.');
-        if (!paper && (problem || lacking.length)) return setFormError(problem || 'Ngân hàng chưa đủ khối cho khung này.');
+        if (!paper && blocked) return setFormError(typeof hint.text === 'string' && hint.text ? hint.text : 'Chưa tạo được đề.');
         let made: {id?: string; folder?: string | {id?: string} | null};
         try {
             made = await save.mutateAsync({banks: [bank.id], name: name.trim(), duration: minutes, folder: folder || undefined, layout: paper ? undefined : toPayload(layout)}) as typeof made;
@@ -194,168 +205,120 @@ export default function CreateFromBank() {
         // BV2-08: land on Môn & đề › the subject (Nháp filter, "Mới tạo"): the chosen one, else the folder the BE put it in, else the bank's subject.
         const fromBe = typeof made?.folder === 'string' ? made.folder : made?.folder?.id;
         const target = folder || fromBe || (foldersQ.data || []).find(f => !f.parent && !!bank.subject && normalize(f.name) === normalize(bank.subject))?.id;
-        if (target) navigate('/subject/' + target, {state: {created: made?.id ? [made.id] : []}});
-        else {
+        if (target) {
+            notify.success(`Đã tạo đề nháp trong Môn & đề${subject ? ` › ${subject}` : ''}.`);
+            navigate('/subject/' + target, {state: {created: made?.id ? [made.id] : [], createdName: name.trim()}});
+        } else {
             notify.success("Đã tạo đề. Đề đang ở 'Đề ngoài thư mục' — chọn môn để học sinh thấy.");
             navigate('/question-bank');
         }
     };
 
-    const templates = (tplQ.data || []).filter(t => normalize(t.name).includes(normalize(query)))
-        .sort((a, b) => a.name.localeCompare(b.name, 'vi', {numeric: true}));
-    const shown = showAll || query ? templates : templates.slice(0, FIRST_TEMPLATES);
-    const runs = capQ.data && Object.keys(want).length ? capQ.data.capacity : null;
-
-    const pickBank = (id: string) => { setBankId(id); setTemplateId(null); setQuery(''); setShowAll(false); setFormError(null); };
-
-    const chooseStep = <>
-        <Card>
-            <CardTitle>1. Chọn một ngân hàng</CardTitle>
-            {folderName && <p className='vt-cfb-hint'>Chỉ ngân hàng môn {folderName}. Đề rút từ đúng một ngân hàng.</p>}
-            {visible.length === 0
-                ? <EmptyState title='Chưa có ngân hàng nào' description='Tạo ngân hàng ở mục Ngân hàng câu hỏi rồi quay lại.'/>
-                : <div className='vt-cfb-banks' role='radiogroup' aria-label='Ngân hàng đề'>
-                    {visible.map(b => <label key={b.id} className={cx('vt-cfb-bank', b.id === bankId && 'on')}>
-                        <input type='radio' name='bank' checked={b.id === bankId} onChange={() => pickBank(b.id)}/>
-                        <span><b>{bankName(b)}</b>
-                            <small>{b.kind === 'paper'
-                                ? `Nguyên đề · ${bankCount(b)} đề${sameName(b) ? madeOn(b) : ''}. Mỗi lượt rút nguyên một đề, không cần dựng khung.`
-                                : `Theo khối · ${bankCount(b)} khối${b.source_count ? ` · ${b.source_count} đề đã nhập` : ''}${sameName(b) ? madeOn(b) : ''}. Mỗi khối trong khung rút ngẫu nhiên một khối cùng dạng.`}</small></span>
-                    </label>)}
-                </div>}
-        </Card>
-
-        {bank && !paper && <Card>
-            <CardTitle>2. Chọn đề mẫu</CardTitle>
-            <p className='vt-cfb-hint'>Hệ thống chép khung của đề mẫu: tiêu đề nhóm, phần, điểm, lời dẫn, tiểu mục và dạng khối. Câu hỏi không chép: mỗi khối được rút ngẫu nhiên từ ngân hàng.</p>
-            {tplQ.isError
-                ? <ErrorState title='Không tải được danh sách đề mẫu' description={errorText(tplQ.error, 'Kiểm tra mạng rồi thử lại.')}
-                              onRetry={() => tplQ.refetch()} retrying={tplQ.isFetching}/>
-                : tplQ.isLoading ? <Loading/> : <>
-                    {(tplQ.data || []).length > FIRST_TEMPLATES && <TextField label='Tìm đề mẫu' placeholder='Tên đề, ví dụ “Đề số 3”' value={query} onChange={e => setQuery(e.target.value)}/>}
-                    <div className='vt-cfb-banks vt-cfb-banks--grid' role='radiogroup' aria-label='Đề mẫu'>
-                        {shown.map(t => <label key={t.id} className={cx('vt-cfb-bank', templateId === t.id && 'on')}>
-                            <input type='radio' name='tpl' checked={templateId === t.id} onChange={() => setTemplateId(t.id)}/>
-                            <span><b>{tplName(t)}</b><small>{frameSummary(t)}</small></span>
-                        </label>)}
-                    </div>
-                    {!showAll && !query && templates.length > FIRST_TEMPLATES &&
-                        <Button variant='ghost' size='sm' onClick={() => setShowAll(true)}>Xem thêm {templates.length - FIRST_TEMPLATES} đề</Button>}
-                    {query && templates.length === 0 && <p className='vt-cfb-hint'>Không có đề mẫu nào khớp "{query}".</p>}
-                    <div className='vt-cfb-banks' role='radiogroup' aria-label='Không dùng đề mẫu'>
-                        <label className={cx('vt-cfb-bank', templateId === null && 'on')}>
-                            <input type='radio' name='tpl' checked={templateId === null} onChange={() => setTemplateId(null)}/>
-                            <span><b>Không dùng đề mẫu</b><small>Tự dựng khung từ trống: nhóm → phần → tiểu mục, chọn dạng khối và số lượng.</small></span>
-                        </label>
-                    </div>
-                    {(tplQ.data || []).length === 0 && <p className='vt-cfb-hint'>Ngân hàng này chưa có đề mẫu — soạn khung từ đầu.</p>}
-                </>}
-        </Card>}
-
-        {bank && paper && <Card>
-            <CardTitle>Đề nguyên bản</CardTitle>
-            <p className='vt-cfb-hint'>Kho có <b>{bankCount(bank)} đề</b>. Mỗi học sinh làm hết {bankCount(bank)} đề mới bị lặp lại đề đã làm. Ngân hàng nguyên đề không dùng khung.</p>
-            <div className='vt-cfb-info'>
-                <TextField label='Tên đề' value={name} onChange={e => setName(e.target.value)} className='vt-cfb-name'/>
-                <TextField label='Thời gian (phút)' type='number' inputMode='numeric' min={0} value={minutes}
-                           onChange={e => setTypedMinutes(Math.max(0, Number(e.target.value) || 0))}/>
-            </div>
-        </Card>}
-
-        <div className='vt-cfb-bar'>
-            {formError && <p className='vt-cfb-err' role='alert'>{formError}</p>}
-            {bank && !paper && <span className='vt-cfb-hint'>Ngân hàng <b>{bankName(bank)}</b> · {template ? <>đề mẫu <b>{tplName(template)}</b></> : 'không dùng đề mẫu'}</span>}
-            {paper
-                ? <Button variant='primary' loading={save.isPending} disabled={save.isPending || bankCount(bank!) === 0} onClick={submit}>Lưu đề</Button>
-                : <Button variant='primary' disabled={!bank} onClick={next}>{bank ? (template ? `Tiếp: chép khung từ ${tplName(template)}` : 'Tiếp: dựng khung từ trống') : 'Tiếp'}</Button>}
-        </div>
-    </>;
-
-    const shortLabel = (t: string) => blockLabel(t).replace(/\s*\(.*\)$/, '');
-    const types = Object.keys(BLOCK_LABELS).filter(t => (stock[t] || 0) > 0 || want[t]);
-    const missing = lacking.reduce((n, x) => n + x.need - x.have, 0);
-    // "Tiểu mục I.3": the first row that asks for more blocks than the bank has (numbered like the editor does).
-    const lackAt = (() => {
-        let part = 0;
-        for (const g of layout) for (const p of g.parts) {
-            part++;
-            const i = p.items.findIndex(it => it.block_type && (stock[it.block_type] || 0) < it.count);
-            if (i >= 0) return `${roman(part)}.${i + 1}`;
-        }
-        return '';
-    })();
-    const blocked = !!problem || lacking.length > 0;
-
-    const frameStep = <>
-        <Card>
-            <div className='vt-cfb-info'>
-                <TextField label='Tên đề' placeholder='Ví dụ: Đề luyện thi — Ngữ văn' value={name} onChange={e => setName(e.target.value)} className='vt-cfb-name'/>
-                <TextField label='Thời gian (phút)' type='number' inputMode='numeric' min={0} value={minutes}
-                           onChange={e => setTypedMinutes(Math.max(0, Number(e.target.value) || 0))}/>
-            </div>
-            <div className='vt-cfb-tpl'>
-                <Badge tone={template ? 'title' : 'draft'}>{template ? `Khung chép từ ${tplName(template)}` : 'Không dùng đề mẫu'}</Badge>
-                <Button variant='ghost' size='sm' onClick={() => setStep(0)}>{template ? 'Đổi đề mẫu' : 'Chọn đề mẫu'}</Button>
-            </div>
-            {savedAt && <p className='vt-cfb-saved'><icons.IconSaved size={14}/>Đã lưu nháp khung lúc {hhmm(savedAt)} · tải lại trang không mất</p>}
-        </Card>
-        <p className='vt-cfb-legend'><span className='vt-cfb-num' title='Số câu tự tính lại sau khi rút'>10</span><span>Số câu tự tính lại sau khi rút. Gõ chữ quanh ô thoải mái, ô số giữ nguyên.</span></p>
-        <div className='vt-cfb-layout'>
-        <div className='vt-cfb-main'><LayoutEditor layout={layout} onChange={setLayout} stock={stock} bankId={bankId}/></div>
-        <div className='vt-cfb-side'><Card size='md' className='vt-cfb-capacity'>
-            <CardTitle>Kho có đủ không?</CardTitle>
-            {statsQ.isError && <p className='vt-cfb-err' role='alert'>Không tải được kho khối của ngân hàng.</p>}
-            {types.length > 0 && <table className='vt-cfb-stock'>
-                <thead><tr><th>Dạng khối</th><th>Kho</th><th>Mỗi đề cần</th></tr></thead>
-                <tbody>{types.map(t => <tr key={t} className={(stock[t] || 0) < (want[t] || 0) ? 'short' : ''}>
-                    <th scope='row'>{shortLabel(t)}</th><td>{stock[t] || 0}</td><td>{want[t] || 0}</td></tr>)}</tbody>
-            </table>}
-            <div>
-                <div className='vt-cfb-big'>{lacking.length > 0 ? `Thiếu ${missing} khối` : runs !== null ? `${runs} lượt` : '—'}</div>
-                <p>{lacking.length > 0 ? 'chưa rút được đề nào' : runs !== null ? `mỗi học sinh làm được khoảng ${runs} lần không lặp khối`
-                    : 'Chọn dạng khối cho tiểu mục để xem kho đủ cho bao nhiêu lượt.'}</p>
-            </div>
-            {blocked && <p className='vt-cfb-warn' role='status'><icons.IconWarn size={18}/>
-                <span>{lacking.length > 0 ? <>Thiếu {missing} khối {shortLabel(lacking[0].type)}{lackAt && ` (Tiểu mục ${lackAt})`}. Sửa xong mới lưu được. <Link to={`/import-exam?bank=${bankId}`}>Nhập thêm đề</Link></> : problem}</span></p>}
-            {formError && <p className='vt-cfb-err' role='alert'>{formError}</p>}
-            <Button variant='secondary' block icon={<icons.IconEye size={18}/>} disabled={blocked} onClick={() => setStep(2)}>Xem trước như học sinh</Button>
-            <Button variant='primary' size='lg' block loading={save.isPending} disabled={blocked || save.isPending} onClick={submit}>Lưu đề nháp</Button>
-        </Card></div>
-        </div>
-    </>;
-
-    const previewStep = <>
-        <LayoutPreview name={name.trim()} minutes={minutes} draw={drawQ}/>
-        <div className='vt-cfb-bar'>
-            {formError && <p className='vt-cfb-err' role='alert'>{formError}</p>}
-            <span className='vt-cfb-hint'>Lưu xong đề ở <b>Môn & đề{subject ? ` › ${subject}` : ''}</b>, trạng thái Nháp.</span>
-            <Button variant='secondary' onClick={() => setStep(1)}>Quay lại sửa khung</Button>
-            <Button variant='primary' loading={save.isPending} disabled={save.isPending || !drawQ.data || !!drawQ.data.shortage.length} onClick={submit}>Lưu đề nháp</Button>
-        </div>
-    </>;
-
-    if (banksQ.isError) return <div className='vt-cfb'><PageTitle>Tạo đề từ ngân hàng</PageTitle>
+    if (banksQ.isError) return <div className='v3-page'><PageTitle>Tạo đề từ ngân hàng</PageTitle>
         <ErrorState title='Không tải được danh sách ngân hàng' description={errorText(banksQ.error, 'Kiểm tra mạng rồi thử lại.')}
                     onRetry={() => banksQ.refetch()} retrying={banksQ.isFetching}/></div>;
-    if (!banks) return <div className='vt-cfb'><Loading/></div>;
+    if (!banks) return <div className='v3-page'><Loading/></div>;
 
-    return <div className='vt-cfb'>
+    const bankField = <Select label='Ngân hàng' value={bankId} onChange={e => pickBank(e.target.value)}
+                              options={visible.map(b => ({value: b.id, label: bankName(b)}))}/>;
+    const capLine = (chosen || templates.length > 0) && !paper && stockKnown && (lack.length ? <p className='v3-cap v3-cap--bad' role='status'><icons.IconAlert size={18}/>
+        <span>Chưa đủ: thiếu {lack.map((l, i) => <span key={l.type}>{i > 0 && ', '}<b>{l.miss} {lower(kindName(l.type))}</b>{l.tags.length > 0 && ` (${l.tags.join(', ')})`}</span>)}.</span></p>
+        : empty || runs === null ? <p className='v3-cap' role='status'><icons.IconCheckCircle size={18} color='var(--vt-muted)'/><span>Đề chưa có câu nào. Thêm đoạn hoặc câu vào {layout[0]?.parts[0]?.title || 'Phần I'}.</span></p>
+        : <p className='v3-cap' role='status'><icons.IconCheckCircle size={18} color='var(--vt-ok-icon)'/><span>Ngân hàng đủ để mỗi học sinh làm khoảng <b>{runs} đề</b> không trùng đoạn.</span></p>);
+
+    const shownTemplates = showAll ? templates : templates.slice(0, FIRST_TEMPLATES);
+    const tplList = tplQ.isError
+        ? <ErrorState title='Không tải được danh sách đề mẫu' description={errorText(tplQ.error, 'Kiểm tra mạng rồi thử lại.')} onRetry={() => tplQ.refetch()} retrying={tplQ.isFetching}/>
+        : tplQ.isLoading ? <Loading/> : <ul className='v3-tpls' role='radiogroup' aria-label='Đề mẫu'>
+            {shownTemplates.map(t => <li key={t.id}><label>
+                <input type='radio' name='tpl' checked={tpl === t.id} onChange={() => choose(t.id)}/>
+                <span><b>Giống {tplName(t)}</b><small>{sampleSummary(t)}</small></span></label></li>)}
+            {!showAll && templates.length > FIRST_TEMPLATES && <li><Button variant='ghost' size='sm' onClick={() => setShowAll(true)}>Xem thêm {templates.length - FIRST_TEMPLATES} đề mẫu</Button></li>}
+            {templates.length > 0 && <li><hr/></li>}
+            <li><label>
+                <input type='radio' name='tpl' checked={tpl === NONE} onChange={() => choose(NONE)}/>
+                <span><b>Không dùng đề mẫu</b><small>Bắt đầu từ tờ đề trống</small></span></label></li>
+        </ul>;
+    const tplTitle = <h2 className='v3-h2'>Làm đề giống đề nào?</h2>;
+
+    // Phone, sample chosen: bank + sample in one small card; the sheet follows right below.
+    const side = paper ? <div className='v3-side'><Card size='md'>{bankField}</Card></div>
+        : !wide && chosen ? <Card size='md' className='v3-side v3-side--card'>
+            {bankField}
+            <Select label='Làm đề giống' value={tpl || ''} onChange={e => choose(e.target.value)}
+                    options={[...templates.map(t => ({value: t.id, label: `Giống ${tplName(t)}`})), {value: NONE, label: 'Không dùng đề mẫu'}]}/>
+            {capLine}
+        </Card>
+        : <div className='v3-side'>
+            <Card size='md'>{bankField}{capLine}</Card>
+            <Card size='md'>{tplTitle}
+                {!wide && <p className='v3-muted'>Chọn một đề, đề mới sẽ hiện ngay bên dưới đúng như học sinh thấy.</p>}
+                {tplList}
+                {tplQ.isSuccess && templates.length === 0 && <p className='v3-muted'>Ngân hàng này chưa có đề mẫu, bắt đầu từ tờ đề trống.</p>}
+            </Card>
+        </div>;
+
+    const sheet = !chosen ? (wide && <div className='v3-empty'>
+            <b>Chọn một đề mẫu ở bên trái</b><span>Đề mới sẽ hiện ở đây đúng như học sinh thấy.</span>
+            <div className='v3-steps'>
+                <div><i>1. Chọn đề mẫu</i>Đề mới giống hệt về phần, điểm, lời dẫn.</div>
+                <div><i>2. Xem đề</i>Câu hỏi được rút ngẫu nhiên cho từng học sinh.</div>
+                <div><i>3. Bấm Tạo đề</i>Muốn khác thì sửa ngay trên đề.</div>
+            </div>
+        </div>)
+        : statsQ.isError ? <ErrorState title='Không tải được số đoạn, câu của ngân hàng' description={errorText(statsQ.error, 'Kiểm tra mạng rồi thử lại.')} onRetry={() => statsQ.refetch()} retrying={statsQ.isFetching}/>
+        : !stockKnown ? <Loading/>
+        : <div className='v3-col'>
+            <p className='v3-hint'>{PEN}<span>Bấm vào chữ hoặc khung trên đề để sửa. Số <span className='v3-n'>tô xanh</span> tự cập nhật.</span></p>
+            <ExamSheet name={name} minutes={minutes} onName={setName} onMinutes={setTypedMinutes} layout={layout} onLayout={setLayout}
+                       stock={stock} bankId={bankId} base={base}/>
+            {!wide && hint.bad && <p className={cx('v3-cap', hint.bad && 'v3-cap--bad')} role='alert'>{hint.bad && <icons.IconAlert size={18}/>}<span>{hint.text}</span></p>}
+            {formError && <p className='vt-cfb-err' role='alert'>{formError}</p>}
+        </div>;
+
+    const paperCard = paper && bank && <Card size='md' className='v3-paperbank'>
+        <h2 className='v3-h2'>Đề nguyên bản</h2>
+        <p className='v3-muted'>Kho có <b>{bankCount(bank)} đề</b>. Mỗi học sinh làm hết {bankCount(bank)} đề mới bị lặp lại đề đã làm. Ngân hàng nguyên đề không dùng khung.</p>
+        <div className='vt-cfb-info'>
+            <TextField label='Tên đề' value={name} onChange={e => setName(e.target.value)}/>
+            <TextField label='Thời gian (phút)' type='number' inputMode='numeric' min={0} value={minutes}
+                       onChange={e => setTypedMinutes(Math.max(0, Number(e.target.value) || 0))}/>
+        </div>
+        {formError && <p className='vt-cfb-err' role='alert'>{formError}</p>}
+        <Button variant='primary' loading={save.isPending} disabled={save.isPending || bankCount(bank) === 0} onClick={submit}>Lưu đề</Button>
+    </Card>;
+
+    const create = (extra?: string) => <Button variant='primary' size='lg' className={extra} loading={save.isPending}
+                                               disabled={save.isPending || blocked} onClick={submit}>Tạo đề</Button>;
+    const restoreTpl = restore?.template ? tplQ.data?.find(t => t.id === restore.template) : undefined;
+
+    return <div className='v3-page'>
         <Link to={subjectFolder ? '/subject/' + subjectFolder.id : '/'} className={buttonClass({variant: 'ghost'})}>← Môn & đề{subject ? ` › ${subject}` : ''}</Link>
-        <PageTitle>Tạo đề từ ngân hàng</PageTitle>
-        <MetaChips items={[subject ? <>Môn <b>{subject}</b></> : null, bank && step > 0 ? bankName(bank) : null]}/>
-        {!paper && <ol className='vt-cfb-steps' aria-label='Các bước'>
-            {STEPS.map((s, i) => <li key={s} className={cx(i === step && 'on', i < step && 'done')} aria-current={i === step ? 'step' : undefined}>{i + 1} · {s}</li>)}
-        </ol>}
-        <div className='vt-cfb-body'>{step === 0 ? chooseStep : step === 1 ? frameStep : previewStep}</div>
-        {/* Esc / outside click = just close: the draft stays and we ask again next time. Only "Bắt đầu lại" deletes it. */}
+        <div className='v3-head'>
+            <div><PageTitle>Tạo đề từ ngân hàng</PageTitle>
+                <p className='v3-muted'>Chọn đề mẫu, xem đề sẽ trông thế nào, bấm Tạo đề. Muốn khác thì sửa ngay trên đề.</p></div>
+            {wide && !paper && <div className='v3-headact'>{create()}<span className={cx(hint.bad && 'v3-cap--bad')}>{hint.text}</span></div>}
+        </div>
+        {visible.length === 0
+            ? <EmptyState title='Chưa có ngân hàng nào' description='Tạo ngân hàng ở mục Ngân hàng câu hỏi rồi quay lại.'/>
+            : <div className='v3-layout'>{side}{paperCard || sheet}</div>}
+        {!wide && !paper && chosen && <>
+            <div className='v3-spacer'/>
+            <Card className='vt-imp-bar v3-bar' role='region' aria-label='Tạo đề'>{create()}</Card>
+        </>}
+
+        <ConfirmDialog open={!!ask} title='Bỏ các chỗ đã sửa?' cancelLabel='Giữ lại' confirmLabel='Bỏ và đổi'
+                       message='Đề đang soạn có chỗ bạn đã sửa. Đổi đề mẫu hoặc ngân hàng thì các chỗ đó mất.'
+                       onCancel={() => setAsk(null)} onConfirm={() => { const go = ask; setAsk(null); go?.(); }}/>
+        {/* Esc / outside click = just close: the draft stays and we ask again next time. Only "Bỏ, làm lại từ đầu" deletes it. */}
         <Modal open={!!restore} onClose={() => setRestore(null)} title='Tiếp tục khung đang soạn dở?'
                footer={<>
-                   <Button variant='secondary' onClick={() => start(null)}>Bỏ, làm lại từ đầu</Button>
-                   <Button variant='primary' onClick={() => start(restore)}>Tiếp tục soạn</Button>
+                   <Button variant='secondary' onClick={() => startDraft(null)}>Bỏ, làm lại từ đầu</Button>
+                   <Button variant='primary' onClick={() => startDraft(restore)}>Tiếp tục soạn</Button>
                </>}>
             {restore && <>
                 <p>{restore.name ? `“${restore.name}”, ` : ''}{restoreTpl ? `chép từ ${tplName(restoreTpl)}` : 'dựng từ trống'}{bank ? `, ${bankName(bank)}` : ''}.</p>
-                <p className='vt-cfb-hint'>Tự lưu lúc {hhmm(restore.savedAt)} {sameDay(restore.savedAt) ? 'hôm nay' : `ngày ${new Date(restore.savedAt).toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'})}`} trên trình duyệt này.</p>
+                <p className='v3-muted'>Tự lưu lúc {hhmm(restore.savedAt)} {sameDay(restore.savedAt) ? 'hôm nay' : `ngày ${new Date(restore.savedAt).toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'})}`} trên trình duyệt này.</p>
             </>}
         </Modal>
     </div>;
