@@ -164,7 +164,7 @@
 .v3-title small .v3-edit { display: inline-block; min-width: 1ch; }
 .v3-desc { margin: 0; font-size: 15px; }
 .v3-score:focus-visible, .v3-ph:focus-visible, .v3-more:focus-visible { outline: 2px solid var(--vt-ink); outline-offset: 2px; }
-.v3-more { position: relative; cursor: pointer; opacity: 0; color: var(--vt-ink); }
+.v3-more { position: relative; margin-top: -4px; margin-bottom: -4px; cursor: pointer; opacity: 0; color: var(--vt-ink); }
 .v3-more::after { content: ""; position: absolute; inset: -6px; }   /* 44px hit area for the 32px button */
 .v3-ed:hover .v3-more, .v3-more:focus-visible, .v3-more.is-open { opacity: 1; }
 @media (hover: none) { .v3-more { opacity: 1; } }
@@ -173,13 +173,13 @@
 .v3-pop .v3-pop-row .vt-field { width: 100%; }
 
 /* "+ Thêm": quiet slot under a Phần; takes no height while hidden so the sheet does not jump; always visible on a phone */
-.v3-addslot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; height: 0; margin: -6px 0; position: relative; z-index: 1; opacity: 0; pointer-events: none; }
+.v3-addslot { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; height: 0; margin: -5px 0; position: relative; z-index: 1; opacity: 0; pointer-events: none; }
 .v3-addslot > * { position: relative; top: 0; pointer-events: auto; }
 .v3-addslot .v3-add { background: var(--vt-card); min-height: 28px; padding: 1px 10px; font-size: 13px; }
 .v3-anchor:hover + .v3-addslot, .v3-addslot:hover, .v3-addslot:focus-within, .v3-addslot.is-shown { opacity: 1; }
 .v3-addslot--end { margin: -10px 0 0; padding-top: 0; justify-content: flex-start; }
 .v3-addslot--end .vt-btn { min-height: 28px; padding: 1px 10px; }
-.v3-paper:hover .v3-addslot--end { opacity: 1; }
+.v3-paper:hover .v3-addslot--end, .v3-paper:focus-within .v3-addslot--end, .v3-addslot--end.is-shown { opacity: 1; height: auto; margin: 0; }   /* shown: the card grows, so the row keeps the 28px padding below it */
 .v3-total { text-align: center; }
 .v3-total--warn { margin: 0; padding: 6px 12px; border-radius: 8px; background: var(--vt-sun-soft); font-size: 14px; text-align: center; }
 @media (hover: none), (max-width: 1023.98px) { .v3-addslot { opacity: 1; height: auto; margin: 0; justify-content: flex-start; } .v3-addslot .v3-add { min-height: 40px; padding: 6px 12px; font-size: 13px; } }
