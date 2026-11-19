@@ -38,6 +38,14 @@ it('shows the "Đã tạo N đề nháp" banner only when exams were just create
     expect(banner.textContent).toMatch(/Xuất bản từng đề/);
 });
 
+it('after "Tạo đề" from a bank the strip names the exam and offers Làm thử / Xuất bản', async () => {
+    open({created: ['E3'], createdName: 'Đề luyện — theo Đề số 3'});
+    const strip = (await screen.findByText('Đã tạo “Đề luyện — theo Đề số 3” (Nháp)')).closest('[role=status]') as HTMLElement;
+    expect(strip.textContent).toMatch(/Bấm “Làm thử” để xem một lần rút/);
+    expect(within(strip).getByRole('link', {name: 'Làm thử'}).getAttribute('href')).toBe('/do-exam/E3?lam_lai=1');
+    expect(within(strip).getByRole('button', {name: 'Xuất bản'})).toBeTruthy();
+});
+
 it('no banner when opening the subject normally', async () => {
     open();
     await screen.findByRole('table');

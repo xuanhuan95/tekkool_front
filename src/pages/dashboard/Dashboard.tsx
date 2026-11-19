@@ -146,7 +146,9 @@ function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: F
     const wide = useMediaQuery('(min-width: 768px)');
     const {data, isError, error, isFetching, refetch} = useSubjectExams(subject.id, folders);
     // "Tạo thẳng đề nháp" from the import screen lands here with the new ids: show Nháp, new ones first and marked "Mới tạo".
-    const created = (useLocation().state as {created?: string[]} | null)?.created;
+    const landed = useLocation().state as {created?: string[]; createdName?: string} | null;
+    const created = landed?.created;
+    const createdName = landed?.createdName;
     const fresh = (e: ExamSummary) => !!created?.includes(e.id);
     const [filter, setFilter] = useState<Filter>(created?.length ? 'draft' : 'all');
     const [pending, setPending] = useState<Pending | null>(null);
@@ -238,8 +240,14 @@ function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: F
     return <section className='vt-th-exams' aria-busy={isFetching}>
         {created?.length ? <div className='vt-th-newstrip' role='status'>
             <IconOk/>
-            <div><b>Đã tạo {created.length} đề nháp trong {subject.name}</b>
-                <div>Các đề mới nằm đầu danh sách, đánh dấu “Mới tạo”. Xuất bản từng đề để học sinh thấy.</div></div>
+            {createdName && created.length === 1 ? <>
+                <div><b>Đã tạo “{createdName}” (Nháp)</b>
+                    <div>Mỗi học sinh vào thi sẽ được rút một đề khác nhau theo khung này. Bấm “Làm thử” để xem một lần rút, xuất bản khi sẵn sàng.</div></div>
+                <Link to={`/do-exam/${created[0]}?lam_lai=1`} className={buttonClass({variant: 'secondary', size: 'sm'})}>Làm thử</Link>
+                {all.some(e => e.id === created[0] && !isPublished(e)) &&
+                    <Button variant='primary' size='sm' disabled={busy} onClick={() => publish(all.find(e => e.id === created[0])!)}>Xuất bản</Button>}
+            </> : <div><b>Đã tạo {created.length} đề nháp trong {subject.name}</b>
+                <div>Các đề mới nằm đầu danh sách, đánh dấu “Mới tạo”. Xuất bản từng đề để học sinh thấy.</div></div>}
         </div> : null}
         <div className='vt-th-exams-head'>
             <h2>{subject.name}</h2>

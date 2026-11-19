@@ -42,3 +42,12 @@ export const BLOCK_STYLES: Record<string, {icon: SemanticICONS; color: string}> 
 // Hand-written exams have no block type → app primary color.
 export const blockStyle = (t?: string | null) =>
     (t && BLOCK_STYLES[t]) || {icon: 'file alternate outline' as SemanticICONS, color: 'var(--tk-primary)'};
+
+/** What the create-from-bank sheet calls a block: a teacher thinks "đoạn đọc hiểu", never "khối". */
+const SHEET_KINDS: Record<string, {name: string; unit: string}> = {
+    reading: {name: 'Đoạn đọc hiểu', unit: 'đoạn'},
+    paragraph: {name: 'Câu viết đoạn văn', unit: 'câu'},
+    essay: {name: 'Câu viết bài văn', unit: 'câu'},
+};
+export const kindName = (t: string) => SHEET_KINDS[t]?.name ?? blockLabel(t).replace(/\s*\(.*\)$/, '');
+export const kindUnit = (t: string) => SHEET_KINDS[t]?.unit ?? 'câu';
