@@ -288,7 +288,7 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 @media (min-width: 1024px) { .vt-imp-rv { grid-template-columns: 340px minmax(0, 1fr); } .vt-rv-left { position: sticky; top: 12px; max-height: calc(100vh - 140px); overflow: auto; } }
 .vt-rv-list { display: flex; flex-direction: column; gap: 6px; }
 .vt-rv-file-name { font-size: 13px; font-weight: 700; color: var(--vt-muted); padding: 8px 0 4px; overflow-wrap: anywhere; }
-.vt-rv-item { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); padding: 2px 8px 6px 0; }
+.vt-rv-item { cursor: pointer; display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); padding: 2px 8px 6px 0; }
 .vt-rv-item.on { border-color: var(--vt-ink); background: var(--vt-bg-soft, transparent); }
 .vt-rv-item.off .vt-rv-name { color: var(--vt-muted); }
 .vt-rv-open { background: none; border: 0; font: inherit; text-align: left; cursor: pointer; padding: 8px 0; min-height: 44px; color: var(--vt-ink); }

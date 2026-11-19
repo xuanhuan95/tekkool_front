@@ -32,11 +32,12 @@ export function ReviewList({rows, openId, onOpen, onToggle, onToggleAll, blockBa
             {files.length > 1 || rows.length > 1 ? <div className='vt-rv-file-name'>{f}</div> : null}
             {rows.filter(r => r.file === f).map(r => {
                 const on = openId === r.exam.id;
-                return <div key={r.exam.id} className={cx('vt-rv-item', on && 'on', !r.picked && 'off')}>
+                // The whole row opens the exam (a tick, a badge, the empty part) — not only the name: otherwise the right side stays on the old exam.
+                return <div key={r.exam.id} className={cx('vt-rv-item', on && 'on', !r.picked && 'off')} onClick={() => onOpen(r.exam.id)}>
                     <label className='vt-imp-hit'>
                         <input type='checkbox' checked={r.picked} aria-label={'Chọn ' + r.exam.name} onChange={() => onToggle(r.exam.id)}/>
                     </label>
-                    <button type='button' className='vt-rv-open' aria-current={on ? 'true' : undefined} onClick={() => onOpen(r.exam.id)}>
+                    <button type='button' className='vt-rv-open' aria-current={on ? 'true' : undefined}>
                         <span className='vt-rv-name'>{r.exam.name}</span>
                         <span className='vt-rv-meta'>· {blockBank ? `${r.blocks} khối` : `${r.questions} câu`}</span>
                     </button>
