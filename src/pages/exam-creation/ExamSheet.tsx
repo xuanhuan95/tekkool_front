@@ -4,7 +4,7 @@ import {Link} from 'react-router-dom';
 
 import {Button, IconButton, Select, cx, icons} from '../../components/ui';
 import {formatDecimal} from '../../lib/format';
-import {BLOCK_LABELS, kindName, kindUnit} from './blockTypes';
+import {BLOCK_LABELS, kindName, kindUnit, typeName} from './blockTypes';
 import {EditText, Line} from './EditText';
 import {
     addGroup, addItem, addPartAfter, canMove, edit, movePart, numbering, overflow, partCount, questionsOf, removeItem, removePart, roman, sameCount, setCount, needs, totalScore,
@@ -165,9 +165,13 @@ export default function ExamSheet({name, minutes, onName, onMinutes, layout, onL
                     <b>{kindName(type)} · {questionsOf(it)} câu{!bad && fresh === key && <span className='v3-tag'>Mới</span>}</b>
                     <small>Rút ngẫu nhiên cho từng học sinh · ngân hàng có {have} {unit}</small>
                     {bad && <div className='v3-ph-err' role='alert' onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
-                        Ngân hàng chỉ có {have} {lower(kindName(type))}, đề này cần {need[type]}.
+                        {have === 0 ? <>Ngân hàng chưa có câu dạng “{typeName(type)}”, đề mẫu cần {need[type]} {unit}.</>
+                            : <>Ngân hàng chỉ có {have} {lower(kindName(type))}, đề này cần {need[type]}.</>}
                         <span className='v3-acts'>
-                            <Button variant='secondary' size='sm' onClick={shrink}>Bớt 1 {unit}</Button>
+                            {have === 0
+                                ? <><Button variant='secondary' size='sm' onClick={() => onLayout(removeItem(layout, g, p, i))}>Xoá {unit} này</Button>
+                                    <Button variant='secondary' size='sm' onClick={() => toggle({kind: 'cell', g, p, i})}>Đổi dạng khác</Button></>
+                                : <Button variant='secondary' size='sm' onClick={shrink}>Bớt 1 {unit}</Button>}
                             <Link className='vt-imp-link' to={`/import-exam?bank=${bankId}`}>Nhập thêm đề vào ngân hàng</Link>
                         </span>
                     </div>}
@@ -239,13 +243,14 @@ export default function ExamSheet({name, minutes, onName, onMinutes, layout, onL
         <p className='v3-muted'>Mỗi học sinh rút ngẫu nhiên từ ngân hàng. Thêm nhiều lần để có nhiều đoạn/câu.</p>
     </div>;
 
+    const bare = layout.every(g => g.parts.every(p => !p.items.length));   // blank sheet: nothing to total yet (as drawn)
     return <article className='v3-paper' aria-label='Tờ đề — bấm vào chữ hoặc khung để sửa'>
         <Line cls='v3-title'>
             <span className='v3-name'><EditText required label='Tên đề' value={name} placeholder='Tên đề' onCommit={onName}/></span>
             <small>Thời gian làm bài: <EditText numeric label='Thời gian làm bài (phút)' value={String(minutes)} onCommit={v => onMinutes(Number(v) || 0)}/> phút</small>
-            <small className='v3-total'>Tổng {formatDecimal(total.sum)} điểm</small>
+            {!bare && <small className='v3-total'>Tổng {formatDecimal(total.sum)} điểm</small>}
         </Line>
-        {total.warn && <p className='v3-total v3-total--warn' role='status'>{total.warn}</p>}
+        {total.warn && !bare && <p className='v3-total v3-total--warn' role='status'>{total.warn}</p>}
 
         {layout.map((g, gi) => <Fragment key={gi}>
             {(g.title || blank) && <Line cls='v3-grp'>
@@ -264,7 +269,7 @@ export default function ExamSheet({name, minutes, onName, onMinutes, layout, onL
                             <b><EditText required label={`Tên phần ${no}`} value={p.title} onCommit={v => onLayout(edit.part(layout, gi, pi, x => ({...x, title: v})))}/></b>{' '}
                             <button type='button' className={cx('v3-score', isOpen && 'is-open')} aria-expanded={isOpen}
                                     aria-label={`Điểm ${p.title}: ${p.score == null ? 'chưa có' : formatDecimal(p.score) + ' điểm'}, bấm để sửa`}
-                                    onClick={() => toggle(at)}>{p.score == null ? '(bấm để nhập điểm)' : `(${formatDecimal(p.score)} điểm)`}</button><b>.</b>{' '}
+                                    onClick={() => toggle(at)}>{p.score == null ? '(… điểm)' : `(${formatDecimal(p.score)} điểm)`}</button><b>.</b>{' '}
                             <EditText label={`Lời dẫn ${p.title}`} value={p.lead} range={pr} placeholder='Lời dẫn (không bắt buộc)'
                                       onCommit={v => onLayout(edit.part(layout, gi, pi, x => ({...x, lead: v})))}/>
                             <button type='button' className={cx('v3-more', 'vt-tip', isOpen && 'is-open')} aria-label={`Thao tác với ${p.title}`} data-tip={`Thao tác với ${p.title}`}

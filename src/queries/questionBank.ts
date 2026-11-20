@@ -45,17 +45,13 @@ export type CreateFromBankInput = {
     structure?: StructureSlot[];
     /** Exam frame Nhóm → Phần → Tiểu mục (C1). Wins over `structure` when both are sent. */
     layout?: Layout;
+    /** Name of the .docx the frame was read from (shown as "Rút từ ngân hàng · theo file"). */
+    source_file?: string;
 };
 
-/** Sample exams of a bank: frames the teacher can copy (`question_bank/templates`). */
-export type BankTemplate = {id: string; name: string; layout: Layout; block_count: number; created_at?: string | null};
-export function useBankTemplates(bankId: string) {
-    return useQuery({
-        queryKey: [...bankKeys.all, 'templates', bankId],
-        queryFn: () => Api.get<BankTemplate[]>('question_bank/templates?bank=' + bankId),
-        enabled: !!bankId,
-    });
-}
+/** A sample exam read from a .docx the teacher uploads (`import_docx/layout`): the frame only, nothing is saved. */
+export type FileTemplate = {name: string; layout: Layout; block_count: number; block_types: Record<string, number>};
+export const readTemplateFile = (file: File) => Api.upload<{templates: FileTemplate[]}>('import_docx/layout', file);
 
 export function useCreateFromBank() {
     const qc = useQueryClient();

@@ -47,6 +47,9 @@ export const IconOk = ({size = 20}: P) =>
     <Line size={size} w={2.6} color='var(--vt-ok-icon)'><circle cx='12' cy='12' r='9'/><path d='M8 12.5l2.8 2.8L16 10'/></Line>;
 export const IconAlert = ({size = 20}: P) =>
     <Line size={size} w={2.6} color='var(--vt-err)'><circle cx='12' cy='12' r='9'/><path d='M12 7.5v5.5'/><path d='M12 16.5v.5'/></Line>;
+export const IconErrorCircle = ({size = 20}: P) =>
+    <Line size={size} w={2.4} color='var(--vt-err)'><circle cx='12' cy='12' r='9'/><path d='M9 9l6 6M15 9l-6 6'/></Line>;
+export const IconUploadTray = ({size = 40}: P) => <Line size={size}><path d='M12 16V4M7 9l5-5 5 5'/><path d='M4 16v4h16v-4'/></Line>;
 export const IconWarn = ({size = 18}: P) =>
     <Line size={size} w={2.4} color='var(--vt-err)'><path d='M12 3l9.5 17h-19z'/><path d='M12 10v4.5'/><path d='M12 17.5v.5'/></Line>;
 export const IconDoc = ({size = 40}: P) =>
