@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 
 import Dashboard from './dashboard/Dashboard';
+import ExamPage from './dashboard/ExamPage';
 import CreateExam from './exam-creation/CreateExam';
 import TakeExam from './exam/TakeExam';
 import ResultPage from './exam/ResultPage';
@@ -43,7 +44,7 @@ function ToResult() {
     return <Navigate to={'/result/' + id} replace/>;
 }
 
-const TEACHER_D = /^\/(|(subject|create-exam|edit-exam|to-grade|my-exams|question-bank|import-exam|create-from-bank|draw-exam|profile)(\/.*)?)$/;
+const TEACHER_D = /^\/(|(subject|exam|create-exam|edit-exam|to-grade|my-exams|question-bank|import-exam|create-from-bank|draw-exam|profile)(\/.*)?)$/;
 
 function TeacherShell({children}: {children: ReactNode}) {
     const name = useAuthStore(s => s.user?.name);
@@ -99,6 +100,7 @@ export default function AuthenticateView() {
               <Route path='/payment/result' element={<PaymentResult/>}/>
               <Route path='/payment/:packageId' element={<Payment/>}/>
               <Route path='/subject/:subjectId' element={<Dashboard/>}/>
+              <Route path='/exam/:examId' element={isTeacher ? <ExamPage/> : <Navigate to='/' replace/>}/>
               <Route path='*' element={<Dashboard/>}/>
 
                 {/*<Route path='/schedule' element={<Schedule/>}/>*/}

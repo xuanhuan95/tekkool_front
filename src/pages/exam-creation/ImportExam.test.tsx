@@ -867,6 +867,7 @@ describe('ImportExam: bank import flow v2 (BF-01, BF-07, BF-12, BF-15, B7)', () 
         fireEvent.click(dialog.getByText('Tạo 1 đề nháp'));
         await vi.waitFor(() => expect(moved).toEqual([{examId: 'E1', folderId: 'F1'}]));
         expect(created).toHaveLength(1);
+        expect(created[0].source_file).toBe('de.docx');   // "Môn & đề": the exam page says which file it came from
     });
 
     it('BF-11: a whole-exam bank explains itself instead of offering block actions', async () => {
