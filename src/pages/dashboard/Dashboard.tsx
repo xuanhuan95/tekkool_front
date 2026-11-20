@@ -1,10 +1,9 @@
 import {useEffect, useState} from 'react';
 import {Link, useNavigate, useParams} from 'react-router-dom';
-import {useQueries} from '@tanstack/react-query';
 
 import {EmptyState, ErrorState, Loading, PageTitle, TextField, buttonClass} from '../../components/ui';
 import {errorText} from '../../lib/format';
-import {subjectExamsQuery, useFolders} from '../../queries/exams';
+import {useFolders} from '../../queries/exams';
 import {useAuthStore} from '../../stores/authStore';
 import {DESKTOP, useMediaQuery} from '../useMediaQuery';
 import StudentHome from '../student/StudentHome';
@@ -36,18 +35,14 @@ function TeacherHome() {
     const subjects = (folders.data || []).filter(f => !f.parent);
     const current = subjects.find(s => s.id === subjectId);
 
-    // `/` on desktop: pick the subject holding the most recently updated exam. Their lists are cached under the same key as
-    // the detail, so the chosen subject opens without a second call.
-    const pick = web && !current;
-    const lists = useQueries({queries: pick ? subjects.filter(s => s.exam_count !== 0).map(s => ({...subjectExamsQuery(s.id, folders.data!), staleTime: 30_000})) : []});
-    const settled = pick && lists.every(l => !l.isLoading);
+    // `/` on desktop: open the subject holding the most recently updated exam (`last_exam_at` of folder/list, one call).
+    const pick = web && !current && !!folders.data;
     useEffect(() => {
-        if (!settled) return;
-        const withExams = subjects.filter(s => s.exam_count !== 0);
-        const best = lastWorkedSubject(subjects, id => lists[withExams.findIndex(s => s.id === id)]?.data);
+        if (!pick) return;
+        const best = lastWorkedSubject(subjects);
         if (best) navigate('/subject/' + best.id, {replace: true});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [settled]);
+    }, [pick]);
     useEffect(() => { setQ(''); }, [subjectId]);
 
     if (folders.isError) return <ErrorState title='Không tải được kho đề' description={errorText(folders.error, 'Thử lại sau. Đề của cô vẫn an toàn.')}

@@ -12,8 +12,8 @@ import {examCountText} from './SubjectList';
 afterEach(() => { vi.restoreAllMocks(); useAuthStore.setState({user: null}); });
 
 const FOLDERS = [
-    {id: 'S1', name: 'Toán', exam_count: 2, draft_count: 1},
-    {id: 'S2', name: 'Ngữ văn', exam_count: 2, draft_count: 1},
+    {id: 'S1', name: 'Toán', exam_count: 2, draft_count: 1, last_exam_at: '2026-11-10T00:00:00Z'},
+    {id: 'S2', name: 'Ngữ văn', exam_count: 2, draft_count: 1, last_exam_at: '2026-11-19T00:00:00Z'},
     {id: 'S3', name: 'Hoá học', exam_count: 1, draft_count: 0, hidden: true},
     {id: 'S4', name: 'Lịch sử', exam_count: 0, draft_count: 0},
 ];

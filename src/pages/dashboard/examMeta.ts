@@ -33,15 +33,10 @@ export function whenText(iso: string | null | undefined, withTime = false, now =
     return (ago === 1 ? 'hôm qua' : formatDayMonth(iso)) + (withTime ? ' ' + clock : '');
 }
 
-/** The subject the teacher worked on last: the one holding the most recently updated exam; none updated → the first subject. */
-export function lastWorkedSubject(subjects: Folder[], examsOf: (subjectId: string) => ExamSummary[] | undefined): Folder | undefined {
+/** The subject the teacher worked on last: the latest `last_exam_at` (hidden ones count); none → the first subject. */
+export function lastWorkedSubject(subjects: Folder[]): Folder | undefined {
     let best: Folder | undefined, bestAt = '';
-    for (const s of subjects) {
-        for (const e of examsOf(s.id) || []) {
-            const at = e.updated_at || '';
-            if (at > bestAt) { best = s; bestAt = at; }
-        }
-    }
+    for (const s of subjects) if (s.last_exam_at && s.last_exam_at > bestAt) { best = s; bestAt = s.last_exam_at; }
     return best || subjects[0];
 }
 

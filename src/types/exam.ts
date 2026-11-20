@@ -8,6 +8,8 @@ export type Folder = {
     /** Subject cards only (SPT-119): the teacher's own exams incl. child folders; absent on older BE. */
     exam_count?: number;
     draft_count?: number;
+    /** Most recent `updated_at` among the teacher's exams of the subject (ISO); null = no exam. */
+    last_exam_at?: string | null;
 };
 
 export type ExamStatus = 'draft' | 'published';

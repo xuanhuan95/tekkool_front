@@ -26,17 +26,11 @@ describe('whenText (Vietnam time)', () => {
 });
 
 describe('lastWorkedSubject', () => {
-    const subs = [{id: 'a', name: 'Toán'}, {id: 'b', name: 'Văn'}, {id: 'c', name: 'Sử'}];
-    it('picks the subject with the most recently updated exam', () => {
-        const by: Record<string, {id: string; name: string; updated_at?: string}[]> = {
-            a: [{id: '1', name: 'x', updated_at: '2026-11-10T00:00:00Z'}],
-            b: [{id: '2', name: 'y', updated_at: '2026-11-19T00:00:00Z'}, {id: '3', name: 'z', updated_at: '2026-11-01T00:00:00Z'}],
-        };
-        expect(lastWorkedSubject(subs, id => by[id])?.id).toBe('b');
-    });
-    it('no dates at all (old exams) or no exams → the first subject', () => {
-        expect(lastWorkedSubject(subs, id => id === 'b' ? [{id: '2', name: 'y', updated_at: null}] : [])?.id).toBe('a');
-        expect(lastWorkedSubject([], () => undefined)).toBeUndefined();
+    const subs = [{id: 'a', name: 'Toán', last_exam_at: '2026-11-10T00:00:00Z'}, {id: 'b', name: 'Hoá', hidden: true, last_exam_at: '2026-11-19T00:00:00Z'}, {id: 'c', name: 'Sử', last_exam_at: null}];
+    it('latest last_exam_at wins (even a hidden subject); none → first subject', () => {
+        expect(lastWorkedSubject(subs)?.id).toBe('b');
+        expect(lastWorkedSubject([subs[2], {id: 'd', name: 'x'}])?.id).toBe('c');
+        expect(lastWorkedSubject([])).toBeUndefined();
     });
 });
 
