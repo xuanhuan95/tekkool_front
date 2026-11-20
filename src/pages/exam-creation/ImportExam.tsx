@@ -303,13 +303,13 @@ function ExamBody({onFix, exam, edit, duplicates, desktop, onTab, dups, issues, 
             return <div key={s.id} className='vt-imp-col'>
                 <h3 className='vt-imp-section' id={'imp-' + s.id}>
                     {parts[si].name} · {parts[si].kind}
-                    <span className='vt-imp-section-count'>đọc {parts[si].read}{typeof parts[si].declared === 'number' && ` / ${parts[si].declared}`} câu</span>
+                    <span className='vt-imp-section-count'>đọc {parts[si].read} câu</span>
                 </h3>
                 {groups.map(g => {
                     const dup = dups?.[g[0].id];
                     return dup
                         ? <div key={g[0].id} className='v4-dup'>
-                            <DupNote text={dup.text} others={starts.size - 1} dropped={dup.dropped} onToggle={dup.onToggle}/>
+                            <DupNote text={dup.text} others={blocksOf(exam).length - 1 - Object.entries(dups || {}).filter(([id, d]) => id !== g[0].id && d.dropped).length} dropped={dup.dropped} onToggle={dup.onToggle}/>
                             {g.map(card)}
                         </div>
                         : <Fragment key={g[0].id}>{g.map(card)}</Fragment>;
@@ -497,7 +497,7 @@ export default function ImportExam() {
     const clearAll = () => {
         setExams([]); setIssues([]); setSeen({}); setRenumbered({}); setDuplicates({}); setResult(null); setPicked({}); setOpenId(null);
         setState({}); setOtherBank({}); setSaveErrors([]); setDropDup({}); setExisting({}); setDialog(null); setReview(false); setDone(null);
-        fileOf.current = {}; pdfFile.current = null; sinceRef.current = '';
+        fileOf.current = {}; pdfFile.current = null; sinceRef.current = ''; startTotal.current = undefined;
     };
     // From the picker and from a drop on the upload zone. ponytail: sequential on purpose (a 2-core server, 20 files).
     const readFiles = async (list: File[], clear = false) => {
@@ -619,11 +619,13 @@ export default function ImportExam() {
 
     // Into the bank. Whole-exam banks send one batch; block banks save exam by exam and keep an outcome per exam (BF-07).
     const sinceRef = useRef('');
+    const startTotal = useRef<number>();   // blocks the bank held before this import's first save
     const saveToBank = async (list: ImportedExam[]) => {
         setDialog(null); setSaving(true); setProgress(0); setSaveErrors([]);
         // Kept across "Lưu lại" retries so the list screen can show everything this import added.
         // 2 minutes back: the server clock may be a little behind this computer's, and a block of this import must never fall before `since`.
         if (!sinceRef.current) sinceRef.current = new Date(Date.now() - 2 * 60_000).toISOString();
+        if (startTotal.current === undefined) startTotal.current = bankInfo?.items ?? 0;
         let done = 0;
         const out: PaperResult = {papers: [], rejected: [], total: bankInfo?.items ?? 0};
         try {
@@ -679,7 +681,8 @@ export default function ImportExam() {
                 const items = [...chosen.filter(e => state[e.id] === 'saved'), ...went]
                     .map(e => ({id: e.id, name: e.name, blocks: blocksOf(withoutBlocks(e, dropOf(e)) || e).length}));
                 notify.success(`Đã nhập ${items.length} đề vào ngân hàng`);
-                setDone({blocks: items.reduce((n, x) => n + x.blocks, 0), total, since: sinceRef.current, items});
+                // An exam saved again under the same block ids overwrites them: what the bank really gained is its own before/after.
+                setDone({blocks: Math.max(0, total - (startTotal.current ?? 0)), total, since: sinceRef.current, items});
                 window.scrollTo({top: 0});
             }
         } catch (err) {

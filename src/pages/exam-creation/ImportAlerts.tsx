@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {useRef, type ReactNode} from 'react';
 import {Link} from 'react-router-dom';
 
 import {Badge, Button, Modal, buttonClass, cx, icons} from '../../components/ui';
@@ -27,7 +27,7 @@ export const dayMonth = (iso?: string | null) => {
 function Source({bankId, s}: {bankId: string; s?: MatchSource}) {
     if (!s?.source_name) return null;
     const when = [dayMonth(s.imported_at) && `nhập ${dayMonth(s.imported_at)}`, s.source_file && `từ ${s.source_file}`].filter(Boolean).join(' ');
-    return <><Link className='vt-imp-link' to={'/question-bank/' + bankId}>{s.source_name}</Link>{when && ` (${when})`}</>;
+    return <><Link className='vt-imp-link' to={'/question-bank/' + bankId} target='_blank' rel='noopener'>{s.source_name}</Link>{when && ` (${when})`}</>;
 }
 
 /** "câu 6–10" of a block inside its exam, counted in paper order. */
@@ -70,8 +70,9 @@ export function suspects(bankId: string, exams: ImportedExam[], bankDups: BlockD
 
 /** Dialog after the check found something (artboard dup-dialog): "Vẫn nhập" saves everything, "Xem lại" closes it and marks the spots. */
 export function DupDialog({open, items, total, onKeep, onReview}: {open: boolean; items: Suspect[]; total: number; onKeep: () => void; onReview: () => void}) {
-    return <Modal open={open} onClose={onReview} title={`Có ${items.length} chỗ nghi trùng`}
-                  footer={<><Button variant='secondary' onClick={onReview}>Xem lại</Button><Button variant='primary' onClick={onKeep}>Vẫn nhập</Button></>}>
+    const keep = useRef<HTMLButtonElement>(null);
+    return <Modal open={open} onClose={onReview} title={`Có ${items.length} chỗ nghi trùng`} initialFocus={keep} className='v4-dupdlg'
+                  footer={<><Button variant='secondary' onClick={onReview}>Xem lại</Button><Button variant='primary' ref={keep} onClick={onKeep}>Vẫn nhập</Button></>}>
         <ul className='v4-duplist'>
             {items.map(i => <li key={i.key}><b>{i.title}</b> <Badge tone='sun'>{i.badge}</Badge><span>{i.text}</span></li>)}
         </ul>

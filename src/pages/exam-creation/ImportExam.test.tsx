@@ -64,7 +64,7 @@ const saveButton = () => document.querySelector('.vt-imp-bar .vt-bk-bar-main') a
 beforeEach(() => {
     vi.restoreAllMocks();
     vi.spyOn(Api, 'get').mockImplementation(async (url: string) =>
-        url === 'question_bank/list' ? [{id: 'B1', name: 'NH Toán 12', subject: 'Toán', blocks: 0}]
+        url === 'question_bank/list' ? [{id: 'B1', name: 'NH Toán 12', subject: 'Toán', blocks: 0, items: 11}]
             : url === 'folder/list' ? [{id: 'F1', name: 'Toán', parent: null}, {id: 'F2', name: 'Văn', parent: null}] : []);
     vi.spyOn(notify, 'success').mockImplementation(() => undefined as never);
     vi.spyOn(notify, 'error').mockImplementation(() => undefined as never);
@@ -806,6 +806,42 @@ describe('ImportExam: bank import flow v2 (BF-01, BF-07, BF-12, BF-15, B7)', () 
         expect(sent).toHaveLength(1);
         expect(JSON.stringify(sent[0])).not.toContain('"Q1"');
         expect(JSON.stringify(sent[0])).toContain('"Q2"');
+    });
+
+    it('"N khối còn lại của đề vẫn nhập" counts the whole exam, not the Phần on screen, and not blocks already left out', async () => {
+        const exam = {...examOf(mc('Q1', 'Q1A'), mc('Q2', 'Q2A')), sections: [
+            {id: 'S1', name: 'Phần I', question_type: 'MultipleChoice', questions: [mc('Q1', 'Q1A'), mc('Q2', 'Q2A')]},
+            {id: 'S2', name: 'Phần II', question_type: 'MultipleChoice', questions: [mc('Q3', 'Q3A')]}]};
+        mockPost({'question_bank/check_duplicates': () => ({duplicates: {Q3: {score: 0.97, matches: [{block: 'K9', score: 0.97}]}, Q2: {score: 0.97, matches: [{block: 'K8', score: 0.97}]}}, compared: 40, existing: null})});
+        renderScreen();
+        await loadFile(exam);
+        fireEvent.click(saveButton());
+        fireEvent.click(await screen.findByText('Xem lại'));
+        const boxes = await screen.findAllByLabelText(/Không nhập khối này/);
+        expect(boxes[0].closest('label')!.textContent).toContain('(2 khối còn lại của đề vẫn nhập)');
+        fireEvent.click(boxes[1]);
+        expect(boxes[0].closest('label')!.textContent).toContain('(1 khối còn lại của đề vẫn nhập)');
+    });
+
+    it('the dialog puts focus on "Vẫn nhập", and the exam link opens in a new tab (no "Rời trang này?")', async () => {
+        const at = new Date(2026, 10, 15, 9).toISOString();
+        mockPost({'question_bank/check_duplicates': () => ({duplicates: {Q1: {score: 0.97, matches: [{block: 'K9', score: 0.97, source_name: 'Đề số 12', source_file: 'de-12.docx', imported_at: at}]}}, compared: 40, existing: null})});
+        renderScreen();
+        await loadFile(TWO_BLOCKS());
+        fireEvent.click(saveButton());
+        const link = await screen.findByRole('link', {name: 'Đề số 12'});
+        expect(link.getAttribute('target')).toBe('_blank');
+        expect(document.activeElement).toBe(screen.getByRole('button', {name: 'Vẫn nhập'}));
+    });
+
+    it('the saved screen says what the bank really gained (same block ids are overwritten, not added)', async () => {
+        vi.spyOn(Api, 'get').mockImplementation(async (url: string) =>
+            url === 'question_bank/list' ? [{id: 'B1', name: 'NH Toán 12', subject: 'Toán', blocks: 20, items: 20}] : []);
+        mockPost({'question_bank/save': () => ({saved: 2, stats: {total: 21}})});
+        renderScreen();
+        await loadFile(TWO_BLOCKS());
+        fireEvent.click(saveButton());
+        expect(await screen.findByText(/có thêm 1 khối, giờ có 21 khối/)).toBeTruthy();
     });
 
     it('the dialog names the source exam with a link and "nhập dd/mm từ file" when the BE sends it', async () => {

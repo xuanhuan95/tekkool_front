@@ -26,20 +26,23 @@ export default function ImportUpload({onFiles, pick, onGuide, compact, brief}: {
     return <div className={cx('vt-imp-up', compact && 'vt-imp-up--compact')}>
         <div className='vt-imp-up-main'>
             <Card>
-                <div className={cx('vt-imp-zone', over && 'over')} onDragOver={e => { e.preventDefault(); setOver(true); }}
+                {brief ? <div className={cx('vt-bk-drop', over && 'over')} onDragOver={e => { e.preventDefault(); setOver(true); }}
+                              onDragLeave={() => setOver(false)} onDrop={drop}>
+                    <icons.IconUploadTray size={40}/>
+                    <div>
+                        <h2>Thêm file Word</h2>
+                        <span className='vt-imp-hint'>Kéo thả hoặc chọn nhiều file .docx.</span>
+                    </div>
+                    <Button variant='secondary' onClick={pick}>Chọn file .docx</Button>
+                </div> : <div className={cx('vt-imp-zone', over && 'over')} onDragOver={e => { e.preventDefault(); setOver(true); }}
                      onDragLeave={() => setOver(false)} onDrop={drop}>
                     <icons.IconArrowUp size={48}/>
                     <div className='vt-imp-zone-text'>
-                        {brief ? <>
-                            <h2>Thêm file Word</h2>
-                            <span className='vt-imp-hint'>Kéo thả hoặc chọn nhiều file .docx.</span>
-                        </> : <>
-                            <h2>Kéo một hoặc nhiều file Word vào đây</h2>
-                            <span className='vt-imp-hint'>Chọn được nhiều file một lần. Chỉ nhận .docx, mỗi file tối đa 10 MB, mỗi file chứa được nhiều đề.</span>
-                        </>}
+                        <h2>Kéo một hoặc nhiều file Word vào đây</h2>
+                        <span className='vt-imp-hint'>Chọn được nhiều file một lần. Chỉ nhận .docx, mỗi file tối đa 10 MB, mỗi file chứa được nhiều đề.</span>
                     </div>
                     <Button variant='primary' onClick={pick}>Chọn file .docx</Button>
-                </div>
+                </div>}
             </Card>
             {!compact && <Card>
                 <h2 className='vt-imp-h2'>3 cách đánh dấu đáp án</h2>
