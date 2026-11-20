@@ -209,5 +209,5 @@
 .v5-indet{ display: block; height: 100%; width: 40%; background: var(--vt-action); border-right: 1.5px solid var(--vt-ink); animation: v5-indet 1.2s ease-in-out infinite; }
 @keyframes v5-indet{ from{ transform: translateX(-100%); } to{ transform: translateX(250%); } }
 @media (prefers-reduced-motion: reduce){ .v5-indet{ animation: none; width: 100%; opacity: .4; } }
-.v5-file-acts .vt-imp-link{ min-height: 0; display: block; }   /* the artboard draws this as a plain text link */
+.v5-file-acts .vt-imp-link{ min-height: 44px; display: inline-flex; align-items: center; }   /* the artboard draws this as a plain text link */
 .v5-file--busy .vt-bk-prog{ margin-top: -4px; }   /* the artboard sets the bar right under the text, no gap */

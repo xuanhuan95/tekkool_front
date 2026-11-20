@@ -239,6 +239,15 @@ it('a file with several exams lists them; picking one puts its frame on the shee
     expect(body(post).layout[0].parts).toHaveLength(1);
 });
 
+it('a file with many exams shows 5 and "Xem thêm N đề"', async () => {
+    mock({reading: 3, essay: 1}, Array.from({length: 8}, (_, i) => ({...VAN, name: `Văn ${i + 1}`})));
+    renderPage();
+    await choose();
+    expect((await screen.findAllByRole('radio', {name: /^Văn \d/})).length).toBe(5);
+    fireEvent.click(screen.getByText(/Xem thêm 3 đề/));
+    expect(screen.getAllByRole('radio', {name: /^Văn \d/}).length).toBe(8);
+});
+
 it('an exam the file calls "Đề số 1" takes the file name', async () => {
     mock({reading: 3, essay: 1}, [{...VAN, name: 'Đề số 1'}]);
     renderPage();

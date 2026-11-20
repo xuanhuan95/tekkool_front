@@ -7,6 +7,9 @@ import type {FileTemplate} from '../../queries/questionBank';
 /** The sample file the teacher uploaded: being read, read (one or several exams), or refused. */
 export type Source = {file: string; status: 'reading' | 'ok' | 'error'; templates: FileTemplate[]; pick: number; error?: string};
 
+const SHOWN = 5;
+const shownCount = (s: Source) => Math.min(s.templates.length, SHOWN + (s.pick >= SHOWN ? 1 : 0));
+
 type Props = {
     src: Source | null;
     blank: boolean;
@@ -28,6 +31,7 @@ type Props = {
  */
 export default function TemplateCard({src, blank, infos, sampleHref, onOpen, onFiles, onCancel, onPick, onBlank}: Props) {
     const [over, setOver] = useState(false);
+    const [all, setAll] = useState(false);
     const many = src?.status === 'ok' && src.templates.length > 1;
 
     return <Card size='md' className={cx('v5-card', over && 'v5-over')}
@@ -58,9 +62,11 @@ export default function TemplateCard({src, blank, infos, sampleHref, onOpen, onF
             </div>
         </div>}
         {many && <ul className='v3-tpls' role='radiogroup' aria-label='Lấy cấu trúc của đề'>
-            {src.templates.map((t, i) => <li key={i}><label>
+            {src.templates.map((t, i) => (all || i < SHOWN || i === src.pick) && <li key={i}><label>
                 <input type='radio' name='ex' checked={src.pick === i} onChange={() => onPick(i)}/>
                 <span><b>{t.name}</b><small>{infos[i]}</small></span></label></li>)}
+            {!all && src.templates.length > SHOWN && <li><Button variant='ghost' size='sm' onClick={() => setAll(true)}>
+                Xem thêm {src.templates.length - shownCount(src)} đề</Button></li>}
         </ul>}
         {src?.status === 'error' && <div className='v5-file v5-file--err'>
             <icons.IconErrorCircle/>
