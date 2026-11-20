@@ -1,34 +1,24 @@
-import {useEffect, useRef, useState} from 'react';
-import {createPortal} from 'react-dom';
-import {Link, useLocation, useNavigate, useParams} from 'react-router-dom';
-import {useQueryClient} from '@tanstack/react-query';
-import striptags from 'striptags';
+import {useEffect, useState} from 'react';
+import {Link, useNavigate, useParams} from 'react-router-dom';
+import {useQueries} from '@tanstack/react-query';
 
-import {Badge, Button, Card, ConfirmDialog, EmptyState, ErrorState, FilterChip, MetaChips, PageTitle, StatusBadge, Table, TextField, buttonClass, notify, Loading, Refreshable} from '../../components/ui';
-import type {Column} from '../../components/ui';
+import {EmptyState, ErrorState, Loading, PageTitle, TextField, buttonClass} from '../../components/ui';
 import {errorText} from '../../lib/format';
-import Api from '../../services/api';
+import {subjectExamsQuery, useFolders} from '../../queries/exams';
 import {useAuthStore} from '../../stores/authStore';
-import {useFolders, useSubjectExams} from '../../queries/exams';
-import type {ExamStatus, ExamSummary, Folder} from '../../types/exam';
-import Default from '../exam-creation/Default';
-import {IconBank, IconEdit, IconOk, IconUploadDoc} from '../../components/ui/icons';
 import {DESKTOP, useMediaQuery} from '../useMediaQuery';
 import StudentHome from '../student/StudentHome';
+import {lastWorkedSubject} from './examMeta';
+import SubjectDetail from './SubjectDetail';
+import {SubjectCards, SubjectNav} from './SubjectList';
 import {stripAccents} from './subjectStyle';
 import './teacher-home.css';
 
-type Filter = 'all' | ExamStatus;
-type Pending = {kind: 'delete' | 'unpublish'; exam: ExamSummary; submissions?: number};
-
-const isPublished = (e: ExamSummary) => e.status !== 'draft';
-const examName = (e: ExamSummary) => striptags(e.name) || '(đề không tên)';
-
 /**
- * GV-Mon / GV-DanhSachDe: subject cards → exam table of the open subject, with Nháp / Đã xuất bản.
+ * GV "Môn & đề" (canvas APP-teacher-subjects-v2): master–detail. ≥1024: subjects on the left, the open subject's exams
+ * on the right; `/` opens the subject the teacher worked on last. Phone: `/` = one card per subject, `/subject/:id` = its exams.
  * Route `/` and `/subject/:subjectId` (the open subject is the URL param, so F5 and Back keep it).
- * ponytail: search runs on the FE over the loaded list; exam/list gives only `has_submissions` (no count),
- * so Xoá is locked up front by it; the "bài nộp" number still comes from to_grade, and the 409 on delete stays as a safety net.
+ * ponytail: search runs on the FE over the loaded list; exam/list gives the numbers of every row, so no extra call per exam.
  */
 export default function Dashboard() {
     const isTeacher = useAuthStore(s => s.user?.group) === 'teacher';
@@ -37,18 +27,32 @@ export default function Dashboard() {
 
 function TeacherHome() {
     const {subjectId} = useParams();
+    const web = useMediaQuery(DESKTOP);
+    const navigate = useNavigate();
     const [q, setQ] = useState('');
     const folders = useFolders();
+
+    // Subjects only (root folders); child folders are not shown (Q5: no rename/delete UI yet).
+    const subjects = (folders.data || []).filter(f => !f.parent);
+    const current = subjects.find(s => s.id === subjectId);
+
+    // `/` on desktop: pick the subject holding the most recently updated exam. Their lists are cached under the same key as
+    // the detail, so the chosen subject opens without a second call.
+    const pick = web && !current;
+    const lists = useQueries({queries: pick ? subjects.filter(s => s.exam_count !== 0).map(s => ({...subjectExamsQuery(s.id, folders.data!), staleTime: 30_000})) : []});
+    const settled = pick && lists.every(l => !l.isLoading);
+    useEffect(() => {
+        if (!settled) return;
+        const withExams = subjects.filter(s => s.exam_count !== 0);
+        const best = lastWorkedSubject(subjects, id => lists[withExams.findIndex(s => s.id === id)]?.data);
+        if (best) navigate('/subject/' + best.id, {replace: true});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [settled]);
+    useEffect(() => { setQ(''); }, [subjectId]);
 
     if (folders.isError) return <ErrorState title='Không tải được kho đề' description={errorText(folders.error, 'Thử lại sau. Đề của cô vẫn an toàn.')}
                                             onRetry={() => folders.refetch()} retrying={folders.isFetching}/>;
     if (!folders.data) return <Loading/>;
-
-    // Subjects only (root folders); child folders are not shown (Q5: no rename/delete UI yet).
-    const subjects = folders.data.filter(f => !f.parent);
-    const hiddenCount = subjects.filter(s => s.hidden).length;
-    const match = (t: string) => stripAccents(t).includes(stripAccents(q));
-    const shown = q ? subjects.filter(s => match(s.name)) : subjects;
 
     if (!subjects.length) return <div className='vt-th-page'>
         <PageTitle>Môn & đề</PageTitle>
@@ -56,240 +60,26 @@ function TeacherHome() {
                     description='Môn học do Admin tạo. Khi Admin tạo xong, môn sẽ hiện ở đây để cô soạn đề. Cô báo Admin giúp nhé.'/>
     </div>;
 
+    // Phone, one subject open: just its exams (the "← Môn & đề" link goes back to the cards).
+    if (!web && subjectId) return <div className='vt-th-page'>
+        {current ? <SubjectDetail subject={current} subjects={subjects} folders={folders.data} q=''/>
+            : <EmptyState title='Không tìm thấy môn này' action={<Link to='/' className={buttonClass({variant: 'secondary'})}>Về Môn &amp; đề</Link>}/>}
+    </div>;
+
+    const match = (t: string) => stripAccents(t).includes(stripAccents(q));
+    const shown = q ? subjects.filter(s => s.id === current?.id || match(s.name)) : subjects;
     return <div className='vt-th-page'>
         <div className='vt-th-head'>
-            <div>
-                <PageTitle>Môn & đề</PageTitle>
-                <MetaChips items={[subjects.length + ' môn', hiddenCount > 0 && hiddenCount + ' môn đang ẩn']}/>
-            </div>
+            <PageTitle>Môn & đề</PageTitle>
             <TextField label='Tìm đề, tìm môn' placeholder='Tìm đề, tìm môn' value={q} onChange={e => setQ(e.target.value)}/>
         </div>
-
-        {q && !shown.length && !subjectId && <EmptyState title={`Không có mục nào khớp “${q}”`}
-            action={<Button variant='secondary' onClick={() => setQ('')}>Xoá ô tìm</Button>}/>}
-
-        <div className='vt-th-subjects'>
-            {shown.map(s => <SubjectCard key={s.id} subject={s} active={s.id === subjectId}/>)}
-        </div>
-
-        {subjectId && subjects.some(s => s.id === subjectId) &&
-            <ExamList subject={subjects.find(s => s.id === subjectId)!} subjects={subjects} folders={folders.data} q={q}/>}
-    </div>;
-}
-
-/** "5 đề · 2 nháp" / "3 đề" / "Chưa có đề"; null when BE is old and sends no count (never claim "Chưa có đề" wrongly). */
-export function examCountText({exam_count: n, draft_count: d}: Pick<Folder, 'exam_count' | 'draft_count'>): string | null {
-    if (n == null) return null;
-    return n === 0 ? 'Chưa có đề' : n + ' đề' + (d ? ` · ${d} nháp` : '');
-}
-
-export function SubjectCard({subject, active}: {subject: Folder; active: boolean}) {
-    const meta = examCountText(subject);
-    return <Card as='article' className={'vt-th-subject' + (active ? ' is-active' : '')}>
-        <Link to={'/subject/' + subject.id} className='vt-th-subject-name' aria-current={active ? 'true' : undefined}>{subject.name}</Link>
-        {meta && <p className={'vt-th-subject-meta' + (subject.exam_count ? '' : ' vt-th-subject-meta--empty')}>{meta}</p>}
-        {subject.hidden && <Badge tone='sun'>Môn đang ẩn — học sinh không thấy</Badge>}
-        <CreateMenu subject={subject}/>
-    </Card>;
-}
-
-const CREATE_OPTIONS = [
-    {path: '/create-exam', title: 'Tự soạn', hint: 'Soạn theo phần trên máy tính', icon: <IconEdit size={20}/>},
-    {path: '/import-exam', title: 'Nhập Word', hint: 'Tải file .docx, xem lại rồi lưu', icon: <IconUploadDoc/>},
-    {path: '/create-from-bank', title: 'Từ ngân hàng đề', hint: 'Theo cấu trúc, mỗi lượt một đề riêng', icon: <IconBank/>},
-];
-
-/** "+ Tạo đề": floating menu anchored to the button on desktop, bottom sheet on phones (canvas APP-teacher-home-create-menu-a). */
-export function CreateMenu({subject}: {subject: Folder}) {
-    const navigate = useNavigate();
-    const web = useMediaQuery(DESKTOP);
-    const [open, setOpen] = useState(false);
-    const anchor = useRef<HTMLDivElement>(null);
-    const title = 'Tạo đề cho môn ' + subject.name;
-
-    useEffect(() => {
-        if (!open) return;
-        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
-        const onDown = (e: MouseEvent) => { if (web && !anchor.current?.contains(e.target as Node)) setOpen(false); };
-        document.addEventListener('keydown', onKey);
-        document.addEventListener('mousedown', onDown);
-        return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onDown); };
-    }, [open, web]);
-
-    const pick = (path: string) => { setOpen(false); navigate(path + '?folder=' + subject.id); };
-    const options = (cls: string) => CREATE_OPTIONS.map(o =>
-        <button key={o.path} role={web ? 'menuitem' : undefined} className={cls} type='button' onClick={() => pick(o.path)}>
-            <span className='vt-opt-ico'>{o.icon}</span>
-            <span><b>{o.title}</b><span className='d'>{o.hint}</span></span>
-        </button>);
-
-    return <div className='vt-th-anchor' ref={anchor}>
-        <Button variant='secondary' aria-expanded={open} aria-haspopup='menu' onClick={() => setOpen(!open)}>+ Tạo đề</Button>
-        {open && web && <div className='vt-pop' role='menu'>
-            <div className='vt-pop-title'>{title}</div>
-            {options('')}
-        </div>}
-        {open && !web && createPortal(
-            <div className='vt-scrim' onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false); }}>
-                <div className='vt-sheet' role='dialog' aria-modal='true' aria-label={title}>
-                    <span className='vt-sheet-grab'/>
-                    <h2 className='vt-sheet-title'>{title}</h2>
-                    {options('row')}
-                    <Button variant='secondary' block onClick={() => setOpen(false)}>Huỷ</Button>
-                </div>
-            </div>, document.body)}
-    </div>;
-}
-
-function ExamList({subject, subjects, folders, q}: {subject: Folder; subjects: Folder[]; folders: Folder[]; q: string}) {
-    const qc = useQueryClient();
-    const wide = useMediaQuery('(min-width: 768px)');
-    const {data, isError, error, isFetching, refetch} = useSubjectExams(subject.id, folders);
-    // "Tạo thẳng đề nháp" from the import screen lands here with the new ids: show Nháp, new ones first and marked "Mới tạo".
-    const landed = useLocation().state as {created?: string[]; createdName?: string} | null;
-    const created = landed?.created;
-    const createdName = landed?.createdName;
-    const fresh = (e: ExamSummary) => !!created?.includes(e.id);
-    const [filter, setFilter] = useState<Filter>(created?.length ? 'draft' : 'all');
-    const [pending, setPending] = useState<Pending | null>(null);
-    const [busy, setBusy] = useState(false);
-
-    const refresh = () => {
-        qc.invalidateQueries({queryKey: ['exam', 'list']});
-        qc.invalidateQueries({queryKey: ['folder', 'list']}); // subject-card counts
-    };
-    const run = async (fn: () => Promise<void>, failTitle: string) => {
-        setBusy(true);
-        try { await fn(); refresh(); }
-        catch (e) { notify.error(failTitle, errorText(e, 'Thử lại sau.')); }
-        finally { setBusy(false); setPending(null); }
-    };
-
-    const publish = (e: ExamSummary) => run(async () => {
-        try {
-            await Api.post(`exam/publish/${e.id}`);
-        } catch (err) {
-            const n = (err as {invalid_questions?: unknown[]})?.invalid_questions?.length;
-            throw n ? {error: `Đề còn ${n} chỗ phải sửa (mở Sửa để xem). Đề vẫn là Nháp.`} : err;
-        }
-        notify.success('Đã xuất bản', `Học sinh thấy đề này từ bây giờ, trong môn ${subject.name}.`);
-    }, 'Chưa xuất bản được');
-
-    const unpublish = (e: ExamSummary) => run(async () => {
-        await Api.post(`exam/unpublish/${e.id}`);
-        notify.success('Đã chuyển về nháp', 'Học sinh không còn thấy đề này.');
-    }, 'Không chuyển về nháp được');
-
-    // Light warning only when the exam already has submissions (to_grade lists them); none → switch at once.
-    const askUnpublish = async (e: ExamSummary) => {
-        setBusy(true);
-        try {
-            const subs = await Api.get<unknown[]>(`exam/to_grade/${e.id}`);
-            if (subs.length) { setPending({kind: 'unpublish', exam: e, submissions: subs.length}); setBusy(false); }
-            else { setBusy(false); unpublish(e); }
-        } catch (err) { setBusy(false); notify.error('Không chuyển về nháp được', errorText(err, 'Thử lại sau.')); }
-    };
-
-    const remove = (e: ExamSummary) => run(async () => {
-        await Api.post(`exam/delete/${e.id}`);
-        notify.success('Đã xoá đề', examName(e));
-    }, 'Không xoá được đề');
-
-    const duplicate = (e: ExamSummary) => run(async () => {
-        await Api.post(`exam/duplicate/${e.id}`, Default.exam());
-        notify.success('Đã nhân bản đề', examName(e));
-    }, 'Không nhân bản được');
-
-    const move = (e: ExamSummary, folderId: string) => run(async () => {
-        await Api.post('exam/move_to_folder', {examId: e.id, folderId});
-        notify.success('Đã chuyển đề', `Sang môn ${subjects.find(s => s.id === folderId)?.name}.`);
-    }, 'Không chuyển được đề');
-
-    const all = data || [];
-    const matched = q ? all.filter(e => stripAccents(examName(e)).includes(stripAccents(q))) : all;
-    const rows = matched.filter(e => filter === 'all' || (filter === 'draft') === !isPublished(e))
-        .sort((a, b) => Number(fresh(b)) - Number(fresh(a)));   // stable: the rest keep their order
-    const count = (f: Filter) => matched.filter(e => f === 'all' || (f === 'draft') === !isPublished(e)).length;
-
-    const actions = (e: ExamSummary) => <div className='vt-th-actions'>
-        <Link to={'/edit-exam/' + e.id} className={buttonClass({variant: 'secondary'})}>Sửa</Link>
-        <Link to={`/do-exam/${e.id}?lam_lai=1`} className={buttonClass({variant: 'ghost'})}>Làm thử</Link>
-        <Link to={'/to-grade/' + e.id} className={buttonClass({variant: 'ghost'})}>Bài nộp</Link>
-        {isPublished(e)
-            ? <Button variant='ghost' disabled={busy} onClick={() => askUnpublish(e)}>Chuyển về nháp</Button>
-            : <Button variant='primary' disabled={busy} onClick={() => publish(e)}>Xuất bản</Button>}
-        <Button variant='ghost' disabled={busy} onClick={() => duplicate(e)}>Nhân bản</Button>
-        <select className='vt-th-move' aria-label={'Chuyển môn: ' + examName(e)} value={subject.id} disabled={busy}
-                onChange={ev => move(e, ev.target.value)}>
-            {subjects.filter(s => !s.hidden || s.id === subject.id).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-        <Button variant='ghost' className='vt-th-del' disabled={busy || !!e.has_submissions}
-                title={e.has_submissions ? 'Đề đã có bài nộp — chỉ chuyển về Nháp được' : undefined}
-                onClick={() => setPending({kind: 'delete', exam: e})}>Xoá</Button>
-    </div>;
-
-    const columns: Column<ExamSummary>[] = [
-        {key: 'name', header: 'Tên đề', emphasis: 'strong', render: e => <>{examName(e)}{fresh(e) && <> <Badge tone='ok'>Mới tạo</Badge></>}</>},
-        {key: 'status', header: 'Trạng thái', render: e => <StatusBadge status={isPublished(e) ? 'published' : 'draft'}/>},
-        {key: 'duration', header: 'Thời gian', render: e => e.duration ? `${e.duration} phút` : 'Không giới hạn'},
-        {key: 'actions', header: 'Thao tác', render: actions},
-    ];
-
-    if (!data && !isError) return <Loading/>; // lần đầu: cả khối đề là khối tải, chưa hiện tên môn / chip lọc
-
-    return <section className='vt-th-exams' aria-busy={isFetching}>
-        {created?.length ? <div className='vt-th-newstrip' role='status'>
-            <IconOk/>
-            {createdName && created.length === 1 ? <>
-                <div><b>Đã tạo “{createdName}” (Nháp)</b>
-                    <div>Mỗi học sinh vào thi sẽ được rút một đề khác nhau theo khung này. Bấm “Làm thử” để xem một lần rút, xuất bản khi sẵn sàng.</div></div>
-                <Link to={`/do-exam/${created[0]}?lam_lai=1`} className={buttonClass({variant: 'secondary', size: 'sm'})}>Làm thử</Link>
-                {all.some(e => e.id === created[0] && !isPublished(e)) &&
-                    <Button variant='primary' size='sm' disabled={busy} onClick={() => publish(all.find(e => e.id === created[0])!)}>Xuất bản</Button>}
-            </> : <div><b>Đã tạo {created.length} đề nháp trong {subject.name}</b>
-                <div>Các đề mới nằm đầu danh sách, đánh dấu “Mới tạo”. Xuất bản từng đề để học sinh thấy.</div></div>}
-        </div> : null}
-        <div className='vt-th-exams-head'>
-            <h2>{subject.name}</h2>
-            <span>{all.length} đề · {created?.length ? `${created.length} nháp mới` : 'học sinh chỉ thấy đề đã xuất bản'}</span>
-            <div className='vt-th-filters'>
-                {([['all', 'Tất cả'], ['draft', 'Nháp'], ['published', 'Đã xuất bản']] as const).map(([k, label]) =>
-                    <FilterChip key={k} selected={filter === k} onChange={() => setFilter(k)}>{label} · {count(k)}</FilterChip>)}
+        {web
+            ? <div className='vt-th-md'>
+                <SubjectNav subjects={shown} activeId={current?.id}/>
+                {current ? <SubjectDetail subject={current} subjects={subjects} folders={folders.data} q={q}/> : <Loading/>}
             </div>
-        </div>
-
-        {isError ? <ErrorState title='Không tải được kho đề' description={errorText(error, 'Thử lại sau. Đề của cô vẫn an toàn.')}
-                               onRetry={() => refetch()} retrying={isFetching}/>
-            : !data ? <Loading/>
-            : !rows.length ? <EmptyState title={q ? `Không có đề nào khớp “${q}”`
-                                              : filter === 'draft' ? 'Chưa có đề nháp nào'
-                                              : filter === 'published' ? 'Chưa có đề nào xuất bản'
-                                              : 'Thư mục trống'}
-                                         description={!q && filter === 'all' ? 'Bấm “Tạo đề” trên thẻ môn.' : undefined}/>
-            : <Refreshable>
-                {wide
-                    ? <Table caption={'Đề của môn ' + subject.name} columns={columns} rows={rows} rowKey={e => e.id} minWidth={820}/>
-                    : <ul className='vt-th-cards'>{rows.map(e => <li key={e.id}><Card>
-                        <b>{examName(e)}</b>{fresh(e) && <> <Badge tone='ok'>Mới tạo</Badge></>}
-                        <StatusBadge status={isPublished(e) ? 'published' : 'draft'}/>
-                        <p>{e.duration ? `${e.duration} phút` : 'Không giới hạn'} · Môn {subject.name}</p>
-                        <div className='vt-th-actions'>
-                            <Link to={`/do-exam/${e.id}?lam_lai=1`} className={buttonClass({variant: 'secondary'})}>Làm thử</Link>
-                            <Link to={'/to-grade/' + e.id} className={buttonClass({variant: 'secondary'})}>Bài nộp</Link>
-                        </div>
-                        <small>Sửa, xuất bản, xoá: dùng máy tính</small>
-                    </Card></li>)}</ul>}
-            </Refreshable>}
-
-        <ConfirmDialog open={pending?.kind === 'delete'} tone='danger' loading={busy}
-                       title='Xoá đề này?' cancelLabel='Giữ lại' confirmLabel='Xoá đề'
-                       message={pending && <span><b>{examName(pending.exam)}</b><br/>
-                           {isPublished(pending.exam) ? 'Đã xuất bản' : 'Nháp'}. Xoá rồi không lấy lại được. Chỉ đề chưa có bài nộp mới xoá được.</span>}
-                       onCancel={() => setPending(null)} onConfirm={() => pending && remove(pending.exam)}/>
-        <ConfirmDialog open={pending?.kind === 'unpublish'} loading={busy}
-                       title={pending ? `Chuyển “${examName(pending.exam)}” về nháp?` : ''}
-                       cancelLabel='Để nguyên' confirmLabel='Chuyển về nháp'
-                       message={pending && <span>Đề đã có <b>{pending.submissions} bài nộp</b>. Học sinh sẽ không còn thấy và không làm được đề này. Bài đã nộp vẫn giữ.</span>}
-                       onCancel={() => setPending(null)} onConfirm={() => pending && unpublish(pending.exam)}/>
-    </section>;
+            : q && !shown.length
+                ? <EmptyState title={`Không có môn nào khớp “${q}”`}/>
+                : <SubjectCards subjects={shown}/>}
+    </div>;
 }

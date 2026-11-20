@@ -1,7 +1,7 @@
 import {describe, expect, it, vi} from 'vitest';
 import {fireEvent, screen} from '@testing-library/react';
 
-import {CreateMenu} from './Dashboard';
+import {CreateMenu} from './CreateMenu';
 import {renderAt} from '../manage/testutil';
 
 const subject = {id: 's1', name: 'Toán'} as any;

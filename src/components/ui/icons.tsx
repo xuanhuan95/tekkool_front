@@ -43,6 +43,13 @@ export const IconUploadDoc = ({size = 20}: P) =>
     <Line size={size}><path d='M6 3h9l3 3v15H6z'/><path d='M12 11v6'/><path d='M9.5 13.5L12 11l2.5 2.5'/></Line>;
 export const IconBank = ({size = 20}: P) =>
     <Line size={size}><path d='M5 6c0-1.5 3-3 7-3s7 1.5 7 3-3 3-7 3-7-1.5-7-3z'/><path d='M5 6v6c0 1.5 3 3 7 3s7-1.5 7-3V6'/><path d='M5 12v6c0 1.5 3 3 7 3s7-1.5 7-3v-6'/></Line>;
+/** Row of an exam: where it came from (Word file / bank). The pencil of IconEdit stands for "soạn trên web". */
+export const IconWordDoc = ({size = 20}: P) =>
+    <Line size={size}><path d='M6 3h8l4 4v14H6z'/><path d='M14 3v4h4'/><path d='M9 12l1.2 5 1.8-4 1.8 4 1.2-5'/></Line>;
+export const IconBankRows = ({size = 20}: P) =>
+    <Line size={size}><rect x='3' y='4' width='18' height='5' rx='1'/><rect x='3' y='11' width='18' height='5' rx='1'/><path d='M7 20h10'/></Line>;
+export const IconMore = ({size = 18}: P) =>
+    <Line size={size} w={2.4}><circle cx='5' cy='12' r='1.2'/><circle cx='12' cy='12' r='1.2'/><circle cx='19' cy='12' r='1.2'/></Line>;
 export const IconOk = ({size = 20}: P) =>
     <Line size={size} w={2.6} color='var(--vt-ok-icon)'><circle cx='12' cy='12' r='9'/><path d='M8 12.5l2.8 2.8L16 10'/></Line>;
 export const IconAlert = ({size = 20}: P) =>

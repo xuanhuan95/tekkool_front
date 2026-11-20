@@ -206,7 +206,6 @@ export default function CreateFromBank() {
         const fromBe = typeof made?.folder === 'string' ? made.folder : made?.folder?.id;
         const target = folder || fromBe || (foldersQ.data || []).find(f => !f.parent && !!bank.subject && normalize(f.name) === normalize(bank.subject))?.id;
         if (target) {
-            notify.success(`Đã tạo đề nháp trong Môn & đề${subject ? ` › ${subject}` : ''}.`);
             navigate('/subject/' + target, {state: {created: made?.id ? [made.id] : [], createdName: name.trim()}});
         } else {
             notify.success("Đã tạo đề. Đề đang ở 'Đề ngoài thư mục' — chọn môn để học sinh thấy.");
