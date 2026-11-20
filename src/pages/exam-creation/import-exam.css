@@ -21,9 +21,7 @@
 .vt-imp-exam-name { flex: 1 1 240px; min-width: 0; }
 .vt-imp-exam-min { width: 120px; }
 .vt-imp-exam-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--vt-muted); }
-.vt-imp-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 16px; margin-top: 12px; align-items: start; }
 .vt-imp-col { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-.vt-imp-col-head { font-family: var(--vt-font-hand); font-size: 20px; font-weight: 700; }
 .vt-imp-section { margin: 4px 0 0; font-size: 16px; font-weight: 700; padding-bottom: 6px; border-bottom: 1.5px solid var(--vt-line-option); }
 .vt-imp-q { display: flex; flex-direction: column; gap: 10px; padding: 12px; background: var(--vt-card); border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); }
 .vt-imp-q.bad-key { border-color: var(--vt-err); }
@@ -56,15 +54,11 @@
 .vt-imp-explain > div { margin-top: 6px; }
 
 /* Right column = the Word file as PDF (SPT-70) */
-.vt-imp-source { position: sticky; top: 72px; }
-.vt-src-pdf { width: 100%; height: 75vh; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); background: var(--vt-paper); }
 .vt-src-empty { padding: 12px; border: 1.5px dashed var(--vt-line-option); border-radius: var(--vt-r-btn); color: var(--vt-muted); font-size: 14px; }
 .vt-src-empty p { margin: 8px 0 0; }
 
 /* Phone/tablet (SPT-72): one column, no Word-source pane, save bar stays inside the viewport. */
 @media (max-width: 1023.98px) {
-    .vt-imp-split { grid-template-columns: minmax(0, 1fr); }
-    .vt-imp-source { position: static; }
     /* sits above the 68px bottom nav (.vt-bottomnav) */
     .vt-imp-bar { bottom: calc(68px + env(safe-area-inset-bottom)); padding: 10px 16px; border-bottom: 2px solid var(--vt-ink); }
     .vt-imp-bar > * { min-width: 0; }
@@ -94,6 +88,11 @@
     border: 2px dashed var(--vt-ink); border-radius: var(--vt-r-btn); background: var(--vt-paper); }
 .vt-imp-zone.over { background: var(--vt-title-bg); }
 .vt-imp-zone h2 { margin: 0; font-family: var(--vt-font-hand); font-weight: 700; font-size: 26px; }
+.vt-bk-drop { display: flex; flex-direction: column; align-items: flex-start; gap: 16px; padding: 16px; text-align: left;
+    border: 2px dashed var(--vt-line-option); border-radius: var(--vt-r-card-md); }
+.vt-bk-drop.over { background: var(--vt-title-bg); }
+.vt-bk-drop h2 { margin: 0 0 4px; font-family: var(--tk-font-title); font-size: 18px; font-weight: 700; }
+@media (max-width: 599.98px) { .vt-bk-drop > svg { align-self: center; } }
 .vt-imp-dl { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 16px; box-sizing: border-box; font-weight: 600; color: var(--vt-ink);
     text-decoration: none; background: var(--vt-card); border: 2px solid var(--vt-ink); border-radius: var(--vt-r-btn); }
 .vt-imp-dl:hover { background: var(--vt-paper); }
@@ -155,11 +154,7 @@
     .vt-imp-bar-hint { order: -1; flex-basis: 100%; font-size: 13px; line-height: 1.4; }
     .vt-imp-bar > .vt-btn--primary { flex: 1 1 100%; }
     .vt-imp-bar-more { display: none; }
-    /* IV2-M-Goc (bank mode): the save bar replaces the bottom menu */
-    .vt-imp-bar--bank { bottom: 0; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
-    body:has(.vt-imp-bar--bank) .vt-bottomnav { display: none; }
     .vt-imp-bank .vt-imp-chips { display: none; }
-    .vt-imp { padding-bottom: 150px; }
 }
 .vt-imp-hit input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--vt-action); }
 
@@ -175,8 +170,6 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 .vt-guide-modal { max-width: 720px; }
 .vt-guide-modal .vt-guide-list { gap: 12px; }
 /* Preview step: the page container drops its max width and most of its padding */
-.vt-main--web:has(.vt-imp--wide) { max-width: none; padding: 16px 12px 32px; }
-.vt-imp--wide .vt-card { padding-left: 12px; padding-right: 12px; }
 @media (max-width: 1023.98px) {
     .vt-imp-edit .vt-modal-body, .vt-imp-edit { min-width: 0; }
     .vt-imp-edit { padding: 16px; }
@@ -204,6 +197,7 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 .vt-imp-sum-table :is(th, td) { padding: 8px 10px; text-align: left; vertical-align: top; border-top: 1.5px solid var(--vt-line-option); }
 .vt-imp-sum-table thead th { font-size: 12px; color: var(--vt-muted); border-top: 0; white-space: nowrap; }
 .vt-imp-sum-table tfoot :is(th, td) { font-weight: 700; border-top: 2px solid var(--vt-ink); }
+.vt-imp-sum-table--cut { min-width: 0; }
 .vt-imp-sum-table .ok { color: var(--vt-ok-ink); font-weight: 600; }
 .vt-imp-sum-table .sun { color: var(--vt-sun-ink); font-weight: 600; }
 .vt-imp-sum-table .err { color: var(--vt-err); font-weight: 700; }
@@ -277,43 +271,89 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 .vt-imp-file-spin { width: 18px; height: 18px; border: 3px solid var(--vt-line-option); border-top-color: var(--vt-ink); border-radius: 50%; animation: vt-imp-spin 0.9s linear infinite; }
 @keyframes vt-imp-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .vt-imp-file-spin { animation: none; } }
-.vt-imp-files-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 @media (max-width: 639.98px) {
     .vt-imp-file { flex-wrap: wrap; }
-    .vt-imp-files-foot > .vt-btn { flex: 1 1 100%; }
 }
 
-/* Bank import preview v2: exam list on the left, the open exam on the right (stacked on a phone) */
-.vt-imp-rv { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; align-items: start; }
-@media (min-width: 1024px) { .vt-imp-rv { grid-template-columns: 340px minmax(0, 1fr); } .vt-rv-left { position: sticky; top: 12px; max-height: calc(100vh - 140px); overflow: auto; } }
-.vt-rv-list { display: flex; flex-direction: column; gap: 6px; }
-.vt-rv-file-name { font-size: 13px; font-weight: 700; color: var(--vt-muted); padding: 8px 0 4px; overflow-wrap: anywhere; }
-.vt-rv-item { cursor: pointer; display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); padding: 2px 8px 6px 0; }
-.vt-rv-item.on { border-color: var(--vt-ink); background: var(--vt-bg-soft, transparent); }
-.vt-rv-item.off .vt-rv-name { color: var(--vt-muted); }
-.vt-rv-open { background: none; border: 0; font: inherit; text-align: left; cursor: pointer; padding: 8px 0; min-height: 44px; color: var(--vt-ink); }
-.vt-rv-name { font-weight: 700; overflow-wrap: anywhere; }
-.vt-rv-meta { color: var(--vt-muted); font-size: 14px; margin-left: 4px; }
-.vt-imp-marks { grid-column: 2; display: flex; flex-wrap: wrap; gap: 4px; }
+/* Bank import v4 (canvas 20/11): shell is wider, title + steps share a row, 3 columns = exam list | exam read | original PDF. */
+.vt-shell:has(.vt-imp--wide) { --vt-content-max: 1680px; }
+.v4-head { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 24px; }
+.v4-head .vt-imp-head { flex: 1 1 520px; }
+.v4-head .vt-imp-steps { align-self: flex-end; }
+.v4-split { display: grid; grid-template-columns: 248px minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.v4-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.v4-list, .v4-pdf { position: sticky; top: 12px; }
+.v4-list .vt-card { padding: 12px; max-height: calc(100vh - 110px); overflow: auto; }
+.v4-tabs, .v4-pick { display: none; }
+.v4-colhead { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.v4-colhead h2 { margin: 0; font-family: var(--vt-font-hand); font-size: 22px; line-height: 1.1; }
+.v4-colhead span { font-size: 13px; color: var(--vt-muted); }
+.v4-pick .vt-card { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.v4-pick-row { display: flex; gap: 8px; align-items: flex-end; }
+.v4-pick-row .vt-field { flex: 1 1 auto; min-width: 0; }
+.v4-pick-row .vt-iconbtn { flex-shrink: 0; }
+.v4-pick-row--check { align-items: center; justify-content: space-between; }
+.v4-pick-row--check .vt-bk-check { flex: 1 1 auto; min-width: 0; }
+.v4-pick-row--check .vt-imp-marks { flex: 0 1 auto; justify-content: flex-end; max-width: 45%; }
+@media (max-width: 1279.98px) {
+    .v4-split { grid-template-columns: 220px minmax(0, 1fr); }
+    .v4-tabs { display: flex; }
+    .v4-split[data-tab='exam'] .v4-pdf, .v4-split[data-tab='pdf'] .v4-exam { display: none; }
+    .v4-colhead--tabbed { display: none; }
+}
+@media (max-width: 1023.98px) {
+    .v4-split { grid-template-columns: minmax(0, 1fr); }
+    .v4-list { display: none; }
+    .v4-pick { display: block; }
+}
+.v4-pdf-card { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.v4-pdf-bar { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--vt-muted); flex-wrap: wrap; }
+.v4-pdf-bar b { color: var(--vt-ink); }
+.v4-pdf-bar > span { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.v4-pdf-bar .vt-btn { white-space: nowrap; flex-shrink: 0; }
+.v4-pdf-view { background: #525659; border-radius: var(--vt-r-btn); height: 640px; overflow: hidden; box-sizing: border-box; }
+.v4-pdf-view .vt-src-pdf { width: 100%; height: 100%; border: 0; display: block; }
+@media (max-width: 1023.98px) { .v4-pdf-view { height: 460px; } }
+/* Phone: file name and exam on one line, the button under them (artboard preview-pdf-390) */
+@media (max-width: 599.98px) { .v4-pdf-bar { display: grid; grid-template-columns: auto minmax(0, 1fr); } .v4-pdf-bar .vt-btn { grid-column: 1 / -1; justify-self: start; } }
+.v4-up { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 16px; align-items: start; }
+.v4-up .vt-imp-up--compact .vt-imp-zone { flex-direction: column; align-items: flex-start; justify-content: flex-start; text-align: left; padding: 20px; }
+@media (max-width: 1023.98px) { .v4-up { grid-template-columns: minmax(0, 1fr); } }
+.v4-done { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.v4-done-main { display: flex; flex-direction: column; gap: 14px; padding: 24px; }
+.v4-done-main h2 { margin: 0; font-family: var(--vt-font-hand); font-size: 28px; line-height: 1.1; display: flex; gap: 10px; align-items: center; }
+.v4-done-main p { margin: 0; }
+.v4-acts { display: flex; flex-wrap: wrap; gap: 10px; }
+.v4-h2 { margin: 0 0 4px; font-family: var(--tk-font-title); font-size: 18px; font-weight: 700; }
+.v4-saved { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.v4-saved li { display: flex; align-items: center; gap: 8px; min-height: 36px; border-top: 1.5px solid var(--vt-line-soft); font-size: 14px; }
+.v4-saved li:first-child { border-top: 0; }
+.v4-saved li .v4-muted { margin-left: auto; }
+.v4-muted { color: var(--vt-muted); font-size: 14px; }
+@media (max-width: 1023.98px) { .v4-done { grid-template-columns: minmax(0, 1fr); } .v4-acts .vt-btn { flex: 1 1 100%; justify-content: center; } .v4-done-main { padding: 16px; } }
+.v4-duplist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.v4-duplist li { border: 1px solid var(--vt-line-option); border-radius: var(--vt-r-btn); padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: 14px; color: var(--vt-ink); }
+.v4-duplist + .v4-muted { margin: 4px 0 0; }
+.v4-duplist li > span:last-child { flex: 1 1 100%; color: var(--vt-muted); }
+.v4-dup { outline: 3px solid var(--vt-sun); outline-offset: 6px; border-radius: var(--vt-r-btn); display: flex; flex-direction: column; gap: 12px; }
+.v4-dup-head { display: flex; gap: 10px; align-items: flex-start; background: var(--vt-sun-soft); border-radius: var(--vt-r-btn); padding: 10px 12px; font-size: 14px; }
+.v4-dup-head > svg { flex-shrink: 0; margin-top: 2px; }
+.v4-dup-head > div { display: flex; flex-direction: column; gap: 6px; }
+.v4-exam .vt-imp-sum-table { min-width: 0; }
+
+.vt-rv-list { display: flex; flex-direction: column; }
+.vt-rv-file { display: flex; flex-direction: column; }
+.vt-rv-file-name { font-size: 13px; font-weight: 700; color: var(--vt-muted); padding: 10px 0 4px; border-top: 1.5px solid var(--vt-line-option); overflow-wrap: anywhere; }
+.vt-rv-item { cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; min-height: 40px; padding: 0 8px 0 0; border-radius: var(--vt-r-btn); }
+.vt-rv-item.on { background: var(--vt-action); outline: 2px solid var(--vt-ink); }
+.vt-rv-item.on::after { content: '›'; font-size: 22px; line-height: 1; margin-left: auto; }
+.vt-rv-item.off .vt-rv-name { color: var(--vt-muted); text-decoration: line-through; }
+.vt-rv-item .vt-imp-hit { min-width: 32px; min-height: 40px; }
+.vt-rv-item .vt-imp-hit input { accent-color: var(--vt-ink); }
+.vt-rv-open { flex: 1 1 auto; min-width: 0; background: none; border: 0; font: inherit; text-align: left; cursor: pointer; padding: 8px 4px; min-height: 40px; color: var(--vt-ink); }
+.vt-rv-name { font-weight: 600; overflow-wrap: anywhere; }
+.vt-imp-marks { display: flex; flex-wrap: wrap; gap: 4px; }
 .vt-imp-marks:empty { display: none; }
-/* While checking (canvas import-dup-checking): the spinner / "Không trùng" sits on the name's row, right-aligned. */
-.vt-rv-item:has(.vt-imp-marks--check) { grid-template-columns: 44px minmax(0, 1fr) auto; }
-.vt-imp-marks--check { grid-column: 3; grid-row: 1; justify-content: flex-end; }
-.vt-rv-count { margin: 8px 0; color: var(--vt-muted); font-weight: 600; }
-.vt-rv-sum { margin: 12px 0; }
-.vt-rv-sum-scroll { overflow-x: auto; }
-.vt-rv-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.vt-rv-table th, .vt-rv-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--vt-line-option); vertical-align: top; }
-.vt-rv-table thead th { font-size: 13px; color: var(--vt-muted); }
-.vt-rv-table tfoot th, .vt-rv-table tfoot td { font-weight: 700; border-bottom: 0; }
-.vt-rv-ok { color: var(--vt-ok-ink); }
-.vt-rv-dups { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; }
-.vt-rv-banner, .vt-rv-warn { display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap; padding: 10px 14px; margin-bottom: 12px;
-    border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); }
-.vt-rv-warn { flex-direction: column; align-items: flex-start; border-color: var(--vt-sun-ink, var(--vt-ink)); background: var(--vt-sun-bg, transparent); }
-.vt-rv-more { position: relative; }
-.vt-rv-menu { position: absolute; right: 0; bottom: calc(100% + 6px); min-width: 220px; background: var(--vt-surface, #fff); border: 2px solid var(--vt-ink); border-radius: var(--vt-r-btn); padding: 4px; }
-.vt-rv-menu button { display: block; width: 100%; min-height: 44px; text-align: left; background: none; border: 0; font: inherit; padding: 8px 12px; cursor: pointer; }
 @media (max-width: 1023.98px) {
     /* Phone: bank save bar is ONE row (Kiểm tra trùng · Lưu · ⋯); the hint only shows when it is a blocker */
     .vt-imp-bar--bank { flex-wrap: nowrap; }
@@ -322,7 +362,6 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
     .vt-imp-bar--bank .vt-imp-bar-hint:not(.err) { display: none; }
     .vt-imp-bar--bank .vt-imp-bar-hint.err { position: absolute; left: 12px; right: 12px; bottom: 100%; background: var(--vt-surface, #fff); padding: 6px 0; }
 }
-.vt-imp-nopaper { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px; border: 1.5px dashed var(--vt-ink); border-radius: var(--vt-r-btn); background: var(--vt-paper); font-size: 14px; }
 
 /* Persistent notices (artboard import-dup-found / import-save-error / import-wholeexam) */
 .vt-bk-alert { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border: var(--vt-border); border-radius: var(--vt-r-card-md); background: var(--vt-card); }
@@ -335,19 +374,12 @@ button.vt-imp-link { background: none; border: 0; padding: 0; font: inherit; fon
 .vt-bk-alert-text { font-size: 14px; }
 .vt-bk-alert-text ul { margin: 4px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
 .vt-bk-alert-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
-.vt-bk-dup { display: flex; flex-direction: column; gap: 10px; }
-.vt-bk-dupitem { background: var(--vt-card); border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; }
-.vt-bk-dupitem b { font-size: 15px; }
 .vt-bk-check { display: flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 600; }
 .vt-bk-check input { width: 20px; height: 20px; accent-color: var(--vt-ink); }
-
-/* Dup check running (R2-05): spinner + progress bar inside the info alert. */
-.vt-bk-spin { flex-shrink: 0; width: 18px; height: 18px; margin-top: 1px; border: 2.5px solid var(--vt-track); border-top-color: var(--vt-ink); border-radius: 50%; animation: vt-bk-spin 0.8s linear infinite; }
-@keyframes vt-bk-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .vt-bk-spin { animation: none; } }
-.vt-bk-prog { height: 10px; margin-top: 8px; border: 1.5px solid var(--vt-ink); border-radius: 99px; background: var(--vt-track); overflow: hidden; }
-.vt-bk-prog > i { display: block; height: 100%; background: var(--vt-action); border-right: 1.5px solid var(--vt-ink); }
-.vt-bk-dupitem { line-height: 1.5; }
-.vt-bk-dupitem a { line-height: inherit; }
 .vt-bk-alert--sun > svg, .vt-bk-alert--info > svg { stroke: var(--vt-ink); }
-.vt-bk-dupitem .vt-imp-link { min-height: 0; display: inline; }
+.v4-duplist .vt-imp-link, .v4-dup-head .vt-imp-link { min-height: 0; display: inline; line-height: inherit; }
+.v4-col .vt-bk-alert { margin-bottom: 12px; }
+/* Many suspects (20 exams): the list scrolls, "Xem lại" / "Vẫn nhập" stay at the bottom of the box. */
+.vt-modal.v4-dupdlg { overflow: hidden; }
+.v4-dupdlg .vt-modal-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.v4-dupdlg .vt-modal-head, .v4-dupdlg .vt-modal-footer { flex: 0 0 auto; }
