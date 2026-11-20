@@ -928,6 +928,19 @@ describe('ImportExam: bank import flow v2 (BF-01, BF-07, BF-12, BF-15, B7)', () 
         expect(screen.getAllByText('Ở ngân hàng khác').length).toBeGreaterThan(0);
     });
 
+    it('"Môn & đề" (PR #50): a draft made from a subject sends the .docx name as source_file, then goes back to the subject', async () => {
+        const created: any[] = [];
+        const moved: any[] = [];
+        mockPost({'exam/create': b => { created.push(b); return {}; }, 'exam/move_to_folder': b => { moved.push(b); return {}; }});
+        renderScreen('/import-exam?folder=F1');
+        await loadFile();
+        fireEvent.click(screen.getByText(/Tạo 1 đề nháp/).closest('button')!);
+        await screen.findByText('TRANG MÔN');
+        expect(moved).toEqual([{examId: 'E1', folderId: 'F1'}]);
+        expect(created).toHaveLength(1);
+        expect(created[0].source_file).toBe('de.docx');   // the exam page says which file it came from
+    });
+
     it('BF-11: a whole-exam bank explains itself instead of offering block actions', async () => {
         (Api.get as any).mockImplementation(async (url: string) => url === 'question_bank/list' ? [{id: 'B1', name: 'NH đề', subject: 'Toán', kind: 'paper', items: 0}] : url.startsWith('question_bank/papers') ? {items: [], total: 0} : []);
         mockPost();

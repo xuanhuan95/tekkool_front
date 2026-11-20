@@ -703,13 +703,13 @@ export default function ImportExam() {
         try {
             for (const source of chosen) {
                 const e = await uploadImages(source, images.current);
-                await Api.post('exam/create', {...e, sections: withDefaultScores(e.sections as never, name)});
+                await Api.post('exam/create', {...e, ...srcFile(source.id), sections: withDefaultScores(e.sections as never, name)});
                 await Api.post('exam/move_to_folder', {examId: e.id, folderId: target});
                 setProgress(++done);
             }
             qc.invalidateQueries({queryKey: ['exam']});
-            notify.success(`Đã tạo ${done} đề nháp trong môn ${name || ''}. Sửa cho hết lỗi rồi bấm Xuất bản để học sinh thấy.`);
-            goTo('/subject/' + target, {created: chosen.map(e => e.id)});
+            // The subject screen shows the toast ("Đã tạo … (Nháp)" + "Xem đề") and marks the new rows.
+            goTo('/subject/' + target, {created: chosen.map(e => e.id), createdName: chosen.length === 1 ? chosen[0].name : undefined});
         } catch (err) {
             notify.error('Tạo đề thất bại: ' + chosen[Math.min(done, chosen.length - 1)].name, errorText(err, 'Thử lại sau.'));
         } finally {

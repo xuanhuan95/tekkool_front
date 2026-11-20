@@ -8,9 +8,14 @@ export type Folder = {
     /** Subject cards only (SPT-119): the teacher's own exams incl. child folders; absent on older BE. */
     exam_count?: number;
     draft_count?: number;
+    /** Most recent `updated_at` among the teacher's exams of the subject (ISO); null = no exam. */
+    last_exam_at?: string | null;
 };
 
 export type ExamStatus = 'draft' | 'published';
+
+/** How the exam was made (Exam.source). `null` on old exams that have neither banks nor a source file. */
+export type ExamSource = 'web' | 'word' | 'bank';
 
 /** Exam as BE returns it on browse/take-exam screens (unlike Exam on the authoring screen). */
 export type ExamSummary = {
@@ -23,6 +28,18 @@ export type ExamSummary = {
     status?: ExamStatus;
     /** SPT-68: the exam has at least one attempt → cannot be deleted, only moved back to Nháp. */
     has_submissions?: boolean;
+    /** `exam/list` (Môn & đề v2). All absent on an old BE. */
+    source?: ExamSource | null;
+    /** Word file name (`word`) or template file name (`bank`). */
+    source_file?: string | null;
+    bank_names?: string[];
+    points_total?: number | null;
+    /** Drawn exam: `question_count` is an estimate → show "~N câu". */
+    approx?: boolean;
+    /** ISO UTC; null on old exams until their next save. */
+    created_at?: string | null;
+    updated_at?: string | null;
+    submission_count?: number;
     price?: number;
     /** `exam/browse` only: the viewer's own attempts on this exam. */
     attempts?: number;
@@ -32,6 +49,36 @@ export type ExamSummary = {
     /** SPT-60 `exam/browse`: the viewer's BEST attempt (by score/max ratio, provisional included). */
     best_score?: number | null;
     best_max?: number | null;
+};
+
+/** `exam/detail/<id>` (no questions, no answers): the `/exam/:id` page. */
+export type ExamDetail = {
+    id: string;
+    name: string;
+    status?: ExamStatus;
+    duration?: number;
+    folder: {id: string; name: string} | null;
+    source: ExamSource | null;
+    source_file?: string | null;
+    created_at?: string | null;
+    updated_at?: string | null;
+    question_count: number;
+    points_total: number | null;
+    approx: boolean;
+    parts: ExamPart[];
+    banks: {id: string; name: string; kind?: string}[];
+    /** Only drawn exams. `capacity` = exams a student can draw without repeating a block. */
+    draw: {capacity: number; bottleneck?: unknown; shortage: {block_type: string; name: string; need: number; have: number}[]} | null;
+    submissions: {total: number; pending: number};
+};
+
+export type ExamPart = {
+    group_title?: string | null;
+    title: string;
+    score?: number | null;
+    question_count: number;
+    points_total?: number | null;
+    items: {block_type?: string | null; name?: string; type?: string; blocks?: number; questions?: number}[];
 };
 
 /** Question bank inventory — `question_bank/stats`. */

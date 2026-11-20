@@ -435,6 +435,8 @@ textarea.vt-input { line-height: 1.5; padding: 10px 12px; resize: vertical; min-
 .vt-toast-title { font-weight: 700; display: block; }
 .vt-toast-desc { color: var(--vt-muted); font-size: 13px; display: block; }
 .vt-toast svg { flex-shrink: 0; }
+.vt-toast--action { align-items: center; max-width: min(520px, calc(100vw - 32px)); }
+.vt-toast--action .vt-btn { flex-shrink: 0; margin-left: auto; }
 .vt-toast--leave { opacity: 0; transition: opacity .2s; }
 
 /* ---------- Empty / error / loading ---------- */
