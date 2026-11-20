@@ -4,30 +4,44 @@ import {kindOf, type ImportedExam} from './importRules';
 
 /** What the list shows next to an exam. `note` = why it is ticked off (already in the bank, …). */
 export type ReviewRow = {
-    exam: ImportedExam; file: string; picked: boolean; questions: number; blocks: number;
+    exam: ImportedExam; file: string; picked: boolean;
     severe: number; light: number; missing: number; dupBlocks: number; sameInImport: number;
     state?: 'saved' | 'error' | 'pending';
-    /** While the duplicate check runs: this exam is being compared now / came out clean (artboard import-dup-checking). */
-    check?: 'running' | 'clear';
     note?: 'exists' | 'other-bank';
 };
 
+/** Status badges of one exam (list row, and the phone picker). */
+export function RowMarks({r}: {r: ReviewRow}) {
+    return <span className='vt-imp-marks'>
+        {r.note === 'exists' && <Badge tone={r.state ? 'err' : 'sun'}>Đã có</Badge>}
+        {r.note === 'other-bank' && <Badge tone='err'>Ở ngân hàng khác</Badge>}
+        {r.state === 'saved' && <Badge tone='ok'>Đã lưu</Badge>}
+        {r.state === 'error' && <Badge tone='err'>Lỗi</Badge>}
+        {r.state === 'pending' && <Badge tone='draft'>Chưa lưu</Badge>}
+        {r.dupBlocks > 0 && <Badge tone='sun'>{r.dupBlocks} khối trùng</Badge>}
+        {r.sameInImport > 0 && <Badge tone='sun'>Trùng nhau</Badge>}
+        {r.severe > 0 && <Badge tone='err'>{r.severe} cảnh báo nặng</Badge>}
+        {r.missing > 0 && <Badge tone='err'>{r.missing} thiếu đáp án</Badge>}
+        {r.light > 0 && <Badge tone='sun'>{r.light} cảnh báo nhẹ</Badge>}
+    </span>;
+}
+
 type ListProps = {
     rows: ReviewRow[]; openId: string | null; onOpen: (id: string) => void; onToggle: (id: string) => void; onToggleAll: () => void;
-    /** Whole-exam banks keep their sentences; the block count only means something for a block bank. */
-    blockBank: boolean;
 };
 
-/** Left column: ticks + status per exam, grouped by file (artboard import-preview). */
-export function ReviewList({rows, openId, onOpen, onToggle, onToggleAll, blockBank}: ListProps) {
+/** Left column: ticks + status per exam, grouped by file (artboard bank-v4-import-preview). */
+export function ReviewList({rows, openId, onOpen, onToggle, onToggleAll}: ListProps) {
     const chosen = rows.filter(r => r.picked).length;
     const files = [...new Set(rows.map(r => r.file))];
     return <nav className='vt-rv-list' aria-label='Các đề đã đọc'>
-        <label className='vt-imp-check'>
-            <input type='checkbox' checked={chosen === rows.length}
-                   ref={el => { if (el) el.indeterminate = chosen > 0 && chosen < rows.length; }} onChange={onToggleAll}/>
-            {rows.length} đề — đã chọn {chosen}
-        </label>
+        <div className='vt-imp-listhead'>
+            <label className='vt-imp-check'>
+                <input type='checkbox' checked={chosen === rows.length}
+                       ref={el => { if (el) el.indeterminate = chosen > 0 && chosen < rows.length; }} onChange={onToggleAll}/>
+                {rows.length} đề — nhập {chosen}
+            </label>
+        </div>
         {files.map(f => <div key={f} className='vt-rv-file'>
             {files.length > 1 || rows.length > 1 ? <div className='vt-rv-file-name'>{f}</div> : null}
             {rows.filter(r => r.file === f).map(r => {
@@ -39,25 +53,12 @@ export function ReviewList({rows, openId, onOpen, onToggle, onToggleAll, blockBa
                     </label>
                     <button type='button' className='vt-rv-open' aria-current={on ? 'true' : undefined}>
                         <span className='vt-rv-name'>{r.exam.name}</span>
-                        <span className='vt-rv-meta'>· {blockBank ? `${r.blocks} khối` : `${r.questions} câu`}</span>
                     </button>
-                    <span className={cx('vt-imp-marks', r.check && 'vt-imp-marks--check')}>
-                        {r.check === 'running' && <span className='vt-bk-spin' role='status' aria-label={`Đang kiểm ${r.exam.name}`}/>}
-                        {r.check === 'clear' && <Badge tone='ok'>Không trùng</Badge>}
-                        {r.note === 'exists' && <Badge tone='err'>Đã có</Badge>}
-                        {r.note === 'other-bank' && <Badge tone='err'>Ở ngân hàng khác</Badge>}
-                        {r.state === 'saved' && <Badge tone='ok'>Đã lưu</Badge>}
-                        {r.state === 'error' && <Badge tone='err'>Lỗi</Badge>}
-                        {r.state === 'pending' && <Badge tone='draft'>Chưa lưu</Badge>}
-                        {r.dupBlocks > 0 && <Badge tone='sun'>{r.dupBlocks} khối trùng</Badge>}
-                        {r.sameInImport > 0 && <Badge tone='sun'>Trùng nhau</Badge>}
-                        {r.severe > 0 && <Badge tone='err'>{r.severe} cảnh báo nặng</Badge>}
-                        {r.missing > 0 && <Badge tone='err'>{r.missing} thiếu đáp án</Badge>}
-                        {r.light > 0 && <Badge tone='sun'>{r.light} cảnh báo nhẹ</Badge>}
-                    </span>
+                    <RowMarks r={r}/>
                 </div>;
             })}
         </div>)}
+        <p className='v4-muted'>Bấm tên đề để xem. Ô vuông: có nhập đề đó không.</p>
     </nav>;
 }
 

@@ -1,14 +1,14 @@
 import type {ReactNode} from 'react';
 import {Link} from 'react-router-dom';
 
-import {Button, buttonClass, cx, icons} from '../../components/ui';
+import {Badge, Button, Modal, buttonClass, cx, icons} from '../../components/ui';
 import {blocksOf, type BlockDup} from './dupRules';
 import type {ImportedExam, MatchSource} from './importRules';
 
-/** Persistent notice on the import screen (artboard `vt-bk-alert`): sun = duplicates, err = save failed, info = explanation. */
-export function BankAlert({tone, role = 'status', title, children, acts, spin}: {tone: 'sun' | 'err' | 'info'; role?: 'status' | 'alert'; title: string; children?: ReactNode; acts?: ReactNode; spin?: boolean}) {
+/** Persistent notice on the import screen (artboard `vt-bk-alert`): sun = warning, err = save failed, info = explanation. */
+export function BankAlert({tone, role = 'status', title, children, acts}: {tone: 'sun' | 'err' | 'info'; role?: 'status' | 'alert'; title: string; children?: ReactNode; acts?: ReactNode}) {
     return <div role={role} className={cx('vt-bk-alert', 'vt-bk-alert--' + tone)}>
-        {spin ? <span className='vt-bk-spin' aria-hidden='true'/> : tone === 'err' ? <icons.IconAlert size={20}/> : <icons.IconWarn size={20}/>}
+        {tone === 'err' ? <icons.IconXCircle size={20}/> : <icons.IconWarn size={20}/>}
         <div className='vt-bk-alert-main'>
             <b>{title}</b>
             {children && <div className='vt-bk-alert-text'>{children}</div>}
@@ -41,61 +41,65 @@ function range(exam: ImportedExam, ids: string[]) {
 
 export type ExistingExam = {bank: string | null; bank_name: string | null; name?: string | null; source_file?: string | null; imported_at?: string | null; same_bank: boolean; count: number};
 
-type DupProps = {
-    bankId: string; exams: ImportedExam[]; bankDups: BlockDup[]; impDups: BlockDup[]; existing: Record<string, ExistingExam>;
-    keepDup: Record<string, boolean>; onToggle: (key: string) => void; onRecheck: () => void; busy: boolean;
-};
+export type Suspect = {key: string; exam: ImportedExam; badge: string; title: ReactNode; text: ReactNode};
 
-/** Yellow summary + one card per duplicate (artboard import-dup-found). A ticked box = the block is NOT saved (default). */
-export function DupPanel({bankId, exams, bankDups, impDups, existing, keepDup, onToggle, onRecheck, busy}: DupProps) {
-    const same = Object.entries(existing).filter(([, e]) => e.same_bank);
-    const title = 'Có trùng: ' + [same.length && `${same.length} đề`, (bankDups.length + impDups.length) && `${bankDups.length + impDups.length} khối`].filter(Boolean).join(' và ');
-    const card = (d: BlockDup, inBank: boolean) => {
+/** What the "Có N chỗ nghi trùng" dialog lists: exams the bank already holds, blocks equal to bank blocks, blocks shared by two new exams. */
+export function suspects(bankId: string, exams: ImportedExam[], bankDups: BlockDup[], impDups: BlockDup[], existing: Record<string, ExistingExam>): Suspect[] {
+    const out: Suspect[] = [];
+    for (const [id, e] of Object.entries(existing)) {
+        const exam = exams.find(x => x.id === id);
+        if (!exam || !e.same_bank) continue;
+        const src: MatchSource = {source_name: e.name || bankDups.find(d => d.exam === id)?.source?.source_name, source_file: e.source_file, imported_at: e.imported_at};
+        out.push({key: 'e' + id, exam, badge: 'đã có trong ngân hàng', title: exam.name,
+            text: src.source_name ? <>Trùng toàn bộ {blocksOf(exam).length} khối với <Source bankId={bankId} s={src}/>.</> : `Đã có ${e.count} câu của đề này trong ngân hàng.`});
+    }
+    const block = (d: BlockDup, inBank: boolean) => {
         const exam = exams.find(e => e.id === d.exam);
-        if (!exam) return null;
-        const blocks = blocksOf(exam), at = blocks.findIndex(b => b.id === d.block), block = blocks[at];
-        const first = inBank ? null : exams.find(e => e.id === d.inImport);
-        const n = block.questions.length;
-        return <div key={d.exam + d.block} className='vt-bk-dupitem'>
-            <b>{first ? `${first.name} và ${exam.name}` : exam.name} · Khối {at + 1} ({range(exam, block.questions.map(q => q.id))})</b>
-            <span>{first ? `Hai đề vừa nhập dùng cùng một ngữ liệu và cùng ${n} câu.` : <>Trùng ngữ liệu và {n} câu với khối {d.with}{d.source?.source_name && <> của <Source bankId={bankId} s={d.source}/></>} trong ngân hàng.</>}</span>
-            <label className='vt-bk-check'>
-                <input type='checkbox' checked={!keepDup[exam.id + d.block]} onChange={() => onToggle(exam.id + d.block)}/>
-                {first ? `Chỉ lưu một khối (của ${first.name})` : `Không lưu khối trùng này (${blocks.length - 1} khối còn lại của đề vẫn lưu)`}
-            </label>
-        </div>;
+        if (!exam) return;
+        const blocks = blocksOf(exam), at = blocks.findIndex(b => b.id === d.block), n = blocks[at].questions.length;
+        const first = inBank ? undefined : exams.find(e => e.id === d.inImport);
+        out.push({key: 'b' + d.exam + d.block, exam, badge: first ? 'trùng nhau' : 'trùng 1 khối',
+            title: `${first ? `${first.name} và ${exam.name}` : exam.name} · Khối ${at + 1} (${range(exam, blocks[at].questions.map(q => q.id))})`,
+            text: first ? `Hai đề vừa nhập dùng cùng một ngữ liệu và cùng ${n} câu.`
+                : <>Cùng ngữ liệu và {n} câu với khối {d.with}{d.source?.source_name && <> của <Source bankId={bankId} s={d.source}/></>} trong ngân hàng.</>});
     };
-    return <BankAlert tone='sun' title={title} acts={<Button variant='ghost' size='sm' disabled={busy} onClick={onRecheck}>Kiểm lại</Button>}>
-        <div className='vt-bk-dup'>
-            {same.map(([id, e]) => {
-                const exam = exams.find(x => x.id === id);
-                const src: MatchSource = {source_name: e.name || bankDups.find(d => d.exam === id)?.source?.source_name, source_file: e.source_file, imported_at: e.imported_at};
-                const all = exam ? blocksOf(exam).length : 0;
-                return <div key={id} className='vt-bk-dupitem'>
-                    <b>{exam?.name} đã có trong ngân hàng này</b>
-                    <span>{src.source_name
-                        ? <>Trùng toàn bộ {all} khối với <Source bankId={bankId} s={src}/>.</>
-                        : `Đã có ${e.count} câu của đề này trong ngân hàng.`} Đã bỏ chọn đề này.</span>
-                </div>;
-            })}
-            {bankDups.map(d => card(d, true))}
-            {impDups.map(d => card(d, false))}
-        </div>
-    </BankAlert>;
+    bankDups.forEach(d => block(d, true));
+    impDups.forEach(d => block(d, false));
+    return out;
 }
 
-type SaveProps = {
-    saved: number; total: number; left: number; lines: Array<{id: string; name: string; file: string; message: string}>;
-    bankId: string; busy: boolean; onRetry: () => void;
-};
+/** Dialog after the check found something (artboard dup-dialog): "Vẫn nhập" saves everything, "Xem lại" closes it and marks the spots. */
+export function DupDialog({open, items, total, onKeep, onReview}: {open: boolean; items: Suspect[]; total: number; onKeep: () => void; onReview: () => void}) {
+    return <Modal open={open} onClose={onReview} title={`Có ${items.length} chỗ nghi trùng`}
+                  footer={<><Button variant='secondary' onClick={onReview}>Xem lại</Button><Button variant='primary' onClick={onKeep}>Vẫn nhập</Button></>}>
+        <ul className='v4-duplist'>
+            {items.map(i => <li key={i.key}><b>{i.title}</b> <Badge tone='sun'>{i.badge}</Badge><span>{i.text}</span></li>)}
+        </ul>
+        <p className='v4-muted'>Vẫn nhập: lưu cả {total} đề như hiện tại, kể cả phần trùng. Xem lại: đóng hộp này, chỗ trùng được đánh dấu trên danh sách đề để bạn bỏ chọn hoặc sửa.</p>
+    </Modal>;
+}
 
-/** After a partial save (artboard import-save-error): what failed, what is safe, what to press. */
-export function SaveErrorPanel({saved, total, left, lines, bankId, busy, onRetry}: SaveProps) {
+/** Inside the open exam, on top of a suspected block (artboard dup-review). A ticked box = this block is left out of the import. */
+export function DupNote({text, others, dropped, onToggle}: {text: ReactNode; others: number; dropped: boolean; onToggle: () => void}) {
+    return <div className='v4-dup-head' role='status'>
+        <icons.IconWarn size={16}/>
+        <div>
+            <b>Khối này nghi trùng</b>
+            <span>{text}</span>
+            <label className='vt-bk-check'>
+                <input type='checkbox' checked={dropped} onChange={onToggle}/>
+                Không nhập khối này ({others} khối còn lại của đề vẫn nhập)
+            </label>
+        </div>
+    </div>;
+}
+
+type SaveProps = {saved: number; total: number; left: number; lines: Array<{id: string; name: string; file: string; message: string}>; bankId: string};
+
+/** After a partial save (artboard save-error): what failed and what is safe. The retry is the bar's own button. */
+export function SaveErrorPanel({saved, total, left, lines, bankId}: SaveProps) {
     return <BankAlert tone='err' role='alert' title={`Đã lưu ${saved}/${total} đề. ${left} đề chưa lưu`}
-                      acts={<>
-                          <Button variant='primary' size='sm' disabled={busy || !left} onClick={onRetry}>{`Lưu lại ${left} đề chưa lưu`}</Button>
-                          <Link className={buttonClass({variant: 'secondary', size: 'sm'})} to={'/question-bank/' + bankId}>Xem ngân hàng</Link>
-                      </>}>
+                      acts={<Link className={buttonClass({variant: 'secondary', size: 'sm'})} to={'/question-bank/' + bankId}>Xem ngân hàng</Link>}>
         <ul>{lines.map(l => <li key={l.id}><b>{l.name}</b>{l.file && ` (${l.file})`}: {l.message}</li>)}</ul>
         {saved > 0 && <span>{saved} đề đã lưu nằm trong ngân hàng, không cần nhập lại.</span>}
     </BankAlert>;
