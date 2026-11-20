@@ -233,9 +233,10 @@ type BodyProps = {
     canRenumber: boolean;
     /** Block bank: the "Khối sẽ cắt" column of the summary. */
     cut?: {part: (i: number) => string; total: number};
+    plain?: boolean;
 };
 
-function ExamBody({onFix, exam, edit, duplicates, desktop, onTab, dups, issues, seen, onSee, renumbered, onRenumber, canRenumber, cut}: BodyProps) {
+function ExamBody({onFix, exam, edit, duplicates, desktop, onTab, dups, issues, seen, onSee, renumbered, onRenumber, canRenumber, cut, plain}: BodyProps) {
     const [pasting, setPasting] = useState(false);
     const [renumbering, setRenumbering] = useState(false);
     const stash = useRef<Stash>({});
@@ -274,7 +275,7 @@ function ExamBody({onFix, exam, edit, duplicates, desktop, onTab, dups, issues, 
 
     let no = 0;
     return <div className='vt-imp-body'>
-        <SummaryBar exam={exam} issues={issues} cut={cut}/>
+        <SummaryBar exam={exam} issues={issues} cut={cut} plain={plain}/>
         <IssueList compact={!desktop} issues={issues} seen={seen} onSee={onSee} jump={jump} onGo={go} onFix={onFix}/>
         <div className='vt-imp-tools'>
             <Button variant='secondary' size='sm' onClick={() => setPasting(true)}>Dán đáp án nhanh</Button>
@@ -772,7 +773,7 @@ export default function ImportExam() {
             ? <ImportUpload onFiles={readFiles} pick={pickFile} onGuide={() => setGuide('')}/>
             : <div className='v4-up'>
                 <div className='v4-col'>
-                    <ImportUpload compact onFiles={readFiles} pick={pickFile} onGuide={() => setGuide('')}/>
+                    <ImportUpload compact brief={files.some(f => f.shared)} onFiles={readFiles} pick={pickFile} onGuide={() => setGuide('')}/>
                     {files.some(f => f.shared) && !paperTarget && <BankAlert tone='info' title={`Chưa có ngân hàng nguyên đề${noPaperSubject}?`}
                         acts={<Link className={buttonClass({variant: 'secondary', size: 'sm'})} to='/question-bank'>Tạo ngân hàng nguyên đề</Link>}>
                         Tạo ở trang Ngân hàng câu hỏi, chọn loại “Nguyên đề”, rồi nhập lại file này.
@@ -872,7 +873,7 @@ export default function ImportExam() {
                         </div>
                         <ExamBody onFix={setGuide} exam={openExam} edit={patchExam(openExam.id)} duplicates={duplicates} desktop={desktop} onTab={setTab} dups={dupNotes}
                                   issues={openIssues} seen={seen} onSee={i => setSeen(m => ({...m, [issueKey(i)]: true}))}
-                                  canRenumber={!bankId} cut={blockBank ? {part: i => cutLabel(openExam, i), total: blocksOf(openExam).length} : undefined}
+                                  canRenumber={!bankId} cut={blockBank ? {part: i => cutLabel(openExam, i), total: blocksOf(openExam).length} : undefined} plain={paperBank}
                                   renumbered={!!renumbered[openExam.id]} onRenumber={() => setRenumbered(m => ({...m, [openExam.id]: true}))}/>
                     </Card>
                 </div>}

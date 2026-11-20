@@ -48,7 +48,7 @@ export default function ImportFiles({rows, onRemove, onRetry, onReplace, onGuide
             {rows.map(r => <li key={r.key} className={'vt-imp-file vt-imp-file--' + r.status}>
                 <span className='vt-imp-file-icon' aria-hidden='true'>
                     {r.status === 'ok' ? <icons.IconCheckCircle size={22} color='var(--vt-ok-ink)'/>
-                        : r.status === 'error' ? <icons.IconWarn size={22}/> : <span className='vt-imp-file-spin'/>}
+                        : r.status === 'error' ? <icons.IconXCircle size={22}/> : <span className='vt-imp-file-spin'/>}
                 </span>
                 <div className='vt-imp-file-main'>
                     <b>{r.file.name}</b>
@@ -58,8 +58,8 @@ export default function ImportFiles({rows, onRemove, onRetry, onReplace, onGuide
                         {!!r.shared && <> · bỏ {r.shared} đề có khối “Cho biết”</>}</span>}
                     {r.status === 'error' && r.shared ? <>
                         <span className='vt-imp-file-err' role='alert'>
-                            <b>Đề có khối “Cho biết”</b> (nguyên tử khối dùng chung cho cả đề). Ngân hàng theo khối cắt đề thành khối rời nên không giữ được phần này, học sinh sẽ không thấy.
-                            {' '}Đề như thế cần nhập vào <b>ngân hàng nguyên đề</b>: rút nguyên đề, “Cho biết” luôn hiện đầu bài.</span>
+                            <b>Đề có khối “Cho biết”</b> (nguyên tử khối dùng chung cho cả đề). Ngân hàng theo khối cắt đề thành khối rời nên không giữ được phần này, học sinh sẽ không thấy.</span>
+                        <span className='vt-imp-file-err'>Đề như thế cần nhập vào <b>ngân hàng nguyên đề</b>: rút nguyên đề, “Cho biết” luôn hiện đầu bài.</span>
                         <span className='vt-imp-file-acts'>
                             {paperTarget && <Button variant='secondary' size='sm' onClick={onGoPaper}>Nhập vào “{paperTarget.name}”</Button>}
                             <button type='button' className='vt-imp-link' onClick={() => onRemove(r.key)}>Bỏ file</button>

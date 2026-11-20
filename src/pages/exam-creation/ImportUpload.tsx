@@ -15,8 +15,8 @@ const WAYS: Array<[string, ReactNode]> = [
     ['Bảng ĐÁP ÁN', <><b>ĐÁP ÁN</b><br/>1 2 3 4<br/>B C A D</>],
 ];
 
-/** Step 1 (IV2-TaiLen): drop zone + the 3 rules + samples. Never reads the file itself — hands it to `onFile`. */
-export default function ImportUpload({onFiles, pick, onGuide, compact}: {onFiles: (f: File[]) => void; pick: () => void; onGuide: () => void; compact?: boolean}) {
+/** Step 1 (IV2-TaiLen): drop zone (`brief`: short text, while a «Cho biết» notice sits under it) + the 3 rules + samples. Never reads the file itself — hands it to `onFile`. */
+export default function ImportUpload({onFiles, pick, onGuide, compact, brief}: {onFiles: (f: File[]) => void; pick: () => void; onGuide: () => void; compact?: boolean; brief?: boolean}) {
     const [over, setOver] = useState(false);
     const drop = (e: DragEvent) => {
         e.preventDefault(); setOver(false);
@@ -30,8 +30,13 @@ export default function ImportUpload({onFiles, pick, onGuide, compact}: {onFiles
                      onDragLeave={() => setOver(false)} onDrop={drop}>
                     <icons.IconArrowUp size={48}/>
                     <div className='vt-imp-zone-text'>
-                        <h2>Kéo một hoặc nhiều file Word vào đây</h2>
-                        <span className='vt-imp-hint'>Chọn được nhiều file một lần. Chỉ nhận .docx, mỗi file tối đa 10 MB, mỗi file chứa được nhiều đề.</span>
+                        {brief ? <>
+                            <h2>Thêm file Word</h2>
+                            <span className='vt-imp-hint'>Kéo thả hoặc chọn nhiều file .docx.</span>
+                        </> : <>
+                            <h2>Kéo một hoặc nhiều file Word vào đây</h2>
+                            <span className='vt-imp-hint'>Chọn được nhiều file một lần. Chỉ nhận .docx, mỗi file tối đa 10 MB, mỗi file chứa được nhiều đề.</span>
+                        </>}
                     </div>
                     <Button variant='primary' onClick={pick}>Chọn file .docx</Button>
                 </div>

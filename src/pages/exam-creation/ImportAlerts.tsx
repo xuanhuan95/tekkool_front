@@ -61,7 +61,7 @@ export function suspects(bankId: string, exams: ImportedExam[], bankDups: BlockD
         out.push({key: 'b' + d.exam + d.block, exam, badge: first ? 'trùng nhau' : 'trùng 1 khối',
             title: `${first ? `${first.name} và ${exam.name}` : exam.name} · Khối ${at + 1} (${range(exam, blocks[at].questions.map(q => q.id))})`,
             text: first ? `Hai đề vừa nhập dùng cùng một ngữ liệu và cùng ${n} câu.`
-                : <>Cùng ngữ liệu và {n} câu với khối {d.with}{d.source?.source_name && <> của <Source bankId={bankId} s={d.source}/></>} trong ngân hàng.</>});
+                : <>Khối {at + 1} ({range(exam, blocks[at].questions.map(q => q.id))}) cùng ngữ liệu và {n} câu với khối {d.with}{d.source?.source_name && <> của <Source bankId={bankId} s={d.source}/></>} trong ngân hàng.</>});
     };
     bankDups.forEach(d => block(d, true));
     impDups.forEach(d => block(d, false));

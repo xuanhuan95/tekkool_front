@@ -14,8 +14,8 @@ export const LevelBadge = ({issue}: {issue: ImportIssue}) =>
  * Summary table by Phần (IV2-XemTruoc): kind, questions read / declared, answers, score, warnings, then "Cả đề".
  * What the file declares per Phần is `stats.sections` (BE); an older BE sends none and the cells show "—". On a phone the long labels and the warnings column drop (IV2-M-DaDoc).
  */
-/** `cut`: bank import only — what each Phần is cut into ("Khối sẽ cắt") and how many blocks the whole exam makes. */
-export function SummaryBar({exam, issues, cut}: {exam: ImportedExam; issues: ImportIssue[]; cut?: {part: (i: number) => string; total: number}}) {
+/** `plain`: whole-exam bank, same table without the cut column. `cut`: block bank only — what each Phần is cut into ("Khối sẽ cắt") and how many blocks the whole exam makes. */
+export function SummaryBar({exam, issues, cut, plain}: {exam: ImportedExam; issues: ImportIssue[]; cut?: {part: (i: number) => string; total: number}; plain?: boolean}) {
     const parts = partRows(exam, issues);
     // Read on screen (a deleted question leaves at once); declared: the file's total, else the sum of the Phần when every one says so
     const read = exam.sections.reduce((n, s) => n + toUnits(s.questions).length, 0);
@@ -27,15 +27,15 @@ export function SummaryBar({exam, issues, cut}: {exam: ImportedExam; issues: Imp
     const state = (a: number, b: number, noun = '') => a === b ? <span className='ok'>đủ</span> : <span className='sun'>{a < b ? `thiếu ${formatDecimal(b - a)}` : `thừa ${formatDecimal(a - b)}`} {noun}</span>;
     const warn = (e: number, l: number) => e + l === 0 ? 'không có' : [e && `${e} nặng`, l && `${l} nhẹ`].filter(Boolean).join(' · ');
     // Block bank (artboard v4 preview): four plain columns, no title; warnings and answers are shown per exam and per question.
-    if (cut) return <section className='vt-imp-sum' aria-label='Tóm tắt theo phần'>
+    if (cut || plain) return <section className='vt-imp-sum' aria-label='Tóm tắt theo phần'>
         <div className='vt-imp-sum-scroll'>
             <table className='vt-imp-sum-table vt-imp-sum-table--cut'>
-                <thead><tr><th>Phần</th><th>Khối sẽ cắt</th><th>Số câu</th><th>Điểm</th></tr></thead>
+                <thead><tr><th>Phần</th>{cut && <th>Khối sẽ cắt</th>}<th>Số câu</th><th>Điểm</th></tr></thead>
                 <tbody>{parts.map((p, pi) => <tr key={p.name + p.kind}>
-                    <th scope='row'>{p.name}</th><td>{cut.part(pi)}</td><td>{p.read}</td><td>{p.score === undefined ? '—' : formatDecimal(p.score)}</td>
+                    <th scope='row'>{p.name}</th>{cut && <td>{cut.part(pi)}</td>}<td>{p.read}</td><td>{p.score === undefined ? '—' : formatDecimal(p.score)}</td>
                 </tr>)}</tbody>
                 <tfoot><tr>
-                    <th scope='row'>Cả đề</th><td>{cut.total} khối</td><td>{read}</td>
+                    <th scope='row'>Cả đề</th>{cut && <td>{cut.total} khối</td>}<td>{read}</td>
                     <td>{typeof score === 'number' ? <>{formatDecimal(score)} {state(score, 10)}</> : '—'}</td>
                 </tr></tfoot>
             </table>
