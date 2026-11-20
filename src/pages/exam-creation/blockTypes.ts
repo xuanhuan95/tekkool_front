@@ -51,3 +51,5 @@ const SHEET_KINDS: Record<string, {name: string; unit: string}> = {
 };
 export const kindName = (t: string) => SHEET_KINDS[t]?.name ?? blockLabel(t).replace(/\s*\(.*\)$/, '');
 export const kindUnit = (t: string) => SHEET_KINDS[t]?.unit ?? 'câu';
+/** Type as a teacher names it in a sentence: "Viết đoạn văn", "Đọc hiểu" (the label without the bracket). */
+export const typeName = (t: string) => blockLabel(t).replace(/\s*\(.*\)$/, '');

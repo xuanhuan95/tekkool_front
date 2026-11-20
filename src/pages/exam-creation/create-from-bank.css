@@ -183,3 +183,31 @@
 .v3-total { text-align: center; }
 .v3-total--warn { margin: 0; padding: 6px 12px; border-radius: 8px; background: var(--vt-sun-soft); font-size: 14px; text-align: center; }
 @media (hover: none), (max-width: 1023.98px) { .v3-addslot { opacity: 1; height: auto; margin: 0; justify-content: flex-start; } .v3-addslot .v3-add { min-height: 40px; padding: 6px 12px; font-size: 13px; } }
+
+/* v5: "Đề mẫu" card, a .docx uploaded by the teacher (artboards APP-teacher-bank-v5-create-*) */
+.v5-drop{ border: 2px dashed var(--vt-line-option); border-radius: var(--vt-r-btn); padding: 16px; display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.v5-drop b{ font-size: 15px; }
+.v5-drop span{ font-size: 13px; color: var(--vt-muted); line-height: 1.45; }
+.v5-drop span b{ font-size: 13px; color: var(--vt-ink); }
+.v5-file{ display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); }
+.v5-file--err{ border-color: var(--vt-err); }
+.v5-file > svg, .v5-file > .vt-bk-spin{ flex-shrink: 0; margin-top: 2px; }
+.v5-file-main{ display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1 1 auto; }
+.v5-file-main > b{ font-size: 14px; overflow-wrap: anywhere; }
+.v5-file-main > span{ font-size: 13px; color: var(--vt-muted); }
+.v5-err{ color: var(--vt-err) !important; }
+.v5-file-acts{ display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+.v5-hr{ border: 0; border-top: 1.5px solid var(--vt-line-soft); margin: 4px 0; width: 100%; }
+.v5-none{ display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; min-height: 44px; box-sizing: border-box; border: 1.5px solid var(--vt-line-option); border-radius: var(--vt-r-btn); cursor: pointer; background: var(--vt-card); }
+.v5-none:has(input:checked){ border: var(--vt-border); background: var(--vt-action); }
+.v5-none input{ width: 20px; height: 20px; margin-top: 1px; accent-color: var(--vt-ink); flex-shrink: 0; }
+.v5-none b{ display: block; font-size: 15px; }
+.v5-none small{ display: block; color: var(--vt-muted); font-size: 13px; }
+.v3-empty .vt-bk-spin{ width: 28px; height: 28px; }
+.v5-card{ display: flex; flex-direction: column; gap: 10px; }
+.v5-over .v5-drop, .v5-over .v5-file{ border-color: var(--vt-ink); background: var(--vt-action); }
+.v5-indet{ display: block; height: 100%; width: 40%; background: var(--vt-action); border-right: 1.5px solid var(--vt-ink); animation: v5-indet 1.2s ease-in-out infinite; }
+@keyframes v5-indet{ from{ transform: translateX(-100%); } to{ transform: translateX(250%); } }
+@media (prefers-reduced-motion: reduce){ .v5-indet{ animation: none; width: 100%; opacity: .4; } }
+.v5-file-acts .vt-imp-link{ min-height: 0; display: block; }   /* the artboard draws this as a plain text link */
+.v5-file--busy .vt-bk-prog{ margin-top: -4px; }   /* the artboard sets the bar right under the text, no gap */
