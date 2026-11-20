@@ -33,7 +33,7 @@ export default function ExamPage() {
     }
     if (!e) return <Loading/>;
 
-    const ref = {id: e.id, name: e.name, status: e.status, has_submissions: e.submissions.total > 0, from: e.folder?.id || ''};
+    const ref = {id: e.id, name: e.name, status: e.status, has_submissions: e.submissions.total > 0, submissions: e.submissions.total, from: e.folder?.id || ''};
     const when = whenText(e.updated_at);
     return <div className='vt-th-page'>
         <nav className='vt-th-crumb' aria-label='Đường dẫn'>

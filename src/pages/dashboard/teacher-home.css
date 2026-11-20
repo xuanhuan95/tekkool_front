@@ -122,3 +122,9 @@
 .vt-sheet button.row:first-of-type { border-top: 0; }
 .vt-sheet button.row b { font-size: 16px; }
 .vt-sheet .vt-btn { margin-top: 8px; }
+
+/* Artboard: "Xem bài nộp" in the exam page card is 15px (global .vt-link is 14px). */
+.vt-th-card .vt-link { font-size: 15px; }
+/* Artboard: the selected "Tất cả" chip shows a text "✓" glyph, not the svg tick. */
+.vt-th-filters .vt-chip[aria-pressed='true'] svg { display: none; }
+.vt-th-filters .vt-chip[aria-pressed='true']::before { content: '✓'; }

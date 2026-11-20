@@ -10,13 +10,13 @@ import Default from '../exam-creation/Default';
 import {examName, isPublished} from './examMeta';
 
 /** The exam row / exam page both act on this much of an exam. `from` = id of the subject it sits in now. */
-export type ExamRef = Pick<ExamSummary, 'id' | 'name' | 'status' | 'has_submissions'> & {from: string};
+export type ExamRef = Pick<ExamSummary, 'id' | 'name' | 'status' | 'has_submissions'> & {from: string; submissions?: number};
 type Pending = {kind: 'delete' | 'unpublish'; exam: ExamRef; submissions?: number};
 
 /**
  * Publish / back to draft / delete / duplicate / move of ONE exam, with the same confirmations on the subject
  * screen (⋯ menu of a row) and on `/exam/:id`. `dialogs` must be rendered once by the screen that uses it.
- * ponytail: the "bài nộp" number for the unpublish warning still comes from to_grade; the 409 on delete stays a safety net.
+ * ponytail: the unpublish warning uses the submission count already on the exam (no to_grade: it is 403 for non-assigned owners/Admin); the 409 on delete stays a safety net.
  */
 export function useExamActions(subjects: Folder[], onDeleted?: () => void) {
     const qc = useQueryClient();
@@ -51,14 +51,10 @@ export function useExamActions(subjects: Folder[], onDeleted?: () => void) {
         notify.success('Đã chuyển về nháp', 'Học sinh không còn thấy đề này.');
     }, 'Không chuyển về nháp được');
 
-    // Light warning only when the exam already has submissions (to_grade lists them); none → switch at once.
-    const askUnpublish = async (e: ExamRef) => {
-        setBusy(true);
-        try {
-            const subs = await Api.get<unknown[]>(`exam/to_grade/${e.id}`);
-            if (subs.length) { setPending({kind: 'unpublish', exam: e, submissions: subs.length}); setBusy(false); }
-            else { setBusy(false); unpublish(e); }
-        } catch (err) { setBusy(false); notify.error('Không chuyển về nháp được', errorText(err, 'Thử lại sau.')); }
+    // Light warning only when the exam already has submissions (count from exam/list / exam detail); none → switch at once.
+    const askUnpublish = (e: ExamRef) => {
+        if (e.has_submissions || (e.submissions ?? 0) > 0) setPending({kind: 'unpublish', exam: e, submissions: e.submissions});
+        else unpublish(e);
     };
 
     const remove = (e: ExamRef) => run(async () => {
@@ -86,7 +82,7 @@ export function useExamActions(subjects: Folder[], onDeleted?: () => void) {
         <ConfirmDialog open={pending?.kind === 'unpublish'} loading={busy}
                        title={pending ? `Chuyển “${examName(pending.exam)}” về nháp?` : ''}
                        cancelLabel='Để nguyên' confirmLabel='Chuyển về nháp'
-                       message={pending && <span>Đề đã có <b>{pending.submissions} bài nộp</b>. Học sinh sẽ không còn thấy và không làm được đề này. Bài đã nộp vẫn giữ.</span>}
+                       message={pending && <span>Đề đã có <b>{pending.submissions ? pending.submissions + ' bài nộp' : 'bài nộp'}</b>. Học sinh sẽ không còn thấy và không làm được đề này. Bài đã nộp vẫn giữ.</span>}
                        onCancel={() => setPending(null)} onConfirm={() => pending && unpublish(pending.exam)}/>
         <Modal open={!!moving} onClose={busy ? undefined : () => setMoving(null)} title='Chuyển sang môn nào?' mobileSheet
                footer={<Button variant='secondary' disabled={busy} onClick={() => setMoving(null)}>Huỷ</Button>}>

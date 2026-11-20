@@ -28,7 +28,7 @@ export function SourceBadge({source}: {source?: ExamSource | null}) {
     return source ? <Badge tone='title'>{SOURCE_LABEL[source]}</Badge> : null;
 }
 
-const asRef = (e: ExamSummary, from: string): ExamRef => ({id: e.id, name: e.name, status: e.status, has_submissions: e.has_submissions, from});
+const asRef = (e: ExamSummary, from: string): ExamRef => ({id: e.id, name: e.name, status: e.status, has_submissions: e.has_submissions, submissions: e.submission_count, from});
 
 /**
  * Right half of "Môn & đề": the open subject, its exams as rows (how it was made, status, numbers, main action, ⋯).

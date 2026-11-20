@@ -37,7 +37,6 @@ function open(path: string, o: {desktop?: boolean; state?: unknown; posts?: Reco
     const api = mockApi({
         'folder/list': o.folders ?? FOLDERS,
         'exam/list': (p: string) => EXAMS[p.split('=')[1]] || [],
-        'exam/to_grade': [],
     }, o.posts || {});
     render(<QueryClientProvider client={new QueryClient({defaultOptions: {queries: {retry: false}}})}>
         <MemoryRouter initialEntries={[{pathname: path, state: o.state}]}>
@@ -127,15 +126,25 @@ describe('desktop: master–detail', () => {
         await waitFor(() => expect(api.post).toHaveBeenCalledWith('exam/delete/T2'));
     });
 
-    it('Chuyển về nháp warns when the exam already has submissions', async () => {
+    it('Chuyển về nháp warns by submission_count of exam/list, without calling to_grade', async () => {
         const api = open('/subject/S1', {posts: {'exam/unpublish': {}}});
-        mockApi({'folder/list': FOLDERS, 'exam/list': (p: string) => EXAMS[p.split('=')[1]] || [], 'exam/to_grade': [{}, {}, {}]}, {'exam/unpublish': {}});
         const pub = (await screen.findByRole('link', {name: 'Toán — Đề 1'})).closest('li')!;
         fireEvent.click(within(pub).getByRole('button', {name: /Thao tác khác/}));
         fireEvent.click(screen.getByRole('menuitem', {name: /Chuyển về nháp/}));
         const dlg = await screen.findByRole('dialog', {name: /về nháp\?/});
-        expect(dlg.textContent).toContain('3 bài nộp');
+        expect(dlg.textContent).toContain('40 bài nộp');
         expect(api.post).not.toHaveBeenCalled();
+        expect(api.get).not.toHaveBeenCalledWith(expect.stringContaining('to_grade'));
+    });
+
+    it('Chuyển về nháp goes straight through when the exam has no submissions', async () => {
+        const api = open('/subject/S2', {posts: {'exam/unpublish': {}}});
+        const pub = (await screen.findByRole('link', {name: 'Văn — Đề cũ'})).closest('li')!;
+        fireEvent.click(within(pub).getByRole('button', {name: /Thao tác khác/}));
+        fireEvent.click(screen.getByRole('menuitem', {name: /Chuyển về nháp/}));
+        await waitFor(() => expect(api.post).toHaveBeenCalledWith('exam/unpublish/V1'));
+        expect(screen.queryByRole('dialog')).toBeNull();
+        expect(api.get).not.toHaveBeenCalledWith(expect.stringContaining('to_grade'));
     });
 
     it('duplicate from the menu refreshes the counts of the subject column', async () => {
