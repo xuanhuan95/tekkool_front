@@ -92,3 +92,7 @@ Khi BE trả 400 `Session does not exist` / `Token is not valid` / `Token is req
 tải lại `/`. `init()` lúc này không còn token nên không lặp; màn Đăng nhập đọc cờ một lần và hiện
 "Phiên đăng nhập đã hết, vui lòng đăng nhập lại.". Người chưa đăng nhập (đăng nhập thử lại bằng `loginWithRetry`) không bị chuyển trang.
 Màn tải dữ liệu hiển thị lý do thật bằng `errorText(error, …)`, không che thành "kiểm tra mạng".
+
+**Đăng nhập nơi khác (SPT-144):** BE trả `401 {reason: "session_replaced", error}` khi tài khoản vừa đăng nhập ở máy khác.
+Đi cùng đường trên (`isSessionReplaced`), cờ `sessionExpired` giữ nguyên câu `error` của BE; nhiều 401 song song chỉ xử lý một lần.
+Mở trang bằng token đã bị thay (F5): `init()` để lại cờ rồi lấy phiên khách mới bằng `session/init` không token.

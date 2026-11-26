@@ -31,6 +31,20 @@ describe('authStore.init', () => {
         expect(window.token).toBe('tok-moi');
     });
 
+    it('SPT-144: saved token was replaced elsewhere -> leaves the notice, takes a fresh visitor session', async () => {
+        const get = vi.spyOn(Api, 'get')
+            .mockRejectedValueOnce({code: 401, reason: 'session_replaced', error: 'Tài khoản của bạn vừa đăng nhập ở nơi khác'})
+            .mockResolvedValueOnce({id: 'khach', user: null});
+        window.localStorage.setItem('sessionToken', 'tok-cu');
+        window.sessionStorage.clear();
+
+        await useAuthStore.getState().init();
+
+        expect(get).toHaveBeenNthCalledWith(2, 'session/init');
+        expect(useAuthStore.getState()).toMatchObject({token: 'khach', user: null, ready: true});
+        expect(window.sessionStorage.getItem('sessionExpired')).toContain('nơi khác');
+    });
+
     it('never logged in: sends an empty token, does not blow up', async () => {
         const get = vi.spyOn(Api, 'get').mockResolvedValue({id: 'khach', user: null});
 
