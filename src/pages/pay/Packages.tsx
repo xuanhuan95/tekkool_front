@@ -21,7 +21,8 @@ export default function Packages() {
     const {data: wallet} = useWallet();
     const out = params.get('het-luot') === '1' || wallet?.remaining === 0;
 
-    const {sorted: list, decos} = packageDecos(packages || []);
+    const list = packages || [];
+    const decos = packageDecos(list);
     // The featured one gets the primary (blue) button; with none featured, the middle one does.
     const primaryId = (list.find(p => p.featured) || list[Math.min(1, list.length - 1)])?.id;
 
@@ -50,7 +51,7 @@ export default function Packages() {
             : !list.length
                     ? <EmptyState title='Chưa có gói nào đang bán' description='Quay lại sau nhé — Admin sẽ mở bán gói mới.'/>
                     : <ul className={cx('pk-grid', list.length === 4 && 'pk-grid--4')} aria-label='Các gói'>
-                        {list.map(p => <li key={p.id} className={cx(p.featured && 'pk-first')}>
+                        {list.map(p => <li key={p.id}>
                             <PackageCard pkg={p} deco={decos[p.id]} action={
                                 <Link to={'/payment/' + p.id} aria-label={'Chọn ' + (packageLabel(p.name) === p.name ? p.name : 'gói ' + p.name)}
                                       className={buttonClass({variant: p.id === primaryId ? 'primary' : 'secondary', block: true})}>

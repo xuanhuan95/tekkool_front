@@ -38,18 +38,18 @@ export const packageLabel = (name: string) => /^gói(\s|$)/i.test(name) ? name :
 
 export const stickerOf = (rank: number) => ({count: (rank % 3) + 1, fill: FILLS[rank % 3]});
 
-/** Packages sorted by turns ascending, plus each one's deco (keyed by id). */
-export function packageDecos(packages: Package[]): {sorted: Package[]; decos: Record<string, PackageDeco>} {
+/** Each package's deco (keyed by id). The list keeps the Admin order; only the sticker rank follows turns ascending. */
+export function packageDecos(packages: Package[]): Record<string, PackageDeco> {
     const sorted = [...packages].sort((a, b) => a.turns - b.turns);
     const per = (p: Package) => pricePerTurn(p.price, p.turns);
     const priced = sorted.filter(p => per(p) !== null);
     const base = priced.reduce<Package | null>((m, p) => !m || per(p)! > per(m)! ? p : m, null);
     const low = priced.reduce<Package | null>((m, p) => !m || per(p)! < per(m)! ? p : m, null);
-    const compare = sorted.length >= 2 && base !== null;
+    const compare = packages.length >= 2 && base !== null;
     const decos: Record<string, PackageDeco> = {};
     sorted.forEach((p, rank) => {
         decos[p.id] = {rank, maxPer: compare ? per(base!) : null, baseName: base?.name || '',
                        cheapest: compare && low === p && !p.featured};
     });
-    return {sorted, decos};
+    return decos;
 }

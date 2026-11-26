@@ -114,7 +114,7 @@ function PackageForm({pkg, onDone}: {pkg: Package | null; onDone: () => void}) {
                 <TextArea label='Mô tả' rows={3} value={d.description} error={show('description')}
                           onChange={e => setD({...d, description: e.target.value})}/>
                 <TextField label='Thứ tự' type='number' min={0} inputMode='numeric' value={d.order} error={show('order')}
-                           hint='Trang “Gói thi” của học sinh xếp theo số lượt tăng dần.'
+                           hint='Nhỏ hiển thị trước trên trang “Gói thi” của học sinh.'
                            onChange={e => setD({...d, order: e.target.value})}/>
                 <Switch checked={d.active} onChange={v => setD({...d, active: v})} label='Đang bán'/>
                 <Switch checked={d.featured} onChange={v => setD({...d, featured: v})} label='Gắn nhãn “Phổ biến”'/>

@@ -137,11 +137,13 @@ describe('Packages (HS-Goi)', () => {
         expect((await screen.findByLabelText('Lượt của em')).className).toContain('pk-hero--out');
     });
 
-    it('orders by turns, tapes the cheapest per turn, no tick on a one-line description', async () => {
+    it('keeps the Admin order, stickers follow turns, tapes the cheapest per turn, no tick on a one-line description', async () => {
         mockGet({'package/list': [PKGS[1], {id: 'P30', name: 'Gói 30', turns: 30, price: 240000}, PKGS[0]], 'payment/wallet': {remaining: 3}});
         wrap(<Packages/>, '/packages');
         await screen.findByText('Gói 30');
-        expect(screen.getAllByRole('heading', {level: 2}).map(h => h.textContent)).toEqual(['Gói 5 lượt', 'Gói 10 lượt', 'Gói 30']);
+        expect(screen.getAllByRole('heading', {level: 2}).map(h => h.textContent)).toEqual(['Gói 10 lượt', 'Gói 30', 'Gói 5 lượt']);
+        const tickets = (n: string) => screen.getByLabelText(n).querySelector('.pk-stk')!.querySelectorAll('g').length;
+        expect([tickets('Gói 5 lượt'), tickets('Gói 10 lượt'), tickets('Gói 30')]).toEqual([1, 2, 3]);
         expect(screen.getByText('Tiết kiệm nhất')).toBeTruthy();
         expect(screen.getByText('giá gốc')).toBeTruthy();
         expect(screen.getByLabelText('Gói 5 lượt').querySelector('.pk-list svg')).toBeNull();

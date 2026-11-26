@@ -61,7 +61,7 @@ export default function Payment() {
     const after = pkg && wallet && typeof wallet.remaining === 'number' ? wallet.remaining + pkg.turns : null;
 
     // On the white order card a white sticker would vanish: use the action blue instead.
-    const sticker = pkg ? stickerOf(packageDecos(packages!).decos[pkg.id].rank) : null;
+    const sticker = pkg ? stickerOf(packageDecos(packages!)[pkg.id].rank) : null;
 
     let body;
     if (loadError) {
