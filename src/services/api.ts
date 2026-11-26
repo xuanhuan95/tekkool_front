@@ -17,18 +17,25 @@ declare global {
 
 const SESSION_ERRORS = ['Session does not exist', 'Token is not valid', 'Token is required'];
 
+/** BE answers 401 `reason: session_replaced` when the account logged in on another device (SPT-144). */
+export function isSessionReplaced(e: unknown): boolean {
+    const o = e as ApiError | null | undefined;
+    return !!o && o.code === 401 && o.reason === 'session_replaced';
+}
+
 /** BE answers 400 with one of these messages when the session is gone (see tekkool_back/docs/api.md). */
 export function isSessionError(e: unknown): boolean {
     const o = e as ApiError | null | undefined;
-    return !!o && o.code === 400 && typeof o.error === 'string' && SESSION_ERRORS.includes(o.error);
+    return isSessionReplaced(e) ||
+        (!!o && o.code === 400 && typeof o.error === 'string' && SESSION_ERRORS.includes(o.error));
 }
 
 // authStore registers this (api.ts cannot import the store: it imports api.ts). The handler
 // itself decides whether a session error matters (only for a logged-in user).
-let onSessionError: (() => void) | null = null;
-export function setSessionErrorHandler(fn: () => void): void { onSessionError = fn; }
+let onSessionError: ((e: ApiError) => void) | null = null;
+export function setSessionErrorHandler(fn: (e: ApiError) => void): void { onSessionError = fn; }
 
-const notifySession = (e: unknown) => { if (isSessionError(e)) onSessionError?.(); };
+const notifySession = (e: unknown) => { if (isSessionError(e)) onSessionError?.(e as ApiError); };
 
 class BaseApi {
     _call<T = any>(url: string, method: Method, data?: unknown): Promise<T> {

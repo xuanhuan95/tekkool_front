@@ -3,7 +3,7 @@ import type {FormEvent} from 'react';
 import {Link, useNavigate} from 'react-router-dom';
 
 import Api from '../../services/api';
-import {SESSION_EXPIRED_KEY, SESSION_EXPIRED_MESSAGE, useAuthStore} from '../../stores/authStore';
+import {SESSION_EXPIRED_KEY, useAuthStore} from '../../stores/authStore';
 import {Button, PasswordField, TextField} from '../../components/ui';
 import {IconAlert} from '../../components/ui/icons';
 import {homeFor, loginErrorMessage, loginWithRetry, LOCKED_MESSAGE} from './authLogic';
@@ -23,7 +23,7 @@ export default function Login() {
         try {
             const expired = window.sessionStorage.getItem(SESSION_EXPIRED_KEY);
             window.sessionStorage.removeItem(SESSION_EXPIRED_KEY);
-            return expired ? SESSION_EXPIRED_MESSAGE : null;
+            return expired || null;
         } catch (e) { return null; }
     });
     const [busy, setBusy] = useState(false);

@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 
-import Api, {setSessionErrorHandler, setToken} from '../services/api';
+import Api, {isSessionReplaced, setSessionErrorHandler, setToken} from '../services/api';
 import type {Auth, User} from '../types/user';
 
 type AuthState = {
@@ -38,6 +38,16 @@ export const useAuthStore = create<AuthState>((set) => ({
             setToken(auth.id);
             set({token: auth.id, user: auth.user, ready: true});
         } catch (e) {
+            // Page opened with a token another device replaced: leave the notice, then take a fresh visitor session.
+            if (isSessionReplaced(e)) {
+                leaveNotice((e as {error?: string}).error);
+                setToken(null);
+                try {
+                    const auth = await Api.get<Auth>('session/init');
+                    setToken(auth.id);
+                    return set({token: auth.id, user: auth.user, ready: true});
+                } catch (e2) { /* fall through to the offline branch */ }
+            }
             // Offline or BE down: the app must still render, otherwise the screen
             // hangs on <Loading/> forever and the user has no idea what is going on.
             setToken(null);
@@ -76,13 +86,18 @@ export const SESSION_EXPIRED_MESSAGE = 'Phiên đăng nhập đã hết, vui lò
 // Do NOT clear `user` here: App would swap to <Login/> first, which reads and clears the notice flag
 // before the reload, so the reloaded page shows nothing (QC). `expiring` stops later in-flight failures firing it twice.
 let expiring = false;
+function leaveNotice(message?: string): void {
+    try { window.sessionStorage.setItem(SESSION_EXPIRED_KEY, message || SESSION_EXPIRED_MESSAGE); } catch (e) { /* private mode: message is lost, redirect still works */ }
+}
+// SPT-144: the same path handles `session_replaced` (message comes from BE). Several parallel 401s
+// run it once (`expiring`); the reload drops the react-query cache and the old user's state.
 export function watchSessionExpiry(): void {
     expiring = false;
-    setSessionErrorHandler(() => {
+    setSessionErrorHandler((e) => {
         if (expiring || !useAuthStore.getState().user) return;
         expiring = true;
         setToken(null);
-        try { window.sessionStorage.setItem(SESSION_EXPIRED_KEY, '1'); } catch (e) { /* private mode: message is lost, redirect still works */ }
+        leaveNotice(isSessionReplaced(e) ? e.error : undefined);
         window.location.href = '/';
     });
 }
