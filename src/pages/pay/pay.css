@@ -12,18 +12,63 @@
 .vt-pay-head-text { display: flex; flex-direction: column; gap: 2px; }
 .vt-pay-head-text > .vt-muted { font-size: 14px; }
 .vt-pay-back { align-self: flex-start; }
-.vt-pay-warn { display: flex; gap: 10px; align-items: center; background: var(--vt-sun-soft); border-color: var(--vt-sun); color: var(--vt-sun-ink); font-weight: 600; font-size: 14px; }
 
-/* Package cards: one column on phones, three on the web. */
-.vt-pay-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
-@media (min-width: 1024px) { .vt-pay-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; } }
-.vt-pay-pkg { display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; }
-.vt-pay-pkg-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.vt-pay-pkg-turns { font-family: var(--vt-font-hand); font-weight: 700; font-size: 40px; line-height: 1; }
-.vt-pay-pkg-price { font-family: var(--vt-font-hand); font-weight: 700; font-size: 26px; line-height: 1; }
-.vt-pay-pkg-sub { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--vt-muted); }
-.vt-pay-pkg-desc { font-size: 14px; line-height: 1.5; white-space: pre-line; }
-.vt-pay-pkg .vt-btn { margin-top: auto; }
+/* Gói thi (SPT-147), theo artboard APP-student-packages-v2-*. */
+.pk-page { display: flex; flex-direction: column; gap: 22px; }
+.pk-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.pk-top .vt-page-title { font-size: 34px; line-height: 1.1; margin: 0; }
+@media (min-width: 1024px) { .pk-top .vt-page-title { font-size: 40px; } }
+
+/* Turns card: tickets + big number on the left, 3 promises on the right (below the number on phones). */
+.pk-hero.vt-card { position: relative; display: flex; align-items: center; gap: 22px; padding: 20px 24px; background: var(--vt-sun-soft); box-shadow: 3px 4px 0 var(--vt-ink); border-radius: var(--vt-r-card-lg); }
+.pk-hero--out.vt-card { background: var(--vt-err-bg); }
+.pk-hero-art { flex-shrink: 0; }
+.pk-hero-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.pk-hero > .pk-perks { flex: 1; align-self: stretch; justify-content: center; padding-left: 24px; border-left: 2px dashed var(--vt-line-option); font-size: 15px; gap: 10px; }
+.pk-hero-k { font-size: 14px; font-weight: 600; color: var(--vt-muted); }
+.pk-hero-n { font-family: var(--vt-font-hand); font-weight: 700; font-size: 64px; line-height: .9; }
+.pk-hero-n small { font-size: 30px; margin-left: 6px; }
+.pk-perks { display: flex; flex-direction: column; gap: 6px; list-style: none; margin: 0; padding: 0; font-size: 14px; font-weight: 600; }
+.pk-perks li { display: flex; align-items: center; gap: 6px; }
+.pk-perks svg { color: var(--vt-ok-icon); }
+
+/* Package cards (Admin order): one column below 1024px, three columns on the web (four when there are four). */
+.pk-grid { display: grid; gap: 18px; grid-template-columns: 1fr; list-style: none; margin: 0; padding: 0; }
+@media (min-width: 1024px) {
+    .pk-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; align-items: stretch; padding: 14px 6px 0; }
+    .pk-grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.pk-card.vt-card { position: relative; display: flex; flex-direction: column; gap: 10px; padding: 20px 20px 18px; border-radius: var(--vt-r-card-lg); box-shadow: 3px 4px 0 var(--vt-ink); height: 100%; box-sizing: border-box; }
+.pk-card--hot.vt-card { background: var(--vt-action); transform: rotate(-1.2deg); box-shadow: 5px 7px 0 var(--vt-ink); }
+.pk-stk { width: 64px; height: 52px; }
+.pk-tape { position: absolute; top: -14px; right: 18px; padding: 5px 14px; font-weight: 700; font-size: 14px; border: 2px solid var(--vt-ink); border-radius: 6px 9px 5px 8px; transform: rotate(4deg); background: var(--vt-sun); color: var(--vt-ink); }
+.pk-tape--save { background: var(--vt-ok-bg); color: var(--vt-ok-ink); transform: rotate(-3deg); }
+.pk-name { font-family: var(--vt-font); line-height: 1.1; font-size: 15px; font-weight: 700; margin: 0; text-transform: uppercase; letter-spacing: .04em; color: var(--vt-muted); }
+.pk-card--hot .pk-name { color: var(--vt-ink); }
+.pk-turns { font-family: var(--vt-font-hand); font-weight: 700; font-size: 56px; line-height: .9; }
+.pk-turns small { font-size: 28px; margin-left: 4px; }
+.pk-price { font-family: var(--vt-font-hand); font-weight: 700; font-size: 30px; line-height: 1; }
+.pk-per { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--vt-muted); }
+.pk-per-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.pk-per b { color: var(--vt-ink); font-weight: 600; }
+.pk-bar { box-sizing: content-box; height: 10px; border: 1.5px solid var(--vt-ink); border-radius: 6px; background: var(--vt-card); overflow: hidden; }
+.pk-bar i { display: block; height: 100%; background: var(--vt-sun); }
+.pk-save { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--vt-ok-bg); color: var(--vt-ok-ink); }
+.pk-list { list-style: none; margin: 2px 0 4px; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.45; }
+.pk-list li { display: flex; gap: 8px; align-items: flex-start; }
+.pk-list svg { flex-shrink: 0; margin-top: 2px; color: var(--vt-ok-icon); }
+.pk-card .vt-btn { margin-top: auto; }
+@media (max-width: 640px) {
+    .pk-hero.vt-card { flex-direction: column; align-items: flex-start; gap: 12px; padding: 16px; }
+    .pk-hero-art { position: absolute; right: 14px; top: 12px; }
+    .pk-hero-art svg { width: 86px; height: 70px; }
+    .pk-hero > .pk-perks { align-self: stretch; padding: 10px 0 0; border-left: 0; border-top: 2px dashed var(--vt-line-option); font-size: 14px; gap: 6px; }
+}
+/* Checkout page: package sticker + tape on the order card */
+.pk-sum-stk { display: flex; align-items: center; gap: 12px; }
+.pk-sum-stk .pk-stk { width: 52px; height: 42px; }
+.pk-co-title { margin: 0; }
+.pk-tape--inline { position: static; transform: rotate(3deg); }
 
 /* Full-screen payment pages (no bottom nav): own header, centred column. */
 .vt-pay-full { min-height: 100vh; min-height: 100dvh; }

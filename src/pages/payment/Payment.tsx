@@ -1,12 +1,13 @@
 import {useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 
-import {Button, ErrorState, IconButton, StatusBadge, WaveLine, icons, Loading} from '../../components/ui';
+import {Button, ErrorState, IconButton, WaveLine, icons, Loading} from '../../components/ui';
 import Api from '../../services/api';
 import {usePackages} from '../../queries/payment';
 import {useWallet} from '../../queries/wallet';
 import type {CheckoutForm} from '../../types/payment';
 import {errorText, formatMoney} from '../../lib/format';
+import {TicketSticker, packageDecos, stickerOf} from '../pay/packageDeco';
 import '../pay/pay.css';
 
 /**
@@ -59,6 +60,9 @@ export default function Payment() {
     // Wallet may not be a valid object (still loading / failed) — then just skip the "after" line.
     const after = pkg && wallet && typeof wallet.remaining === 'number' ? wallet.remaining + pkg.turns : null;
 
+    // On the white order card a white sticker would vanish: use the action blue instead.
+    const sticker = pkg ? stickerOf(packageDecos(packages!)[pkg.id].rank) : null;
+
     let body;
     if (loadError) {
         body = <ErrorState title='Không tải được thông tin gói' description={errorText(loadError, 'Kiểm tra mạng rồi thử lại.')}
@@ -71,8 +75,11 @@ export default function Payment() {
         body = <>
             <section className='vt-card vt-pay-sum' aria-label='Đơn hàng'>
                 <div className='vt-pay-sum-head'>
-                    <span className='vt-pay-sum-name'>{pkg.name}</span>
-                    {pkg.featured && <StatusBadge status='popular'/>}
+                    <span className='pk-sum-stk'>
+                        <TicketSticker {...sticker!} fill={sticker!.fill === '#ffffff' ? 'var(--vt-action)' : sticker!.fill}/>
+                        <span className='vt-pay-sum-name'>{pkg.name}</span>
+                    </span>
+                    {pkg.featured && <span className='pk-tape pk-tape--inline'>Phổ biến</span>}
                 </div>
                 <div className='vt-pay-row'><span>Số lượt</span><b className='vt-num'>+{pkg.turns} lượt</b></div>
                 <div className='vt-pay-row'><span>Giá gói</span><b className='vt-num'>{formatMoney(pkg.price)}</b></div>
@@ -109,7 +116,7 @@ export default function Payment() {
             <WaveLine variant='mobile'/>
         </header>
         <main className='vt-pay-main'>
-            <h1 className='vt-page-title'>Xác nhận thanh toán</h1>
+            <h1 className='vt-page-title pk-co-title'>Xác nhận thanh toán</h1>
             {body}
         </main>
         {pkg && <footer className='vt-pay-foot'>
