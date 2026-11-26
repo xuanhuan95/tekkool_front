@@ -3,7 +3,7 @@ import type {ReactNode} from 'react';
 import {cx} from '../../components/ui';
 import type {Package} from '../../types/payment';
 import {formatMoney, groupDigits, pricePerTurn} from '../../lib/format';
-import {Tick, TicketSticker, stickerOf, type PackageDeco} from './packageDeco';
+import {Tick, TicketSticker, packageLabel, stickerOf, type PackageDeco} from './packageDeco';
 
 /**
  * One package as the student sees it (HS-Goi). Also the Admin "Xem trước — học sinh sẽ thấy"
@@ -25,7 +25,7 @@ export default function PackageCard({pkg, action, note, deco}: {
     const tape = pkg.featured ? 'Phổ biến' : deco?.cheapest ? 'Tiết kiệm nhất' : null;
     // One line = plain text; several lines = a list with ticks.
     const lines = (pkg.description || '').split('\n').map(s => s.trim()).filter(Boolean);
-    return <article className={cx('vt-card pk-card', pkg.featured && 'pk-card--hot')} aria-label={'Gói ' + pkg.name}>
+    return <article className={cx('vt-card pk-card', pkg.featured && 'pk-card--hot')} aria-label={packageLabel(pkg.name)}>
         {tape && <span className={cx('pk-tape', !pkg.featured && 'pk-tape--save')}>{tape}</span>}
         <TicketSticker {...sticker}/>
         <h2 className='pk-name'>{pkg.name}</h2>

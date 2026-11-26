@@ -121,9 +121,9 @@ describe('Packages (HS-Goi)', () => {
         expect(screen.getByLabelText('Lượt của em').textContent).toContain('7lượt');
         expect(screen.getByText('Lượt thi không hết hạn')).toBeTruthy();
         expect(screen.getByText('Phổ biến')).toBeTruthy();
-        expect(screen.getByRole('link', {name: 'Chọn gói Gói 10 lượt'}).getAttribute('href')).toBe('/payment/P10');
+        expect(screen.getByRole('link', {name: 'Chọn Gói 10 lượt'}).getAttribute('href')).toBe('/payment/P10');
         // the featured package gets the primary button
-        expect(screen.getByRole('link', {name: 'Chọn gói Gói 10 lượt'}).className).toContain('vt-btn--primary');
+        expect(screen.getByRole('link', {name: 'Chọn Gói 10 lượt'}).className).toContain('vt-btn--primary');
     });
 
     it('turns the turns card red with 0 turns or ?het-luot=1', async () => {
@@ -144,7 +144,7 @@ describe('Packages (HS-Goi)', () => {
         expect(screen.getAllByRole('heading', {level: 2}).map(h => h.textContent)).toEqual(['Gói 5 lượt', 'Gói 10 lượt', 'Gói 30']);
         expect(screen.getByText('Tiết kiệm nhất')).toBeTruthy();
         expect(screen.getByText('giá gốc')).toBeTruthy();
-        expect(screen.getByLabelText('Gói Gói 5 lượt').querySelector('.pk-list svg')).toBeNull();
+        expect(screen.getByLabelText('Gói 5 lượt').querySelector('.pk-list svg')).toBeNull();
     });
 
     it('empty and error states', async () => {

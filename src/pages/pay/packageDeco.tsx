@@ -33,6 +33,9 @@ export interface PackageDeco {
     cheapest: boolean;
 }
 
+/** "Gói Cơ bản"; a name that already starts with "Gói" is not prefixed again. */
+export const packageLabel = (name: string) => /^gói(\s|$)/i.test(name) ? name : 'Gói ' + name;
+
 export const stickerOf = (rank: number) => ({count: (rank % 3) + 1, fill: FILLS[rank % 3]});
 
 /** Packages sorted by turns ascending, plus each one's deco (keyed by id). */

@@ -4,7 +4,7 @@ import {EmptyState, ErrorState, PageTitle, buttonClass, cx, Loading} from '../..
 import {usePackages} from '../../queries/payment';
 import {useWallet} from '../../queries/wallet';
 import PackageCard from './PackageCard';
-import {Tick, TicketSticker, packageDecos} from './packageDeco';
+import {Tick, TicketSticker, packageDecos, packageLabel} from './packageDeco';
 import {errorText} from '../../lib/format';
 import './pay.css';
 
@@ -52,7 +52,7 @@ export default function Packages() {
                     : <ul className={cx('pk-grid', list.length === 4 && 'pk-grid--4')} aria-label='Các gói'>
                         {list.map(p => <li key={p.id} className={cx(p.featured && 'pk-first')}>
                             <PackageCard pkg={p} deco={decos[p.id]} action={
-                                <Link to={'/payment/' + p.id} aria-label={'Chọn gói ' + p.name}
+                                <Link to={'/payment/' + p.id} aria-label={'Chọn ' + (packageLabel(p.name) === p.name ? p.name : 'gói ' + p.name)}
                                       className={buttonClass({variant: p.id === primaryId ? 'primary' : 'secondary', block: true})}>
                                     Chọn gói
                                 </Link>}/>
