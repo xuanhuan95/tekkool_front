@@ -61,7 +61,7 @@ describe('AdminPackages (AD-Goi)', () => {
         fireEvent.click(await screen.findByRole('button', {name: 'Sửa Gói 10 lượt'}));
         const form = within(screen.getByRole('region', {name: 'Sửa gói'}));
         fireEvent.change(form.getByLabelText('Giá (đ)'), {target: {value: '89.000'}});
-        expect(screen.getByText('≈ 8.900đ / lượt · không hết hạn')).toBeTruthy();
+        expect(screen.getByText('/ lượt · không hết hạn', {exact: false}).textContent).toBe('8.900đ / lượt · không hết hạn');
         fireEvent.click(form.getByRole('button', {name: 'Lưu thay đổi'}));
         await waitFor(() => expect(api.post).toHaveBeenCalledWith('package/update/p10',
             expect.objectContaining({price: 89000, turns: 10, active: true, featured: true})));

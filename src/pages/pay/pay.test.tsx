@@ -116,18 +116,35 @@ describe('Packages (HS-Goi)', () => {
         mockGet({'package/list': PKGS, 'payment/wallet': {bought: 10, used: 3, remaining: 7}});
         wrap(<Packages/>, '/packages');
         await screen.findByText('Gói 10 lượt');
-        expect(screen.getByText('≈ 9.900đ / lượt')).toBeTruthy();
-        expect(screen.getByText('7 lượt')).toBeTruthy();
+        expect(screen.getByText('9.900đ')).toBeTruthy();
+        expect(screen.getByText('Tiết kiệm 16%')).toBeTruthy(); // so với gói 5 lượt (11.800đ / lượt)
+        expect(screen.getByLabelText('Lượt của em').textContent).toContain('7lượt');
+        expect(screen.getByText('Lượt thi không hết hạn')).toBeTruthy();
         expect(screen.getByText('Phổ biến')).toBeTruthy();
-        expect(screen.getByRole('link', {name: 'Chọn Gói 10 lượt'}).getAttribute('href')).toBe('/payment/P10');
+        expect(screen.getByRole('link', {name: 'Chọn gói Gói 10 lượt'}).getAttribute('href')).toBe('/payment/P10');
         // the featured package gets the primary button
-        expect(screen.getByRole('link', {name: 'Chọn Gói 10 lượt'}).className).toContain('vt-btn--primary');
+        expect(screen.getByRole('link', {name: 'Chọn gói Gói 10 lượt'}).className).toContain('vt-btn--primary');
     });
 
-    it('shows the out-of-turns banner from ?het-luot=1', async () => {
+    it('turns the turns card red with 0 turns or ?het-luot=1', async () => {
         mockGet({'package/list': PKGS, 'payment/wallet': {bought: 0, used: 0, remaining: 0}});
+        const {unmount} = wrap(<Packages/>, '/packages');
+        expect((await screen.findByLabelText('Lượt của em')).className).toContain('pk-hero--out');
+        expect(screen.getByText('Em đã hết lượt')).toBeTruthy();
+        unmount();
+        mockGet({'package/list': PKGS, 'payment/wallet': {bought: 3, used: 0, remaining: 3}});
         wrap(<Packages/>, '/packages?het-luot=1');
-        expect(await screen.findByRole('alert')).toHaveTextContent('hết lượt');
+        expect((await screen.findByLabelText('Lượt của em')).className).toContain('pk-hero--out');
+    });
+
+    it('orders by turns, tapes the cheapest per turn, no tick on a one-line description', async () => {
+        mockGet({'package/list': [PKGS[1], {id: 'P30', name: 'Gói 30', turns: 30, price: 240000}, PKGS[0]], 'payment/wallet': {remaining: 3}});
+        wrap(<Packages/>, '/packages');
+        await screen.findByText('Gói 30');
+        expect(screen.getAllByRole('heading', {level: 2}).map(h => h.textContent)).toEqual(['Gói 5 lượt', 'Gói 10 lượt', 'Gói 30']);
+        expect(screen.getByText('Tiết kiệm nhất')).toBeTruthy();
+        expect(screen.getByText('giá gốc')).toBeTruthy();
+        expect(screen.getByLabelText('Gói Gói 5 lượt').querySelector('.pk-list svg')).toBeNull();
     });
 
     it('empty and error states', async () => {
